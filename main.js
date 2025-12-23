@@ -1,0 +1,33 @@
+// main.js
+import { setupDebugRow, initLazyCards } from './init.js';
+import { initCardSettings } from "./settingsUI.js";
+import { loadCardStates } from "./cardState.js";
+import { Clerk } from "@clerk/clerk-js";
+
+export var loggedInUserId = undefined;
+export var isLoggedIn = false;
+document.addEventListener("DOMContentLoaded", async () => {
+  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  const clerk = new Clerk(clerkPubKey);
+  await clerk.load({
+    // Set load options here
+  });
+
+  if (clerk.isSignedIn) {
+    const userButtonDiv = document.getElementById('user-button');
+    clerk.mountUserButton(userButtonDiv);
+    isLoggedIn = true;
+    loggedInUserId = clerk.user.id;
+
+    const tooltip = document.getElementById("tooltip");
+    const results = document.getElementById("results");
+    await setupDebugRow(tooltip);
+    await loadCardStates();
+    initCardSettings();
+    initLazyCards(results, tooltip);
+  } else {
+    loggedInUserId = false;
+    const signInDiv = document.getElementById('sign-in');
+    clerk.mountSignIn(signInDiv);
+  }
+});

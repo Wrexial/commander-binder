@@ -1,0 +1,30 @@
+{
+  "name": "scryfall",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "http-server . -p 8080",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "netlify dev:exec drizzle-kit migrate",
+    "db:studio": "netlify dev:exec drizzle-kit studio"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@auth0/auth0-spa-js": "^2.11.0",
+    "@clerk/clerk-js": "^5.117.0",
+    "@netlify/neon": "^0.1.0",
+    "cheerio": "^1.1.2",
+    "cors": "^2.8.5",
+    "drizzle-orm": "^0.45.1",
+    "netlify": "^23.13.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^5.1.2",
+    "drizzle-kit": "^0.18.1",
+    "vite": "^7.3.0"
+  }
+}

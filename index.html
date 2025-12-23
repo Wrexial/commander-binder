@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Legendary Creatures by First Appearance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="container">
+    <h1>Legendary Creatures (First Appearance)</h1>
+    <div id="user-button"></div>
+    <p class="description">
+      Each legendary creature appears once, ordered by the earliest printing of that card name.
+      (Uses all printings internally and deduplicates for historical accuracy.)
+    </p>
+    <div id="card-settings">
+      <label><input type="checkbox" data-setting="showColors"> Show colors</label>
+      <label><input type="checkbox" data-setting="showTooltip"> Show tooltips</label>
+      <label><input type="checkbox" data-setting="showEdhrecLink"> EDHREC link</label>
+      <label><input type="checkbox" data-setting="showDisabledCards"> Allow Card Disabling</label>
+    </div>
+
+    <!-- Debug row for testing different card types -->
+    <div id="debug-row">
+      <h2>Debug Row: Example Cards</h2>
+      <div class="grid"></div>
+    </div>
+
+    
+    <div id="sign-in"></div>
+
+    <div id="results"></div>
+    <div id="loading-indicator" class="loading-indicator">Loading...</div>
+    <div id="set-tooltip" class="set-tooltip"></div>
+    <div id="tooltip" class="tooltip" role="tooltip"></div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+
+</html>

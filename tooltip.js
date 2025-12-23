@@ -1,0 +1,209 @@
+// tooltip.js
+import { imageCache } from './config.js';
+import { cardSettings } from './cardSettings.js';
+
+let tooltipTimeout;
+let activeTooltip = null;
+
+const multiLayouts = ["modal_dfc", "transform", "double_faced_token"];
+
+// ---------------- Flip Card Helper ----------------
+function addFlipCard(frontUrl, backUrl, key) {
+  const container = document.createElement("div");
+  container.className = "flip-card";
+
+  const inner = document.createElement("div");
+  inner.className = "flip-card-inner";
+
+  const front = new Image();
+  front.src = frontUrl;
+  front.className = "flip-card-front";
+
+  const back = new Image();
+  back.src = backUrl;
+  back.className = "flip-card-back";
+
+  inner.appendChild(front);
+  inner.appendChild(back);
+  container.appendChild(inner);
+
+  container.addEventListener("click", () => {
+    container.classList.toggle("flipped");
+  });
+
+  return container;
+}
+
+// ---------------- Show Tooltip ----------------
+export function showTooltip(e, card, tooltip) {
+  if(!cardSettings.showTooltip){
+    return;
+  }
+
+  hideTooltip(tooltip);
+  activeTooltip = tooltip;
+
+  tooltipTimeout = setTimeout(() => {
+    tooltip.innerHTML = `<div class="loading">Loading...</div>`;
+    tooltip.style.display = "flex";
+
+    const images = [];
+
+    function addImage(url, key) {
+      let img;
+      if (imageCache.has(key)) {
+        img = imageCache.get(key).cloneNode();
+      } else {
+        img = new Image();
+        img.src = url;
+        img.onload = () => imageCache.set(key, img);
+        img.onerror = () => img.src = `placeholder`;
+      }
+      images.push(img);
+    }
+
+    // ---------------- Handle card images ----------------
+    if (card.card_faces && multiLayouts.includes(card.layout) && card.card_faces.length === 2) {
+        // MDFC's
+        card.card_faces.forEach((face, index) => {
+        const url = card.card_faces?.[index]?.image_uris?.normal;
+        if (!url && card.card_faces?.[index]?.image_uris === undefined) {
+          // sometimes Scryfall has image URL in "card_faces[index].image_uris" or "card_faces[index].normal"
+          url = card.card_faces?.[index]?.normal; 
+        }
+          addImage(url, card.id + "-" + index);
+        });
+    } else {
+      // Normal single-faced card
+      const url = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal;
+      addImage(url, card.id);
+    }
+
+    // ---------------- Wait for all images / flip cards to load ----------------
+    let loaded = 0;
+    images.forEach(el => {
+      if (el.tagName === "IMG") {
+        el.onload = el.onerror = () => {
+          loaded++;
+          if (loaded === images.length) finishTooltip(images, tooltip, e);
+        };
+      } else {
+        // Flip card container is already ready
+        loaded++;
+        if (loaded === images.length) finishTooltip(images, tooltip, e);
+      }
+    });
+
+    positionTooltip(e, tooltip);
+    
+    tooltip.style.display = "flex";
+    requestAnimationFrame(() => {
+      tooltip.classList.add("show");
+      positionTooltip(e, tooltip);
+    });
+
+  }, 200);
+}
+
+// ---------------- Render Tooltip ----------------
+function finishTooltip(images, tooltip, event) {
+  tooltip.innerHTML = "";
+
+  const container = document.createElement("div");
+  container.style.display = "flex";
+  container.style.gap = "8px";
+  container.style.alignItems = "center";
+  container.style.justifyContent = "center";
+
+  const maxTooltipHeight = window.innerHeight * 0.5;
+  const maxTooltipWidth = window.innerWidth * 0.8;
+  const imgWidth = Math.min(maxTooltipWidth / images.length, 400);
+
+  images.forEach(el => {
+    if (el.tagName === "IMG") {
+      el.style.maxWidth = `${imgWidth}px`;
+      el.style.maxHeight = `${maxTooltipHeight}px`;
+      el.style.borderRadius = "10px";
+    } else {
+      // Flip card container
+      el.style.width = `${imgWidth}px`;
+      el.style.maxHeight = `${maxTooltipHeight}px`;
+    }
+    container.appendChild(el);
+  });
+
+  tooltip.appendChild(container);
+  tooltip.classList.add("show"); // trigger scale/fade animation
+
+  // After adding images to tooltip
+  tooltip.classList.toggle("mdfc", images.length > 1);
+
+  positionTooltip(event, tooltip);
+}
+
+// ---------------- Hide Tooltip ----------------
+export function hideTooltip(tooltip) {
+  clearTimeout(tooltipTimeout);
+  tooltip.classList.remove("show");
+  tooltip.style.display = "none";
+  activeTooltip = null;
+  tooltip.innerHTML = "";
+}
+
+// ---------------- Position Tooltip ----------------
+export function positionTooltip(e, tooltip) {
+  const padding = 12;
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const rect = tooltip.getBoundingClientRect();
+
+  let x = e.clientX + padding;
+  let y = e.clientY + padding;
+
+  // Flip horizontally if overflowing
+  if (x + rect.width > vw) {
+    x = e.clientX - rect.width - padding;
+  }
+
+  // Clamp left
+  x = Math.max(padding, x);
+
+  // Flip vertically if overflowing
+  if (y + rect.height > vh) {
+    y = e.clientY - rect.height - padding;
+  }
+
+  // Clamp top
+  y = Math.max(padding, y);
+
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
+}
+
+window.addEventListener(
+  "scroll",
+  () => {
+    if (activeTooltip) {
+      hideTooltip(activeTooltip);
+    }
+  },
+  { passive: true }
+);
+
+window.addEventListener(
+  "touchstart",
+  () => {
+    if (activeTooltip) {
+      hideTooltip(activeTooltip);
+    }
+  },
+  { passive: true }
+);
+
+window.addEventListener("orientationchange", () => {
+  if (activeTooltip) {
+    hideTooltip(activeTooltip);
+  }
+});
