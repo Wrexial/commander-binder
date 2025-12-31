@@ -29,7 +29,7 @@ export function initLazyCards(results, tooltip) {
   startNewBinder(results);
 
   state.nextPageUrl =
-    "https://api.scryfall.com/cards/search?q=type:legendary type:creature -(set:slc OR set:slu OR set:sld OR set:slp)&unique=prints&order=released&dir=asc";
+    "https://api.scryfall.com/cards/search?q=is:commander -(set:slc OR set:slu OR set:sld OR set:slp)&unique=prints&order=released&dir=asc";
 
   // Start preloading
   fetchNextPage(results, tooltip);
