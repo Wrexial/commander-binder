@@ -104,16 +104,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* leave room for the top-right toggle button */
-  padding: 6px 36px 6px 8px;
+  /* Default padding; extra space is only added when `has-toggle` is present */
+  padding: 6px 8px;
   border: 1px solid var(--card-border, var(--card-border-default));
   border-radius: 6px;
   min-height: 2.4em;
   line-height: 1.2em;
   word-wrap: break-word;
   background: var(--card-bg, var(--card-bg-default));
-  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.12s ease, padding 0.12s ease;
   color: var(--card-text, var(--text));
+}
+
+/* When a card has the toggle button, give it extra right padding to avoid overlap */
+.card.has-toggle {
+  padding-right: 36px;
 }
 
 .card:hover {

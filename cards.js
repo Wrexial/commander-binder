@@ -50,6 +50,7 @@ export function createCardElement(card) {
     }
 
     div.appendChild(toggleBtn);
+    div.classList.add('has-toggle');
   }
 
   return div;
