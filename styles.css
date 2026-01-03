@@ -124,9 +124,9 @@ body {
   touch-action: manipulation;
 }
 
-/* When a card has the toggle button, we keep the layout stable. (No extra padding needed since toggle is positioned bottom-right) */
+/* When a card has the toggle button, reserve space on the right so badges don't overlap text */
 .card.has-toggle {
-  /* intentionally left blank to avoid layout shifts */
+  padding-right: 40px; /* ensure card text doesn't flow under badges */
 }
 
 .card:hover {
@@ -472,13 +472,14 @@ body {
 .owned-badge {
   display: none;
   position: absolute;
-  bottom: 6px;
-  right: 6px; /* positioned flush to the edge */
+  bottom: 4px;
+  right: 4px; /* move closer to the corner */
   background: rgba(60,179,113,0.95);
   color: #fff;
-  padding: 1px 6px;
-  font-size: 0.6rem;
-  border-radius: 6px;
+  padding: 0 5px;
+  font-size: 0.55rem;
+  line-height: 1.4;
+  border-radius: 5px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   z-index: 4; /* above the toggle */
 }
