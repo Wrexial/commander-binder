@@ -31,9 +31,12 @@ export function createCardElement(card) {
     const borderStyle = getCardBorderStyle(card);
     div.style.setProperty('--card-border', borderStyle.borderColor);
     div.style.setProperty('--card-bg', getCardBackground(card));
+    // Colored cards use a dark text color for legibility even in dark mode
+    div.style.setProperty('--card-text', '#111111');
   } else {
     div.style.setProperty('--card-border', 'var(--card-border-default)');
     div.style.setProperty('--card-bg', 'var(--card-bg-default)');
+    div.style.removeProperty('--card-text');
   }
 
   if(cardSettings.showDisabledCards){

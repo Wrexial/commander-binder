@@ -112,7 +112,7 @@ body {
   word-wrap: break-word;
   background: var(--card-bg, var(--card-bg-default));
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.12s ease;
-  color: var(--text);
+  color: var(--card-text, var(--text));
 }
 
 .card:hover {
@@ -124,10 +124,6 @@ body {
   outline: none;
   box-shadow: 0 0 0 3px rgba(76, 140, 200, 0.18);
   border-color: var(--focus);
-}
-
-.card .edhrec-rank {
-  /* keep as-is but adjust min styles */
 }
 
 .edhrec-rank {
@@ -323,43 +319,50 @@ body {
 /* Dark mode based on system preference */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121212;
-    --text: #e0e0e0;
-    --muted: #cccccc;
+    /* Darken base and reduce bright accents for better contrast comfort */
+    --bg: #0b0b0b;
+    --text: #d0d0d0;
+    --muted: #9a9a9a;
 
-    --card-bg-default: #1e1e1e;
-    --card-border-default: #555555;
+    --card-bg-default: #121212;
+    --card-border-default: #303030;
 
-    --tooltip-bg: #1e1e1e;
-    --tooltip-border: #555555;
+    --tooltip-bg: #111111;
+    --tooltip-border: #2a2a2a;
+
+    --edhrec-hover: rgba(255, 200, 0, 0.18);
+    --edhrec-surface: rgba(255, 255, 255, 0.02);
+
+    --section-bg: #0f0f0f;
+    --section-border: #262626;
   }
 
   .card {
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+    text-shadow: none;
   }
 
   .edhrec-rank {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
     color: #fff;
   }
 
   .edhrec-link {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--edhrec-surface);
   }
 
   .edhrec-link:hover {
-    background: rgba(255, 215, 0, 0.8);
+    background: var(--edhrec-hover);
   }
 
   .tooltip .loading {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
     color: #fff;
   }
 
   .loading-indicator,
   .set-tooltip {
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.9);
     color: #fff;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75);
   }
 }
