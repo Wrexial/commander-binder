@@ -451,9 +451,10 @@ body {
   }
 }
 .card.owned .card-toggle {
-  background: rgba(60,179,113,1);
-  color: #fff;
-  border-color: rgba(0,0,0,0.08);
+  /* remove green circle; keep toggle present but visually neutral */
+  background: transparent;
+  color: inherit;
+  border-color: rgba(0,0,0,0.06);
   font-size: 0.7rem;
   padding: 0;
   width: 18px;
@@ -464,6 +465,7 @@ body {
   align-items: center;
   justify-content: center;
   transform: translateY(0);
+  opacity: 0.9;
 }
 
 /* Owned badge */
@@ -471,14 +473,14 @@ body {
   display: none;
   position: absolute;
   bottom: 6px;
-  right: 30px; /* sits just left of the toggle */
+  right: 6px; /* positioned flush to the edge */
   background: rgba(60,179,113,0.95);
   color: #fff;
-  padding: 2px 6px;
-  font-size: 0.65rem;
-  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 0.6rem;
+  border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  z-index: 3;
+  z-index: 4; /* above the toggle */
 }
 
 .card.owned .owned-badge {
