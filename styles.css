@@ -172,6 +172,8 @@ body {
   opacity: 0;
 
   z-index: 2;
+  pointer-events: none; /* avoid accidental taps when hidden */
+  transition: opacity 0.12s ease, background 0.12s ease;
 }
 
 .edhrec-link img {
@@ -179,8 +181,11 @@ body {
   height: 14px;
 }
 
-.card:hover .edhrec-link {
+.card:hover .edhrec-link,
+.card.reveal-links .edhrec-link,
+.card:focus-within .edhrec-link {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .edhrec-link:hover {

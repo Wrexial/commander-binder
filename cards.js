@@ -79,16 +79,54 @@ export function attachCardHandlers(div, card, tooltip) {
   }
 
   const edhrecBtn = div.querySelector('.edhrec-link');
-  if (edhrecBtn) {
-    edhrecBtn.addEventListener("touchstart", e => {
-      pressTimer = setTimeout(() => {
-        window.open(edhrecBtn.href, "_blank", "noopener");
-      }, 500);
-    });
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    edhrecBtn.addEventListener("touchend", () => {
-      clearTimeout(pressTimer);
-    });
+  if (edhrecBtn) {
+    // On touch devices, require a long-press on the card to reveal the link.
+    // When revealed, the link becomes tappable for a short window.
+    if (isTouch) {
+      let revealTimer;
+      let hideTimer;
+
+      const startReveal = (e) => {
+        // start long-press timer to reveal
+        clearTimeout(revealTimer);
+        revealTimer = setTimeout(() => {
+          div.classList.add('reveal-links');
+          // auto-hide after a bit
+          clearTimeout(hideTimer);
+          hideTimer = setTimeout(() => div.classList.remove('reveal-links'), 1500);
+        }, 350);
+      };
+
+      const cancelReveal = () => {
+        clearTimeout(revealTimer);
+      };
+
+      div.addEventListener('touchstart', startReveal, { passive: true });
+      div.addEventListener('touchmove', cancelReveal, { passive: true });
+      div.addEventListener('touchend', cancelReveal, { passive: true });
+
+      // Prevent accidental taps on the hidden icon: only allow activation when revealed
+      edhrecBtn.addEventListener('click', (ev) => {
+        if (!div.classList.contains('reveal-links')) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
+        // else allow default navigation
+      });
+    } else {
+      // Non-touch devices keep small press-to-open convenience
+      edhrecBtn.addEventListener("touchstart", e => {
+        pressTimer = setTimeout(() => {
+          window.open(edhrecBtn.href, "_blank", "noopener");
+        }, 500);
+      });
+
+      edhrecBtn.addEventListener("touchend", () => {
+        clearTimeout(pressTimer);
+      });
+    }
   }
 
   div.addEventListener("click", async e => {
