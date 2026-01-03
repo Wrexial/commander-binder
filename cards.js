@@ -48,13 +48,15 @@ export function createCardElement(card) {
   if(cardSettings.showDisabledCards){
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "card-toggle";
-    toggleBtn.title = "Enable / Disable card";
-    toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Disable card' : 'Enable card');
+    // Toggle indicates whether you own the card (checkmark when owned)
+    toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
+    toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
     toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
-    toggleBtn.textContent = isCardEnabled(card) ? "⛔" : "";
+    toggleBtn.textContent = isCardEnabled(card) ? "" : "✓";
 
     if (!isCardEnabled(card)) {
-      div.classList.add("disabled");
+      // visually indicate this card is owned by the user
+      div.classList.add("owned");
     }
 
     div.appendChild(toggleBtn);
@@ -253,13 +255,13 @@ export function attachCardHandlers(div, card, tooltip) {
 
     e.stopPropagation();
     const enabled = await toggleCardEnabled(card);
-    div.classList.toggle("disabled", !enabled);
+    div.classList.toggle("owned", !enabled);
 
     const toggleBtn = div.querySelector('.card-toggle');
     if (toggleBtn) {
-      toggleBtn.textContent = enabled ? "⛔" : "";
+      toggleBtn.textContent = enabled ? "" : "✓";
       toggleBtn.setAttribute('aria-pressed', (!enabled).toString());
-      toggleBtn.setAttribute('aria-label', enabled ? 'Disable card' : 'Enable card');
+      toggleBtn.setAttribute('aria-label', enabled ? 'Mark as missing' : 'Mark as owned');
       if (toggleBtn.textContent && toggleBtn.textContent.trim()) {
         div.classList.add('has-toggle');
       } else {
@@ -269,14 +271,14 @@ export function attachCardHandlers(div, card, tooltip) {
 
     // show undo toast
     try {
-      showUndo(enabled ? 'Card enabled' : 'Card disabled', async () => {
+      showUndo(!enabled ? 'Marked as owned' : 'Marked as missing', async () => {
         await setCardsEnabled([card], previousEnabled);
         // update UI to reflect undo
-        div.classList.toggle('disabled', !previousEnabled);
+        div.classList.toggle('owned', !previousEnabled);
         if (toggleBtn) {
-          toggleBtn.textContent = previousEnabled ? '⛔' : '';
+          toggleBtn.textContent = previousEnabled ? '' : '✓';
           toggleBtn.setAttribute('aria-pressed', (!previousEnabled).toString());
-          toggleBtn.setAttribute('aria-label', previousEnabled ? 'Disable card' : 'Enable card');
+          toggleBtn.setAttribute('aria-label', previousEnabled ? 'Mark as missing' : 'Mark as owned');
         }
       }, { duration: 5000 });
     } catch (err) {

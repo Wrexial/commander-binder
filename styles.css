@@ -437,23 +437,20 @@ body {
   z-index: 3; /* keep toggle above card content */
 } 
 
-.card.disabled {
-  opacity: 0.45;
-  filter: grayscale(60%);
+.card.owned {
+  border: 2px solid rgba(60,179,113,0.9); /* green outline for owned cards */
+  background: rgba(60,179,113,0.03);
+  box-shadow: inset 0 0 0 1px rgba(60,179,113,0.06);
 }
 
-.card.disabled * {
-  pointer-events: none;
+.card.owned .card-toggle {
+  background: rgba(60,179,113,1);
+  color: #fff;
+  border-color: rgba(0,0,0,0.08);
 }
 
-.card.disabled .card-toggle {
-  pointer-events: auto;
-}
-
-/* Allow EDHREC link to be interactive even when the card is disabled */
-.card.disabled .edhrec-link {
-  pointer-events: auto;
-  opacity: 0.7;
+.card.owned .edhrec-link {
+  opacity: 1;
 }
 
 #user-button {
