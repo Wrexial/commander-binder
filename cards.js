@@ -37,12 +37,8 @@ export function createCardElement(card) {
     const borderStyle = getCardBorderStyle(card);
     div.style.setProperty('--card-border', borderStyle.borderColor);
     div.style.setProperty('--card-bg', getCardBackground(card));
-    // Prefer default text color in dark mode; only force dark text on light mode for legibility
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      div.style.removeProperty('--card-text');
-    } else {
-      div.style.setProperty('--card-text', '#111111');
-    }
+    // Cards are multicolored: always use dark text for legibility
+    div.style.setProperty('--card-text', '#111111');
   } else {
     div.style.setProperty('--card-border', 'var(--card-border-default)');
     div.style.setProperty('--card-bg', 'var(--card-bg-default)');

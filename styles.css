@@ -439,7 +439,7 @@ body {
 
 .card.owned {
   border: 2px solid rgba(60,179,113,0.9); /* green outline for owned cards */
-  background: rgba(60,179,113,0.03);
+  /* keep the card background unchanged so multicolored cards remain readable */
   box-shadow: inset 0 0 0 1px rgba(60,179,113,0.06);
 }
 
