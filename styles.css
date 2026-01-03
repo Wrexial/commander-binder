@@ -279,13 +279,15 @@ body {
   position: absolute;
   top: 6px;
   right: 6px;
-  background: rgba(255,255,255,0.85);
+  background: transparent;
   border: 1px solid rgba(0,0,0,0.06);
   cursor: pointer;
   font-size: 0.95rem;
   padding: 2px 6px;
   border-radius: 4px;
-}
+  color: inherit;
+  transition: background 0.12s ease, border-color 0.12s ease;
+} 
 
 .card.disabled {
   opacity: 0.45;
@@ -357,6 +359,11 @@ body {
   .tooltip .loading {
     background: rgba(255, 255, 255, 0.04);
     color: #fff;
+  }
+
+  .card-toggle {
+    background: var(--card-toggle-bg, var(--edhrec-surface));
+    border-color: rgba(255,255,255,0.04);
   }
 
   .loading-indicator,
