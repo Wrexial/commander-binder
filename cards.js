@@ -107,12 +107,12 @@ export function attachCardHandlers(div, card, tooltip) {
             }
           }
 
-          // auto-hide after a bit and hide tooltip as well
+          // auto-hide after a bit and hide tooltip as well (longer on mobile so user sees the reveal)
           clearTimeout(hideTimer);
           hideTimer = setTimeout(() => {
             div.classList.remove('reveal-links');
             hideTooltip(tooltip);
-          }, 1500);
+          }, 3000);
         }, 350);
       };
 
@@ -136,7 +136,7 @@ export function attachCardHandlers(div, card, tooltip) {
           hideTimer = setTimeout(() => {
             div.classList.remove('reveal-links');
             hideTooltip(tooltip);
-          }, 1500);
+          }, 3000);
         }
         // if already revealed, allow the tap through
       }, { passive: false });

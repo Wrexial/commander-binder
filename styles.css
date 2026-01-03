@@ -203,15 +203,45 @@ body {
 }
 
 .card.reveal-links .edhrec-link {
-  transform: translateY(-2px) scale(1.03);
-  transition: transform 0.15s ease, opacity 0.12s ease;
+  transform: translateY(-2px) scale(1.06);
+  transition: transform 0.15s ease, opacity 0.12s ease, background 0.12s ease;
+  background: var(--edhrec-hover);
+  border-radius: 4px;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
 }
 
-/* subtle pulse animation for reveal */
+/* subtle pulse animation for reveal (stronger) */
 @keyframes reveal-pulse {
   0% { box-shadow: 0 0 0 0 rgba(76, 140, 200, 0.08); }
-  70% { box-shadow: 0 0 0 8px rgba(76, 140, 200, 0.06); }
+  50% { box-shadow: 0 0 0 10px rgba(76, 140, 200, 0.08); }
   100% { box-shadow: 0 0 0 0 rgba(76, 140, 200, 0); }
+}
+
+/* Mobile: show a small 'Open' badge next to the link for clarity */
+@media (max-width: 700px) {
+  .card.reveal-links .edhrec-link {
+    width: 22px;
+    height: 22px;
+    padding: 3px;
+    transform: translateY(-2px) scale(1.08);
+  }
+
+  .card.reveal-links .edhrec-link::after {
+    content: "Open";
+    position: absolute;
+    left: calc(100% + 8px);
+    bottom: 0px;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.06);
+    color: var(--text);
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    z-index: 4;
+  }
 }
 
 .edhrec-link:hover {
