@@ -136,15 +136,6 @@ body {
   width: 100%;
 }
 
-/* Reserve a small area on the right for badges/toggles without affecting centering */
-.card.has-toggle .card-name {
-  padding-right: 40px; /* matches reserved space so text doesn't flow under badges */
-}
-
-/* When a card has the toggle button, reserve space on the right so badges don't overlap text */
-.card.has-toggle {
-  padding-right: 40px; /* ensure card text doesn't flow under badges */
-}
 
 .card:hover {
   transform: translateY(-2px);
