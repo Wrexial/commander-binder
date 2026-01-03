@@ -104,7 +104,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 8px;
+  /* leave room for the top-right toggle button */
+  padding: 6px 36px 6px 8px;
   border: 1px solid var(--card-border, var(--card-border-default));
   border-radius: 6px;
   min-height: 2.4em;
@@ -287,6 +288,7 @@ body {
   border-radius: 4px;
   color: inherit;
   transition: background 0.12s ease, border-color 0.12s ease;
+  z-index: 3; /* keep toggle above card content */
 } 
 
 .card.disabled {
