@@ -51,14 +51,24 @@ export function showTooltip(e, card, tooltip) {
     const images = [];
 
     function addImage(url, key) {
+      console.debug('tooltip.addImage', { key, url, inCache: imageCache.has(key) });
       let img;
       if (imageCache.has(key)) {
-        img = imageCache.get(key).cloneNode();
+        // clone the cached element (copy attributes)
+        img = imageCache.get(key).cloneNode(true);
+        // if the cloned image isn't loaded yet, reassign src to trigger a fetch if needed
+        if (!img.complete && img.src) {
+          const s = img.src;
+          img.src = '';
+          img.src = s;
+        }
       } else {
         img = new Image();
-        img.loading = 'lazy';
-        img.src = url;
+        // force eager loading so we actually request the image even if it's not in the DOM yet
+        img.loading = 'eager';
+        img.decoding = 'async';
         img.alt = key;
+        img.src = url;
         // cache the loaded image; errors/loads are handled below when we attach handlers
         img.onload = () => imageCache.set(key, img);
       }
