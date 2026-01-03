@@ -87,15 +87,32 @@ export function attachCardHandlers(div, card, tooltip) {
     if (isTouch) {
       let revealTimer;
       let hideTimer;
+      let suppressUntil = 0; // timestamp until which card click/toggle is suppressed after a long-press
 
       const startReveal = (e) => {
         // start long-press timer to reveal
         clearTimeout(revealTimer);
         revealTimer = setTimeout(() => {
           div.classList.add('reveal-links');
-          // auto-hide after a bit
+          suppressUntil = Date.now() + 650; // suppress clicks/toggles briefly
+
+          // show tooltip at the touch point if enabled and card is enabled
+          if (cardSettings.showTooltip && isCardEnabled(card)) {
+            try {
+              const touch = e.touches && e.touches[0] ? e.touches[0] : e;
+              const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
+              showTooltip(fakeEvent, card, tooltip);
+            } catch (err) {
+              // ignore
+            }
+          }
+
+          // auto-hide after a bit and hide tooltip as well
           clearTimeout(hideTimer);
-          hideTimer = setTimeout(() => div.classList.remove('reveal-links'), 1500);
+          hideTimer = setTimeout(() => {
+            div.classList.remove('reveal-links');
+            hideTooltip(tooltip);
+          }, 1500);
         }, 350);
       };
 
@@ -107,7 +124,24 @@ export function attachCardHandlers(div, card, tooltip) {
       div.addEventListener('touchmove', cancelReveal, { passive: true });
       div.addEventListener('touchend', cancelReveal, { passive: true });
 
-      // Prevent accidental taps on the hidden icon: only allow activation when revealed
+      // If user taps the EDHREC icon, reveal it on first tap (prevent navigation), allow navigation on second tap
+      edhrecBtn.addEventListener('touchstart', (ev) => {
+        if (!div.classList.contains('reveal-links')) {
+          // reveal and prevent the navigation on the first tap
+          ev.preventDefault();
+          ev.stopPropagation();
+          clearTimeout(hideTimer);
+          div.classList.add('reveal-links');
+          suppressUntil = Date.now() + 650;
+          hideTimer = setTimeout(() => {
+            div.classList.remove('reveal-links');
+            hideTooltip(tooltip);
+          }, 1500);
+        }
+        // if already revealed, allow the tap through
+      }, { passive: false });
+
+      // Also guard click events for safety
       edhrecBtn.addEventListener('click', (ev) => {
         if (!div.classList.contains('reveal-links')) {
           ev.preventDefault();
@@ -115,6 +149,9 @@ export function attachCardHandlers(div, card, tooltip) {
         }
         // else allow default navigation
       });
+
+      // expose suppressUntil for outer click handler
+      div._suppressToggleUntil = () => suppressUntil;
     } else {
       // Non-touch devices keep small press-to-open convenience
       edhrecBtn.addEventListener("touchstart", e => {
@@ -132,6 +169,16 @@ export function attachCardHandlers(div, card, tooltip) {
   div.addEventListener("click", async e => {
     if (e.target.closest(".edhrec-link")) return;
     if (!cardSettings.showDisabledCards) return;
+
+    // On touch devices, suppress click actions briefly after a long-press reveal
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (isTouch) {
+      const suppressUntil = typeof div._suppressToggleUntil === 'function' ? div._suppressToggleUntil() : 0;
+      if (suppressUntil && Date.now() < suppressUntil) {
+        // ignore this click (it likely came from the long-press gesture)
+        return;
+      }
+    }
 
     e.stopPropagation();
     const enabled = await toggleCardEnabled(card);
