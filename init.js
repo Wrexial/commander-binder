@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { createCardElement } from './cards.js';
+import { createCardElement, attachCardHandlers } from './cards.js';
 import { fetchNextPage } from './fetcher.js';
 import { startNewBinder } from './layout.js';
 
@@ -15,7 +15,9 @@ export async function setupDebugRow(tooltip) {
     try {
       const res = await fetch(`https://api.scryfall.com/cards/${ref.scryfallId}`);
       const card = await res.json();
-      grid.appendChild(createCardElement(card, tooltip));
+      const el = createCardElement(card);
+      attachCardHandlers(el, card, tooltip);
+      grid.appendChild(el);
     } catch {
       console.warn("Failed debug card:", ref.name);
     }
@@ -34,19 +36,24 @@ export function initLazyCards(results, tooltip) {
   // Start preloading
   fetchNextPage(results, tooltip);
 
-  // Polling to detect near-bottom
-  const intervalId = setInterval(() => {
+  // Infinite scroll using IntersectionObserver
+  const sentinel = document.createElement('div');
+  sentinel.id = 'infinite-scroll-sentinel';
+  sentinel.style.width = '100%';
+  sentinel.style.height = '1px';
+  results.appendChild(sentinel);
+
+  const io = new IntersectionObserver(entries => {
     if (!state.nextPageUrl) {
-      clearInterval(intervalId);
+      io.disconnect();
+      sentinel.remove();
       return;
     }
-    const scrollY = window.scrollY || window.pageYOffset;
-    const viewportHeight = window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
-    const threshold = 1000;
 
-    if (documentHeight - (scrollY + viewportHeight) < threshold) {
+    if (entries[0].isIntersecting) {
       fetchNextPage(results, tooltip);
     }
-  }, 150);
+  }, { root: null, rootMargin: '1000px' });
+
+  io.observe(sentinel);
 }

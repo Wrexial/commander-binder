@@ -1,6 +1,7 @@
 import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { state } from './state.js';
 import { positionTooltip } from './tooltip.js';
+import { lightenColor } from './utils/colors.js';
 
 export function startNewBinder(results) {
   const binderNumber = Math.floor(state.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
@@ -8,7 +9,13 @@ export function startNewBinder(results) {
   const newBinder = document.createElement("div");
   newBinder.className = "binder";
 
-  const color = binderColors[(binderNumber - 1) % binderColors.length];
+  // Prefer binder colors defined in CSS variables, fallback to config
+  const cssColor = getComputedStyle(document.documentElement).getPropertyValue(
+    `--binder-color-${(binderNumber - 1) % 6}`
+  ).trim();
+  const fallback = binderColors[(binderNumber - 1) % binderColors.length];
+  const color = cssColor || fallback;
+
   newBinder.style.borderColor = color;
   newBinder.style.background = lightenColor(color, 0.9);
 
@@ -71,14 +78,4 @@ export function startNewSection(pageSets = new Map()) {
   state.binder.appendChild(state.section);
 }
 
-export function lightenColor(color, factor) {
-  const r = parseInt(color.slice(1, 3), 16);
-  const g = parseInt(color.slice(3, 5), 16);
-  const b = parseInt(color.slice(5, 7), 16);
 
-  return `rgb(
-    ${Math.round(r + (255 - r) * factor)},
-    ${Math.round(g + (255 - g) * factor)},
-    ${Math.round(b + (255 - b) * factor)}
-  )`;
-}

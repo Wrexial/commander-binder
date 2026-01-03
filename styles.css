@@ -1,8 +1,48 @@
+:root {
+  /* Palette */
+  --bg: #f9f9f9;
+  --text: #333333;
+  --muted: #555555;
+
+  /* MTG color palette */
+  --mtg-W: #f8f3e0;
+  --mtg-U: #4c8cc8;
+  --mtg-B: #333333;
+  --mtg-R: #c84c4c;
+  --mtg-G: #4cc88c;
+
+  --mtg-bg-W: #fdf8ec;
+  --mtg-bg-U: #e3f0fa;
+  --mtg-bg-B: #e5e5e5;
+  --mtg-bg-R: #fde3e3;
+  --mtg-bg-G: #e3f9ef;
+
+  --colorless: #aaaaaa;
+  --colorless-bg: #f4f4f4;
+  --multicolor-border: #FFD700;
+
+  /* Binder colors (index-based) */
+  --binder-color-0: #c84c4c;
+  --binder-color-1: #4c8cc8;
+  --binder-color-2: #4cc88c;
+  --binder-color-3: #c88cc8;
+  --binder-color-4: #c8b14c;
+  --binder-color-5: #8c4cc8;
+
+  /* UI colors */
+  --card-border-default: #ccc;
+  --card-bg-default: #fff;
+  --tooltip-bg: #fff;
+  --tooltip-border: #ccc;
+  --edhrec-hover: rgba(255, 215, 0, 0.9);
+  --focus: #4c8cc8;
+}
+
 body {
   font-family: sans-serif;
   padding: 1rem;
-  background: #f9f9f9;
-  color: #333;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .container {
@@ -12,7 +52,7 @@ body {
 }
 
 .description {
-  color: #555;
+  color: var(--muted);
   max-width: 600px;
 }
 
@@ -32,9 +72,9 @@ body {
 .section {
   margin-bottom: 1.5rem;
   padding: 0.5rem;
-  border: 2px solid #888;
+  border: 2px solid var(--section-border, #888);
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--section-bg, #fafafa);
 }
 
 .grid {
@@ -64,22 +104,30 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--card-border, var(--card-border-default));
+  border-radius: 6px;
   min-height: 2.4em;
   line-height: 1.2em;
   word-wrap: break-word;
-  background: #fff;
-  transition: transform 0.1s, box-shadow 0.2s;
-  color: #1a1a1a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
-  /* subtle embossed effect */
+  background: var(--card-bg, var(--card-bg-default));
+  transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.12s ease;
+  color: var(--text);
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.card:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 140, 200, 0.18);
+  border-color: var(--focus);
+}
+
+.card .edhrec-rank {
+  /* keep as-is but adjust min styles */
 }
 
 .edhrec-rank {
@@ -134,7 +182,7 @@ body {
 }
 
 .edhrec-link:hover {
-  background: rgba(255, 215, 0, 0.9);
+  background: var(--edhrec-hover);
 }
 
 .tooltip {
@@ -142,9 +190,9 @@ body {
   pointer-events: none;
   z-index: 1000;
 
-  background: #fff;
+  background: var(--tooltip-bg);
   border-radius: 12px;
-  border: 2px solid #ccc;
+  border: 2px solid var(--tooltip-border);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   padding: 8px;
 
@@ -184,7 +232,7 @@ body {
   display: inline-block;
   padding: 8px 14px;
   background: rgba(0, 0, 0, 0.75);
-  color: #fff;
+  color: var(--white, #fff);
   font-size: 0.9rem;
   font-weight: bold;
   border-radius: 8px;
@@ -201,7 +249,7 @@ body {
   transform: translateX(-50%);
   padding: 10px 20px;
   background: rgba(0, 0, 0, 0.75);
-  color: #fff;
+  color: var(--white, #fff);
   font-weight: bold;
   border-radius: 8px;
   display: none;
@@ -231,18 +279,16 @@ body {
   font-size: 0.9rem;
 }
 
-.card {
-  position: relative;
-}
-
 .card-toggle {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background: none;
-  border: none;
+  top: 6px;
+  right: 6px;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(0,0,0,0.06);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .card.disabled {
@@ -276,34 +322,20 @@ body {
 
 /* Dark mode based on system preference */
 @media (prefers-color-scheme: dark) {
-  body {
-    background: #121212;
-    color: #e0e0e0;
-  }
+  :root {
+    --bg: #121212;
+    --text: #e0e0e0;
+    --muted: #cccccc;
 
-  .description {
-    color: #ccc;
-  }
+    --card-bg-default: #1e1e1e;
+    --card-border-default: #555555;
 
-  .binder {
-    border-color: #444;
-    background: #1e1e1e;
-  }
-
-  .section {
-    border-color: #555;
-    background: #1a1a1a;
+    --tooltip-bg: #1e1e1e;
+    --tooltip-border: #555555;
   }
 
   .card {
-    border-color: #555;
-    background: #1e1e1e;
-    color: #1a1a1a;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
-  }
-
-  .card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
   }
 
   .edhrec-rank {
@@ -317,13 +349,6 @@ body {
 
   .edhrec-link:hover {
     background: rgba(255, 215, 0, 0.8);
-  }
-
-  .tooltip {
-    background: #1e1e1e;
-    border-color: #555;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8);
-    color: #e0e0e0;
   }
 
   .tooltip .loading {

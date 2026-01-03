@@ -3,7 +3,7 @@ import { CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { state } from './state.js';
 import { showLoading, hideLoading } from './loader.js';
 import { startNewBinder, startNewSection } from './layout.js';
-import { createCardElement } from './cards.js';
+import { createCardElement, attachCardHandlers } from './cards.js';
 
 // At the start of your lazy loading init
 state.pageCards = [];
@@ -61,7 +61,11 @@ function renderPage(results, tooltip) {
   }));
 
   startNewSection(pageSets);
-  state.pageCards.forEach(c => state.grid.appendChild(createCardElement(c, tooltip)));
+  state.pageCards.forEach(c => {
+    const el = createCardElement(c);
+    attachCardHandlers(el, c, tooltip);
+    state.grid.appendChild(el);
+  });
   state.count += state.pageCards.length;
 
   if (state.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
