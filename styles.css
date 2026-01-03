@@ -447,6 +447,15 @@ body {
   background: rgba(60,179,113,1);
   color: #fff;
   border-color: rgba(0,0,0,0.08);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.35rem;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .card.owned .edhrec-link {
