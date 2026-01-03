@@ -202,6 +202,11 @@ export function attachCardHandlers(div, card, tooltip) {
       }
     }
 
-    enabled && cardSettings.showTooltip ? showTooltip(e, card, tooltip) : hideTooltip(tooltip);
+    // Don't show tooltip on touch devices when toggling; long-press already shows it when desired
+    if (!isTouch && enabled && cardSettings.showTooltip) {
+      showTooltip(e, card, tooltip);
+    } else {
+      hideTooltip(tooltip);
+    }
   });
 }

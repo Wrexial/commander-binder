@@ -196,6 +196,24 @@ body {
   pointer-events: auto;
 }
 
+.card.reveal-links {
+  /* subtle ring and brief pulse to indicate reveal on mobile */
+  animation: reveal-pulse 1.2s ease-out;
+  box-shadow: 0 0 0 6px rgba(76, 140, 200, 0.06);
+}
+
+.card.reveal-links .edhrec-link {
+  transform: translateY(-2px) scale(1.03);
+  transition: transform 0.15s ease, opacity 0.12s ease;
+}
+
+/* subtle pulse animation for reveal */
+@keyframes reveal-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(76, 140, 200, 0.08); }
+  70% { box-shadow: 0 0 0 8px rgba(76, 140, 200, 0.06); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 140, 200, 0); }
+}
+
 .edhrec-link:hover {
   background: var(--edhrec-hover);
 }
