@@ -69,17 +69,19 @@ export function showTooltip(e, card, tooltip) {
     if (card.card_faces && multiLayouts.includes(card.layout) && card.card_faces.length === 2) {
         // MDFC's
         card.card_faces.forEach((face, index) => {
-        const url = card.card_faces?.[index]?.image_uris?.normal;
-        if (!url && card.card_faces?.[index]?.image_uris === undefined) {
-          // sometimes Scryfall has image URL in "card_faces[index].image_uris" or "card_faces[index].normal"
-          url = card.card_faces?.[index]?.normal; 
-        }
-          addImage(url, card.id + "-" + index);
+          let url = face?.image_uris?.normal;
+          if (!url && face?.image_uris === undefined) {
+            // sometimes Scryfall has image URL in "card_faces[index].image_uris" or "card_faces[index].normal"
+            url = face?.normal;
+          }
+          if (url) {
+            addImage(url, card.id + "-" + index);
+          }
         });
     } else {
       // Normal single-faced card
-      const url = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal;
-      addImage(url, card.id);
+      const url = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || card.card_faces?.[0]?.normal;
+      if (url) addImage(url, card.id);
     }
 
     // ---------------- Wait for all images / flip cards to load ----------------
