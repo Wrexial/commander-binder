@@ -141,6 +141,14 @@ export function attachCardHandlers(div, card, tooltip) {
         // if already revealed, allow the tap through
       }, { passive: false });
 
+      // Prevent native context menu (long-press) on touch devices for EDHREC link and card
+      edhrecBtn.addEventListener('contextmenu', (ev) => {
+        if (isTouch) ev.preventDefault();
+      });
+      div.addEventListener('contextmenu', (ev) => {
+        if (isTouch) ev.preventDefault();
+      });
+
       // Also guard click events for safety
       edhrecBtn.addEventListener('click', (ev) => {
         if (!div.classList.contains('reveal-links')) {
