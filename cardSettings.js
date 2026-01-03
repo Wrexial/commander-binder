@@ -3,6 +3,8 @@ const DEFAULT_SETTINGS = {
   showTooltip: true,
   showEdhrecLink: true,
   showDisabledCards: true,
+  // if true, EDHREC links are revealed by default on touch devices
+  persistentRevealOnTouch: false,
 };
 
 const STORAGE_KEY = "cardSettings";

@@ -2,9 +2,10 @@
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { cardSettings } from "./cardSettings.js";
 import {state} from "./state.js";
-import { isCardEnabled, toggleCardEnabled } from "./cardState.js";
+import { isCardEnabled, toggleCardEnabled, setCardsEnabled } from "./cardState.js";
 import {loggedInUserId} from './main.js';
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
+import { showUndo } from './ui/toast.js';
 
 
 export function createCardElement(card) {
@@ -25,6 +26,12 @@ export function createCardElement(card) {
 
     edhrecBtn.appendChild(icon);
     div.appendChild(edhrecBtn);
+
+    // If user enabled persistent reveal and this is a touch device, show the EDHREC link by default
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if (cardSettings.persistentRevealOnTouch && isTouchDevice) {
+      div.classList.add('reveal-links');
+    }
   }
 
   if (cardSettings.showColors) {
@@ -43,6 +50,8 @@ export function createCardElement(card) {
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "card-toggle";
     toggleBtn.title = "Enable / Disable card";
+    toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Disable card' : 'Enable card');
+    toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
     toggleBtn.textContent = isCardEnabled(card) ? "⛔" : "";
 
     if (!isCardEnabled(card)) {
@@ -64,6 +73,8 @@ export function attachCardHandlers(div, card, tooltip) {
   if (cardSettings.showTooltip) {
     div.addEventListener("mouseenter", (e)=>{
       if (!isCardEnabled(card)) return;
+      // announce tooltip for screen readers by linking the card to the tooltip
+      div.setAttribute('aria-describedby', 'tooltip');
       showTooltip(e, card, tooltip);
     });
 
@@ -75,6 +86,20 @@ export function attachCardHandlers(div, card, tooltip) {
     div.addEventListener("mouseleave", () =>{
       if (!isCardEnabled(card)) return;
       hideTooltip(tooltip);
+      div.removeAttribute('aria-describedby');
+    });
+
+    // keyboard accessibility: Enter/Space to activate toggle, 'r' to reveal EDHREC, Escape to hide tooltip
+    div.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        div.click();
+      } else if (e.key === 'r' || e.key === 'R') {
+        div.classList.toggle('reveal-links');
+      } else if (e.key === 'Escape') {
+        hideTooltip(tooltip);
+        div.removeAttribute('aria-describedby');
+      }
     });
   }
 
@@ -94,6 +119,7 @@ export function attachCardHandlers(div, card, tooltip) {
         clearTimeout(revealTimer);
         revealTimer = setTimeout(() => {
           div.classList.add('reveal-links');
+          div.setAttribute('aria-describedby', 'tooltip');
           suppressUntil = Date.now() + 650; // suppress clicks/toggles briefly
 
           // show tooltip at the touch point if enabled and card is enabled
@@ -107,11 +133,31 @@ export function attachCardHandlers(div, card, tooltip) {
             }
           }
 
+          // show a one-time reveal hint on first use on this device
+          try {
+            if (isTouch && !localStorage.getItem('seenRevealHint')) {
+              const hint = document.createElement('div');
+              hint.className = 'reveal-hint';
+              hint.textContent = 'Long-press to reveal; tap the icon to open';
+              div.appendChild(hint);
+              // show and auto-hide
+              requestAnimationFrame(() => hint.classList.add('visible'));
+              setTimeout(() => {
+                hint.classList.remove('visible');
+                setTimeout(() => hint.remove(), 300);
+              }, 2500);
+              localStorage.setItem('seenRevealHint', '1');
+            }
+          } catch (e) {
+            // ignore localStorage errors
+          }
+
           // auto-hide after a bit and hide tooltip as well (longer on mobile so user sees the reveal)
           clearTimeout(hideTimer);
           hideTimer = setTimeout(() => {
             div.classList.remove('reveal-links');
             hideTooltip(tooltip);
+            div.removeAttribute('aria-describedby');
           }, 3000);
         }, 350);
       };
@@ -136,6 +182,7 @@ export function attachCardHandlers(div, card, tooltip) {
           hideTimer = setTimeout(() => {
             div.classList.remove('reveal-links');
             hideTooltip(tooltip);
+            div.removeAttribute('aria-describedby');
           }, 3000);
         }
         // if already revealed, allow the tap through
@@ -202,6 +249,9 @@ export function attachCardHandlers(div, card, tooltip) {
       }
     }
 
+    // record previous enabled state for undo
+    const previousEnabled = isCardEnabled(card);
+
     e.stopPropagation();
     const enabled = await toggleCardEnabled(card);
     div.classList.toggle("disabled", !enabled);
@@ -209,11 +259,29 @@ export function attachCardHandlers(div, card, tooltip) {
     const toggleBtn = div.querySelector('.card-toggle');
     if (toggleBtn) {
       toggleBtn.textContent = enabled ? "⛔" : "";
+      toggleBtn.setAttribute('aria-pressed', (!enabled).toString());
+      toggleBtn.setAttribute('aria-label', enabled ? 'Disable card' : 'Enable card');
       if (toggleBtn.textContent && toggleBtn.textContent.trim()) {
         div.classList.add('has-toggle');
       } else {
         div.classList.remove('has-toggle');
       }
+    }
+
+    // show undo toast
+    try {
+      showUndo(enabled ? 'Card enabled' : 'Card disabled', async () => {
+        await setCardsEnabled([card], previousEnabled);
+        // update UI to reflect undo
+        div.classList.toggle('disabled', !previousEnabled);
+        if (toggleBtn) {
+          toggleBtn.textContent = previousEnabled ? '⛔' : '';
+          toggleBtn.setAttribute('aria-pressed', (!previousEnabled).toString());
+          toggleBtn.setAttribute('aria-label', previousEnabled ? 'Disable card' : 'Enable card');
+        }
+      }, { duration: 5000 });
+    } catch (err) {
+      // ignore toast errors
     }
 
     // Don't show tooltip on touch devices when toggling; long-press already shows it when desired

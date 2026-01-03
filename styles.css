@@ -136,6 +136,9 @@ body {
 
 .card:focus {
   outline: none;
+}
+
+.card:focus-visible {
   box-shadow: 0 0 0 3px rgba(76, 140, 200, 0.18);
   border-color: var(--focus);
 }
@@ -197,11 +200,36 @@ body {
 }
 
 .card.reveal-links {
-  /* subtle ring and brief pulse to indicate reveal on mobile */
-  animation: reveal-pulse 1.2s ease-out;
-  box-shadow: 0 0 0 6px rgba(76, 140, 200, 0.06);
+  /* stronger ring and slower pulse to indicate reveal on mobile */
+  animation: reveal-pulse 1.6s ease-out;
+  box-shadow: 0 0 0 8px rgba(76, 140, 200, 0.08);
 }
 
+/* One-time hint bubble shown on first long-press on touch devices */
+.reveal-hint {
+  position: absolute;
+  left: 8px;
+  bottom: -36px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.reveal-hint.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (min-width: 700px) {
+  .reveal-hint { display: none; }
+}
 .card.reveal-links .edhrec-link {
   transform: translateY(-2px) scale(1.06);
   transition: transform 0.15s ease, opacity 0.12s ease, background 0.12s ease;
@@ -291,6 +319,21 @@ body {
   transform: scale(1.03);
 }
 
+.tooltip-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.tooltip-pin {
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.08);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .tooltip .loading {
   display: inline-block;
   padding: 8px 14px;
@@ -319,6 +362,41 @@ body {
   z-index: 1000;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
+
+/* Toast / undo */
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 86px;
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 1100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(-6px);
+}
+
+.toast .toast-action {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 
 .set-tooltip {
   position: fixed;

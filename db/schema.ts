@@ -10,3 +10,5 @@ export const disabledCards = sqliteTable(
     pk: primaryKey({ columns: [table.userId, table.cardId] }),
   })
 );
+
+export { userSettings } from "./userSettings";
