@@ -50,7 +50,9 @@ export function createCardElement(card) {
     }
 
     div.appendChild(toggleBtn);
-    div.classList.add('has-toggle');
+    if (toggleBtn.textContent && toggleBtn.textContent.trim()) {
+      div.classList.add('has-toggle');
+    }
   }
 
   return div;
@@ -98,7 +100,14 @@ export function attachCardHandlers(div, card, tooltip) {
     div.classList.toggle("disabled", !enabled);
 
     const toggleBtn = div.querySelector('.card-toggle');
-    if (toggleBtn) toggleBtn.textContent = enabled ? "⛔" : "";
+    if (toggleBtn) {
+      toggleBtn.textContent = enabled ? "⛔" : "";
+      if (toggleBtn.textContent && toggleBtn.textContent.trim()) {
+        div.classList.add('has-toggle');
+      } else {
+        div.classList.remove('has-toggle');
+      }
+    }
 
     enabled && cardSettings.showTooltip ? showTooltip(e, card, tooltip) : hideTooltip(tooltip);
   });
