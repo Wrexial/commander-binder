@@ -2,6 +2,12 @@ export function showToast(message, { duration = 4000, actionText, action } = {})
   const container = document.getElementById('toast');
   if (!container) return;
 
+  // cancel any existing hide timeout so an old timer can't hide this new toast
+  if (container._hideTimeout) {
+    clearTimeout(container._hideTimeout);
+    container._hideTimeout = null;
+  }
+
   container.innerHTML = '';
   const msg = document.createElement('span');
   msg.className = 'toast-message';
@@ -21,10 +27,14 @@ export function showToast(message, { duration = 4000, actionText, action } = {})
 
   container.classList.add('show');
 
-  let hideTimeout = setTimeout(hide, duration);
+  const hideTimeout = setTimeout(hide, duration);
+  container._hideTimeout = hideTimeout;
 
   function hide() {
-    clearTimeout(hideTimeout);
+    if (container._hideTimeout) {
+      clearTimeout(container._hideTimeout);
+      container._hideTimeout = null;
+    }
     container.classList.remove('show');
     container.innerHTML = '';
   }

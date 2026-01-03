@@ -59,8 +59,8 @@ export function showTooltip(e, card, tooltip) {
         img.loading = 'lazy';
         img.src = url;
         img.alt = key;
+        // cache the loaded image; errors/loads are handled below when we attach handlers
         img.onload = () => imageCache.set(key, img);
-        img.onerror = () => img.src = `placeholder`;
       }
       images.push(img);
     }
@@ -86,10 +86,16 @@ export function showTooltip(e, card, tooltip) {
     let loaded = 0;
     images.forEach(el => {
       if (el.tagName === "IMG") {
-        el.onload = el.onerror = () => {
+        // If the image is already loaded (from cache/clone), the load event won't fire — handle that
+        if (el.complete && el.naturalWidth > 0) {
           loaded++;
           if (loaded === images.length) finishTooltip(images, tooltip, e);
-        };
+        } else {
+          el.onload = el.onerror = () => {
+            loaded++;
+            if (loaded === images.length) finishTooltip(images, tooltip, e);
+          };
+        }
       } else {
         // Flip card container is already ready
         loaded++;
