@@ -52,7 +52,8 @@ export function createCardElement(card) {
     toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
     toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
     toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
-    toggleBtn.textContent = isCardEnabled(card) ? "" : "✓";
+    // toggle button has no visible checkmark; owned state shown via badge
+    toggleBtn.textContent = "";
 
     if (!isCardEnabled(card)) {
       // visually indicate this card is owned by the user
@@ -60,9 +61,15 @@ export function createCardElement(card) {
     }
 
     div.appendChild(toggleBtn);
-    if (toggleBtn.textContent && toggleBtn.textContent.trim()) {
-      div.classList.add('has-toggle');
-    }
+
+    // Owned badge (hidden by default, shown when .owned class present)
+    const ownedBadge = document.createElement('span');
+    ownedBadge.className = 'owned-badge';
+    ownedBadge.textContent = 'Owned';
+    div.appendChild(ownedBadge);
+
+    // Reserve space / keep layout stable when toggles exist
+    div.classList.add('has-toggle');
   }
 
   return div;
@@ -259,14 +266,12 @@ export function attachCardHandlers(div, card, tooltip) {
 
     const toggleBtn = div.querySelector('.card-toggle');
     if (toggleBtn) {
-      toggleBtn.textContent = enabled ? "" : "✓";
+      // toggle button has no visible checkmark; owned state shown via badge
+      toggleBtn.textContent = "";
       toggleBtn.setAttribute('aria-pressed', (!enabled).toString());
       toggleBtn.setAttribute('aria-label', enabled ? 'Mark as missing' : 'Mark as owned');
-      if (toggleBtn.textContent && toggleBtn.textContent.trim()) {
-        div.classList.add('has-toggle');
-      } else {
-        div.classList.remove('has-toggle');
-      }
+      // keep has-toggle present to avoid layout shifts
+      div.classList.add('has-toggle');
     }
 
     // show undo toast
@@ -276,7 +281,8 @@ export function attachCardHandlers(div, card, tooltip) {
         // update UI to reflect undo
         div.classList.toggle('owned', !previousEnabled);
         if (toggleBtn) {
-          toggleBtn.textContent = previousEnabled ? '' : '✓';
+              // update badge visibility (toggle button has no visible text)
+          toggleBtn.textContent = '';
           toggleBtn.setAttribute('aria-pressed', (!previousEnabled).toString());
           toggleBtn.setAttribute('aria-label', previousEnabled ? 'Mark as missing' : 'Mark as owned');
         }

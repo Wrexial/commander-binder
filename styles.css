@@ -124,9 +124,9 @@ body {
   touch-action: manipulation;
 }
 
-/* When a card has the toggle button, give it extra right padding to avoid overlap */
+/* When a card has the toggle button, we keep the layout stable. (No extra padding needed since toggle is positioned bottom-right) */
 .card.has-toggle {
-  padding-right: 36px;
+  /* intentionally left blank to avoid layout shifts */
 }
 
 .card:hover {
@@ -424,38 +424,65 @@ body {
 
 .card-toggle {
   position: absolute;
-  top: 6px;
+  top: auto;
+  bottom: 6px;
   right: 6px;
   background: transparent;
   border: 1px solid rgba(0,0,0,0.06);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   padding: 2px 6px;
   border-radius: 4px;
   color: inherit;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
   z-index: 3; /* keep toggle above card content */
 } 
 
 .card.owned {
   border: 2px solid rgba(60,179,113,0.9); /* green outline for owned cards */
-  /* keep the card background unchanged so multicolored cards remain readable */
-  box-shadow: inset 0 0 0 1px rgba(60,179,113,0.06);
+  /* subtle darkening overlay to indicate owned while keeping background readable */
+  box-shadow: inset 0 0 0 1px rgba(60,179,113,0.06), inset 0 0 0 1000px rgba(0,0,0,0.02);
 }
 
+/* Slightly lighter overlay in dark mode so the owned state is visible without making text unreadable */
+@media (prefers-color-scheme: dark) {
+  .card.owned {
+    box-shadow: inset 0 0 0 1px rgba(60,179,113,0.06), inset 0 0 0 1000px rgba(255,255,255,0.02);
+  }
+}
 .card.owned .card-toggle {
   background: rgba(60,179,113,1);
   color: #fff;
   border-color: rgba(0,0,0,0.08);
-  font-size: 0.75rem;
-  padding: 0.15rem 0.35rem;
-  width: 22px;
-  height: 22px;
+  font-size: 0.7rem;
+  padding: 0;
+  width: 18px;
+  height: 18px;
   line-height: 1;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transform: translateY(0);
+}
+
+/* Owned badge */
+.owned-badge {
+  display: none;
+  position: absolute;
+  bottom: 6px;
+  right: 30px; /* sits just left of the toggle */
+  background: rgba(60,179,113,0.95);
+  color: #fff;
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  z-index: 3;
+}
+
+.card.owned .owned-badge {
+  display: inline-block;
 }
 
 .card.owned .edhrec-link {
