@@ -141,6 +141,20 @@ export function attachCardHandlers(div, card, tooltip) {
         // if already revealed, allow the tap through
       }, { passive: false });
 
+      // When revealed, use touchend to open immediately to avoid relying on click synthesis which is inconsistent
+      edhrecBtn.addEventListener('touchend', (ev) => {
+        if (div.classList.contains('reveal-links')) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          // open in new tab/window
+          window.open(edhrecBtn.href, '_blank', 'noopener');
+          // hide reveal and tooltip immediately
+          clearTimeout(hideTimer);
+          div.classList.remove('reveal-links');
+          hideTooltip(tooltip);
+        }
+      }, { passive: false });
+
       // Prevent native context menu (long-press) on touch devices for EDHREC link and card
       edhrecBtn.addEventListener('contextmenu', (ev) => {
         if (isTouch) ev.preventDefault();

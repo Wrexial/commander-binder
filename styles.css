@@ -370,6 +370,12 @@ body {
   pointer-events: auto;
 }
 
+/* Allow EDHREC link to be interactive even when the card is disabled */
+.card.disabled .edhrec-link {
+  pointer-events: auto;
+  opacity: 0.7;
+}
+
 #user-button {
   position: fixed;   /* Keeps it in place while scrolling */
   top: 10px;         /* Distance from the top */
