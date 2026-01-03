@@ -27,9 +27,8 @@ export function createCardElement(card) {
     edhrecBtn.appendChild(icon);
     div.appendChild(edhrecBtn);
 
-    // If user enabled persistent reveal and this is a touch device, show the EDHREC link by default
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (cardSettings.persistentRevealOnTouch && isTouchDevice) {
+    // If user enabled persistent reveal, show the EDHREC link by default
+    if (cardSettings.persistentReveal) {
       div.classList.add('reveal-links');
     }
   }

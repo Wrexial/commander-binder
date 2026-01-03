@@ -3,17 +3,20 @@ const DEFAULT_SETTINGS = {
   showTooltip: true,
   showEdhrecLink: true,
   showDisabledCards: true,
-  // if true, EDHREC links are revealed by default on touch devices
-  persistentRevealOnTouch: false,
+  // persistentReveal: boolean — if true, EDHREC links are revealed by default
+  persistentReveal: false,
 };
 
 const STORAGE_KEY = "cardSettings";
 
+const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
 export const cardSettings = {
   ...DEFAULT_SETTINGS,
-  ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")
+  ..._stored
 };
 
 export function saveSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cardSettings));
+  const toSave = { ...cardSettings };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
