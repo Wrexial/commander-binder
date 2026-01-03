@@ -11,7 +11,11 @@ import { showUndo } from './ui/toast.js';
 export function createCardElement(card) {
   const div = document.createElement("div");
   div.className = "card";
-  div.textContent = card.name;
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'card-name';
+  nameEl.textContent = card.name;
+  div.appendChild(nameEl);
 
   if (cardSettings.showEdhrecLink && card.related_uris?.edhrec) {
     const edhrecBtn = document.createElement("a");
