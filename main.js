@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const results = document.getElementById("results");
     await setupDebugRow(tooltip);
     await loadCardStates();
-    initCardSettings();
+    initCardSettings(tooltip);
     initLazyCards(results, tooltip);
   } else {
     loggedInUserId = false;

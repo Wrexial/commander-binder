@@ -11,6 +11,7 @@ import { showUndo } from './ui/toast.js';
 export function createCardElement(card) {
   const div = document.createElement("div");
   div.className = "card";
+  div.cardData = card;
 
   const nameEl = document.createElement('span');
   nameEl.className = 'card-name';
@@ -327,5 +328,76 @@ export function attachCardHandlers(div, card, tooltip) {
     } else {
       hideTooltip(tooltip);
     }
+  });
+}
+
+export function rerenderCards(tooltip) {
+  document.querySelectorAll('.card').forEach(div => {
+    const card = div.cardData;
+    if (!card) return;
+
+    // Toggle EDHREC link
+    let edhrecBtn = div.querySelector('.edhrec-link');
+    if (cardSettings.showEdhrecLink && card.related_uris?.edhrec) {
+      if (!edhrecBtn) {
+        edhrecBtn = document.createElement("a");
+        edhrecBtn.className = "edhrec-link";
+        edhrecBtn.href = card.related_uris.edhrec;
+        edhrecBtn.target = "_blank";
+        edhrecBtn.rel = "noopener noreferrer";
+
+        const icon = document.createElement("img");
+        icon.src = "https://edhrec.com/favicon.ico";
+        icon.alt = "EDHREC";
+
+        edhrecBtn.appendChild(icon);
+        div.appendChild(edhrecBtn);
+      }
+      div.classList.toggle('reveal-links', cardSettings.persistentReveal);
+    } else if (edhrecBtn) {
+      edhrecBtn.remove();
+    }
+
+    // Toggle colors
+    if (cardSettings.showColors) {
+      const borderStyle = getCardBorderStyle(card);
+      div.style.setProperty('--card-border', borderStyle.borderColor);
+      div.style.setProperty('--card-bg', getCardBackground(card));
+      div.style.setProperty('--card-text', '#111111');
+    } else {
+      div.style.setProperty('--card-border', 'var(--card-border-default)');
+      div.style.setProperty('--card-bg', 'var(--card-bg-default)');
+      div.style.removeProperty('--card-text');
+    }
+
+    // Toggle owned card controls
+    let toggleBtn = div.querySelector('.card-toggle');
+    if (cardSettings.showDisabledCards) {
+      if (!toggleBtn) {
+        toggleBtn = document.createElement("button");
+        toggleBtn.className = "card-toggle";
+        toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
+        toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
+        toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
+        toggleBtn.textContent = "";
+        div.appendChild(toggleBtn);
+
+        const ownedBadge = document.createElement('span');
+        ownedBadge.className = 'owned-badge';
+        ownedBadge.textContent = 'Owned';
+        div.appendChild(ownedBadge);
+
+        div.classList.add('has-toggle');
+      }
+    } else if (toggleBtn) {
+      toggleBtn.remove();
+      const ownedBadge = div.querySelector('.owned-badge');
+      if (ownedBadge) {
+        ownedBadge.remove();
+      }
+      div.classList.remove('has-toggle');
+    }
+
+    attachCardHandlers(div, card, tooltip);
   });
 }
