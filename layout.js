@@ -49,6 +49,7 @@ export function startNewSection(pageSets = new Map()) {
   section.className = "section";
   state.section = section;
 
+  const header = document.createElement("h3");
   header.className = "page-header";
   header.textContent = `Page ${pageNumber} — `;
 
