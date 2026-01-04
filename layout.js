@@ -38,6 +38,8 @@ export function startNewBinder(results) {
   state.binder = newBinder;
   state.binder.totalCards = 0;
   state.binder.ownedCards = 0;
+  state.binder.startDate = null;
+  state.binder.endDate = null;
 }
 
 export function startNewSection(pageSets = new Map()) {
@@ -47,12 +49,8 @@ export function startNewSection(pageSets = new Map()) {
   section.className = "section";
   state.section = section;
 
-  const firstSet = pageSets.values().next().value;
-  const pageDate = firstSet ? new Date(firstSet.date).getFullYear() : "Unknown";
-
-  const header = document.createElement("h3");
   header.className = "page-header";
-  header.textContent = `Page ${pageNumber}${pageDate ? ` — ${pageDate}` : ""} — `;
+  header.textContent = `Page ${pageNumber} — `;
 
   header.addEventListener("click", () => {
     section.classList.toggle("collapsed");

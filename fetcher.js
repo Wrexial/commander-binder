@@ -77,6 +77,19 @@ function renderPage(results, tooltip) {
     ownedCountEl.textContent = `Owned: ${state.binder.ownedCards}/${state.binder.totalCards}`;
   }
 
+  const dates = Array.from(pageSets.values()).map(set => set.date);
+  const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
+  const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
+
+  if (!state.binder.startDate || minDate < state.binder.startDate) {
+    state.binder.startDate = minDate;
+  }
+  if (!state.binder.endDate || maxDate > state.binder.endDate) {
+    state.binder.endDate = maxDate;
+  }
+
+  updateBinderHeader();
+
   state.count += state.pageCards.length;
 
   if (state.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
@@ -84,4 +97,15 @@ function renderPage(results, tooltip) {
   }
 
   state.pageCards = [];
+}
+
+function updateBinderHeader() {
+  const header = state.binder.querySelector(".binder-header");
+  const binderNumber = Math.floor(state.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+
+  if (header && state.binder.startDate && state.binder.endDate) {
+    const startYear = new Date(state.binder.startDate).getFullYear();
+    const endYear = new Date(state.binder.endDate).getFullYear();
+    header.childNodes[0].nodeValue = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
+  }
 }
