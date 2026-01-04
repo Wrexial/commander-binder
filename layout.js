@@ -43,8 +43,9 @@ export function startNewBinder(results) {
 export function startNewSection(pageSets = new Map()) {
   const pageNumber = Math.floor(state.count / CARDS_PER_PAGE) + 1;
 
-  state.section = document.createElement("div");
-  state.section.className = "section";
+  const section = document.createElement("div");
+  section.className = "section";
+  state.section = section;
 
   const firstSet = pageSets.values().next().value;
   const pageDate = firstSet ? new Date(firstSet.date).getFullYear() : "Unknown";
@@ -54,7 +55,7 @@ export function startNewSection(pageSets = new Map()) {
   header.textContent = `Page ${pageNumber}${pageDate ? ` — ${pageDate}` : ""} — `;
 
   header.addEventListener("click", () => {
-    state.section.classList.toggle("collapsed");
+    section.classList.toggle("collapsed");
   });
 
   const setTooltip = document.getElementById("set-tooltip");
@@ -92,6 +93,5 @@ export function startNewSection(pageSets = new Map()) {
   state.section.appendChild(header);
   state.section.appendChild(state.grid);
   state.binder.appendChild(state.section);
-}
 
 
