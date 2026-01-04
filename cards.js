@@ -18,7 +18,7 @@ export function createCardElement(card) {
   nameEl.textContent = card.name;
   div.appendChild(nameEl);
 
-  if (cardSettings.showEdhrecLink && card.related_uris?.edhrec) {
+  if (card.related_uris?.edhrec) {
     const edhrecBtn = document.createElement("a");
     edhrecBtn.className = "edhrec-link";
     edhrecBtn.href = card.related_uris.edhrec;
@@ -38,22 +38,15 @@ export function createCardElement(card) {
     }
   }
 
-  if (cardSettings.showColors) {
-    const borderStyle = getCardBorderStyle(card);
-    div.style.setProperty('--card-border', borderStyle.borderColor);
-    div.style.setProperty('--card-bg', getCardBackground(card));
-    // Cards are multicolored: always use dark text for legibility
-    div.style.setProperty('--card-text', '#111111');
-  } else {
-    div.style.setProperty('--card-border', 'var(--card-border-default)');
-    div.style.setProperty('--card-bg', 'var(--card-bg-default)');
-    div.style.removeProperty('--card-text');
-  }
+  const borderStyle = getCardBorderStyle(card);
+  div.style.setProperty('--card-border', borderStyle.borderColor);
+  div.style.setProperty('--card-bg', getCardBackground(card));
+  // Cards are multicolored: always use dark text for legibility
+  div.style.setProperty('--card-text', '#111111');
 
-  if(cardSettings.showDisabledCards){
-    const toggleBtn = document.createElement("button");
-    toggleBtn.className = "card-toggle";
-    // Toggle indicates whether you own the card (checkmark when owned)
+  const toggleBtn = document.createElement("button");
+  toggleBtn.className = "card-toggle";
+  // Toggle indicates whether you own the card (checkmark when owned)
     toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
     toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
     toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
@@ -75,8 +68,7 @@ export function createCardElement(card) {
 
     // Reserve space / keep layout stable when toggles exist
     div.classList.add('has-toggle');
-  }
-
+  
   return div;
 }
 
@@ -250,7 +242,6 @@ export function attachCardHandlers(div, card, tooltip) {
 
   div.addEventListener("click", async e => {
     if (e.target.closest(".edhrec-link")) return;
-    if (!cardSettings.showDisabledCards) return;
 
     // On touch devices, suppress click actions briefly after a long-press reveal
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -338,7 +329,7 @@ export function rerenderCards(tooltip) {
 
     // Toggle EDHREC link
     let edhrecBtn = div.querySelector('.edhrec-link');
-    if (cardSettings.showEdhrecLink && card.related_uris?.edhrec) {
+    if (card.related_uris?.edhrec) {
       if (!edhrecBtn) {
         edhrecBtn = document.createElement("a");
         edhrecBtn.className = "edhrec-link";
@@ -359,43 +350,28 @@ export function rerenderCards(tooltip) {
     }
 
     // Toggle colors
-    if (cardSettings.showColors) {
-      const borderStyle = getCardBorderStyle(card);
-      div.style.setProperty('--card-border', borderStyle.borderColor);
-      div.style.setProperty('--card-bg', getCardBackground(card));
-      div.style.setProperty('--card-text', '#111111');
-    } else {
-      div.style.setProperty('--card-border', 'var(--card-border-default)');
-      div.style.setProperty('--card-bg', 'var(--card-bg-default)');
-      div.style.removeProperty('--card-text');
-    }
+    const borderStyle = getCardBorderStyle(card);
+    div.style.setProperty('--card-border', borderStyle.borderColor);
+    div.style.setProperty('--card-bg', getCardBackground(card));
+    div.style.setProperty('--card-text', '#111111');
 
     // Toggle owned card controls
     let toggleBtn = div.querySelector('.card-toggle');
-    if (cardSettings.showDisabledCards) {
-      if (!toggleBtn) {
-        toggleBtn = document.createElement("button");
-        toggleBtn.className = "card-toggle";
-        toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
-        toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
-        toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
-        toggleBtn.textContent = "";
-        div.appendChild(toggleBtn);
+    if (!toggleBtn) {
+      toggleBtn = document.createElement("button");
+      toggleBtn.className = "card-toggle";
+      toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
+      toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
+      toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
+      toggleBtn.textContent = "";
+      div.appendChild(toggleBtn);
 
-        const ownedBadge = document.createElement('span');
-        ownedBadge.className = 'owned-badge';
-        ownedBadge.textContent = 'Owned';
-        div.appendChild(ownedBadge);
+      const ownedBadge = document.createElement('span');
+      ownedBadge.className = 'owned-badge';
+      ownedBadge.textContent = 'Owned';
+      div.appendChild(ownedBadge);
 
-        div.classList.add('has-toggle');
-      }
-    } else if (toggleBtn) {
-      toggleBtn.remove();
-      const ownedBadge = div.querySelector('.owned-badge');
-      if (ownedBadge) {
-        ownedBadge.remove();
-      }
-      div.classList.remove('has-toggle');
+      div.classList.add('has-toggle');
     }
 
     attachCardHandlers(div, card, tooltip);

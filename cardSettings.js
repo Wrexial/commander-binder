@@ -1,8 +1,5 @@
 const DEFAULT_SETTINGS = {
-  showColors: true,
   showTooltip: true,
-  showEdhrecLink: true,
-  showDisabledCards: true,
   // persistentReveal: boolean — if true, EDHREC links are revealed by default
   persistentReveal: false,
 };
