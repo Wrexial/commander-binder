@@ -93,5 +93,4 @@ export function startNewSection(pageSets = new Map()) {
   state.section.appendChild(header);
   state.section.appendChild(state.grid);
   state.binder.appendChild(state.section);
-
-
+}
