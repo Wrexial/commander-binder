@@ -30,6 +30,11 @@ export function initLazyCards(results, tooltip) {
   // ⚡ Create first binder immediately to avoid null errors
   startNewBinder(results);
 
+  const ownedCountEl = state.binder.querySelector(".owned-count");
+  if (ownedCountEl) {
+    ownedCountEl.textContent = `Owned: ${state.binder.ownedCards}/${state.binder.totalCards}`;
+  }
+
   state.nextPageUrl =
     "https://api.scryfall.com/cards/search?q=type:legendary type:creature&unique=prints&order=released&dir=asc";
 

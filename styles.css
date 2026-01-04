@@ -581,3 +581,44 @@ body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75);
   }
 }
+
+.binder-header,
+.page-header {
+  cursor: pointer;
+  position: relative;
+  padding-left: 20px;
+}
+
+.binder-header::before,
+.page-header::before {
+  content: "−";
+  position: absolute;
+  left: 0;
+  width: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.binder.collapsed > .section,
+.section.collapsed > .grid {
+  display: none;
+}
+
+.binder.collapsed > .binder-header::before,
+.section.collapsed > .page-header::before {
+  content: "+";
+}
+
+.owned-count {
+  float: right;
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--muted);
+  margin-left: 1rem;
+}
+
+.page-header {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: bold;
+}

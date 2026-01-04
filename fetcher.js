@@ -5,6 +5,7 @@ import { showLoading, hideLoading } from './loader.js';
 import { startNewBinder, startNewSection } from './layout.js';
 import { createCardElement, attachCardHandlers } from './cards.js';
 
+import { isCardEnabled } from './cardState.js';
 // At the start of your lazy loading init
 state.pageCards = [];
 
@@ -65,7 +66,17 @@ function renderPage(results, tooltip) {
     const el = createCardElement(c);
     attachCardHandlers(el, c, tooltip);
     state.grid.appendChild(el);
+
+    state.binder.totalCards++;
+    if (!isCardEnabled(c)) {
+      state.binder.ownedCards++;
+    }
   });
+  const ownedCountEl = state.binder.querySelector(".owned-count");
+  if (ownedCountEl) {
+    ownedCountEl.textContent = `Owned: ${state.binder.ownedCards}/${state.binder.totalCards}`;
+  }
+
   state.count += state.pageCards.length;
 
   if (state.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {

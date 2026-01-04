@@ -268,6 +268,19 @@ export function attachCardHandlers(div, card, tooltip) {
     const enabled = await toggleCardEnabled(card);
     div.classList.toggle("owned", !enabled);
 
+    const binder = div.closest(".binder");
+    if (binder) {
+      if (enabled) {
+        binder.ownedCards--;
+      } else {
+        binder.ownedCards++;
+      }
+      const ownedCountEl = binder.querySelector(".owned-count");
+      if (ownedCountEl) {
+        ownedCountEl.textContent = `Owned: ${binder.ownedCards}/${binder.totalCards}`;
+      }
+    }
+
     const toggleBtn = div.querySelector('.card-toggle');
     if (toggleBtn) {
       // toggle button has no visible checkmark; owned state shown via badge
@@ -289,6 +302,19 @@ export function attachCardHandlers(div, card, tooltip) {
           toggleBtn.textContent = '';
           toggleBtn.setAttribute('aria-pressed', (!previousEnabled).toString());
           toggleBtn.setAttribute('aria-label', previousEnabled ? 'Mark as missing' : 'Mark as owned');
+        }
+
+        const binder = div.closest(".binder");
+        if (binder) {
+          if (previousEnabled) {
+            binder.ownedCards--;
+          } else {
+            binder.ownedCards++;
+          }
+          const ownedCountEl = binder.querySelector(".owned-count");
+          if (ownedCountEl) {
+            ownedCountEl.textContent = `Owned: ${binder.ownedCards}/${binder.totalCards}`;
+          }
         }
       }, { duration: 5000 });
     } catch (err) {

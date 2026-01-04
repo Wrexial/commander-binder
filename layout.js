@@ -20,13 +20,24 @@ export function startNewBinder(results) {
   newBinder.style.background = lightenColor(color, 0.9);
 
   const header = document.createElement("h2");
+  header.className = "binder-header";
   header.textContent = `Binder ${binderNumber}`;
   header.style.color = color;
+
+  const ownedCount = document.createElement("span");
+  ownedCount.className = "owned-count";
+  header.appendChild(ownedCount);
+
+  header.addEventListener("click", () => {
+    newBinder.classList.toggle("collapsed");
+  });
 
   newBinder.appendChild(header);
   results.appendChild(newBinder);
 
   state.binder = newBinder;
+  state.binder.totalCards = 0;
+  state.binder.ownedCards = 0;
 }
 
 export function startNewSection(pageSets = new Map()) {
@@ -39,7 +50,12 @@ export function startNewSection(pageSets = new Map()) {
   const pageDate = firstSet ? new Date(firstSet.date).getFullYear() : "Unknown";
 
   const header = document.createElement("h3");
+  header.className = "page-header";
   header.textContent = `Page ${pageNumber}${pageDate ? ` — ${pageDate}` : ""} — `;
+
+  header.addEventListener("click", () => {
+    state.section.classList.toggle("collapsed");
+  });
 
   const setTooltip = document.getElementById("set-tooltip");
 
