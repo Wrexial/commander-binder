@@ -34,11 +34,11 @@ export function initSearch() {
           isVisible = typeLine.includes(typeTerm) || oracleText.includes(typeTerm);
         } else if (searchTerm.startsWith('c<')) {
           const queryColors = searchTerm.substring(2).toUpperCase().split('');
-          const cardColors = card.cardData.colors || [];
+          const cardColors = card.cardData.color_identity || [];
           isVisible = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
         } else if (searchTerm.startsWith('c=')) {
           const queryColors = searchTerm.substring(2).toUpperCase().split('').sort();
-          const cardColors = (card.cardData.colors || []).sort();
+          const cardColors = (card.cardData.color_identity || []).sort();
           isVisible = JSON.stringify(queryColors) === JSON.stringify(cardColors);
         } else {
           const cardName = card.cardData.name.toLowerCase();
