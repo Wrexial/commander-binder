@@ -42,12 +42,16 @@ export function startNewBinder(results) {
     const sections = binder.querySelectorAll('.section');
     if (sections.length === 0) return;
 
-    // If any section is open, collapse all. Otherwise, expand all.
-    const shouldCollapseAll = Array.from(sections).some(s => !s.classList.contains('collapsed'));
-    
+    const isBinderOpen = !binder.classList.contains('collapsed');
+    const anySectionOpen = Array.from(sections).some(s => !s.classList.contains('collapsed'));
+
+    const shouldCollapseAll = isBinderOpen && anySectionOpen;
+
     sections.forEach(section => {
       section.classList.toggle('collapsed', shouldCollapseAll);
     });
+    
+    binder.classList.toggle('collapsed', shouldCollapseAll);
   }
 
   header.addEventListener("click", handleInteraction);
@@ -64,6 +68,10 @@ export function startNewBinder(results) {
 
   header.addEventListener('touchmove', () => {
     clearTimeout(longPressTimer);
+  });
+
+  header.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
   });
 
   newBinder.appendChild(header);
