@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     loggedInUserId = false;
     const signInDiv = document.getElementById('sign-in');
+    signInDiv.style.display = 'block';
     clerk.mountSignIn(signInDiv);
   }
 });
