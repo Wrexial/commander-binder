@@ -673,3 +673,28 @@ body {
   font-size: 1rem;
   font-weight: bold;
 }
+
+#search-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    z-index: 1;
+    width: 200px;
+}
+
+#search-tooltip h4 {
+    margin-top: 0;
+}
+
+#search-tooltip ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+#search-tooltip li {
+    margin-bottom: 5px;
+}

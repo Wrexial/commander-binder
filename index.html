@@ -24,6 +24,22 @@
       <div id="search-wrapper">
         <input type="search" id="search-input" placeholder="Search cards..." />
         <button id="clear-search">&times;</button>
+        <div id="search-tooltip" class="tooltip" style="display: none;">
+          <h4>Search Syntax</h4>
+          <ul>
+            <li><code>(term)</code> - Group terms</li>
+            <li><code>!term</code> - Exclude term</li>
+            <li><code>t:type</code> - Card type</li>
+            <li><code>o:text</code> - Oracle text</li>
+            <li><code>c:wug or c=wug</code> - Exact colors</li>
+            <li><code>c>wg</code> - Colors include</li>
+            <li><code>c<wug</code> - Colors subset</li>
+            <li><code>s:set</code> - Set code or name</li>
+            <li><code>d:year</code> - Release year</li>
+            <li><code>d:year-year</code> - Release year range</li>
+            <li><code>r:rarity</code> - Rarity</li>
+          </ul>
+        </div>
       </div>
       <div id="owned-counter"></div>
     </div>

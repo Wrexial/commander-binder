@@ -77,6 +77,20 @@ export function initSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
 
+  const searchTooltip = document.getElementById('search-tooltip');
+  let tooltipTimeout;
+
+  searchInput.addEventListener('mouseenter', () => {
+    tooltipTimeout = setTimeout(() => {
+      searchTooltip.style.display = 'block';
+    }, 1500);
+  });
+
+  searchInput.addEventListener('mouseleave', () => {
+    clearTimeout(tooltipTimeout);
+    searchTooltip.style.display = 'none';
+  });
+
   const clearSearchButton = document.getElementById('clear-search');
   const noResultsMessage = document.getElementById('no-results-message');
 
