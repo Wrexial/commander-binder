@@ -65,6 +65,8 @@ function cardMatchesFilter(card, filter) {
         const rarityTerm = filter.substring(2);
         const rarity = card.cardData.rarity?.toLowerCase() || '';
         match = rarity === rarityTerm;
+    } else if (filter === 'owned') {
+        match = card.classList.contains('owned');
     } else {
         const cardName = card.cardData.name.toLowerCase();
         match = cardName.includes(filter);
