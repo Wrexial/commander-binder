@@ -22,6 +22,7 @@ export function initSearch() {
   const debouncedFilter = debounce(() => {
     const searchTerm = searchInput.value.toLowerCase();
     
+    let visibleCardCount = 0;
     document.querySelectorAll('.card').forEach(card => {
       const slotNumberEl = card.querySelector('.card-slot-number');
       if (searchTerm) {
@@ -37,6 +38,7 @@ export function initSearch() {
         }
 
         if (isVisible) {
+          visibleCardCount++;
           const cardIndex = parseInt(card.dataset.cardIndex, 10);
           slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
           slotNumberEl.style.display = 'block';
