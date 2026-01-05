@@ -33,10 +33,14 @@ function cardMatchesFilter(card, filter) {
         const queryColors = filter.substring(2).toUpperCase().split('');
         const cardColors = card.cardData.color_identity || [];
         match = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
-    } else if (filter.startsWith('c=')) {
+    } else if (filter.startsWith('c=') || filter.startsWith('c:')) {
         const queryColors = filter.substring(2).toUpperCase().split('').sort();
         const cardColors = (card.cardData.color_identity || []).sort();
         match = JSON.stringify(queryColors) === JSON.stringify(cardColors);
+    } else if (filter.startsWith('c>')) {
+        const queryColors = filter.substring(2).toUpperCase().split('');
+        const cardColors = card.cardData.color_identity || [];
+        match = queryColors.every(color => cardColors.includes(color));
     } else if (filter.startsWith('s:')) {
         const setTerm = filter.substring(2);
         const setCode = card.cardData.set?.toLowerCase() || '';
