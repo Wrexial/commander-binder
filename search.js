@@ -14,6 +14,9 @@ export function initSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
 
+  const clearSearchButton = document.getElementById('clear-search');
+  const noResultsMessage = document.getElementById('no-results-message');
+
   const debouncedFilter = debounce(() => {
     const searchTerm = searchInput.value.toLowerCase();
     
@@ -44,8 +47,16 @@ export function initSearch() {
       } else {
         slotNumberEl.style.display = 'none';
         card.style.display = '';
+        visibleCardCount++;
       }
     });
+
+    // Handle "no results" message
+    if (visibleCardCount === 0 && searchTerm) {
+      noResultsMessage.style.display = 'block';
+    } else {
+      noResultsMessage.style.display = 'none';
+    }
 
     // Hide empty sections and binders
     document.querySelectorAll('.binder').forEach(binder => {
@@ -66,7 +77,19 @@ export function initSearch() {
         binder.style.display = '';
       }
     });
+
+    // Show/hide clear button
+    if (searchInput.value) {
+      clearSearchButton.style.display = 'block';
+    } else {
+      clearSearchButton.style.display = 'none';
+    }
   }, 250);
 
   searchInput.addEventListener('input', debouncedFilter);
+
+  clearSearchButton.addEventListener('click', () => {
+    searchInput.value = '';
+    debouncedFilter();
+  });
 }
