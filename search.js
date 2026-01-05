@@ -55,6 +55,17 @@ export function initSearch() {
             } else {
                 isVisible = setCode.includes(setTerm) || setName.includes(setTerm);
             }
+        } else if (searchTerm.startsWith('d:')) {
+            const dateTerm = searchTerm.substring(2);
+            const releaseDate = card.cardData.released_at || '';
+            const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
+            if (dateTerm.includes('-')) {
+                const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
+                isVisible = releaseYear >= startYear && releaseYear <= endYear;
+            } else {
+                const year = parseInt(dateTerm, 10);
+                isVisible = releaseYear === year;
+            }
         } else {
           const cardName = card.cardData.name.toLowerCase();
           isVisible = cardName.includes(searchTerm);
