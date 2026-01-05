@@ -134,7 +134,7 @@ body {
   left: 4px;
   font-size: 0.7rem;
   font-weight: bold;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(0, 0, 0, 0.5);
   display: none; /* Hidden by default */
 }
 
