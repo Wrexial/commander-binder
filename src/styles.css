@@ -11,14 +11,14 @@
   --mtg-R: #c84c4c;
   --mtg-G: #4cc88c;
 
-  --mtg-bg-W: #4d4941;
-  --mtg-bg-U: #2c3a47;
-  --mtg-bg-B: #3d3d3d;
-  --mtg-bg-R: #4a2c2c;
-  --mtg-bg-G: #2c4a3b;
+  --mtg-bg-W: #fdf8ec;
+  --mtg-bg-U: #e3f0fa;
+  --mtg-bg-B: #e5e5e5;
+  --mtg-bg-R: #fde3e3;
+  --mtg-bg-G: #e3f9ef;
 
   --colorless: #aaaaaa;
-  --colorless-bg: #3a3a3a;
+  --colorless-bg: #f4f4f4;
   --multicolor-border: #FFD700;
 
   /* Binder colors (index-based) */

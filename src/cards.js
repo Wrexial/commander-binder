@@ -4,7 +4,7 @@ import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
 import { isCardEnabled, toggleCardEnabled, setCardsEnabled } from "./cardState.js";
 import {loggedInUserId} from './main.js';
-import { getCardBorderStyle, getCardBackground, getCardTextColor } from './utils/colors.js';
+import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { CARDS_PER_PAGE } from './config.js';
@@ -49,7 +49,7 @@ export function createCardElement(card, cardIndex) {
   const borderStyle = getCardBorderStyle(card);
   div.style.setProperty('--card-border', borderStyle.borderColor);
   div.style.setProperty('--card-bg', getCardBackground(card));
-  div.style.setProperty('--card-text', getCardTextColor(card));
+  div.style.setProperty('--card-text', '#111111');
 
   const toggleBtn = document.createElement("button");
   toggleBtn.className = "card-toggle";
