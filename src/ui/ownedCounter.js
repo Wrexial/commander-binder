@@ -1,4 +1,4 @@
-import { state } from '../state.js';
+import { appState } from '../appState.js';
 import { disabledCards } from '../cardState.js';
 
 export function updateOwnedCounter() {
@@ -8,13 +8,20 @@ export function updateOwnedCounter() {
 
     const searchTerm = searchInput.value;
     
+    const allCards = Array.from(document.querySelectorAll('.card'));
+    const totalCards = allCards.length;
+    
+    const visibleCards = allCards.filter(card => card.style.display !== 'none');
+    
+    // Count owned cards from the visible set
+    const ownedVisibleCount = visibleCards.filter(card => !disabledCards.has(card.cardData.id)).length;
+    
+    // Always show total owned relative to total cards
+    const totalOwnedCount = appState.seenNames.size - disabledCards.size;
+    
     if (searchTerm) {
-        const visibleCards = Array.from(document.querySelectorAll('.card')).filter(c => c.style.display !== 'none');
-        const ownedVisibleCards = visibleCards.filter(c => c.classList.contains('owned')).length;
-        ownedCounter.textContent = `Owned: ${ownedVisibleCards}/${visibleCards.length}`;
+        ownedCounter.textContent = `Owned: ${ownedVisibleCount} of ${visibleCards.length} shown (${totalOwnedCount} total)`;
     } else {
-        const totalCards = state.seenNames.size;
-        const totalOwned = disabledCards.size;
-        ownedCounter.textContent = `Owned: ${totalOwned}/${totalCards}`;
+        ownedCounter.textContent = `Owned: ${totalOwnedCount} / ${appState.seenNames.size}`;
     }
 }
