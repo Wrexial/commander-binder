@@ -38,6 +38,28 @@ export function getCardBackground(card) {
   return `linear-gradient(to right, ${gradientStops.join(", ")})`;
 }
 
+export function getCardTextColor(card) {
+    const colors = card.color_identity || [];
+
+    if (colors.length === 0) {
+        return '#e0e0e0';
+    }
+
+    if (colors.length === 1) {
+        switch (colors[0]) {
+            case 'W':
+            case 'U':
+                return '#1a202c';
+            case 'B':
+            case 'R':
+            case 'G':
+                return '#e0e0e0';
+        }
+    }
+
+    return '#e0e0e0';
+}
+
 export function lightenColor(color, factor) {
   // Accept rgb() or hex values; if color is not hex, just return it with a simple overlay
   const hexMatch = color.match(/#([0-9a-fA-F]{6})/);

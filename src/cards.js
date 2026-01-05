@@ -49,8 +49,7 @@ export function createCardElement(card, cardIndex) {
   const borderStyle = getCardBorderStyle(card);
   div.style.setProperty('--card-border', borderStyle.borderColor);
   div.style.setProperty('--card-bg', getCardBackground(card));
-  // Cards are multicolored: always use dark text for legibility
-  div.style.setProperty('--card-text', '#111111');
+  div.style.setProperty('--card-text', getCardTextColor(card));
 
   const toggleBtn = document.createElement("button");
   toggleBtn.className = "card-toggle";
