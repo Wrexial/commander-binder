@@ -40,9 +40,13 @@ export function startNewBinder(results) {
 
   function toggleAllSections(binder) {
     const sections = binder.querySelectorAll('.section');
-    const isCollapsed = binder.classList.contains('collapsed');
+    if (sections.length === 0) return;
+
+    // If any section is open, collapse all. Otherwise, expand all.
+    const shouldCollapseAll = Array.from(sections).some(s => !s.classList.contains('collapsed'));
+    
     sections.forEach(section => {
-      section.classList.toggle('collapsed', !isCollapsed);
+      section.classList.toggle('collapsed', shouldCollapseAll);
     });
   }
 
