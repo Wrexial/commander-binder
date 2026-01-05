@@ -13,6 +13,10 @@ export function createCardElement(card) {
   div.className = "card";
   div.cardData = card;
 
+  const slotNumberEl = document.createElement('span');
+  slotNumberEl.className = 'card-slot-number';
+  div.appendChild(slotNumberEl);
+
   const nameEl = document.createElement('span');
   nameEl.className = 'card-name';
   nameEl.textContent = card.name;

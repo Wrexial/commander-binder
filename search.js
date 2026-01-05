@@ -17,25 +17,35 @@ export function initSearch() {
   const debouncedFilter = debounce(() => {
     const searchTerm = searchInput.value.toLowerCase();
     
-    if (searchTerm.startsWith('t:')) {
-      const typeTerm = searchTerm.substring(2);
-      document.querySelectorAll('.card').forEach(card => {
-        const typeLine = card.cardData.type_line?.toLowerCase() || '';
-        const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
-        const cardName = card.cardData.name.toLowerCase();
+    let visibleCardCount = 0;
+    document.querySelectorAll('.card').forEach(card => {
+      const slotNumberEl = card.querySelector('.card-slot-number');
+      if (searchTerm) {
+        let isVisible = false;
+        if (searchTerm.startsWith('t:')) {
+          const typeTerm = searchTerm.substring(2);
+          const typeLine = card.cardData.type_line?.toLowerCase() || '';
+          const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
+          isVisible = typeLine.includes(typeTerm) || oracleText.includes(typeTerm);
+        } else {
+          const cardName = card.cardData.name.toLowerCase();
+          isVisible = cardName.includes(searchTerm);
+        }
 
-        if (typeLine.includes(typeTerm) || oracleText.includes(typeTerm)) {
+        if (isVisible) {
+          visibleCardCount++;
+          slotNumberEl.textContent = `#${visibleCardCount}`;
+          slotNumberEl.style.display = 'block';
           card.style.display = '';
         } else {
+          slotNumberEl.style.display = 'none';
           card.style.display = 'none';
         }
-      });
-    } else {
-      document.querySelectorAll('.card').forEach(card => {
-        const cardName = card.cardData.name.toLowerCase();
-        card.style.display = cardName.includes(searchTerm) ? '' : 'none';
-      });
-    }
+      } else {
+        slotNumberEl.style.display = 'none';
+        card.style.display = '';
+      }
+    });
 
     // Hide empty sections and binders
     document.querySelectorAll('.binder').forEach(binder => {

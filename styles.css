@@ -124,6 +124,16 @@ body {
   touch-action: manipulation;
 }
 
+.card-slot-number {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.5);
+  display: none; /* Hidden by default */
+}
+
 .card-name {
   flex: 1 1 auto;
   display: inline-flex;
