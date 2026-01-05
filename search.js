@@ -15,30 +15,36 @@ function debounce(func, wait) {
 }
 
 function cardMatchesFilter(card, filter) {
+    const not = filter.startsWith('!');
+    if (not) {
+        filter = filter.substring(1);
+    }
+
+    let match = false;
     if (filter.startsWith('t:')) {
         const typeTerm = filter.substring(2);
         const typeLine = card.cardData.type_line?.toLowerCase() || '';
-        return typeLine.includes(typeTerm);
+        match = typeLine.includes(typeTerm);
     } else if (filter.startsWith('o:')) {
         const oracleTerm = filter.substring(2);
         const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
-        return oracleText.includes(oracleTerm);
+        match = oracleText.includes(oracleTerm);
     } else if (filter.startsWith('c<')) {
         const queryColors = filter.substring(2).toUpperCase().split('');
         const cardColors = card.cardData.color_identity || [];
-        return cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
+        match = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
     } else if (filter.startsWith('c=')) {
         const queryColors = filter.substring(2).toUpperCase().split('').sort();
         const cardColors = (card.cardData.color_identity || []).sort();
-        return JSON.stringify(queryColors) === JSON.stringify(cardColors);
+        match = JSON.stringify(queryColors) === JSON.stringify(cardColors);
     } else if (filter.startsWith('s:')) {
         const setTerm = filter.substring(2);
         const setCode = card.cardData.set?.toLowerCase() || '';
         const setName = card.cardData.set_name?.toLowerCase() || '';
         if (state.seenSetCodes.has(setTerm)) {
-            return setCode === setTerm;
+            match = setCode === setTerm;
         } else {
-            return setCode.includes(setTerm) || setName.includes(setTerm);
+            match = setCode.includes(setTerm) || setName.includes(setTerm);
         }
     } else if (filter.startsWith('d:')) {
         const dateTerm = filter.substring(2);
@@ -46,19 +52,21 @@ function cardMatchesFilter(card, filter) {
         const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
         if (dateTerm.includes('-')) {
             const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
-            return releaseYear >= startYear && releaseYear <= endYear;
+            match = releaseYear >= startYear && releaseYear <= endYear;
         } else {
             const year = parseInt(dateTerm, 10);
-            return releaseYear === year;
+            match = releaseYear === year;
         }
     } else if (filter.startsWith('r:')) {
         const rarityTerm = filter.substring(2);
         const rarity = card.cardData.rarity?.toLowerCase() || '';
-        return rarity === rarityTerm;
+        match = rarity === rarityTerm;
     } else {
         const cardName = card.cardData.name.toLowerCase();
-        return cardName.includes(filter);
+        match = cardName.includes(filter);
     }
+
+    return not ? !match : match;
 }
 
 export function initSearch() {
