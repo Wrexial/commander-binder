@@ -45,6 +45,11 @@ export function initSearch() {
           const queryColors = searchTerm.substring(2).toUpperCase().split('').sort();
           const cardColors = (card.cardData.color_identity || []).sort();
           isVisible = JSON.stringify(queryColors) === JSON.stringify(cardColors);
+        } else if (searchTerm.startsWith('s:')) {
+            const setTerm = searchTerm.substring(2);
+            const setCode = card.cardData.set?.toLowerCase() || '';
+            const setName = card.cardData.set_name?.toLowerCase() || '';
+            isVisible = setCode.includes(setTerm) || setName.includes(setTerm);
         } else {
           const cardName = card.cardData.name.toLowerCase();
           isVisible = cardName.includes(searchTerm);
