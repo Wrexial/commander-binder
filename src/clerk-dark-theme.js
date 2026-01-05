@@ -3,34 +3,34 @@ import { dark } from '@clerk/themes';
 export const clerkDarkTheme = {
   baseTheme: dark,
   variables: {
-    colorPrimary: '#5a9fdc',
-    colorBackground: '#1e1e1e',
-    colorText: '#e0e0e0',
-    colorInputBackground: '#2c2c2c',
-    colorInputText: '#e0e0e0',
-    colorNeutral: '#555',
+    colorPrimary: '#4fd1c5',
+    colorBackground: '#2d3748',
+    colorText: '#e2e8f0',
+    colorInputBackground: '#1a202c',
+    colorInputText: '#e2e8f0',
+    colorNeutral: '#4a5568',
   },
   elements: {
     card: {
-      backgroundColor: '#1e1e1e',
-      borderColor: '#555',
+      backgroundColor: '#2d3748',
+      borderColor: '#4a5568',
     },
     userButtonPopoverCard: {
-      backgroundColor: '#1e1e1e',
-      borderColor: '#555',
+      backgroundColor: '#2d3748',
+      borderColor: '#4a5568',
     },
     userButtonPopoverMain: {
-      backgroundColor: '#1e1e1e',
+      backgroundColor: '#2d3748',
     },
     userButtonPopoverFooter: {
-        backgroundColor: '#1e1e1e',
+        backgroundColor: '#2d3748',
     },
     userProfileCard: {
-        backgroundColor: '#1e1e1e',
-        borderColor: '#555',
+        backgroundColor: '#2d3748',
+        borderColor: '#4a5568',
     },
     userProfileMain: {
-        backgroundColor: '#1e1e1e',
+        backgroundColor: '#2d3748',
     },
   }
 };

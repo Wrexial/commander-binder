@@ -1,8 +1,8 @@
 :root {
   /* Palette */
-  --bg: #121212;
-  --text: #e0e0e0;
-  --muted: #a0a0a0;
+  --bg: #1a202c;
+  --text: #e2e8f0;
+  --muted: #a0aec0;
 
   /* MTG color palette */
   --mtg-W: #f8f3e0;
@@ -30,19 +30,20 @@
   --binder-color-5: #8c4cc8;
 
   /* UI colors */
-  --card-border-default: #444;
-  --card-bg-default: #1e1e1e;
-  --tooltip-bg: #2c2c2c;
-  --tooltip-border: #555;
-  --edhrec-hover: rgba(255, 255, 255, 0.1);
-  --focus: #5a9fdc;
+  --card-border-default: #4a5568;
+  --card-bg-default: #2d3748;
+  --tooltip-bg: #2d3748;
+  --tooltip-border: #4a5568;
+  --edhrec-hover: rgba(66, 153, 225, 0.1);
+  --focus: #4fd1c5;
 }
 
 body {
-  font-family: sans-serif;
+  font-family: 'Roboto', sans-serif;
   padding: 1rem;
-  background: var(--bg);
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
   color: var(--text);
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .container {
@@ -111,7 +112,7 @@ body {
   min-height: 2.4em;
   line-height: 1.2em;
   word-wrap: break-word;
-  background: var(--card-bg, var(--card-bg-default));
+  background: radial-gradient(circle, #2d3748 0%, #1a202c 100%);
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.12s ease, padding 0.12s ease;
   color: var(--card-text, var(--text));
 
@@ -443,10 +444,10 @@ body {
 #search-input {
   padding-right: 25px; /* Make space for the clear button */
   border-radius: 15px;
-  border: 1px solid #555;
+  border: 1px solid #4a5568;
   padding: 8px 12px;
   transition: all 0.3s ease;
-  background-color: #2c2c2c;
+  background-color: #2d3748;
   color: var(--text);
 }
 
@@ -471,7 +472,7 @@ body {
 
 #owned-counter {
   font-size: 0.9rem;
-  color: #555;
+  color: #a0aec0;
   margin: 0 0.5rem;
   white-space: nowrap;
 }
@@ -567,8 +568,8 @@ body {
   box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Optional shadow */
   cursor: pointer;
   z-index: 1000; /* Make sure it stays above other elements */
-  background-color: #2c2c2c;
-  border: 1px solid #555;
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
 }
 
 
@@ -620,8 +621,8 @@ body {
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #2c2c2c;
-    border: 1px solid #555;
+    background-color: #2d3748;
+    border: 1px solid #4a5568;
     border-radius: 5px;
     padding: 10px;
     z-index: 1001;
