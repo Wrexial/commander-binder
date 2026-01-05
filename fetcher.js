@@ -27,6 +27,7 @@ export async function fetchNextPage(results, tooltip) {
       if (state.seenNames.has(card.name)) continue;
 
       state.seenNames.add(card.name);
+      state.seenSetCodes.add(card.set.toLowerCase());
       state.pageCards.push(card);
 
       // Only render when we hit CARDS_PER_PAGE

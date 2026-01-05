@@ -1,3 +1,4 @@
+import { state } from './state.js';
 import { CARDS_PER_PAGE } from './config.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 
@@ -49,7 +50,11 @@ export function initSearch() {
             const setTerm = searchTerm.substring(2);
             const setCode = card.cardData.set?.toLowerCase() || '';
             const setName = card.cardData.set_name?.toLowerCase() || '';
-            isVisible = setCode.includes(setTerm) || setName.includes(setTerm);
+            if (state.seenSetCodes.has(setTerm)) {
+                isVisible = setCode === setTerm;
+            } else {
+                isVisible = setCode.includes(setTerm) || setName.includes(setTerm);
+            }
         } else {
           const cardName = card.cardData.name.toLowerCase();
           isVisible = cardName.includes(searchTerm);
