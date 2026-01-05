@@ -1,4 +1,5 @@
 import {loggedInUserId} from './main.js';
+import { updateOwnedCounter } from './ui/ownedCounter.js';
 
 export const disabledCards = new Set();
 let initialized = false;
@@ -42,6 +43,8 @@ export async function toggleCardEnabled(card) {
     body: JSON.stringify({ userId: loggedInUserId, cardId: card.id, disable }),
   });
 
+  updateOwnedCounter();
+
   return !disable;
 }
 
@@ -63,4 +66,6 @@ export async function setCardsEnabled(cards, enabled) {
       disable: !enabled,
     }),
   });
+  
+  updateOwnedCounter();
 }

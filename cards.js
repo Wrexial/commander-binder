@@ -7,15 +7,17 @@ import {loggedInUserId} from './main.js';
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
+import { CARDS_PER_PAGE } from './config.js';
 
 
-export function createCardElement(card) {
+export function createCardElement(card, cardIndex) {
   const div = document.createElement("div");
   div.className = "card";
   div.cardData = card;
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
+  slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
   div.appendChild(slotNumberEl);
 
   const nameEl = document.createElement('span');

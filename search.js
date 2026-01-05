@@ -26,6 +26,7 @@ export function initSearch() {
     let visibleCardCount = 0;
     document.querySelectorAll('.card').forEach(card => {
       const slotNumberEl = card.querySelector('.card-slot-number');
+
       if (searchTerm) {
         let isVisible = false;
         if (searchTerm.startsWith('t:')) {
@@ -49,18 +50,14 @@ export function initSearch() {
           isVisible = cardName.includes(searchTerm);
         }
 
+
         if (isVisible) {
           visibleCardCount++;
-          const cardIndex = parseInt(card.dataset.cardIndex, 10);
-          slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
-          slotNumberEl.style.display = 'block';
           card.style.display = '';
         } else {
-          slotNumberEl.style.display = 'none';
           card.style.display = 'none';
         }
       } else {
-        slotNumberEl.style.display = 'none';
         card.style.display = '';
       }
     });
