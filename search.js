@@ -32,6 +32,14 @@ export function initSearch() {
           const typeLine = card.cardData.type_line?.toLowerCase() || '';
           const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
           isVisible = typeLine.includes(typeTerm) || oracleText.includes(typeTerm);
+        } else if (searchTerm.startsWith('c<')) {
+          const queryColors = searchTerm.substring(2).toUpperCase().split('');
+          const cardColors = card.cardData.colors || [];
+          isVisible = cardColors.some(color => queryColors.includes(color));
+        } else if (searchTerm.startsWith('c=')) {
+          const queryColors = searchTerm.substring(2).toUpperCase().split('').sort();
+          const cardColors = (card.cardData.colors || []).sort();
+          isVisible = JSON.stringify(queryColors) === JSON.stringify(cardColors);
         } else {
           const cardName = card.cardData.name.toLowerCase();
           isVisible = cardName.includes(searchTerm);
