@@ -470,8 +470,8 @@ body {
 #owned-counter {
   font-size: 0.9rem;
   color: #555;
-  margin: 0.5rem 0;
-  text-align: center;
+  margin: 0 0.5rem;
+  white-space: nowrap;
 }
 
 #no-results-message {
