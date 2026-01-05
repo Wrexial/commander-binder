@@ -44,6 +44,9 @@ body {
   background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
   color: var(--text);
   text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  min-height: 100vh;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .container {
