@@ -8,7 +8,8 @@ export const clerkDarkTheme = {
     colorText: '#f7fafc',
     colorInputBackground: '#1a202c',
     colorInputText: '#f7fafc',
-    colorNeutral: '#4a5568',
+    colorNeutral: '#a0aec0',
+    colorTextSecondary: '#e2e8f0',
   },
   elements: {
     card: {
