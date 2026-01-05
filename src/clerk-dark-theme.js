@@ -3,11 +3,11 @@ import { dark } from '@clerk/themes';
 export const clerkDarkTheme = {
   baseTheme: dark,
   variables: {
-    colorPrimary: '#4fd1c5',
+    colorPrimary: '#81e6d9',
     colorBackground: '#2d3748',
-    colorText: '#e2e8f0',
+    colorText: '#f7fafc',
     colorInputBackground: '#1a202c',
-    colorInputText: '#e2e8f0',
+    colorInputText: '#f7fafc',
     colorNeutral: '#4a5568',
   },
   elements: {
@@ -32,5 +32,8 @@ export const clerkDarkTheme = {
     userProfileMain: {
         backgroundColor: '#2d3748',
     },
+    userProfile: {
+        colorText: '#f7fafc',
+    }
   }
 };
