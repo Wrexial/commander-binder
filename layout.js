@@ -28,8 +28,38 @@ export function startNewBinder(results) {
   ownedCount.className = "owned-count";
   header.appendChild(ownedCount);
 
-  header.addEventListener("click", () => {
-    newBinder.classList.toggle("collapsed");
+  let longPressTimer;
+
+  function handleInteraction(event) {
+    if (event.shiftKey) {
+      toggleAllSections(newBinder);
+    } else {
+      newBinder.classList.toggle("collapsed");
+    }
+  }
+
+  function toggleAllSections(binder) {
+    const sections = binder.querySelectorAll('.section');
+    const isCollapsed = binder.classList.contains('collapsed');
+    sections.forEach(section => {
+      section.classList.toggle('collapsed', !isCollapsed);
+    });
+  }
+
+  header.addEventListener("click", handleInteraction);
+
+  header.addEventListener('touchstart', () => {
+    longPressTimer = setTimeout(() => {
+      toggleAllSections(newBinder);
+    }, 500);
+  });
+
+  header.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+  });
+
+  header.addEventListener('touchmove', () => {
+    clearTimeout(longPressTimer);
   });
 
   newBinder.appendChild(header);
