@@ -3,26 +3,7 @@ import { createCardElement, attachCardHandlers } from './cards.js';
 import { fetchNextPage } from './fetcher.js';
 import { startNewBinder } from './layout.js';
 
-export async function setupDebugRow(tooltip) {
-  const div = document.querySelector("#debug-row");
-  div.innerHTML = "";
-  return;
-  
-  const grid = document.querySelector("#debug-row .grid");
-  if (!grid) return;
 
-  for (const ref of debugCards) {
-    try {
-      const res = await fetch(`https://api.scryfall.com/cards/${ref.scryfallId}`);
-      const card = await res.json();
-      const el = createCardElement(card);
-      attachCardHandlers(el, card, tooltip);
-      grid.appendChild(el);
-    } catch {
-      console.warn("Failed debug card:", ref.name);
-    }
-  }
-}
 
 export function initLazyCards(results, tooltip) {
   results.innerHTML = "";

@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const tooltip = document.getElementById("tooltip");
     const results = document.getElementById("results");
-    await setupDebugRow(tooltip);
+
     await loadCardStates();
     initCardSettings(tooltip);
     initSearch();
