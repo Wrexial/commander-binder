@@ -1,18 +1,7 @@
 import { state } from './state.js';
 import { CARDS_PER_PAGE } from './config.js';
+import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
-
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
 
 function cardMatchesFilter(card, filter) {
     const not = filter.startsWith('!');
