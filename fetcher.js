@@ -62,8 +62,9 @@ function renderPage(results, tooltip) {
   }));
 
   startNewSection(pageSets);
-  state.pageCards.forEach(c => {
+  state.pageCards.forEach((c, i) => {
     const el = createCardElement(c);
+    el.dataset.cardIndex = state.count + i;
     attachCardHandlers(el, c, tooltip);
     state.grid.appendChild(el);
 
