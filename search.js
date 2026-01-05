@@ -66,6 +66,10 @@ export function initSearch() {
                 const year = parseInt(dateTerm, 10);
                 isVisible = releaseYear === year;
             }
+        } else if (searchTerm.startsWith('r:')) {
+            const rarityTerm = searchTerm.substring(2);
+            const rarity = card.cardData.rarity?.toLowerCase() || '';
+            isVisible = rarity === rarityTerm;
         } else {
           const cardName = card.cardData.name.toLowerCase();
           isVisible = cardName.includes(searchTerm);
