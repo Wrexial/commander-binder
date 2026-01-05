@@ -1,6 +1,6 @@
 import {loggedInUserId} from './main.js';
 
-const disabledSet = new Set();
+export const disabledCards = new Set();
 let initialized = false;
 
 export async function loadCardStates() {
@@ -16,7 +16,7 @@ export async function loadCardStates() {
 
   const rows = await res.json();
   for (const { cardId } of rows) {
-    disabledSet.add(cardId);
+    disabledCards.add(cardId);
   }
 
   initialized = true;
@@ -24,16 +24,16 @@ export async function loadCardStates() {
 
 export function isCardEnabled(card) {
   if (!initialized) return true;
-  return !disabledSet.has(card.id);
+  return !disabledCards.has(card.id);
 }
 
 export async function toggleCardEnabled(card) {
   const disable = isCardEnabled(card);
 
   if (disable) {
-    disabledSet.add(card.id);
+    disabledCards.add(card.id);
   } else {
-    disabledSet.delete(card.id);
+    disabledCards.delete(card.id);
   }
 
   fetch("/.netlify/functions/toggle-card", {
@@ -48,9 +48,9 @@ export async function toggleCardEnabled(card) {
 export async function setCardsEnabled(cards, enabled) {
   for (const card of cards) {
     if (enabled) {
-      disabledSet.delete(card.id);
+      disabledCards.delete(card.id);
     } else {
-      disabledSet.add(card.id);
+      disabledCards.add(card.id);
     }
   }
 
