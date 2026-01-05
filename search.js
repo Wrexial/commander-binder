@@ -14,6 +14,53 @@ function debounce(func, wait) {
   };
 }
 
+function cardMatchesFilter(card, filter) {
+    if (filter.startsWith('t:')) {
+        const typeTerm = filter.substring(2);
+        const typeLine = card.cardData.type_line?.toLowerCase() || '';
+        return typeLine.includes(typeTerm);
+    } else if (filter.startsWith('o:')) {
+        const oracleTerm = filter.substring(2);
+        const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
+        return oracleText.includes(oracleTerm);
+    } else if (filter.startsWith('c<')) {
+        const queryColors = filter.substring(2).toUpperCase().split('');
+        const cardColors = card.cardData.color_identity || [];
+        return cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
+    } else if (filter.startsWith('c=')) {
+        const queryColors = filter.substring(2).toUpperCase().split('').sort();
+        const cardColors = (card.cardData.color_identity || []).sort();
+        return JSON.stringify(queryColors) === JSON.stringify(cardColors);
+    } else if (filter.startsWith('s:')) {
+        const setTerm = filter.substring(2);
+        const setCode = card.cardData.set?.toLowerCase() || '';
+        const setName = card.cardData.set_name?.toLowerCase() || '';
+        if (state.seenSetCodes.has(setTerm)) {
+            return setCode === setTerm;
+        } else {
+            return setCode.includes(setTerm) || setName.includes(setTerm);
+        }
+    } else if (filter.startsWith('d:')) {
+        const dateTerm = filter.substring(2);
+        const releaseDate = card.cardData.released_at || '';
+        const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
+        if (dateTerm.includes('-')) {
+            const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
+            return releaseYear >= startYear && releaseYear <= endYear;
+        } else {
+            const year = parseInt(dateTerm, 10);
+            return releaseYear === year;
+        }
+    } else if (filter.startsWith('r:')) {
+        const rarityTerm = filter.substring(2);
+        const rarity = card.cardData.rarity?.toLowerCase() || '';
+        return rarity === rarityTerm;
+    } else {
+        const cardName = card.cardData.name.toLowerCase();
+        return cardName.includes(filter);
+    }
+}
+
 export function initSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
@@ -24,67 +71,29 @@ export function initSearch() {
   const debouncedFilter = debounce(() => {
     const searchTerm = searchInput.value.toLowerCase();
     
+    let filters = [];
+    if (searchTerm.includes('(')) {
+        filters = searchTerm.match(/\(([^)]+)\)/g)?.map(f => f.slice(1, -1)) || [];
+    } else if (searchTerm) {
+        filters = [searchTerm];
+    }
+
     let visibleCardCount = 0;
     document.querySelectorAll('.card').forEach(card => {
-      const slotNumberEl = card.querySelector('.card-slot-number');
+        const slotNumberEl = card.querySelector('.card-slot-number');
 
-      if (searchTerm) {
-        let isVisible = false;
-        if (searchTerm.startsWith('t:')) {
-          const typeTerm = searchTerm.substring(2);
-          const typeLine = card.cardData.type_line?.toLowerCase() || '';
-          isVisible = typeLine.includes(typeTerm);
-        } else if (searchTerm.startsWith('o:')) {
-            const oracleTerm = searchTerm.substring(2);
-            const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
-            isVisible = oracleText.includes(oracleTerm);
-        } else if (searchTerm.startsWith('c<')) {
-          const queryColors = searchTerm.substring(2).toUpperCase().split('');
-          const cardColors = card.cardData.color_identity || [];
-          isVisible = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
-        } else if (searchTerm.startsWith('c=')) {
-          const queryColors = searchTerm.substring(2).toUpperCase().split('').sort();
-          const cardColors = (card.cardData.color_identity || []).sort();
-          isVisible = JSON.stringify(queryColors) === JSON.stringify(cardColors);
-        } else if (searchTerm.startsWith('s:')) {
-            const setTerm = searchTerm.substring(2);
-            const setCode = card.cardData.set?.toLowerCase() || '';
-            const setName = card.cardData.set_name?.toLowerCase() || '';
-            if (state.seenSetCodes.has(setTerm)) {
-                isVisible = setCode === setTerm;
+        if (filters.length > 0) {
+            const isVisible = filters.every(filter => cardMatchesFilter(card, filter));
+
+            if (isVisible) {
+                visibleCardCount++;
+                card.style.display = '';
             } else {
-                isVisible = setCode.includes(setTerm) || setName.includes(setTerm);
+                card.style.display = 'none';
             }
-        } else if (searchTerm.startsWith('d:')) {
-            const dateTerm = searchTerm.substring(2);
-            const releaseDate = card.cardData.released_at || '';
-            const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
-            if (dateTerm.includes('-')) {
-                const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
-                isVisible = releaseYear >= startYear && releaseYear <= endYear;
-            } else {
-                const year = parseInt(dateTerm, 10);
-                isVisible = releaseYear === year;
-            }
-        } else if (searchTerm.startsWith('r:')) {
-            const rarityTerm = searchTerm.substring(2);
-            const rarity = card.cardData.rarity?.toLowerCase() || '';
-            isVisible = rarity === rarityTerm;
         } else {
-          const cardName = card.cardData.name.toLowerCase();
-          isVisible = cardName.includes(searchTerm);
+            card.style.display = '';
         }
-
-
-        if (isVisible) {
-          visibleCardCount++;
-          card.style.display = '';
-        } else {
-          card.style.display = 'none';
-        }
-      } else {
-        card.style.display = '';
-      }
     });
 
     updateOwnedCounter();
