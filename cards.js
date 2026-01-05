@@ -18,6 +18,7 @@ export function createCardElement(card, cardIndex) {
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
   slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
+  slotNumberEl.style.display = 'block';
   div.appendChild(slotNumberEl);
 
   const nameEl = document.createElement('span');
