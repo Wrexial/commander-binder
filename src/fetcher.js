@@ -24,33 +24,33 @@ export async function fetchNextPage(results, tooltip) {
 
     for (const card of data.data) {
       if (!card.games.includes("paper")) continue;
-      if (state.seenNames.has(card.name)) continue;
+      if (appState.seenNames.has(card.name)) continue;
 
-      state.seenNames.add(card.name);
-      state.seenSetCodes.add(card.set.toLowerCase());
-      state.pageCards.push(card);
+      appState.seenNames.add(card.name);
+      appState.seenSetCodes.add(card.set.toLowerCase());
+      appState.pageCards.push(card);
 
       // Only render when we hit CARDS_PER_PAGE
-      if (state.pageCards.length === CARDS_PER_PAGE) {
+      if (appState.pageCards.length === CARDS_PER_PAGE) {
         renderPage(results, tooltip);
       }
     }
 
-    state.nextPageUrl = data.has_more ? data.next_page : null;
+    appState.nextPageUrl = data.has_more ? data.next_page : null;
 
     // Only render leftover cards if this is the last API page
-    if (!state.nextPageUrl && state.pageCards.length > 0) {
+    if (!appState.nextPageUrl && appState.pageCards.length > 0) {
       renderPage(results, tooltip);
     }
 
   } catch (err) {
     console.error("Scryfall fetch failed:", err);
   } finally {
-    state.isLoading = false;
+    appState.isLoading = false;
     hideLoading();
   }
 
-  if(state.nextPageUrl){
+  if(appState.nextPageUrl){
     fetchNextPage(results, tooltip);
   }
 }
@@ -58,59 +58,59 @@ export async function fetchNextPage(results, tooltip) {
 // helper function
 function renderPage(results, tooltip) {
   const pageSets = new Map();
-  state.pageCards.forEach(c => pageSets.set(c.set, {
+  appState.pageCards.forEach(c => pageSets.set(c.set, {
     name: c.set_name,
     date: c.released_at
   }));
 
   startNewSection(pageSets);
-  state.pageCards.forEach((c, i) => {
-    const cardIndex = state.count + i;
+  appState.pageCards.forEach((c, i) => {
+    const cardIndex = appState.count + i;
     const el = createCardElement(c, cardIndex);
     el.dataset.cardIndex = cardIndex;
     attachCardHandlers(el, c, tooltip);
-    state.grid.appendChild(el);
+    appState.grid.appendChild(el);
 
-    state.binder.totalCards++;
+    appState.binder.totalCards++;
     if (!isCardEnabled(c)) {
-      state.binder.ownedCards++;
+      appState.binder.ownedCards++;
     }
   });
-  const ownedCountEl = state.binder.querySelector(".owned-count");
+  const ownedCountEl = appState.binder.querySelector(".owned-count");
   if (ownedCountEl) {
-    ownedCountEl.textContent = `Owned: ${state.binder.ownedCards}/${state.binder.totalCards}`;
+    ownedCountEl.textContent = `Owned: ${appState.binder.ownedCards}/${appState.binder.totalCards}`;
   }
 
   const dates = Array.from(pageSets.values()).map(set => set.date);
   const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
   const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
 
-  if (!state.binder.startDate || minDate < state.binder.startDate) {
-    state.binder.startDate = minDate;
+  if (!appState.binder.startDate || minDate < appState.binder.startDate) {
+    appState.binder.startDate = minDate;
   }
-  if (!state.binder.endDate || maxDate > state.binder.endDate) {
-    state.binder.endDate = maxDate;
+  if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
+    appState.binder.endDate = maxDate;
   }
 
   updateBinderHeader();
 
-  state.count += state.pageCards.length;
+  appState.count += appState.pageCards.length;
   updateOwnedCounter();
 
-  if (state.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
+  if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
     startNewBinder(results);
   }
 
-  state.pageCards = [];
+  appState.pageCards = [];
 }
 
 function updateBinderHeader() {
-  const header = state.binder.querySelector(".binder-header");
-  const binderNumber = Math.floor(state.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+  const header = appState.binder.querySelector(".binder-header");
+  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
 
-  if (header && state.binder.startDate && state.binder.endDate) {
-    const startYear = new Date(state.binder.startDate).getFullYear();
-    const endYear = new Date(state.binder.endDate).getFullYear();
+  if (header && appState.binder.startDate && appState.binder.endDate) {
+    const startYear = new Date(appState.binder.startDate).getFullYear();
+    const endYear = new Date(appState.binder.endDate).getFullYear();
     header.childNodes[0].nodeValue = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
   }
 }

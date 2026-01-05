@@ -77,19 +77,19 @@ export function startNewBinder(results) {
   newBinder.appendChild(header);
   results.appendChild(newBinder);
 
-  state.binder = newBinder;
-  state.binder.totalCards = 0;
-  state.binder.ownedCards = 0;
-  state.binder.startDate = null;
-  state.binder.endDate = null;
+  appState.binder = newBinder;
+  appState.binder.totalCards = 0;
+  appState.binder.ownedCards = 0;
+  appState.binder.startDate = null;
+  appState.binder.endDate = null;
 }
 
 export function startNewSection(pageSets = new Map()) {
-  const pageNumber = Math.floor(state.count / CARDS_PER_PAGE) + 1;
+  const pageNumber = Math.floor(appState.count / CARDS_PER_PAGE) + 1;
 
   const section = document.createElement("div");
   section.className = "section";
-  state.section = section;
+  appState.section = section;
 
   const header = document.createElement("h3");
   header.className = "page-header";
@@ -128,10 +128,10 @@ export function startNewSection(pageSets = new Map()) {
     }
   });
 
-  state.grid = document.createElement("div");
-  state.grid.className = "grid";
+  appState.grid = document.createElement("div");
+  appState.grid.className = "grid";
 
-  state.section.appendChild(header);
-  state.section.appendChild(state.grid);
-  state.binder.appendChild(state.section);
+  appState.section.appendChild(header);
+  appState.section.appendChild(appState.grid);
+  appState.binder.appendChild(appState.section);
 }

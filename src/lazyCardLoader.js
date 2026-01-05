@@ -30,7 +30,7 @@ export function initLazyCards(results, tooltip) {
   results.appendChild(sentinel);
 
   const io = new IntersectionObserver(entries => {
-    if (!state.nextPageUrl) {
+    if (!appState.nextPageUrl) {
       io.disconnect();
       sentinel.remove();
       return;
