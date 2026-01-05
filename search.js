@@ -31,8 +31,11 @@ export function initSearch() {
         if (searchTerm.startsWith('t:')) {
           const typeTerm = searchTerm.substring(2);
           const typeLine = card.cardData.type_line?.toLowerCase() || '';
-          const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
-          isVisible = typeLine.includes(typeTerm) || oracleText.includes(typeTerm);
+          isVisible = typeLine.includes(typeTerm);
+        } else if (searchTerm.startsWith('o:')) {
+            const oracleTerm = searchTerm.substring(2);
+            const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
+            isVisible = oracleText.includes(oracleTerm);
         } else if (searchTerm.startsWith('c<')) {
           const queryColors = searchTerm.substring(2).toUpperCase().split('');
           const cardColors = card.cardData.color_identity || [];
