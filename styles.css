@@ -633,9 +633,9 @@ body {
   }
 
   #search-tooltip {
-    background-color: var(--tooltip-bg);
+    background-color: #222;
     color: var(--text);
-    border-color: var(--tooltip-border);
+    border-color: #444;
   }
 }
 
