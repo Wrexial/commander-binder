@@ -77,19 +77,16 @@ export function attachCardHandlers(div, card, tooltip) {
 
   if (cardSettings.showTooltip) {
     div.addEventListener("mouseenter", (e)=>{
-      if (!isCardEnabled(card)) return;
       // announce tooltip for screen readers by linking the card to the tooltip
       div.setAttribute('aria-describedby', 'tooltip');
       showTooltip(e, card, tooltip);
     });
 
     div.addEventListener("mousemove", e =>{
-      if (!isCardEnabled(card)) return;
       positionTooltip(e, tooltip);
     });
 
     div.addEventListener("mouseleave", () =>{
-      if (!isCardEnabled(card)) return;
       hideTooltip(tooltip);
       div.removeAttribute('aria-describedby');
     });
@@ -128,7 +125,7 @@ export function attachCardHandlers(div, card, tooltip) {
           suppressUntil = Date.now() + 650; // suppress clicks/toggles briefly
 
           // show tooltip at the touch point if enabled and card is enabled
-          if (cardSettings.showTooltip && isCardEnabled(card)) {
+          if (cardSettings.showTooltip) {
             try {
               const touch = e.touches && e.touches[0] ? e.touches[0] : e;
               const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
