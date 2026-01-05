@@ -1,7 +1,7 @@
 // cards.js
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { cardSettings } from "./cardSettings.js";
-import {state} from "./state.js";
+import { appState } from "./appState.js";
 import { isCardEnabled, toggleCardEnabled, setCardsEnabled } from "./cardState.js";
 import {loggedInUserId} from './main.js';
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';

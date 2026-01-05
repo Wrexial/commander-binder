@@ -1,5 +1,5 @@
 // main.js
-import { initLazyCards } from './init.js';
+import { initLazyCards } from './lazyCardLoader.js';
 import { initCardSettings } from "./settingsUI.js";
 import { loadCardStates } from "./cardState.js";
 import { initSearch } from './search.js';

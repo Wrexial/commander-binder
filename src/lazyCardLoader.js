@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { appState } from './appState.js';
 import { createCardElement, attachCardHandlers } from './cards.js';
 import { fetchNextPage } from './fetcher.js';
 import { startNewBinder } from './layout.js';
@@ -11,12 +11,12 @@ export function initLazyCards(results, tooltip) {
   // ⚡ Create first binder immediately to avoid null errors
   startNewBinder(results);
 
-  const ownedCountEl = state.binder.querySelector(".owned-count");
+  const ownedCountEl = appState.binder.querySelector(".owned-count");
   if (ownedCountEl) {
-    ownedCountEl.textContent = `Owned: ${state.binder.ownedCards}/${state.binder.totalCards}`;
+    ownedCountEl.textContent = `Owned: ${appState.binder.ownedCards}/${appState.binder.totalCards}`;
   }
 
-  state.nextPageUrl =
+  appState.nextPageUrl =
     "https://api.scryfall.com/cards/search?q=type:legendary type:creature&unique=prints&order=released&dir=asc";
 
   // Start preloading

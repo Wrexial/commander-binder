@@ -1,16 +1,16 @@
 // loader.js
-import { state } from './state.js';
+import { appState } from './appState.js';
 
 export function showLoading() {
-  state.activeFetches++;
+  appState.activeFetches++;
   const loader = document.getElementById("loading-indicator");
   if (loader) loader.style.display = "block";
 }
 
 export function hideLoading() {
-  state.activeFetches--;
-  if (state.activeFetches <= 0) {
-    state.activeFetches = 0;
+  appState.activeFetches--;
+  if (appState.activeFetches <= 0) {
+    appState.activeFetches = 0;
     const loader = document.getElementById("loading-indicator");
     if (loader) loader.style.display = "none";
   }

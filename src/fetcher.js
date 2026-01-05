@@ -1,23 +1,23 @@
 // fetcher.js
 import { CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
-import { state } from './state.js';
-import { showLoading, hideLoading } from './loader.js';
+import { appState } from './appState.js';
+import { showLoading, hideLoading } from './loadingIndicator.js';
 import { startNewBinder, startNewSection } from './layout.js';
 import { createCardElement, attachCardHandlers } from './cards.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 
 import { isCardEnabled } from './cardState.js';
 // At the start of your lazy loading init
-state.pageCards = [];
+appState.pageCards = [];
 
 export async function fetchNextPage(results, tooltip) {
-  if (!state.nextPageUrl || state.isLoading) return;
+  if (!appState.nextPageUrl || appState.isLoading) return;
 
-  state.isLoading = true;
+  appState.isLoading = true;
   showLoading();
 
   try {
-    const url = state.nextPageUrl;
+    const url = appState.nextPageUrl;
 
     const res = await fetch(url);
     const data = await res.json();

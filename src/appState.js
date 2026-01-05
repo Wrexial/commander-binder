@@ -1,5 +1,5 @@
 // state.js
-export const state = {
+export const appState = {
   nextPageUrl: null,
   isLoading: false,
   activeFetches: 0,

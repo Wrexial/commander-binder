@@ -1,10 +1,10 @@
 import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
-import { state } from './state.js';
+import { appState } from './appState.js';
 import { positionTooltip } from './tooltip.js';
 import { lightenColor } from './utils/colors.js';
 
 export function startNewBinder(results) {
-  const binderNumber = Math.floor(state.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
 
   const newBinder = document.createElement("div");
   newBinder.className = "binder";
