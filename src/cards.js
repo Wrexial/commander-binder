@@ -4,7 +4,7 @@ import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
 import { isCardEnabled, toggleCardEnabled, setCardsEnabled } from "./cardState.js";
 import {loggedInUserId} from './main.js';
-import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
+import { getCardBorderStyle, getCardBackground, getCardTextColor } from './utils/colors.js';
 import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { CARDS_PER_PAGE } from './config.js';
