@@ -5,6 +5,7 @@ import { loadCardStates } from "./cardState.js";
 import { initSearch } from './search.js';
 import { Clerk } from "@clerk/clerk-js";
 import { updateOwnedCounter } from './ui/ownedCounter.js';
+import { clerkDarkTheme } from './clerk-dark-theme.js';
 
 export var loggedInUserId = undefined;
 export var isLoggedIn = false;
@@ -17,7 +18,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (clerk.isSignedIn) {
     const userButtonDiv = document.getElementById('user-button');
-    clerk.mountUserButton(userButtonDiv);
+    clerk.mountUserButton(userButtonDiv, { appearance: clerkDarkTheme });
     isLoggedIn = true;
     loggedInUserId = clerk.user.id;
 
@@ -32,7 +33,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     loggedInUserId = false;
     const signInDiv = document.getElementById('sign-in');
-    signInDiv.style.display = 'block';
-    clerk.mountSignIn(signInDiv);
+    clerk.mountSignIn(signInDiv, {
+      appearance: {
+        ...clerkDarkTheme,
+        elements: {
+          ...clerkDarkTheme.elements,
+          rootBox: {
+            margin: 'auto',
+          }
+        }
+      }
+    });
   }
 });
