@@ -1,8 +1,8 @@
 :root {
   /* Palette */
-  --bg: #f9f9f9;
-  --text: #333333;
-  --muted: #555555;
+  --bg: #121212;
+  --text: #e0e0e0;
+  --muted: #a0a0a0;
 
   /* MTG color palette */
   --mtg-W: #f8f3e0;
@@ -30,12 +30,12 @@
   --binder-color-5: #8c4cc8;
 
   /* UI colors */
-  --card-border-default: #ccc;
-  --card-bg-default: #fff;
-  --tooltip-bg: #fff;
-  --tooltip-border: #ccc;
+  --card-border-default: #444;
+  --card-bg-default: #1e1e1e;
+  --tooltip-bg: #2c2c2c;
+  --tooltip-border: #555;
   --edhrec-hover: rgba(255, 215, 0, 0.9);
-  --focus: #4c8cc8;
+  --focus: #5a9fdc;
 }
 
 body {
@@ -72,9 +72,9 @@ body {
 .section {
   margin-bottom: 1.5rem;
   padding: 0.5rem;
-  border: 2px solid var(--section-border, #888);
+  border: 2px solid var(--section-border, #555);
   border-radius: 6px;
-  background: var(--section-bg, #fafafa);
+  background: var(--section-bg, #1e1e1e);
 }
 
 .grid {
@@ -130,7 +130,7 @@ body {
   left: 4px;
   font-size: 0.7rem;
   font-weight: bold;
-  color: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.5);
   display: none; /* Hidden by default */
 }
 
@@ -505,20 +505,10 @@ body {
 
 /* Non-owned cards get a subtle black outline to contrast with owned green */
 .card:not(.owned) {
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-@media (prefers-color-scheme: dark) {
-  .card:not(.owned) {
-    border-color: rgba(255,255,255,0.06);
-  }
-}
-/* Slightly lighter overlay in dark mode so the owned state is visible without making text unreadable */
-@media (prefers-color-scheme: dark) {
-  .card.owned {
-    box-shadow: inset 0 0 0 1px rgba(60,179,113,0.06), inset 0 0 0 1000px rgba(255,255,255,0.02);
-  }
-}
+
 .card.owned .card-toggle {
   /* remove green circle; keep toggle present but visually neutral */
   background: transparent;
@@ -577,67 +567,7 @@ body {
   z-index: 1000; /* Make sure it stays above other elements */
 }
 
-/* Dark mode based on system preference */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Darken base and reduce bright accents for better contrast comfort */
-    --bg: #0b0b0b;
-    --text: #d0d0d0;
-    --muted: #9a9a9a;
 
-    --card-bg-default: #121212;
-    --card-border-default: #303030;
-
-    --tooltip-bg: #111111;
-    --tooltip-border: #2a2a2a;
-
-    --edhrec-hover: rgba(255, 200, 0, 0.18);
-    --edhrec-surface: rgba(255, 255, 255, 0.02);
-
-    --section-bg: #0f0f0f;
-    --section-border: #262626;
-  }
-
-  .card {
-    text-shadow: none;
-  }
-
-  .edhrec-rank {
-    background: rgba(255, 255, 255, 0.04);
-    color: #fff;
-  }
-
-  .edhrec-link {
-    background: var(--edhrec-surface);
-  }
-
-  .edhrec-link:hover {
-    background: var(--edhrec-hover);
-  }
-
-  .tooltip .loading {
-    background: rgba(255, 255, 255, 0.04);
-    color: #fff;
-  }
-
-  .card-toggle {
-    background: var(--card-toggle-bg, var(--edhrec-surface));
-    border-color: rgba(255,255,255,0.04);
-  }
-
-  .loading-indicator,
-  .set-tooltip {
-    background: rgba(0, 0, 0, 0.9);
-    color: #fff;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75);
-  }
-
-  #search-tooltip {
-    background-color: #222;
-    color: var(--text);
-    border-color: #444;
-  }
-}
 
 .binder-header,
 .page-header {
