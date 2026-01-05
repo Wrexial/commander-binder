@@ -35,7 +35,7 @@ export function initSearch() {
         } else if (searchTerm.startsWith('c<')) {
           const queryColors = searchTerm.substring(2).toUpperCase().split('');
           const cardColors = card.cardData.colors || [];
-          isVisible = cardColors.some(color => queryColors.includes(color));
+          isVisible = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
         } else if (searchTerm.startsWith('c=')) {
           const queryColors = searchTerm.substring(2).toUpperCase().split('').sort();
           const cardColors = (card.cardData.colors || []).sort();
