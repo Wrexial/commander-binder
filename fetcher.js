@@ -4,6 +4,7 @@ import { state } from './state.js';
 import { showLoading, hideLoading } from './loader.js';
 import { startNewBinder, startNewSection } from './layout.js';
 import { createCardElement, attachCardHandlers } from './cards.js';
+import { updateOwnedCounter } from './ui/ownedCounter.js';
 
 import { isCardEnabled } from './cardState.js';
 // At the start of your lazy loading init
@@ -92,6 +93,7 @@ function renderPage(results, tooltip) {
   updateBinderHeader();
 
   state.count += state.pageCards.length;
+  updateOwnedCounter();
 
   if (state.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
     startNewBinder(results);

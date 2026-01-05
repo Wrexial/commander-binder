@@ -2,8 +2,9 @@
 import { initLazyCards } from './init.js';
 import { initCardSettings } from "./settingsUI.js";
 import { loadCardStates } from "./cardState.js";
-import { Clerk } from "@clerk/clerk-js";
 import { initSearch } from './search.js';
+import { Clerk } from "@clerk/clerk-js";
+import { updateOwnedCounter } from './ui/ownedCounter.js';
 
 export var loggedInUserId = undefined;
 export var isLoggedIn = false;
@@ -26,6 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadCardStates();
     initCardSettings(tooltip);
     initSearch();
+    updateOwnedCounter();
     initLazyCards(results, tooltip);
   } else {
     loggedInUserId = false;

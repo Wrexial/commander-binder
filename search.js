@@ -1,4 +1,5 @@
 import { CARDS_PER_PAGE } from './config.js';
+import { updateOwnedCounter } from './ui/ownedCounter.js';
 
 function debounce(func, wait) {
   let timeout;
@@ -61,6 +62,8 @@ export function initSearch() {
       }
     });
 
+    updateOwnedCounter();
+
     // Handle "no results" message
     if (visibleCardCount === 0 && searchTerm) {
       noResultsMessage.style.display = 'block';
@@ -101,5 +104,6 @@ export function initSearch() {
   clearSearchButton.addEventListener('click', () => {
     searchInput.value = '';
     debouncedFilter();
+    updateOwnedCounter();
   });
 }

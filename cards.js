@@ -6,6 +6,7 @@ import { isCardEnabled, toggleCardEnabled, setCardsEnabled } from "./cardState.j
 import {loggedInUserId} from './main.js';
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { showUndo } from './ui/toast.js';
+import { updateOwnedCounter } from './ui/ownedCounter.js';
 
 
 export function createCardElement(card) {
@@ -320,6 +321,8 @@ export function attachCardHandlers(div, card, tooltip) {
     } else {
       hideTooltip(tooltip);
     }
+
+    updateOwnedCounter();
   });
 }
 
