@@ -16,10 +16,26 @@ export function initSearch() {
 
   const debouncedFilter = debounce(() => {
     const searchTerm = searchInput.value.toLowerCase();
-    document.querySelectorAll('.card').forEach(card => {
-      const cardName = card.cardData.name.toLowerCase();
-      card.style.display = cardName.includes(searchTerm) ? '' : 'none';
-    });
+    
+    if (searchTerm.startsWith('t:')) {
+      const typeTerm = searchTerm.substring(2);
+      document.querySelectorAll('.card').forEach(card => {
+        const typeLine = card.cardData.type_line?.toLowerCase() || '';
+        const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
+        const cardName = card.cardData.name.toLowerCase();
+
+        if (typeLine.includes(typeTerm) || oracleText.includes(typeTerm)) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    } else {
+      document.querySelectorAll('.card').forEach(card => {
+        const cardName = card.cardData.name.toLowerCase();
+        card.style.display = cardName.includes(searchTerm) ? '' : 'none';
+      });
+    }
 
     // Hide empty sections and binders
     document.querySelectorAll('.binder').forEach(binder => {
