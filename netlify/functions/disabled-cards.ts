@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm";
 
 export async function handler(event) {
   const { userId } = JSON.parse(event.body || "{}");
-  console.log(userId);
   const rows = await db
     .select({ cardId: disabledCards.cardId })
     .from(disabledCards)

@@ -1,5 +1,5 @@
 // main.js
-import { setupDebugRow, initLazyCards } from './init.js';
+import { initLazyCards } from './init.js';
 import { initCardSettings } from "./settingsUI.js";
 import { loadCardStates } from "./cardState.js";
 import { Clerk } from "@clerk/clerk-js";
