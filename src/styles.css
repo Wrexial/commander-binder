@@ -87,18 +87,18 @@ body {
 
 @media (max-width: 1024px) {
   .grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
   .card {
     padding: 12px 8px;
-    min-height: 3.2em;
+    min-height: 5em;
     font-size: 1rem;
   }
 }
 
 @media (max-width: 768px) {
   .grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
   .card {
     aspect-ratio: 1 / 1;
