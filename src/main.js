@@ -53,8 +53,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       const signInButton = document.createElement('button');
       signInButton.textContent = 'Sign In';
       signInButton.className = 'sign-in-button';
-      signInButton.addEventListener('click', () => clerk.openSignIn());
+      signInButton.addEventListener('click', () => clerk.openSignIn({ appearance: clerkDarkTheme }));
       userButtonDiv.appendChild(signInButton);
+    } else {
+      const userButtonDiv = document.getElementById('user-button');
+      const guestModeText = document.createElement('div');
+      guestModeText.textContent = 'Guest Mode';
+      guestModeText.className = 'guest-mode-text';
+      userButtonDiv.appendChild(guestModeText);
     }
   }
 
