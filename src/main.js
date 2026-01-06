@@ -21,47 +21,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const urlParams = new URLSearchParams(window.location.search);
   guestUserId = urlParams.get('user');
-  if (guestUserId) {
-    appState.isViewOnlyMode = true;
-  }
-
   const tooltip = document.getElementById("tooltip");
   const results = document.getElementById("results");
 
-  if (clerk.isSignedIn) {
-    const userButtonDiv = document.getElementById('user-button');
+  const userButtonDiv = document.getElementById('user-button');
+  if (guestUserId) {
+    const guestModeText = document.createElement('div');
+    guestModeText.textContent = 'Guest Mode';
+    guestModeText.className = 'guest-mode-text';
+    userButtonDiv.appendChild(guestModeText);
+    appState.isViewOnlyMode = true;
+  } else if (clerk.isSignedIn) {
     clerk.mountUserButton(userButtonDiv, { appearance: clerkDarkTheme });
     isLoggedIn = true;
     loggedInUserId = clerk.user.id;
     updateOwnedCounter();
 
-    if (!guestUserId) {
-      const shareButton = document.getElementById('share-button');
-      shareButton.classList.remove('hidden');
-      shareButton.addEventListener('click', () => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('user', loggedInUserId);
-        navigator.clipboard.writeText(url.href);
-        showToast("Link copied to clipboard!");
-      });
-    }
+    const shareButton = document.getElementById('share-button');
+    shareButton.classList.remove('hidden');
+    shareButton.addEventListener('click', () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('user', loggedInUserId);
+      navigator.clipboard.writeText(url.href);
+      showToast("Link copied to clipboard!");
+    });
   } else {
     loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
-    if (!guestUserId) {
-      const userButtonDiv = document.getElementById('user-button');
-      const signInButton = document.createElement('button');
-      signInButton.textContent = 'Sign In';
-      signInButton.className = 'sign-in-button';
-      signInButton.addEventListener('click', () => clerk.openSignIn({ appearance: clerkDarkTheme }));
-      userButtonDiv.appendChild(signInButton);
-    } else {
-      const userButtonDiv = document.getElementById('user-button');
-      const guestModeText = document.createElement('div');
-      guestModeText.textContent = 'Guest Mode';
-      guestModeText.className = 'guest-mode-text';
-      userButtonDiv.appendChild(guestModeText);
-    }
+    const signInButton = document.createElement('button');
+    signInButton.textContent = 'Sign In';
+    signInButton.className = 'sign-in-button';
+    signInButton.addEventListener('click', () => clerk.openSignIn({ appearance: clerkDarkTheme }));
+    userButtonDiv.appendChild(signInButton);
   }
 
   await loadCardStates();
