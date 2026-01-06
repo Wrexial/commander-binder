@@ -84,7 +84,7 @@ export function startNewBinder(results) {
 }
 
 export function startNewSection(pageSets = new Map()) {
-  const pageNumber = Math.floor(appState.count / CARDS_PER_PAGE) + 1;
+  const pageNumberInBinder = appState.binder.querySelectorAll('.section').length + 1;
 
   const section = document.createElement("div");
   section.className = "section";
@@ -92,7 +92,7 @@ export function startNewSection(pageSets = new Map()) {
 
   const header = document.createElement("h3");
   header.className = "page-header";
-  header.textContent = `Page ${pageNumber} — `;
+  header.textContent = `Page ${pageNumberInBinder} — `;
 
   header.addEventListener("click", () => {
     section.classList.toggle("collapsed");
