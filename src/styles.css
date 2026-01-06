@@ -213,6 +213,7 @@ body {
   width: 100%;
   position: relative;
   z-index: 5;
+  pointer-events: none;
 }
 
 
@@ -632,9 +633,6 @@ body {
 }
 
 #user-button {
-  position: fixed;   /* Keeps it in place while scrolling */
-  top: 10px;         /* Distance from the top */
-  right: 10px;       /* Distance from the right */
   width: 50px;       /* Set your desired size */
   height: 50px;
   color: white;
