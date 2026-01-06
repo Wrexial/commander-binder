@@ -89,11 +89,21 @@ body {
   .grid {
     grid-template-columns: repeat(3, 1fr);
   }
+  .card {
+    padding: 10px 8px;
+    min-height: 2.8em;
+    font-size: 1rem;
+  }
 }
 
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .card {
+    aspect-ratio: 1 / 1;
+    font-size: 0.9rem;
+    padding: 6px;
   }
 }
 
