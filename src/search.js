@@ -5,16 +5,26 @@ import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
 
 function parseQuery(query) {
-  query = query.replace(/\s*or\s*/gi, ' or ');
-  const tokens = query.match(/\(|\)|or|\!?[^\s()]+/g) || [];
+  query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
+  const tokens = query.match(/\(|\)|or|and|\!?[^\s()]+/g) || [];
   let index = 0;
 
-  function parseExpression() {
-    let left = parseTerm();
+  function parseOr() {
+    let left = parseAnd();
     while (tokens[index] === 'or') {
       index++;
-      const right = parseTerm();
+      const right = parseAnd();
       left = { type: 'or', left, right };
+    }
+    return left;
+  }
+
+  function parseAnd() {
+    let left = parseTerm();
+    while (tokens[index] === 'and') {
+      index++;
+      const right = parseTerm();
+      left = { type: 'and', left, right };
     }
     return left;
   }
@@ -22,25 +32,33 @@ function parseQuery(query) {
   function parseTerm() {
     if (tokens[index] === '(') {
       index++;
-      const expr = parseExpression();
+      const expr = parseOr();
       if (tokens[index] === ')') {
         index++;
         return expr;
       }
     }
-    return { type: 'filter', value: tokens[index++] };
+    const value = tokens[index++];
+    if (value && (value.toLowerCase() === 'and' || value.toLowerCase() === 'or')) {
+      return parseTerm();
+    }
+    return { type: 'filter', value };
   }
 
   const result = [];
   while (index < tokens.length) {
-    result.push(parseExpression());
+    result.push(parseOr());
   }
   return result;
 }
 
 function evaluateCondition(card, condition) {
+  if (!condition) return true;
   if (condition.type === 'or') {
     return evaluateCondition(card, condition.left) || evaluateCondition(card, condition.right);
+  }
+  if (condition.type === 'and') {
+    return evaluateCondition(card, condition.left) && evaluateCondition(card, condition.right);
   }
   if (condition.type === 'filter') {
     return cardMatchesFilter(card, condition.value);

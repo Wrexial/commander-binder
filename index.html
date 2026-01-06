@@ -29,18 +29,19 @@
         <div id="search-tooltip" style="display: none;">
           <h4>Search Syntax</h4>
           <ul>
-            <li><code>(term)</code> - Group terms</li>
-            <li><code>!term</code> - Exclude term</li>
-            <li><code>t:type</code> - Card type</li>
-            <li><code>o:text</code> - Oracle text</li>
-            <li><code>c:wug or c=wug</code> - Exact colors</li>
-            <li><code>c>wg</code> - Colors include</li>
-            <li><code>c&lt;wug</code> - Colors subset</li>
-            <li><code>s:set</code> - Set code or name</li>
-            <li><code>d:year</code> - Release year</li>
-            <li><code>d:year-year</code> - Release year range</li>
-            <li><code>r:rarity</code> - Rarity</li>
-            <li><code>is:owned</code> - Owned cards</li>
+            <li><code>t:</code> Type line (e.g., <code>t:dragon</code>)</li>
+            <li><code>o:</code> Oracle text (e.g., <code>o:draw</code>)</li>
+            <li><code>c:wug</code> or <code>c=wug</code> Exact colors</li>
+            <li><code>c>wg</code> Colors include</li>
+            <li><code>c&lt;wug</code> Colors are a subset</li>
+            <li><code>s:</code> Set code (e.g., <code>s:dom</code>)</li>
+            <li><code>d:2018</code> or <code>d:2018-2020</code> Release year/range</li>
+            <li><code>r:</code> Rarity (e.g., <code>r:mythic</code>)</li>
+            <li><code>is:owned</code> Owned cards</li>
+            <li><code>!</code> Negate a filter (e.g., <code>!t:goblin</code>)</li>
+            <li><code>(term) and (term)</code> AND operation</li>
+            <li><code>(term) or (term)</code> OR operation</li>
+            <li>Group terms with parentheses for complex queries.</li>
           </ul>
         </div>
       </div>
