@@ -6,7 +6,7 @@ import { isCardMissing } from './cardState.js';
 
 function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
-  const tokens = query.match(/\(|\)|or|and|\!?[^\s()]+/g) || [];
+  const tokens = query.match(/\!?\w+:(".*?"|'.*?')|\(|\)|or|and|\!?[^\s()]+/g) || [];
   let index = 0;
 
   function parseOr() {
@@ -52,6 +52,14 @@ function parseQuery(query) {
   return result;
 }
 
+function getFilterValue(filter, prefix = '') {
+  let value = prefix ? filter.substring(prefix.length) : filter;
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
 function evaluateCondition(card, condition) {
   if (!condition) return true;
   if (condition.type === 'or') {
@@ -75,11 +83,11 @@ function cardMatchesFilter(card, filter) {
 
   let match = false;
   if (filter.startsWith('t:')) {
-    const typeTerm = filter.substring(2);
+    const typeTerm = getFilterValue(filter, 't:');
     const typeLine = card.cardData.type_line?.toLowerCase() || '';
     match = typeLine.includes(typeTerm);
   } else if (filter.startsWith('o:')) {
-    const oracleTerm = filter.substring(2);
+    const oracleTerm = getFilterValue(filter, 'o:');
     const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
     match = oracleText.includes(oracleTerm);
   } else if (filter.startsWith('c<')) {
@@ -95,7 +103,7 @@ function cardMatchesFilter(card, filter) {
     const cardColors = card.cardData.color_identity || [];
     match = queryColors.every(color => cardColors.includes(color));
   } else if (filter.startsWith('s:')) {
-    const setTerm = filter.substring(2);
+    const setTerm = getFilterValue(filter, 's:');
     const setCode = card.cardData.set?.toLowerCase() || '';
     const setName = card.cardData.set_name?.toLowerCase() || '';
     if (appState.seenSetCodes.has(setTerm)) {
@@ -125,7 +133,8 @@ function cardMatchesFilter(card, filter) {
     }
   } else {
     const cardName = card.cardData.name.toLowerCase();
-    match = cardName.includes(filter);
+    const searchTerm = getFilterValue(filter);
+    match = cardName.includes(searchTerm);
   }
 
   return not ? !match : match;
