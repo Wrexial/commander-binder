@@ -718,3 +718,10 @@ body {
 #search-tooltip li {
     margin-bottom: 5px;
 }
+
+footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1rem;
+  color: var(--muted);
+}
