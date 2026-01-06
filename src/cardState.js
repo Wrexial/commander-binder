@@ -67,7 +67,7 @@ export async function setCardsOwned(cards, owned) {
     body: JSON.stringify({
       userId: loggedInUserId,
       cardIds: cards.map((c) => c.id),
-      disable: !enabled,
+      isOwned: owned,
     }),
   });
   
