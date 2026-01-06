@@ -4,68 +4,113 @@ import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
 
+function parseQuery(query) {
+  query = query.replace(/\s*or\s*/gi, ' or ');
+  const tokens = query.match(/\(|\)|or|\!?[^\s()]+/g) || [];
+  let index = 0;
+
+  function parseExpression() {
+    let left = parseTerm();
+    while (tokens[index] === 'or') {
+      index++;
+      const right = parseTerm();
+      left = { type: 'or', left, right };
+    }
+    return left;
+  }
+
+  function parseTerm() {
+    if (tokens[index] === '(') {
+      index++;
+      const expr = parseExpression();
+      if (tokens[index] === ')') {
+        index++;
+        return expr;
+      }
+    }
+    return { type: 'filter', value: tokens[index++] };
+  }
+
+  const result = [];
+  while (index < tokens.length) {
+    result.push(parseExpression());
+  }
+  return result;
+}
+
+function evaluateCondition(card, condition) {
+  if (condition.type === 'or') {
+    return evaluateCondition(card, condition.left) || evaluateCondition(card, condition.right);
+  }
+  if (condition.type === 'filter') {
+    return cardMatchesFilter(card, condition.value);
+  }
+  return true;
+}
+
 function cardMatchesFilter(card, filter) {
-    const not = filter.startsWith('!');
-    if (not) {
-        filter = filter.substring(1);
-    }
+  if (!filter) return true;
+  const not = filter.startsWith('!');
+  if (not) {
+    filter = filter.substring(1);
+  }
 
-    let match = false;
-    if (filter.startsWith('t:')) {
-        const typeTerm = filter.substring(2);
-        const typeLine = card.cardData.type_line?.toLowerCase() || '';
-        match = typeLine.includes(typeTerm);
-    } else if (filter.startsWith('o:')) {
-        const oracleTerm = filter.substring(2);
-        const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
-        match = oracleText.includes(oracleTerm);
-    } else if (filter.startsWith('c<')) {
-        const queryColors = filter.substring(2).toUpperCase().split('');
-        const cardColors = card.cardData.color_identity || [];
-        match = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
-    } else if (filter.startsWith('c=') || filter.startsWith('c:')) {
-        const queryColors = filter.substring(2).toUpperCase().split('').sort();
-        const cardColors = (card.cardData.color_identity || []).sort();
-        match = JSON.stringify(queryColors) === JSON.stringify(cardColors);
-    } else if (filter.startsWith('c>')) {
-        const queryColors = filter.substring(2).toUpperCase().split('');
-        const cardColors = card.cardData.color_identity || [];
-        match = queryColors.every(color => cardColors.includes(color));
-    } else if (filter.startsWith('s:')) {
-        const setTerm = filter.substring(2);
-        const setCode = card.cardData.set?.toLowerCase() || '';
-        const setName = card.cardData.set_name?.toLowerCase() || '';
-        if (state.seenSetCodes.has(setTerm)) {
-            match = setCode === setTerm;
-        } else {
-            match = setCode.includes(setTerm) || setName.includes(setTerm);
-        }
-    } else if (filter.startsWith('d:')) {
-        const dateTerm = filter.substring(2);
-        const releaseDate = card.cardData.released_at || '';
-        const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
-        if (dateTerm.includes('-')) {
-            const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
-            match = releaseYear >= startYear && releaseYear <= endYear;
-        } else {
-            const year = parseInt(dateTerm, 10);
-            match = releaseYear === year;
-        }
-    } else if (filter.startsWith('r:')) {
-        const rarityTerm = filter.substring(2);
-        const rarity = card.cardData.rarity?.toLowerCase() || '';
-        match = rarity === rarityTerm;
-    } else if (filter.startsWith('is:')) {
-        const term = filter.substring(3);
-        if (term === 'owned') {
-            match = !isCardMissing(card.cardData);
-        }
+  let match = false;
+  if (filter.startsWith('t:')) {
+    const typeTerm = filter.substring(2);
+    const typeLine = card.cardData.type_line?.toLowerCase() || '';
+    match = typeLine.includes(typeTerm);
+  } else if (filter.startsWith('o:')) {
+    const oracleTerm = filter.substring(2);
+    const oracleText = card.cardData.oracle_text?.toLowerCase() || '';
+    match = oracleText.includes(oracleTerm);
+  } else if (filter.startsWith('c<')) {
+    const queryColors = filter.substring(2).toUpperCase().split('');
+    const cardColors = card.cardData.color_identity || [];
+    match = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
+  } else if (filter.startsWith('c=') || filter.startsWith('c:')) {
+    const queryColors = filter.substring(2).toUpperCase().split('').sort();
+    const cardColors = (card.cardData.color_identity || []).sort();
+    match = JSON.stringify(queryColors) === JSON.stringify(cardColors);
+  } else if (filter.startsWith('c>')) {
+    const queryColors = filter.substring(2).toUpperCase().split('');
+    const cardColors = card.cardData.color_identity || [];
+    match = queryColors.every(color => cardColors.includes(color));
+  } else if (filter.startsWith('s:')) {
+    const setTerm = filter.substring(2);
+    const setCode = card.cardData.set?.toLowerCase() || '';
+    const setName = card.cardData.set_name?.toLowerCase() || '';
+    if (appState.seenSetCodes.has(setTerm)) {
+      match = setCode === setTerm;
     } else {
-        const cardName = card.cardData.name.toLowerCase();
-        match = cardName.includes(filter);
+      match = setCode.includes(setTerm) || setName.includes(setTerm);
     }
+  } else if (filter.startsWith('d:')) {
+    const dateTerm = filter.substring(2);
+    const releaseDate = card.cardData.released_at || '';
+    const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
+    if (dateTerm.includes('-')) {
+      const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
+      match = releaseYear >= startYear && releaseYear <= endYear;
+    } else {
+      const year = parseInt(dateTerm, 10);
+      match = releaseYear === year;
+    }
+  } else if (filter.startsWith('r:')) {
+    const rarityTerm = filter.substring(2);
+    const rarity = card.cardData.rarity?.toLowerCase() || '';
+    match = rarity === rarityTerm;
+  } else if (filter.startsWith('is:')) {
+    const term = filter.substring(3);
+    if (term === 'owned') {
+      match = !isCardMissing(card.cardData);
+    }
+  } else {
+    const cardName = card.cardData.name.toLowerCase();
+    match = cardName.includes(filter);
+  }
 
-    return not ? !match : match;
+  return not ? !match : match;
 }
 
 export function initSearch() {
@@ -90,43 +135,29 @@ export function initSearch() {
   const noResultsMessage = document.getElementById('no-results-message');
 
   const debouncedFilter = debounce(() => {
-    const searchTerm = searchInput.value.toLowerCase();
-    
-    let filters = [];
-    if (searchTerm.includes('(')) {
-        filters = searchTerm.match(/\(([^)]+)\)/g)?.map(f => f.slice(1, -1)) || [];
-    } else if (searchTerm) {
-        filters = [searchTerm];
-    }
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const conditions = parseQuery(searchTerm);
 
     let visibleCardCount = 0;
     document.querySelectorAll('.card').forEach(card => {
-        const slotNumberEl = card.querySelector('.card-slot-number');
+      const isVisible = conditions.every(condition => evaluateCondition(card, condition));
 
-        if (filters.length > 0) {
-            const isVisible = filters.every(filter => cardMatchesFilter(card, filter));
-
-            if (isVisible) {
-                visibleCardCount++;
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        } else {
-            card.style.display = '';
-        }
+      if (isVisible) {
+        visibleCardCount++;
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
     });
 
     updateOwnedCounter();
 
-    // Handle "no results" message
     if (visibleCardCount === 0 && searchTerm) {
       noResultsMessage.style.display = 'block';
     } else {
       noResultsMessage.style.display = 'none';
     }
 
-    // Hide empty sections and binders
     document.querySelectorAll('.binder').forEach(binder => {
       let visibleCardsInBinder = 0;
       binder.querySelectorAll('.section').forEach(section => {
@@ -146,7 +177,6 @@ export function initSearch() {
       }
     });
 
-    // Show/hide clear button
     if (searchInput.value) {
       clearSearchButton.style.display = 'block';
     } else {
