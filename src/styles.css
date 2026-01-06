@@ -440,6 +440,10 @@ body {
   align-items: center;
 }
 
+#search-wrapper {
+  position: relative;
+}
+
 #search-tooltip {
   position: absolute;
   top: 100%;
@@ -449,7 +453,7 @@ body {
   padding: 10px;
   border-radius: 5px;
   z-index: 1;
-  width: 300px;
+  width: 280px; /* Slightly wider */
 }
 
 #search-tooltip ul {
