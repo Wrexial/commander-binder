@@ -266,7 +266,7 @@ export function attachCardHandlers(div, card, tooltip) {
 
     const binder = div.closest(".binder");
     if (binder) {
-      if (enabled) {
+      if (!isOwned) {
         binder.ownedCards--;
       } else {
         binder.ownedCards++;
@@ -281,8 +281,8 @@ export function attachCardHandlers(div, card, tooltip) {
     if (toggleBtn) {
       // toggle button has no visible checkmark; owned state shown via badge
       toggleBtn.textContent = "";
-      toggleBtn.setAttribute('aria-pressed', (!enabled).toString());
-      toggleBtn.setAttribute('aria-label', enabled ? 'Mark as missing' : 'Mark as owned');
+      toggleBtn.setAttribute('aria-pressed', isOwned.toString());
+      toggleBtn.setAttribute('aria-label', !isOwned ? 'Mark as missing' : 'Mark as owned');
       // keep has-toggle present to avoid layout shifts
       div.classList.add('has-toggle');
     }
