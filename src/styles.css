@@ -32,8 +32,6 @@
   /* UI colors */
   --card-border-default: #4a5568;
   --card-bg-default: #2d3748;
-  --tooltip-bg: #2d3748;
-  --tooltip-border: #4a5568;
   --edhrec-hover: rgba(66, 153, 225, 0.1);
   --focus: #4fd1c5;
 }
@@ -298,12 +296,6 @@ body {
   pointer-events: none;
   z-index: 1000;
 
-  background: var(--tooltip-bg);
-  border-radius: 12px;
-  border: 2px solid var(--tooltip-border);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-  padding: 8px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -315,13 +307,12 @@ body {
   /* Animation */
   transform: scale(0.95);
   opacity: 0;
-  transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.2s ease-out;
+  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
 }
 
 .tooltip.show {
   transform: scale(1);
   opacity: 1;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 
 .tooltip img {
