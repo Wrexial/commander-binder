@@ -2,7 +2,7 @@ import { appState } from './appState.js';
 import { CARDS_PER_PAGE } from './config.js';
 import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
-import { isCardEnabled } from './cardState.js';
+import { isCardMissing } from './cardState.js';
 
 function cardMatchesFilter(card, filter) {
     const not = filter.startsWith('!');
@@ -58,7 +58,7 @@ function cardMatchesFilter(card, filter) {
     } else if (filter.startsWith('is:')) {
         const term = filter.substring(3);
         if (term === 'owned') {
-            match = !isCardEnabled(card.cardData);
+            match = !isCardMissing(card.cardData);
         }
     } else {
         const cardName = card.cardData.name.toLowerCase();

@@ -1,7 +1,7 @@
 import { sqliteTable, text, primaryKey } from "drizzle-orm/sqlite-core";
 
-export const disabledCards = sqliteTable(
-  "disabled_cards",
+export const ownedCards = sqliteTable(
+  "owned_cards",
   {
     userId: text("user_id").notNull(),
     cardId: text("card_id").notNull(),

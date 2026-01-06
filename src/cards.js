@@ -2,7 +2,7 @@
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
-import { isCardEnabled, toggleCardEnabled, setCardsEnabled } from "./cardState.js";
+import { isCardMissing, toggleCardOwned, setCardsOwned } from "./cardState.js";
 import {loggedInUserId} from './main.js';
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { showUndo } from './ui/toast.js';
@@ -54,13 +54,13 @@ export function createCardElement(card, cardIndex) {
   const toggleBtn = document.createElement("button");
   toggleBtn.className = "card-toggle";
   // Toggle indicates whether you own the card (checkmark when owned)
-    toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
-    toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
-    toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
+    toggleBtn.title = !isCardMissing(card) ? "Mark as missing" : "Mark as owned";
+    toggleBtn.setAttribute('aria-label', !isCardMissing(card) ? 'Mark as missing' : 'Mark as owned');
+    toggleBtn.setAttribute('aria-pressed', (!isCardMissing(card)).toString());
     // toggle button has no visible checkmark; owned state shown via badge
     toggleBtn.textContent = "";
 
-    if (!isCardEnabled(card)) {
+    if (!isCardMissing(card)) {
       // visually indicate this card is owned by the user
       div.classList.add("owned");
     }
@@ -258,11 +258,11 @@ export function attachCardHandlers(div, card, tooltip) {
     }
 
     // record previous enabled state for undo
-    const previousEnabled = isCardEnabled(card);
+    const wasMissing = isCardMissing(card);
 
     e.stopPropagation();
-    const enabled = await toggleCardEnabled(card);
-    div.classList.toggle("owned", !enabled);
+    const isOwned = await toggleCardOwned(card);
+    div.classList.toggle("owned", isOwned);
 
     const binder = div.closest(".binder");
     if (binder) {
@@ -289,15 +289,15 @@ export function attachCardHandlers(div, card, tooltip) {
 
     // show undo toast
     try {
-      showUndo(!enabled ? 'Marked as owned' : 'Marked as missing', async () => {
-        await setCardsEnabled([card], previousEnabled);
+      showUndo(isOwned ? 'Marked as owned' : 'Marked as missing', async () => {
+        await setCardsOwned([card], wasMissing);
         // update UI to reflect undo
-        div.classList.toggle('owned', !previousEnabled);
+        div.classList.toggle('owned', !wasMissing);
         if (toggleBtn) {
               // update badge visibility (toggle button has no visible text)
           toggleBtn.textContent = '';
-          toggleBtn.setAttribute('aria-pressed', (!previousEnabled).toString());
-          toggleBtn.setAttribute('aria-label', previousEnabled ? 'Mark as missing' : 'Mark as owned');
+          toggleBtn.setAttribute('aria-pressed', (!wasMissing).toString());
+          toggleBtn.setAttribute('aria-label', wasMissing ? 'Mark as missing' : 'Mark as owned');
         }
 
         const binder = div.closest(".binder");
@@ -366,9 +366,9 @@ export function rerenderCards(tooltip) {
     if (!toggleBtn) {
       toggleBtn = document.createElement("button");
       toggleBtn.className = "card-toggle";
-      toggleBtn.title = isCardEnabled(card) ? "Mark as owned" : "Mark as missing";
-      toggleBtn.setAttribute('aria-label', isCardEnabled(card) ? 'Mark as owned' : 'Mark as missing');
-      toggleBtn.setAttribute('aria-pressed', (!isCardEnabled(card)).toString());
+      toggleBtn.title = !isCardMissing(card) ? "Mark as missing" : "Mark as owned";
+      toggleBtn.setAttribute('aria-label', !isCardMissing(card) ? 'Mark as missing' : 'Mark as owned');
+      toggleBtn.setAttribute('aria-pressed', (!isCardMissing(card)).toString());
       toggleBtn.textContent = "";
       div.appendChild(toggleBtn);
 

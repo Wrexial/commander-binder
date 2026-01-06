@@ -1,11 +1,11 @@
-import {loggedInUserId} from './main.js';
-import { updateOwnedCounter } from './ui/ownedCounter.js';
+import { loggedInUserId } from "./main.js";
+import { updateOwnedCounter } from "./ui/ownedCounter.js";
 
-export const disabledCards = new Set();
+export const ownedCards = new Set();
 let initialized = false;
 
 export async function loadCardStates() {
-  const res = await fetch("/.netlify/functions/disabled-cards", {
+  const res = await fetch("/.netlify/functions/owned-cards", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId: loggedInUserId }),
@@ -17,43 +17,47 @@ export async function loadCardStates() {
 
   const rows = await res.json();
   for (const { cardId } of rows) {
-    disabledCards.add(cardId);
+    ownedCards.add(cardId);
   }
 
   initialized = true;
 }
 
-export function isCardEnabled(card) {
-  if (!initialized) return true;
-  return !disabledCards.has(card.id);
+export function isCardMissing(card) {
+  if (!initialized) return false;
+  return !ownedCards.has(card.id);
 }
 
-export async function toggleCardEnabled(card) {
-  const disable = isCardEnabled(card);
+export async function toggleCardOwned(card) {
+  const isOwned = !isCardMissing(card);
 
-  if (disable) {
-    disabledCards.add(card.id);
+  if (isOwned) {
+    ownedCards.delete(card.id);
   } else {
-    disabledCards.delete(card.id);
+    ownedCards.add(card.id);
   }
 
   fetch("/.netlify/functions/toggle-card", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: loggedInUserId, cardId: card.id, disable }),
+    body: JSON.stringify({
+      userId: loggedInUserId,
+      cardId: card.id,
+      isOwned: !isOwned,
+    }),
   });
 
   updateOwnedCounter();
 
-  return !disable;
+  return !isOwned;
 }
 
-export async function setCardsEnabled(cards, enabled) {
+export async function setCardsOwned(cards, owned) {
   for (const card of cards) {
-    if (enabled) {
-      disabledCards.delete(card.id);
+    if (owned) {
+      ownedCards.add(card.id);
     } else {
-      disabledCards.add(card.id);
+      ownedCards.delete(card.id);
     }
   }
 

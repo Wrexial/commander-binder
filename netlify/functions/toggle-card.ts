@@ -1,32 +1,32 @@
 import { db } from "../../db";
-import { disabledCards } from "../../db/schema";
+import { ownedCards } from "../../db/schema";
 import { and, eq } from "drizzle-orm";
 
 export async function handler(event) {
-  const { userId, cardId, disable } = JSON.parse(event.body || "{}");
+  const { userId, cardId, isOwned } = JSON.parse(event.body || "{}");
 
   if (!cardId) {
     return { statusCode: 400 };
   }
 
-  if (disable) {
+  if (isOwned) {
     await db
-      .insert(disabledCards)
+      .insert(ownedCards)
       .values({ userId, cardId })
       .onConflictDoNothing();
   } else {
     await db
-      .delete(disabledCards)
+      .delete(ownedCards)
       .where(
         and(
-          eq(disabledCards.userId, userId),
-          eq(disabledCards.cardId, cardId)
+          eq(ownedCards.userId, userId),
+          eq(ownedCards.cardId, cardId)
         )
       );
   }
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ disabled: disable }),
+    body: JSON.stringify({ isOwned }),
   };
 }

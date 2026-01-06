@@ -6,7 +6,7 @@ import { startNewBinder, startNewSection } from './layout.js';
 import { createCardElement, attachCardHandlers } from './cards.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 
-import { isCardEnabled } from './cardState.js';
+import { isCardMissing } from './cardState.js';
 // At the start of your lazy loading init
 appState.pageCards = [];
 
@@ -72,7 +72,7 @@ function renderPage(results, tooltip) {
     appState.grid.appendChild(el);
 
     appState.binder.totalCards++;
-    if (!isCardEnabled(c)) {
+    if (!isCardMissing(c)) {
       appState.binder.ownedCards++;
     }
   });

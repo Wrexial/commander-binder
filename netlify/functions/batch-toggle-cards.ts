@@ -1,26 +1,26 @@
 import { db } from "../../db";
-import { disabledCards } from "../../db/schema";
+import { ownedCards } from "../../db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 export async function handler(event) {
-  const { userId, cardIds, disable } = JSON.parse(event.body || "{}");
+  const { userId, cardIds, isOwned } = JSON.parse(event.body || "{}");
 
   if (!Array.isArray(cardIds) || cardIds.length === 0) {
     return { statusCode: 400 };
   }
 
-  if (disable) {
+  if (isOwned) {
     await db
-      .insert(disabledCards)
+      .insert(ownedCards)
       .values(cardIds.map((cardId) => ({ userId, cardId })))
       .onConflictDoNothing();
   } else {
     await db
-      .delete(disabledCards)
+      .delete(ownedCards)
       .where(
         and(
-          eq(disabledCards.userId, userId),
-          inArray(disabledCards.cardId, cardIds)
+          eq(ownedCards.userId, userId),
+          inArray(ownedCards.cardId, cardIds)
         )
       );
   }
