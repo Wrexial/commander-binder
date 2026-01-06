@@ -453,7 +453,7 @@ body {
   padding: 10px;
   border-radius: 5px;
   z-index: 1;
-  width: 480px; /* Slightly wider */
+  width: 280px; /* Slightly wider */
 }
 
 #search-tooltip ul {
@@ -645,7 +645,6 @@ body {
     border-radius: 5px;
     padding: 10px;
     z-index: 1001;
-    width: 200px;
     color: var(--text);
 }
 
