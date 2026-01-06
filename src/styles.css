@@ -729,7 +729,7 @@ body {
 footer {
   text-align: center;
   margin-top: 2rem;
-  padding: 1rem;
+  padding: 0.1rem;
   background-color: var(--bg);
   color: var(--muted);
 }
