@@ -282,7 +282,7 @@ export function attachCardHandlers(div, card, tooltip) {
       // toggle button has no visible checkmark; owned state shown via badge
       toggleBtn.textContent = "";
       toggleBtn.setAttribute('aria-pressed', isOwned.toString());
-      toggleBtn.setAttribute('aria-label', !isOwned ? 'Mark as missing' : 'Mark as owned');
+      toggleBtn.setAttribute('aria-label', isOwned ? 'Mark as missing' : 'Mark as owned');
       // keep has-toggle present to avoid layout shifts
       div.classList.add('has-toggle');
     }
@@ -297,12 +297,12 @@ export function attachCardHandlers(div, card, tooltip) {
               // update badge visibility (toggle button has no visible text)
           toggleBtn.textContent = '';
           toggleBtn.setAttribute('aria-pressed', (!wasMissing).toString());
-          toggleBtn.setAttribute('aria-label', wasMissing ? 'Mark as missing' : 'Mark as owned');
+          toggleBtn.setAttribute('aria-label', wasMissing ? 'Mark as owned' : 'Mark as missing');
         }
 
         const binder = div.closest(".binder");
         if (binder) {
-          if (previousEnabled) {
+          if (wasMissing) {
             binder.ownedCards--;
           } else {
             binder.ownedCards++;
@@ -318,7 +318,7 @@ export function attachCardHandlers(div, card, tooltip) {
     }
 
     // Don't show tooltip on touch devices when toggling; long-press already shows it when desired
-    if (!isTouch && enabled && cardSettings.showTooltip) {
+    if (!isTouch && !isOwned && cardSettings.showTooltip) {
       showTooltip(e, card, tooltip);
     } else {
       hideTooltip(tooltip);
