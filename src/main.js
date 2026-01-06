@@ -1,4 +1,5 @@
 // main.js
+import { appState } from './appState.js';
 import { initLazyCards } from './lazyCardLoader.js';
 import { initCardSettings } from "./settingsUI.js";
 import { loadCardStates } from "./cardState.js";
