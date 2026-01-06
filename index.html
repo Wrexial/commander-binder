@@ -8,16 +8,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/styles.css" />
   <link rel="stylesheet" href="src/ui/flipCard.css" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 </head>
 
 <body>
   <div class="container">
-    <h1>Legendary Creatures (First Appearance)</h1>
+    <header class="main-header">
+      <img src="logo.png" alt="Logo" class="logo">
+      <div class="header-text">
+        <h1>Legendary Creatures (First Appearance)</h1>
+        <p class="description">
+          Each legendary creature appears once, ordered by the earliest printing of that card name.
+          (Uses all printings internally and deduplicates for historical accuracy.)
+        </p>
+      </div>
+    </header>
     <div id="user-button"></div>
-    <p class="description">
-      Each legendary creature appears once, ordered by the earliest printing of that card name.
-      (Uses all printings internally and deduplicates for historical accuracy.)
-    </p>
     <div id="card-settings">
       <label>
         <input type="checkbox" data-setting="showTooltip" /> Show Tooltip
