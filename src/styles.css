@@ -157,6 +157,8 @@ body {
   white-space: normal;
   word-break: break-word;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 
