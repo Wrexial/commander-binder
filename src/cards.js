@@ -290,19 +290,19 @@ export function attachCardHandlers(div, card, tooltip) {
     // show undo toast
     try {
       showUndo(isOwned ? 'Marked as owned' : 'Marked as missing', async () => {
-        await setCardsOwned([card], wasMissing);
+        await setCardsOwned([card], !wasMissing);
         // update UI to reflect undo
-        div.classList.toggle('owned', !wasMissing);
+        div.classList.toggle('owned', wasMissing);
         if (toggleBtn) {
               // update badge visibility (toggle button has no visible text)
           toggleBtn.textContent = '';
-          toggleBtn.setAttribute('aria-pressed', (!wasMissing).toString());
-          toggleBtn.setAttribute('aria-label', wasMissing ? 'Mark as owned' : 'Mark as missing');
+          toggleBtn.setAttribute('aria-pressed', (wasMissing).toString());
+          toggleBtn.setAttribute('aria-label', !wasMissing ? 'Mark as owned' : 'Mark as missing');
         }
 
         const binder = div.closest(".binder");
         if (binder) {
-          if (wasMissing) {
+          if (!wasMissing) {
             binder.ownedCards--;
           } else {
             binder.ownedCards++;
