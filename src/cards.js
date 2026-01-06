@@ -290,7 +290,7 @@ export function attachCardHandlers(div, card, tooltip) {
     // show undo toast
     try {
       showUndo(isOwned ? 'Marked as owned' : 'Marked as missing', async () => {
-        await setCardsOwned([card], wasMissing);
+        await setCardsOwned([card], !wasMissing);
         // update UI to reflect undo
         div.classList.toggle('owned', !wasMissing);
         if (toggleBtn) {
