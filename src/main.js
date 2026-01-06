@@ -48,12 +48,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
-    const userButtonDiv = document.getElementById('user-button');
-    const signInButton = document.createElement('button');
-    signInButton.textContent = 'Sign In';
-    signInButton.className = 'sign-in-button';
-    signInButton.addEventListener('click', () => clerk.openSignIn());
-    userButtonDiv.appendChild(signInButton);
+    if (!guestUserId) {
+      const userButtonDiv = document.getElementById('user-button');
+      const signInButton = document.createElement('button');
+      signInButton.textContent = 'Sign In';
+      signInButton.className = 'sign-in-button';
+      signInButton.addEventListener('click', () => clerk.openSignIn());
+      userButtonDiv.appendChild(signInButton);
+    }
   }
 
   await loadCardStates();

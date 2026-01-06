@@ -51,7 +51,17 @@ export function createCardElement(card, cardIndex) {
   div.style.setProperty('--card-bg', getCardBackground(card));
   div.style.setProperty('--card-text', '#111111');
 
-  if (appState.isViewOnlyMode) return div;
+  if (!isCardMissing(card)) {
+    div.classList.add("owned");
+  }
+
+  if (appState.isViewOnlyMode) {
+    const ownedBadge = document.createElement('span');
+    ownedBadge.className = 'owned-badge';
+    ownedBadge.textContent = 'Owned';
+    div.appendChild(ownedBadge);
+    return div;
+  }
 
   const toggleBtn = document.createElement("button");
   toggleBtn.className = "card-toggle";
