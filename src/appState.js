@@ -1,5 +1,6 @@
 // state.js
 export const appState = {
+  isViewOnlyMode: false,
   nextPageUrl: null,
   isLoading: false,
   activeFetches: 0,

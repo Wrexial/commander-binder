@@ -53,6 +53,39 @@ body {
   margin-bottom: 2rem;
 }
 
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+#share-button {
+  padding: 8px 12px;
+  background-color: #4a4a4a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+}
+
+#share-button.hidden {
+  display: none;
+}
+
+.sign-in-button {
+  padding: 8px 12px;
+  background-color: #4a4a4a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+}
+
 .logo {
   width: 80px;
   height: 80px;

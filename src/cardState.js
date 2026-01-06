@@ -1,14 +1,22 @@
-import { loggedInUserId } from "./main.js";
+import { appState } from "./appState.js";
+import { loggedInUserId, guestUserId } from "./main.js";
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
 
 export const ownedCards = new Set();
 let initialized = false;
 
 export async function loadCardStates() {
+  const userId = guestUserId || loggedInUserId;
+
+  if (!userId) {
+    initialized = true;
+    return;
+  }
+
   const res = await fetch("/.netlify/functions/owned-cards", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId: loggedInUserId }),
+    body: JSON.stringify({ userId }),
   });
   if (!res.ok) {
     initialized = true;
