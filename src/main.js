@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
   } else {
-    loggedInUserId = false;
+    loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
     const userButtonDiv = document.getElementById('user-button');
     const signInButton = document.createElement('button');

@@ -51,6 +51,8 @@ export function createCardElement(card, cardIndex) {
   div.style.setProperty('--card-bg', getCardBackground(card));
   div.style.setProperty('--card-text', '#111111');
 
+  if (appState.isViewOnlyMode) return div;
+
   const toggleBtn = document.createElement("button");
   toggleBtn.className = "card-toggle";
   // Toggle indicates whether you own the card (checkmark when owned)
@@ -244,6 +246,8 @@ export function attachCardHandlers(div, card, tooltip) {
     }
   }
 
+  if (appState.isViewOnlyMode) return;
+
   div.addEventListener("click", async e => {
     if (e.target.closest(".edhrec-link")) return;
 
@@ -360,6 +364,14 @@ export function rerenderCards(tooltip) {
     div.style.setProperty('--card-border', borderStyle.borderColor);
     div.style.setProperty('--card-bg', getCardBackground(card));
     div.style.setProperty('--card-text', '#111111');
+
+    if (appState.isViewOnlyMode) {
+      const toggleBtn = div.querySelector('.card-toggle');
+      if (toggleBtn) {
+        toggleBtn.remove();
+      }
+      return;
+    }
 
     // Toggle owned card controls
     let toggleBtn = div.querySelector('.card-toggle');
