@@ -17,7 +17,7 @@ export function updateOwnedCounter() {
     const ownedVisibleCount = visibleCards.filter(card => !disabledCards.has(card.cardData.id)).length;
     
     // Always show total owned relative to total cards
-    const totalOwnedCount = appState.seenNames.size - disabledCards.size;
+    const totalOwnedCount = disabledCards.size;
     
     if (searchTerm) {
         ownedCounter.textContent = `Owned: ${ownedVisibleCount} of ${visibleCards.length} shown (${totalOwnedCount} total)`;
