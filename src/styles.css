@@ -440,8 +440,20 @@ body {
   align-items: center;
 }
 
-#search-wrapper {
-  position: relative;
+#search-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #333;
+  color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1;
+  width: 300px;
+}
+
+#search-tooltip ul {
+  padding-left: 20px;
 }
 
 #search-input {
