@@ -34,7 +34,7 @@ export function createCardElement(card, cardIndex) {
     edhrecBtn.rel = "noopener noreferrer";
 
     const icon = document.createElement("img");
-    icon.src = "https://edhrec.com/favicon.ico";
+    icon.src = "edhrec-icon.ico";
     icon.alt = "EDHREC";
 
     edhrecBtn.appendChild(icon);
@@ -358,7 +358,7 @@ export function rerenderCards(tooltip) {
         edhrecBtn.rel = "noopener noreferrer";
 
         const icon = document.createElement("img");
-        icon.src = "https://edhrec.com/favicon.ico";
+        icon.src = "edhrec-icon.svg";
         icon.alt = "EDHREC";
 
         edhrecBtn.appendChild(icon);

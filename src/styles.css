@@ -45,6 +45,7 @@ body {
   min-height: 100vh;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  padding-bottom: 50px; /* Add padding to prevent footer overlap */
 }
 
 .main-header {
@@ -93,6 +94,7 @@ body {
   color: white;
   border-radius: 4px;
   font-family: 'Roboto', sans-serif;
+  cursor: default;
 }
 
 .logo {
@@ -726,9 +728,12 @@ body {
 }
 
 footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   text-align: center;
-  margin-top: 2rem;
-  padding: 1rem;
+  padding: 0.5rem;
   background-color: var(--bg);
   color: var(--muted);
 }
