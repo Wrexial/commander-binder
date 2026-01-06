@@ -1,7 +1,6 @@
 // tooltip.js
 import { imageCache } from './config.js';
 import { cardSettings } from './cardSettings.js';
-import { addFlipCard } from './ui/flipCard.js';
 
 let tooltipTimeout;
 let activeTooltip = null;

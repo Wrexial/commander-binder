@@ -1,5 +1,4 @@
 import { appState } from './appState.js';
-import { createCardElement, attachCardHandlers } from './cards.js';
 import { fetchNextPage } from './fetcher.js';
 import { startNewBinder } from './layout.js';
 

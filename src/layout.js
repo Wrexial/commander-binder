@@ -1,6 +1,5 @@
 import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
-import { positionTooltip } from './tooltip.js';
 import { lightenColor } from './utils/colors.js';
 
 export function startNewBinder(results) {

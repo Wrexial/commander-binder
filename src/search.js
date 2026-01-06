@@ -1,5 +1,4 @@
 import { appState } from './appState.js';
-import { CARDS_PER_PAGE } from './config.js';
 import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
