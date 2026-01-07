@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
   const clerk = new Clerk(clerkPubKey);
   await clerk.load({
-    // Set load options here
+    appearance: clerkDarkTheme,
   });
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     userButtonDiv.appendChild(guestModeText);
     appState.isViewOnlyMode = true;
   } else if (clerk.isSignedIn) {
-    clerk.mountUserButton(userButtonDiv, { appearance: clerkDarkTheme });
+    clerk.mountUserButton(userButtonDiv);
     isLoggedIn = true;
     loggedInUserId = clerk.user.id;
     updateOwnedCounter();
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const signInButton = document.createElement('button');
     signInButton.textContent = 'Sign In';
     signInButton.className = 'sign-in-button';
-    signInButton.addEventListener('click', () => clerk.openSignIn({ appearance: clerkDarkTheme }));
+    signInButton.addEventListener('click', () => clerk.openSignIn());
     userButtonDiv.appendChild(signInButton);
   }
 
