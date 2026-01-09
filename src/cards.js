@@ -8,6 +8,34 @@ import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { CARDS_PER_PAGE } from './config.js';
 
+let hoveredCard = null;
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && (e.key === 'c' || e.key === 'C') && hoveredCard) {
+    e.preventDefault();
+    const tooltip = document.getElementById('tooltip');
+    const tooltipImage = tooltip?.querySelector('img');
+    
+    if (tooltipImage && tooltipImage.src) {
+      fetch(tooltipImage.src)
+        .then(response => response.blob())
+        .then(blob => {
+          const item = new ClipboardItem({ [blob.type]: blob });
+          navigator.clipboard.write([item]).then(() => {
+            showUndo('Card image copied to clipboard', null, { duration: 2000 });
+          }).catch(err => {
+            console.error('Failed to copy image to clipboard:', err);
+            showUndo('Failed to copy image', null, { duration: 2000, error: true });
+          });
+        })
+        .catch(err => {
+          console.error('Failed to fetch image for clipboard:', err);
+          showUndo('Failed to copy image', null, { duration: 2000, error: true });
+        });
+    }
+  }
+});
+
 
 export function createCardElement(card, cardIndex) {
   const div = document.createElement("div");
@@ -96,6 +124,7 @@ export function attachCardHandlers(div, card, tooltip) {
 
   if (cardSettings.showTooltip) {
     div.addEventListener("mouseenter", (e)=>{
+      hoveredCard = card;
       // announce tooltip for screen readers by linking the card to the tooltip
       div.setAttribute('aria-describedby', 'tooltip');
       showTooltip(e, card, tooltip);
@@ -106,11 +135,12 @@ export function attachCardHandlers(div, card, tooltip) {
     });
 
     div.addEventListener("mouseleave", () =>{
+      hoveredCard = null;
       hideTooltip(tooltip);
       div.removeAttribute('aria-describedby');
     });
 
-    // keyboard accessibility: Enter/Space to activate toggle, 'r' to reveal EDHREC, Escape to hide tooltip, CTRL+C to copy image
+    // keyboard accessibility: Enter/Space to activate toggle, 'r' to reveal EDHREC, Escape to hide tooltip
     div.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -120,34 +150,6 @@ export function attachCardHandlers(div, card, tooltip) {
       } else if (e.key === 'Escape') {
         hideTooltip(tooltip);
         div.removeAttribute('aria-describedby');
-      } else if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
-        e.preventDefault();
-        console.log('Ctrl+C pressed');
-        const tooltip = document.getElementById('tooltip');
-        const tooltipImage = tooltip?.querySelector('img');
-        
-        if (tooltipImage && tooltipImage.src) {
-          console.log('Image URL from tooltip:', tooltipImage.src);
-          fetch(tooltipImage.src)
-            .then(response => response.blob())
-            .then(blob => {
-              console.log('Blob received:', blob);
-              const item = new ClipboardItem({ [blob.type]: blob });
-              navigator.clipboard.write([item]).then(() => {
-                console.log('Image copied to clipboard');
-                showUndo('Card image copied to clipboard', null, { duration: 2000 });
-              }).catch(err => {
-                console.error('Failed to copy image to clipboard:', err);
-                showUndo('Failed to copy image', null, { duration: 2000, error: true });
-              });
-            })
-            .catch(err => {
-              console.error('Failed to fetch image for clipboard:', err);
-              showUndo('Failed to copy image', null, { duration: 2000, error: true });
-            });
-        } else {
-          console.log('No image found in tooltip.');
-        }
       }
     });
   }
