@@ -13,6 +13,7 @@ export function createCardElement(card, cardIndex) {
   const div = document.createElement("div");
   div.className = "card";
   div.cardData = card;
+  div.tabIndex = 0;
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
@@ -109,7 +110,7 @@ export function attachCardHandlers(div, card, tooltip) {
       div.removeAttribute('aria-describedby');
     });
 
-    // keyboard accessibility: Enter/Space to activate toggle, 'r' to reveal EDHREC, Escape to hide tooltip
+    // keyboard accessibility: Enter/Space to activate toggle, 'r' to reveal EDHREC, Escape to hide tooltip, CTRL+C to copy image
     div.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -119,6 +120,26 @@ export function attachCardHandlers(div, card, tooltip) {
       } else if (e.key === 'Escape') {
         hideTooltip(tooltip);
         div.removeAttribute('aria-describedby');
+      } else if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        const imageUrl = card.image_uris?.normal;
+        if (imageUrl) {
+          fetch(imageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+              const item = new ClipboardItem({ 'image/png': blob });
+              navigator.clipboard.write([item]).then(() => {
+                showUndo('Card image copied to clipboard', null, { duration: 2000 });
+              }).catch(err => {
+                console.error('Failed to copy image to clipboard:', err);
+                showUndo('Failed to copy image', null, { duration: 2000, error: true });
+              });
+            })
+            .catch(err => {
+              console.error('Failed to fetch image for clipboard:', err);
+              showUndo('Failed to copy image', null, { duration: 2000, error: true });
+            });
+        }
       }
     });
   }
