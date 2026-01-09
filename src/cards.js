@@ -122,13 +122,19 @@ export function attachCardHandlers(div, card, tooltip) {
         div.removeAttribute('aria-describedby');
       } else if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
-        const imageUrl = card.image_uris?.normal;
-        if (imageUrl) {
-          fetch(imageUrl)
+        console.log('Ctrl+C pressed');
+        const tooltip = document.getElementById('tooltip');
+        const tooltipImage = tooltip?.querySelector('img');
+        
+        if (tooltipImage && tooltipImage.src) {
+          console.log('Image URL from tooltip:', tooltipImage.src);
+          fetch(tooltipImage.src)
             .then(response => response.blob())
             .then(blob => {
+              console.log('Blob received:', blob);
               const item = new ClipboardItem({ [blob.type]: blob });
               navigator.clipboard.write([item]).then(() => {
+                console.log('Image copied to clipboard');
                 showUndo('Card image copied to clipboard', null, { duration: 2000 });
               }).catch(err => {
                 console.error('Failed to copy image to clipboard:', err);
@@ -139,6 +145,8 @@ export function attachCardHandlers(div, card, tooltip) {
               console.error('Failed to fetch image for clipboard:', err);
               showUndo('Failed to copy image', null, { duration: 2000, error: true });
             });
+        } else {
+          console.log('No image found in tooltip.');
         }
       }
     });
