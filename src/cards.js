@@ -8,50 +8,11 @@ import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { CARDS_PER_PAGE } from './config.js';
 
-let hoveredCard = null;
-
-document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && (e.key === 'c' || e.key === 'C') && hoveredCard) {
-    e.preventDefault();
-    const tooltip = document.getElementById('tooltip');
-    const tooltipImage = tooltip?.querySelector('img');
-
-    if (tooltipImage && tooltipImage.src) {
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const item = new ClipboardItem({ 'image/png': blob });
-            navigator.clipboard.write([item]).then(() => {
-              showUndo('Card image copied to clipboard', null, { duration: 2000 });
-            }).catch(err => {
-              console.error('Failed to copy image to clipboard:', err);
-              showUndo('Failed to copy image', null, { duration: 2000, error: true });
-            });
-          }
-        }, 'image/png');
-      };
-      img.onerror = () => {
-        console.error('Failed to load image for clipboard operation.');
-        showUndo('Failed to copy image', null, { duration: 2000, error: true });
-      };
-      img.src = tooltipImage.src;
-    }
-  }
-});
-
 
 export function createCardElement(card, cardIndex) {
   const div = document.createElement("div");
   div.className = "card";
   div.cardData = card;
-  div.tabIndex = 0;
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
@@ -134,7 +95,6 @@ export function attachCardHandlers(div, card, tooltip) {
 
   if (cardSettings.showTooltip) {
     div.addEventListener("mouseenter", (e)=>{
-      hoveredCard = card;
       // announce tooltip for screen readers by linking the card to the tooltip
       div.setAttribute('aria-describedby', 'tooltip');
       showTooltip(e, card, tooltip);
@@ -145,7 +105,6 @@ export function attachCardHandlers(div, card, tooltip) {
     });
 
     div.addEventListener("mouseleave", () =>{
-      hoveredCard = null;
       hideTooltip(tooltip);
       div.removeAttribute('aria-describedby');
     });
