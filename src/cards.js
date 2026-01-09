@@ -127,7 +127,7 @@ export function attachCardHandlers(div, card, tooltip) {
           fetch(imageUrl)
             .then(response => response.blob())
             .then(blob => {
-              const item = new ClipboardItem({ 'image/png': blob });
+              const item = new ClipboardItem({ [blob.type]: blob });
               navigator.clipboard.write([item]).then(() => {
                 showUndo('Card image copied to clipboard', null, { duration: 2000 });
               }).catch(err => {
