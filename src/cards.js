@@ -3,7 +3,6 @@ import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
 import { isCardMissing, toggleCardOwned, setCardsOwned } from "./cardState.js";
-import {loggedInUserId} from './main.js';
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
@@ -149,7 +148,7 @@ export function attachCardHandlers(div, card, tooltip) {
               const touch = e.touches && e.touches[0] ? e.touches[0] : e;
               const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
               showTooltip(fakeEvent, card, tooltip);
-            } catch (err) {
+            } catch {
               // ignore
             }
           }
@@ -169,7 +168,7 @@ export function attachCardHandlers(div, card, tooltip) {
               }, 2500);
               localStorage.setItem('seenRevealHint', '1');
             }
-          } catch (e) {
+          } catch {
             // ignore localStorage errors
           }
 
@@ -244,7 +243,7 @@ export function attachCardHandlers(div, card, tooltip) {
       div._suppressToggleUntil = () => suppressUntil;
     } else {
       // Non-touch devices keep small press-to-open convenience
-      edhrecBtn.addEventListener("touchstart", e => {
+      edhrecBtn.addEventListener("touchstart", () => {
         pressTimer = setTimeout(() => {
           window.open(edhrecBtn.href, "_blank", "noopener");
         }, 500);
@@ -327,7 +326,7 @@ export function attachCardHandlers(div, card, tooltip) {
           }
         }
       }, { duration: 5000 });
-    } catch (err) {
+    } catch {
       // ignore toast errors
     }
 

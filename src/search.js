@@ -5,7 +5,7 @@ import { isCardMissing } from './cardState.js';
 
 function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
-  const tokens = query.match(/\!?\w+:(".*?"|'.*?')|\(|\)|or|and|\!?[^\s()]+/g) || [];
+  const tokens = query.match(/!?\w+:(".*?"|'.*?')|\(|\)|or|and|!?[^\s()]+/g) || [];
   let index = 0;
 
   function parseOr() {

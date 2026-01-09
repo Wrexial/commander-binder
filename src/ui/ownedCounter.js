@@ -9,8 +9,6 @@ export function updateOwnedCounter() {
   const searchTerm = searchInput.value;
 
   const allCards = Array.from(document.querySelectorAll(".card"));
-  const totalCards = allCards.length;
-
   const visibleCards = allCards.filter((card) => card.style.display !== "none");
 
   // Count owned cards from the visible set

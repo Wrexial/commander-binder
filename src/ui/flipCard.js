@@ -1,5 +1,5 @@
 // src/ui/flipCard.js
-export function addFlipCard(frontUrl, backUrl, key) {
+export function addFlipCard(frontUrl, backUrl) {
   const container = document.createElement("div");
   container.className = "flip-card";
 

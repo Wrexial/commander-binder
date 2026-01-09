@@ -1,4 +1,4 @@
-import { appState } from "./appState.js";
+
 import { loggedInUserId, guestUserId } from "./main.js";
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
 
