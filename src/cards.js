@@ -15,23 +15,33 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     const tooltip = document.getElementById('tooltip');
     const tooltipImage = tooltip?.querySelector('img');
-    
+
     if (tooltipImage && tooltipImage.src) {
-      fetch(tooltipImage.src)
-        .then(response => response.blob())
-        .then(blob => {
-          const item = new ClipboardItem({ [blob.type]: blob });
-          navigator.clipboard.write([item]).then(() => {
-            showUndo('Card image copied to clipboard', null, { duration: 2000 });
-          }).catch(err => {
-            console.error('Failed to copy image to clipboard:', err);
-            showUndo('Failed to copy image', null, { duration: 2000, error: true });
-          });
-        })
-        .catch(err => {
-          console.error('Failed to fetch image for clipboard:', err);
-          showUndo('Failed to copy image', null, { duration: 2000, error: true });
-        });
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const item = new ClipboardItem({ 'image/png': blob });
+            navigator.clipboard.write([item]).then(() => {
+              showUndo('Card image copied to clipboard', null, { duration: 2000 });
+            }).catch(err => {
+              console.error('Failed to copy image to clipboard:', err);
+              showUndo('Failed to copy image', null, { duration: 2000, error: true });
+            });
+          }
+        }, 'image/png');
+      };
+      img.onerror = () => {
+        console.error('Failed to load image for clipboard operation.');
+        showUndo('Failed to copy image', null, { duration: 2000, error: true });
+      };
+      img.src = tooltipImage.src;
     }
   }
 });
