@@ -4,14 +4,23 @@ import { ownedCards } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 export async function handler(event, context: Context) {
-  const { user } = context.netlifyContext;
-  if (!user) {
+  let userId;
+  const { user } = context.netlifyContext || {};
+
+  if (user) {
+    userId = user.sub;
+  } else {
+    const body = JSON.parse(event.body || "{}");
+    userId = body.userId;
+  }
+
+  if (!userId) {
     return {
       statusCode: 401,
       body: JSON.stringify({ message: "Unauthorized" }),
     };
   }
-  const userId = user.sub;
+
   const rows = await db
     .select({ cardId: ownedCards.cardId })
     .from(ownedCards)

@@ -40,7 +40,7 @@ export async function fetchNextPage(results, tooltip) {
         const newCards = processScryfallData(data);
         appState.pageCards.push(...newCards);
 
-        if (appState.pageCards.length >= CARDS_PER_PAGE) {
+        while (appState.pageCards.length >= CARDS_PER_PAGE) {
             renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
         }
 
