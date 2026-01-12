@@ -1,9 +1,29 @@
 
 import { loggedInUserId, guestUserId } from "./main.js";
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
+import { getClerk } from './clerk.js';
 
 export const ownedCards = new Set();
 let initialized = false;
+
+async function authenticatedFetch(url, options = {}) {
+  const clerk = getClerk();
+  const token = await clerk.session?.getToken();
+
+  const headers = {
+    ...options.headers,
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
 
 export async function loadCardStates() {
   const userId = guestUserId || loggedInUserId;
@@ -12,12 +32,14 @@ export async function loadCardStates() {
     initialized = true;
     return;
   }
-
-  const res = await fetch("/.netlify/functions/owned-cards", {
+  
+  const options = {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId }),
-  });
+    body: JSON.stringify({ userId: guestUserId }),
+  };
+
+  const res = await authenticatedFetch("/.netlify/functions/owned-cards", options);
+
   if (!res.ok) {
     initialized = true;
     return;
@@ -45,11 +67,9 @@ export async function toggleCardOwned(card) {
     ownedCards.add(card.id);
   }
 
-  fetch("/.netlify/functions/toggle-card", {
+  authenticatedFetch("/.netlify/functions/toggle-card", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      userId: loggedInUserId,
       cardId: card.id,
       isOwned: !isOwned,
     }),
@@ -69,11 +89,9 @@ export async function setCardsOwned(cards, owned) {
     }
   }
 
-  fetch("/.netlify/functions/batch-toggle-cards", {
+  authenticatedFetch("/.netlify/functions/batch-toggle-cards", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      userId: loggedInUserId,
       cardIds: cards.map((c) => c.id),
       isOwned: owned,
     }),
