@@ -35,7 +35,7 @@ export async function loadCardStates() {
   
   const options = {
     method: "POST",
-    body: JSON.stringify({ userId: guestUserId }),
+    body: JSON.stringify({ userId }),
   };
 
   const res = await authenticatedFetch("/.netlify/functions/owned-cards", options);
