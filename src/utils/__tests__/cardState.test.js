@@ -1,4 +1,5 @@
 // src/utils/__tests__/cardState.test.js
+/* globals global */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   loadCardStates,

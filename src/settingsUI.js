@@ -1,7 +1,7 @@
 import { cardSettings, saveSettings } from "./cardSettings.js";
-import { rerenderCards } from './cards.js';
+import { updateCardStyles } from './cards.js';
 
-export function initCardSettings(tooltip) {
+export function initCardSettings() {
   document
     .querySelectorAll("#card-settings [data-setting]")
     .forEach(el => {
@@ -11,14 +11,14 @@ export function initCardSettings(tooltip) {
         el.addEventListener("change", () => {
           cardSettings[key] = el.checked;
           saveSettings();
-          rerenderCards(tooltip);
+          updateCardStyles();
         });
       } else if (el.tagName === 'SELECT') {
         el.value = cardSettings[key];
         el.addEventListener('change', () => {
           cardSettings[key] = el.value;
           saveSettings();
-          rerenderCards(tooltip);
+          updateCardStyles();
         });
       }
     });

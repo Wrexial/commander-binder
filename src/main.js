@@ -9,7 +9,6 @@ import { createSignInButton } from './components/SignInButton.js';
 import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
-import { showToast } from './ui/toast.js';
 
 export let loggedInUserId = undefined;
 export let isLoggedIn = false;
@@ -61,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await setupUI();
   await loadCardStates();
 
-  initCardSettings(tooltip);
+  initCardSettings();
   initSearch();
   initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);

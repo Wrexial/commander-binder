@@ -1,11 +1,8 @@
 // cards.js
-import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
-import { isCardMissing, toggleCardOwned, setCardsOwned } from "./cardState.js";
+import { isCardMissing } from "./cardState.js";
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
-import { showUndo } from './ui/toast.js';
-import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { CARDS_PER_PAGE } from './config.js';
 
 

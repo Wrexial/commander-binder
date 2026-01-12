@@ -1,7 +1,6 @@
 // src/utils/__tests__/search.test.js
 import { describe, it, expect, vi } from 'vitest';
 import { parseQuery, evaluateCondition } from '../../search';
-import { appState } from '../../appState';
 
 vi.mock('../../cardState', () => ({
   isCardMissing: vi.fn(),

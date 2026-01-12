@@ -1,7 +1,6 @@
 // src/__tests__/cards.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCardElement, attachCardHandlers } from '../cards';
-import { cardSettings } from '../cardSettings';
+import { createCardElement } from '../cards';
 import { appState } from '../appState';
 import * as cardState from '../cardState';
 
