@@ -5,7 +5,31 @@ import { isCardMissing } from './cardState.js';
 
 function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
-  const tokens = query.match(/!?\w+:(".*?"|'.*?')|\(|\)|or|and|!?[^\s()]+/g) || [];
+  const raw_tokens = query.match(/!?\w+:(".*?"|'.*?')|\(|\)|or|and|!?[^\s()]+/g) || [];
+
+  const tokens = raw_tokens.flatMap(token => {
+    if (token.includes(':') && !token.includes('"') && !token.includes("'")) {
+      const isNegated = token.startsWith('!');
+      const tokenContent = isNegated ? token.substring(1) : token;
+      const [key, ...rest] = tokenContent.split(':');
+      const value = rest.join(':');
+
+      const separators = [
+        { char: ',', op: isNegated ? 'and' : 'or' }, // De Morgan's Law: !(A or B) <=> !A and !B
+        { char: '&', op: isNegated ? 'or' : 'and' },  // De Morgan's Law: !(A and B) <=> !A or !B
+      ];
+
+      for (const sep of separators) {
+        if (value.includes(sep.char)) {
+          const values = value.split(sep.char);
+          const expansion = values.map(v => `${isNegated ? '!' : ''}${key}:${v.trim()}`);
+          const result = expansion.flatMap((term, i) => (i > 0 ? [sep.op, term] : [term]));
+          return ['(', ...result, ')'];
+        }
+      }
+    }
+    return token;
+  });
   let index = 0;
 
   function parseOr() {
