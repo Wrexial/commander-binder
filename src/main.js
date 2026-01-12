@@ -49,6 +49,8 @@ function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
   shareButton.classList.remove('hidden');
 }
 
+import { initCardInteractions } from './cardInteractions.js';
+
 document.addEventListener("DOMContentLoaded", async () => {
   await initClerk();
   const urlParams = new URLSearchParams(window.location.search);
@@ -61,5 +63,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initCardSettings(tooltip);
   initSearch();
+  initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);
 });
