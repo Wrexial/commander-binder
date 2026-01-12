@@ -288,7 +288,7 @@ body {
   height: 18px;
   padding: 2px;
 
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--edhrec-hover);
   border-radius: 3px;
 
   display: flex;
