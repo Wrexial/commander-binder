@@ -87,3 +87,18 @@ export function createCardElement(card, cardIndex) {
   return div;
 }
 
+export function updateCardStyles() {
+  document.querySelectorAll('.card').forEach(div => {
+    const card = div.cardData;
+    if (!card) return;
+
+    // Toggle EDHREC link visibility
+    div.classList.toggle('reveal-links', cardSettings.persistentReveal);
+
+    // Update styles based on settings
+    const borderStyle = getCardBorderStyle(card);
+    div.style.setProperty('--card-border', borderStyle.borderColor);
+    div.style.setProperty('--card-bg', getCardBackground(card));
+  });
+}
+
