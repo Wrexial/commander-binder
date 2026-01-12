@@ -4,7 +4,7 @@ import { ownedCards } from "../../db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 export async function handler(event, context: Context) {
-  const { user } = context.netlifyContext;
+  const { user } = context.netlifyContext || {};
   if (!user) {
     return {
       statusCode: 401,
