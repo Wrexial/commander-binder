@@ -41,15 +41,21 @@ export function getCardBackground(card) {
 
 export function lightenColor(color, factor) {
   // Accept rgb() or hex values; if color is not hex, just return it with a simple overlay
-  const hexMatch = color.match(/#([0-9a-fA-F]{6})/);
+  const hexMatch = color.match(/#([0-9a-fA-F]{3,6})/);
   if (!hexMatch) return color;
 
-  const hex = hexMatch[0];
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  let hex = hexMatch[1];
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('');
+  }
+  
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
 
-  return `rgb(${Math.round(r + (255 - r) * factor)}, ${Math.round(
-    g + (255 - g) * factor
-  )}, ${Math.round(b + (255 - b) * factor)})`;
+  const newR = Math.round(r + (255 - r) * factor);
+  const newG = Math.round(g + (255 - g) * factor);
+  const newB = Math.round(b + (255 - b) * factor);
+
+  return `rgb(${newR}, ${newG}, ${newB})`;
 }

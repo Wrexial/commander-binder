@@ -3,7 +3,7 @@ import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
 
-function parseQuery(query) {
+export function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
   const raw_tokens = query.match(/!?\w+:(".*?"|'.*?')|\(|\)|or|and|!?[^\s()]+/g) || [];
 
@@ -83,7 +83,7 @@ function getFilterValue(filter, prefix = '') {
   return value;
 }
 
-function evaluateCondition(card, condition) {
+export function evaluateCondition(card, condition) {
   if (!condition) return true;
   if (condition.type === 'or') {
     return evaluateCondition(card, condition.left) || evaluateCondition(card, condition.right);

@@ -5,112 +5,118 @@ import { showLoading, hideLoading } from './loadingIndicator.js';
 import { startNewBinder, startNewSection } from './layout.js';
 import { createCardElement, attachCardHandlers } from './cards.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
-
 import { isCardMissing } from './cardState.js';
-// At the start of your lazy loading init
-appState.pageCards = [];
+import { showToast } from './ui/toast.js';
 
-export async function fetchNextPage(results, tooltip) {
-  if (!appState.nextPageUrl || appState.isLoading) return;
-
-  appState.isLoading = true;
-  showLoading();
-
-  try {
-    const url = appState.nextPageUrl;
-
+async function fetchScryfallData(url) {
     const res = await fetch(url);
-    const data = await res.json();
-
-    for (const card of data.data) {
-      if (!card.games.includes("paper")) continue;
-      if (appState.seenNames.has(card.name)) continue;
-
-      appState.seenNames.add(card.name);
-      appState.seenSetCodes.add(card.set.toLowerCase());
-      appState.pageCards.push(card);
-
-      // Only render when we hit CARDS_PER_PAGE
-      if (appState.pageCards.length === CARDS_PER_PAGE) {
-        renderPage(results, tooltip);
-      }
+    if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
     }
-
-    appState.nextPageUrl = data.has_more ? data.next_page : null;
-
-    // Only render leftover cards if this is the last API page
-    if (!appState.nextPageUrl && appState.pageCards.length > 0) {
-      renderPage(results, tooltip);
-    }
-
-  } catch (err) {
-    console.error("Scryfall fetch failed:", err);
-  } finally {
-    appState.isLoading = false;
-    hideLoading();
-  }
-
-  if(appState.nextPageUrl){
-    fetchNextPage(results, tooltip);
-  }
+    return res.json();
 }
 
-// helper function
-function renderPage(results, tooltip) {
-  const pageSets = new Map();
-  appState.pageCards.forEach(c => pageSets.set(c.set, {
-    name: c.set_name,
-    date: c.released_at
-  }));
+function processScryfallData(data) {
+    const newCards = [];
+    for (const card of data.data) {
+        if (!card.games.includes("paper")) continue;
+        if (appState.seenNames.has(card.name)) continue;
 
-  startNewSection(pageSets);
-  appState.pageCards.forEach((c, i) => {
-    const cardIndex = appState.count + i;
-    const el = createCardElement(c, cardIndex);
-    el.dataset.cardIndex = cardIndex;
-    attachCardHandlers(el, c, tooltip);
-    appState.grid.appendChild(el);
-
-    appState.binder.totalCards++;
-    if (!isCardMissing(c)) {
-      appState.binder.ownedCards++;
+        appState.seenNames.add(card.name);
+        appState.seenSetCodes.add(card.set.toLowerCase());
+        newCards.push(card);
     }
-  });
-  const ownedCountEl = appState.binder.querySelector(".owned-count");
-  if (ownedCountEl) {
-    ownedCountEl.textContent = `Owned: ${appState.binder.ownedCards}/${appState.binder.totalCards}`;
-  }
+    return newCards;
+}
 
-  const dates = Array.from(pageSets.values()).map(set => set.date);
-  const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
-  const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
+export async function fetchNextPage(results, tooltip) {
+    if (!appState.nextPageUrl || appState.isLoading) return;
 
-  if (!appState.binder.startDate || minDate < appState.binder.startDate) {
-    appState.binder.startDate = minDate;
-  }
-  if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
-    appState.binder.endDate = maxDate;
-  }
+    appState.isLoading = true;
+    showLoading();
 
-  updateBinderHeader();
+    try {
+        const data = await fetchScryfallData(appState.nextPageUrl);
+        const newCards = processScryfallData(data);
+        appState.pageCards.push(...newCards);
 
-  appState.count += appState.pageCards.length;
-  updateOwnedCounter();
+        if (appState.pageCards.length >= CARDS_PER_PAGE) {
+            renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
+        }
 
-  if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
-    startNewBinder(results);
-  }
+        appState.nextPageUrl = data.has_more ? data.next_page : null;
 
-  appState.pageCards = [];
+        if (!appState.nextPageUrl && appState.pageCards.length > 0) {
+            renderPage(results, tooltip, [...appState.pageCards]);
+            appState.pageCards = [];
+        }
+
+    } catch (err) {
+        console.error("Scryfall fetch failed:", err);
+        showToast("Failed to fetch cards from Scryfall. Please try again later.", "error");
+    } finally {
+        appState.isLoading = false;
+        hideLoading();
+    }
+
+    if (appState.nextPageUrl) {
+        fetchNextPage(results, tooltip);
+    }
+}
+
+function renderPage(results, tooltip, pageCards) {
+    const pageSets = new Map();
+    pageCards.forEach(c => pageSets.set(c.set, {
+        name: c.set_name,
+        date: c.released_at
+    }));
+
+    startNewSection(pageSets);
+    pageCards.forEach((c, i) => {
+        const cardIndex = appState.count + i;
+        const el = createCardElement(c, cardIndex);
+        el.dataset.cardIndex = cardIndex;
+        attachCardHandlers(el, c, tooltip);
+        appState.grid.appendChild(el);
+
+        appState.binder.totalCards++;
+        if (!isCardMissing(c)) {
+            appState.binder.ownedCards++;
+        }
+    });
+    const ownedCountEl = appState.binder.querySelector(".owned-count");
+    if (ownedCountEl) {
+        ownedCountEl.textContent = `Owned: ${appState.binder.ownedCards}/${appState.binder.totalCards}`;
+    }
+
+    const dates = Array.from(pageSets.values()).map(set => set.date);
+    const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
+    const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
+
+    if (!appState.binder.startDate || minDate < appState.binder.startDate) {
+        appState.binder.startDate = minDate;
+    }
+    if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
+        appState.binder.endDate = maxDate;
+    }
+
+    updateBinderHeader();
+
+    appState.count += pageCards.length;
+    updateOwnedCounter();
+
+    if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
+        startNewBinder(results);
+    }
 }
 
 function updateBinderHeader() {
-  const header = appState.binder.querySelector(".binder-header");
-  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+    const header = appState.binder.querySelector(".binder-header");
+    const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
 
-  if (header && appState.binder.startDate && appState.binder.endDate) {
-    const startYear = new Date(appState.binder.startDate).getFullYear();
-    const endYear = new Date(appState.binder.endDate).getFullYear();
-    header.childNodes[0].nodeValue = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
-  }
+    if (header && appState.binder.startDate && appState.binder.endDate) {
+        const startYear = new Date(appState.binder.startDate).getFullYear();
+        const endYear = new Date(appState.binder.endDate).getFullYear();
+        header.childNodes[0].nodeValue = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
+    }
 }

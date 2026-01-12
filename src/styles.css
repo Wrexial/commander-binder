@@ -34,6 +34,15 @@
   --card-bg-default: #2d3748;
   --edhrec-hover: rgba(66, 153, 225, 0.1);
   --focus: #4fd1c5;
+  --focus-shadow: 0 0 0 3px rgba(79, 209, 197, 0.5);
+
+  --button-bg: #4a4a4a;
+  --button-bg-hover: #5a5a5a;
+  --button-bg-active: #6a6a6a;
+  --button-text: #ffffff;
+
+  --link-text: var(--focus);
+  --link-text-hover: #6ed9d2;
 }
 
 body {
@@ -63,14 +72,32 @@ body {
   right: 10px;
 }
 
-#share-button {
+#share-button,
+.sign-in-button {
   padding: 8px 12px;
-  background-color: #4a4a4a;
-  color: white;
+  background-color: var(--button-bg);
+  color: var(--button-text);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-family: 'Roboto', sans-serif;
+  transition: background-color 0.2s ease;
+}
+
+#share-button:hover,
+.sign-in-button:hover {
+  background-color: var(--button-bg-hover);
+}
+
+#share-button:active,
+.sign-in-button:active {
+  background-color: var(--button-bg-active);
+}
+
+#share-button:focus-visible,
+.sign-in-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
 }
 
 #share-button.hidden {
@@ -79,12 +106,13 @@ body {
 
 .sign-in-button {
   padding: 8px 12px;
-  background-color: #4a4a4a;
-  color: white;
+  background-color: var(--button-bg);
+  color: var(--button-text);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-family: 'Roboto', sans-serif;
+  transition: background-color 0.2s ease;
 }
 
 .guest-mode-text {
@@ -144,30 +172,19 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 0.75rem 1rem;
 }
 
 @media (max-width: 1024px) {
   .grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
-  .card {
-    padding: 12px 8px;
-    min-height: 5em;
-    font-size: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
   .grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
-  .card {
-    aspect-ratio: 1 / 1;
-    padding: 6px;
-    font-size: 0.9rem;
-    min-height: auto;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   }
 }
 
@@ -544,6 +561,11 @@ body {
   box-shadow: 0 0 5px rgba(76, 140, 200, 0.5);
 }
 
+#search-input:focus-visible {
+  box-shadow: var(--focus-shadow);
+  border-color: var(--focus);
+}
+
 #clear-search {
   position: absolute;
   right: 10px;
@@ -735,8 +757,20 @@ footer {
 }
 
 footer a {
-  color: var(--focus);
+  color: var(--link-text);
   text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  text-decoration: underline;
+  color: var(--link-text-hover);
+}
+
+footer a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+  border-radius: 2px;
 }
 
 footer a:hover {
