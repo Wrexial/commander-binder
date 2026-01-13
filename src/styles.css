@@ -626,12 +626,14 @@ body {
 .card.owned {
   border: 2px solid rgba(60,179,113,0.9); /* green outline for owned cards */
   /* subtle darkening overlay to indicate owned while keeping background readable */
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06), inset 0 0 0 1000px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 0 0 1000px rgba(255, 255, 255, 0.15);
 }
 
 /* Non-owned cards get a subtle red outline to contrast with owned green */
 .card:not(.owned) {
   border: 2px solid rgba(200, 76, 76, 0.6);
+  /* subtle darkening overlay to indicate owned while keeping background readable */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06), inset 0 0 0 1000px rgba(0, 0, 0, 0.15);
 }
 
 
