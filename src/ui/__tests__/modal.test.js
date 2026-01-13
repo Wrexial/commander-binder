@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { showListModal } from '../../ui/modal';
 
 vi.useFakeTimers();
 
 describe('modal', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+    });
+
     it('should show a modal with a title and list', () => {
         showListModal('Test Title', 'Test List');
         const modal = document.querySelector('.list-modal');
@@ -14,9 +18,12 @@ describe('modal', () => {
 
     it('should close the modal when the close button is clicked', async () => {
         showListModal('Test Title', 'Test List');
-        const closeButton = document.querySelectorAll('.list-modal button')[1];
+        const closeButton = document.querySelector('[data-testid="close-button"]');
         closeButton.click();
-        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Wait for the modal to be removed from the DOM
+        await vi.runAllTimersAsync();
+        
         const modal = document.querySelector('.list-modal');
         expect(modal).toBeNull();
     });
@@ -30,7 +37,7 @@ describe('modal', () => {
         });
 
         showListModal('Test Title', 'Test List');
-        const copyButton = document.querySelectorAll('.list-modal button')[0];
+        const copyButton = document.querySelector('[data-testid="copy-button"]');
         copyButton.click();
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Test List');
     });

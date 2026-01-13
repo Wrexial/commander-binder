@@ -41,13 +41,18 @@ export function showListModal(title, list) {
 
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
+    closeButton.dataset.testid = 'close-button';
     closeButton.style.marginTop = '10px';
     closeButton.addEventListener('click', () => {
-        document.body.removeChild(modalBackdrop);
+        const modalBackdrop = document.querySelector('.list-modal-backdrop');
+        if (modalBackdrop) {
+            document.body.removeChild(modalBackdrop);
+        }
     });
 
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy to Clipboard';
+    copyButton.dataset.testid = 'copy-button';
     copyButton.style.marginTop = '10px';
     copyButton.addEventListener('click', () => {
         contentArea.select();
