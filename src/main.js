@@ -10,11 +10,13 @@ import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 
-export let loggedInUserId = undefined;
-export let isLoggedIn = false;
-export let guestUserId = undefined;
+export const mainState = {
+  loggedInUserId: undefined,
+  isLoggedIn: false,
+  guestUserId: undefined,
+};
 
-async function setupUI() {
+export async function setupUI() {
   const clerk = getClerk();
   const userActionsDiv = document.createElement('div');
   userActionsDiv.className = 'user-actions';
@@ -23,7 +25,7 @@ async function setupUI() {
   userButtonDiv.id = 'user-button';
   userActionsDiv.appendChild(userButtonDiv);
 
-  if (guestUserId) {
+  if (mainState.guestUserId) {
     const guestModeText = createGuestModeText();
     userButtonDiv.appendChild(guestModeText);
     appState.isViewOnlyMode = true;
@@ -32,7 +34,7 @@ async function setupUI() {
   } else {
     const signInButton = createSignInButton(clerk);
     userButtonDiv.appendChild(signInButton);
-    loggedInUserId = undefined;
+    mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
   }
   document.querySelector('.main-header').insertAdjacentElement('afterend', userActionsDiv);
@@ -40,10 +42,10 @@ async function setupUI() {
 
 function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
   clerk.mountUserButton(userButtonDiv);
-  isLoggedIn = true;
-  loggedInUserId = clerk.user.id;
+  mainState.isLoggedIn = true;
+  mainState.loggedInUserId = clerk.user.id;
   updateOwnedCounter();
-  const shareButton = createShareButton(loggedInUserId);
+  const shareButton = createShareButton(mainState.loggedInUserId);
   userActionsDiv.appendChild(shareButton);
   shareButton.classList.remove('hidden');
 }
@@ -53,7 +55,7 @@ import { initCardInteractions } from './cardInteractions.js';
 document.addEventListener("DOMContentLoaded", async () => {
   await initClerk();
   const urlParams = new URLSearchParams(window.location.search);
-  guestUserId = urlParams.get('user');
+  mainState.guestUserId = urlParams.get('user');
   const tooltip = document.getElementById("tooltip");
   const results = document.getElementById("results");
 

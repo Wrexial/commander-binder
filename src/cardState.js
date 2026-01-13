@@ -1,5 +1,5 @@
 
-import { loggedInUserId, guestUserId } from "./main.js";
+import { mainState } from "./main.js";
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
 import { getClerk } from './clerk.js';
 
@@ -26,7 +26,7 @@ async function authenticatedFetch(url, options = {}) {
 }
 
 export async function loadCardStates() {
-  const userId = guestUserId || loggedInUserId;
+  const userId = mainState.guestUserId || mainState.loggedInUserId;
 
   if (!userId) {
     initialized = true;

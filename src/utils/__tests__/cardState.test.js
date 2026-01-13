@@ -8,24 +8,45 @@ import {
   setCardsOwned,
   ownedCards,
 } from '../../cardState';
-import * as main from '../../main';
+
+vi.mock('../../main.js', () => ({
+  mainState: {
+    loggedInUserId: null,
+    guestUserId: null,
+  },
+}));
 
 vi.mock('../../ui/ownedCounter', () => ({
   updateOwnedCounter: vi.fn(),
 }));
+vi.mock('../../clerk.js', () => ({
+    getClerk: () => ({
+        session: {
+            getToken: () => Promise.resolve('test-token')
+        }
+    })
+}));
+
 
 global.fetch = vi.fn();
 
 describe('cardState', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     ownedCards.clear();
+    vi.clearAllMocks();
+    // Ensure the module is "initialized" for isCardMissing tests
+    const mockResponse = { ok: true, json: () => Promise.resolve([]) };
+    fetch.mockResolvedValue(mockResponse);
+    await loadCardStates();
+    // Clear mocks again to not interfere with specific test setups
     vi.clearAllMocks();
   });
 
   describe('loadCardStates', () => {
     it('should load card states for a logged-in user', async () => {
-      vi.spyOn(main, 'loggedInUserId', 'get').mockReturnValue('user123');
-      vi.spyOn(main, 'guestUserId', 'get').mockReturnValue(null);
+      const { mainState } = await import('../../main.js');
+      mainState.loggedInUserId = 'user123';
+      mainState.guestUserId = null;
 
       const mockResponse = {
         ok: true,
@@ -40,8 +61,9 @@ describe('cardState', () => {
     });
 
     it('should load card states for a guest user', async () => {
-      vi.spyOn(main, 'loggedInUserId', 'get').mockReturnValue(null);
-      vi.spyOn(main, 'guestUserId', 'get').mockReturnValue('guest123');
+      const { mainState } = await import('../../main.js');
+      mainState.loggedInUserId = null;
+      mainState.guestUserId = 'guest123';
 
       const mockResponse = {
         ok: true,
@@ -73,14 +95,16 @@ describe('cardState', () => {
 
   describe('toggleCardOwned', () => {
     it('should add a card to the owned set if it is missing', async () => {
-      vi.spyOn(main, 'loggedInUserId', 'get').mockReturnValue('user123');
+      const { mainState } = await import('../../main.js');
+      mainState.loggedInUserId = 'user123';
       const card = { id: 'card1' };
       await toggleCardOwned(card);
       expect(ownedCards.has('card1')).toBe(true);
     });
 
     it('should remove a card from the owned set if it is present', async () => {
-      vi.spyOn(main, 'loggedInUserId', 'get').mockReturnValue('user123');
+      const { mainState } = await import('../../main.js');
+      mainState.loggedInUserId = 'user123';
       ownedCards.add('card1');
       const card = { id: 'card1' };
       await toggleCardOwned(card);
@@ -90,7 +114,8 @@ describe('cardState', () => {
 
   describe('setCardsOwned', () => {
     it('should add multiple cards to the owned set', async () => {
-      vi.spyOn(main, 'loggedInUserId', 'get').mockReturnValue('user123');
+      const { mainState } = await import('../../main.js');
+      mainState.loggedInUserId = 'user123';
       const cards = [{ id: 'card1' }, { id: 'card2' }];
       await setCardsOwned(cards, true);
       expect(ownedCards.has('card1')).toBe(true);
@@ -98,7 +123,8 @@ describe('cardState', () => {
     });
 
     it('should remove multiple cards from the owned set', async () => {
-      vi.spyOn(main, 'loggedInUserId', 'get').mockReturnValue('user123');
+      const { mainState } = await import('../../main.js');
+      mainState.loggedInUserId = 'user123';
       ownedCards.add('card1');
       ownedCards.add('card2');
       const cards = [{ id: 'card1' }, { id: 'card2' }];
