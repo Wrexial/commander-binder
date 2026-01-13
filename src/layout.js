@@ -135,3 +135,16 @@ export function startNewSection(pageSets = new Map()) {
   appState.section.appendChild(appState.grid);
   appState.binder.appendChild(appState.section);
 }
+
+export function updateBinderCounts(cardElement) {
+    const binder = cardElement.closest('.binder');
+    if (!binder) return;
+
+    const ownedCards = binder.querySelectorAll('.card.owned').length;
+    const totalCards = binder.querySelectorAll('.card').length;
+
+    const ownedCountSpan = binder.querySelector('.owned-count');
+    if (ownedCountSpan) {
+        ownedCountSpan.textContent = `(${ownedCards} / ${totalCards} Owned)`;
+    }
+}

@@ -7,6 +7,7 @@ import { appState } from '../appState.js';
 import * as cardState from '../cardState.js';
 import * as toast from '../ui/toast.js';
 import * as ownedCounter from '../ui/ownedCounter.js';
+import * as layout from '../layout.js';
 
 // Mock all dependencies
 vi.mock('../tooltip.js');
@@ -15,6 +16,7 @@ vi.mock('../appState.js');
 vi.mock('../cardState.js');
 vi.mock('../ui/toast.js');
 vi.mock('../ui/ownedCounter.js');
+vi.mock('../layout.js');
 
 describe('initCardInteractions', () => {
   let container, tooltipElement, cardElement;
@@ -91,6 +93,12 @@ describe('initCardInteractions', () => {
       expect(cardElement.classList.contains('owned')).toBe(true);
       expect(ownedCounter.updateOwnedCounter).toHaveBeenCalled();
       expect(toast.showUndo).toHaveBeenCalled();
+    });
+
+    it('should update binder counts on click', async () => {
+      initCardInteractions(container, tooltipElement);
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(layout.updateBinderCounts).toHaveBeenCalledWith(cardElement);
     });
 
     it('should not toggle ownership when in view-only mode', async () => {
