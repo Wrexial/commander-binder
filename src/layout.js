@@ -2,6 +2,8 @@ import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
 import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
+import { isCardMissing } from './cardState.js';
+import { showListModal } from './ui/modal.js';
 
 export function startNewBinder(results) {
   const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
@@ -27,6 +29,38 @@ export function startNewBinder(results) {
   const ownedCount = document.createElement("span");
   ownedCount.className = "owned-count";
   header.appendChild(ownedCount);
+
+  const exportButton = document.createElement('button');
+  exportButton.textContent = 'Export Missing';
+  exportButton.className = 'export-missing-button';
+  exportButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const selectedCheckboxes = newBinder.querySelectorAll('.page-select-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+      alert('Please select at least one page to export.');
+      return;
+    }
+
+    let missingCards = [];
+    selectedCheckboxes.forEach(checkbox => {
+      const section = checkbox.closest('.section');
+      if (section) {
+        const cardsInSection = section.querySelectorAll('.card');
+        const missingInSection = Array.from(cardsInSection).filter(card => isCardMissing(card.cardData));
+        missingCards.push(...missingInSection);
+      }
+    });
+
+    if (missingCards.length === 0) {
+      alert('No missing cards on the selected pages.');
+      return;
+    }
+
+    const cardNames = missingCards.map(card => card.cardData.name);
+    const lineSeparatedList = cardNames.join('\\n');
+    showListModal('Missing Cards', lineSeparatedList);
+  });
+  header.appendChild(exportButton);
 
   let longPressTimer;
 
@@ -93,9 +127,19 @@ export function startNewSection(pageSets = new Map()) {
 
   const header = document.createElement("h3");
   header.className = "page-header";
-  header.textContent = `Page ${pageNumberInBinder} — `;
 
-  header.addEventListener("click", () => {
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'page-select-checkbox';
+  checkbox.addEventListener('click', e => e.stopPropagation()); // Prevent header click
+  header.appendChild(checkbox);
+
+  const pageLabel = document.createElement('span');
+  pageLabel.textContent = `Page ${pageNumberInBinder} — `;
+  header.appendChild(pageLabel);
+
+  header.addEventListener("click", (e) => {
+    if (e.target.type === 'checkbox') return;
     section.classList.toggle("collapsed");
   });
 
