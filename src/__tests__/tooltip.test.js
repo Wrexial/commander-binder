@@ -125,6 +125,18 @@ describe('tooltip', () => {
         }, 300);
       }, 300);
     });
+
+    it('should handle cards with no image', (done) => {
+        const cardWithNoImage = { id: 'card3' };
+        showTooltip(event, cardWithNoImage, tooltip);
+        
+        setTimeout(() => {
+            expect(tooltip.style.display).toBe('flex');
+            const img = tooltip.querySelector('img');
+            expect(img).toBeNull();
+            done();
+        }, 300);
+    });
   });
 
   describe('hideTooltip', () => {

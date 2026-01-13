@@ -1,10 +1,7 @@
 // src/utils/__tests__/search.test.js
 import { describe, it, expect, vi } from 'vitest';
 import { parseQuery, evaluateCondition } from '../../search';
-
-vi.mock('../../cardState', () => ({
-  isCardMissing: vi.fn(),
-}));
+import * as cardState from '../../cardState';
 
 vi.mock('../../appState', () => ({
   appState: {
@@ -212,8 +209,7 @@ describe('evaluateCondition', () => {
   });
 
   it('should handle owned filters', () => {
-    const { isCardMissing } = require('../../cardState');
-    isCardMissing.mockReturnValue(false);
+    vi.spyOn(cardState, 'isCardMissing').mockReturnValue(false);
     const condition = { type: 'filter', value: 'is:owned' };
     const result = evaluateCondition(card, condition);
     expect(result).toBe(true);
