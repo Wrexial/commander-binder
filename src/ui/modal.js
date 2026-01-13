@@ -45,6 +45,18 @@ export function showListModal(title, list) {
     closeButton.addEventListener('click', () => {
         document.body.removeChild(modalBackdrop);
     });
+
+    const copyButton = document.createElement('button');
+    copyButton.textContent = 'Copy to Clipboard';
+    copyButton.style.marginTop = '10px';
+    copyButton.addEventListener('click', () => {
+        contentArea.select();
+        navigator.clipboard.writeText(contentArea.value);
+        copyButton.textContent = 'Copied!';
+        setTimeout(() => {
+            copyButton.textContent = 'Copy to Clipboard';
+        }, 2000);
+    });
     
     modalBackdrop.addEventListener('click', (e) => {
         if (e.target === modalBackdrop) {
@@ -52,9 +64,16 @@ export function showListModal(title, list) {
         }
     });
 
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.justifyContent = 'flex-end';
+    buttonContainer.style.gap = '10px';
+    buttonContainer.appendChild(copyButton);
+    buttonContainer.appendChild(closeButton);
+
     modal.appendChild(modalHeader);
     modal.appendChild(contentArea);
-    modal.appendChild(closeButton);
+    modal.appendChild(buttonContainer);
     modalBackdrop.appendChild(modal);
     document.body.appendChild(modalBackdrop);
 }

@@ -35,30 +35,26 @@ export function startNewBinder(results) {
   exportButton.className = 'export-missing-button';
   exportButton.addEventListener('click', (e) => {
     e.stopPropagation();
-    const selectedCheckboxes = newBinder.querySelectorAll('.page-select-checkbox:checked');
-    if (selectedCheckboxes.length === 0) {
-      alert('Please select at least one page to export.');
-      return;
-    }
 
-    let missingCards = [];
-    selectedCheckboxes.forEach(checkbox => {
-      const section = checkbox.closest('.section');
-      if (section) {
-        const cardsInSection = section.querySelectorAll('.card');
-        const missingInSection = Array.from(cardsInSection).filter(card => isCardMissing(card.cardData));
-        missingCards.push(...missingInSection);
-      }
-    });
+    const allCards = newBinder.querySelectorAll('.card');
+    const missingCards = Array.from(allCards).filter(card => isCardMissing(card.cardData));
 
     if (missingCards.length === 0) {
-      alert('No missing cards on the selected pages.');
+      alert('No missing cards in this binder.');
       return;
     }
 
     const cardNames = missingCards.map(card => card.cardData.name);
-    const lineSeparatedList = cardNames.join('\\n');
-    showListModal('Missing Cards', lineSeparatedList);
+    let lineSeparatedList = '';
+    let chunkNumber = 1;
+    for (let i = 0; i < cardNames.length; i += 100) {
+      const chunk = cardNames.slice(i, i + 100);
+      lineSeparatedList += `--- Missing Cards (${(chunkNumber - 1) * 100 + 1}-${i + chunk.length}) ---\n`;
+      lineSeparatedList += chunk.join('\n') + '\n\n';
+      chunkNumber++;
+    }
+    
+    showListModal('Missing Cards', lineSeparatedList.trim());
   });
   header.appendChild(exportButton);
 
@@ -127,19 +123,9 @@ export function startNewSection(pageSets = new Map()) {
 
   const header = document.createElement("h3");
   header.className = "page-header";
+  header.textContent = `Page ${pageNumberInBinder} — `;
 
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.className = 'page-select-checkbox';
-  checkbox.addEventListener('click', e => e.stopPropagation()); // Prevent header click
-  header.appendChild(checkbox);
-
-  const pageLabel = document.createElement('span');
-  pageLabel.textContent = `Page ${pageNumberInBinder} — `;
-  header.appendChild(pageLabel);
-
-  header.addEventListener("click", (e) => {
-    if (e.target.type === 'checkbox') return;
+  header.addEventListener("click", () => {
     section.classList.toggle("collapsed");
   });
 
@@ -189,6 +175,6 @@ export function updateBinderCounts(cardElement) {
 
     const ownedCountSpan = binder.querySelector('.owned-count');
     if (ownedCountSpan) {
-        ownedCountSpan.textContent = `(${ownedCards} / ${totalCards} Owned)`;
+        ownedCountSpan.textContent = `(${ownedCards} / ${totalCards})`;
     }
 }
