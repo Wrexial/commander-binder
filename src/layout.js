@@ -47,9 +47,9 @@ export function startNewBinder(results) {
     const cardNames = missingCards.map(card => card.cardData.name);
     let lineSeparatedList = '';
     let chunkNumber = 1;
-    for (let i = 0; i < cardNames.length; i += 100) {
-      const chunk = cardNames.slice(i, i + 100);
-      lineSeparatedList += `--- Missing Cards (${(chunkNumber - 1) * 100 + 1}-${i + chunk.length}) ---\n`;
+    for (let i = 0; i < cardNames.length; i += 150) {
+      const chunk = cardNames.slice(i, i + 150);
+      lineSeparatedList += `--- Missing Cards (${(chunkNumber - 1) * 150 + 1}-${i + chunk.length}) ---\n`;
       lineSeparatedList += chunk.join('\n') + '\n\n';
       chunkNumber++;
     }
