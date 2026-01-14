@@ -862,7 +862,7 @@ footer a:hover {
   border-radius: 8px;
   width: 80%;
   max-width: 500px;
-  max-height: 80vh;
+  height: 80vh;
   display: flex;
   flex-direction: column;
 }
