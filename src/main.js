@@ -51,6 +51,7 @@ function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
 }
 
 import { initCardInteractions } from './cardInteractions.js';
+import { createGlobalExportButton } from './layout.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
   await initClerk();
@@ -63,6 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadCardStates();
 
   initCardSettings();
+  createGlobalExportButton();
   initSearch();
   initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);

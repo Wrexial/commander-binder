@@ -169,3 +169,26 @@ export function updateBinderCounts(cardElement) {
         ownedCountSpan.textContent = `Owned: ${ownedCards} / ${totalCards}`;
     }
 }
+
+export function createGlobalExportButton() {
+  const settingsContainer = document.getElementById('card-settings');
+  if (!settingsContainer) return;
+
+  const exportButton = document.createElement('button');
+  exportButton.textContent = 'Export All Missing Cards';
+  exportButton.className = 'global-export-button';
+  exportButton.addEventListener('click', () => {
+    const allCards = document.querySelectorAll('.card');
+    const missingCards = Array.from(allCards).filter(card => isCardMissing(card.cardData));
+
+    if (missingCards.length === 0) {
+      alert('No missing cards found.');
+      return;
+    }
+
+    const cardNames = missingCards.map(card => card.cardData.name);
+    showListModal('All Missing Cards', cardNames);
+  });
+
+  settingsContainer.appendChild(exportButton);
+}
