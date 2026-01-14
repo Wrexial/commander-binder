@@ -890,7 +890,25 @@ footer a:hover {
 }
 
 .pagination-container button {
-  margin: 0 10px;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.pagination-container button:hover {
+  background-color: var(--button-bg-hover);
+  transform: translateY(-2px);
+}
+
+.pagination-container button:disabled {
+  background-color: var(--card-bg-default);
+  color: var(--muted);
+  cursor: not-allowed;
+  transform: none;
 }
 
 .modal-button-container {
