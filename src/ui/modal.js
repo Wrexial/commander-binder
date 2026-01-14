@@ -59,8 +59,7 @@ export function showListModal(title, list) {
     copyButton.textContent = 'Copy to Clipboard';
     copyButton.dataset.testid = 'copy-button';
     copyButton.addEventListener('click', () => {
-        const fullList = list.join('\n');
-        navigator.clipboard.writeText(fullList);
+        navigator.clipboard.writeText(contentArea.textContent);
         copyButton.textContent = 'Copied!';
         setTimeout(() => {
             copyButton.textContent = 'Copy to Clipboard';
