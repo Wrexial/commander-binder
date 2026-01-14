@@ -1,48 +1,53 @@
 export function showListModal(title, list) {
+    let currentPage = 0;
+    const cardsPerPage = 150;
+    const totalPages = Math.ceil(list.length / cardsPerPage);
+
     const modalBackdrop = document.createElement('div');
-    modalBackdrop.style.position = 'fixed';
-    modalBackdrop.style.left = '0';
-    modalBackdrop.style.top = '0';
-    modalBackdrop.style.width = '100%';
-    modalBackdrop.style.height = '100%';
-    modalBackdrop.style.backgroundColor = 'rgba(0,0,0,0.5)';
-    modalBackdrop.style.zIndex = '999';
     modalBackdrop.className = 'list-modal-backdrop';
 
     const modal = document.createElement('div');
-    modal.style.position = 'fixed';
-    modal.style.left = '50%';
-    modal.style.top = '50%';
-    modal.style.transform = 'translate(-50%, -50%)';
-    modal.style.backgroundColor = 'var(--bg-color, white)';
-    modal.style.color = 'var(--text-color, black)';
-    modal.style.padding = '20px';
-    modal.style.zIndex = '1000';
-    modal.style.border = '1px solid var(--border-color, black)';
-    modal.style.borderRadius = '8px';
-    modal.style.width = '80%';
-    modal.style.maxWidth = '500px';
-    modal.style.maxHeight = '80vh';
-    modal.style.display = 'flex';
-    modal.style.flexDirection = 'column';
     modal.className = 'list-modal';
 
     const modalHeader = document.createElement('h2');
     modalHeader.textContent = title;
-    modalHeader.style.marginTop = '0';
 
-    const contentArea = document.createElement('textarea');
-    contentArea.readOnly = true;
-    contentArea.value = list;
-    contentArea.style.flexGrow = '1';
-    contentArea.style.minHeight = '200px';
-    contentArea.style.whiteSpace = 'pre';
-    contentArea.style.overflow = 'auto';
+    const contentArea = document.createElement('div');
+    contentArea.className = 'modal-content-area';
+
+    const pageIndicator = document.createElement('p');
+    pageIndicator.style.textAlign = 'center';
+
+    const prevButton = document.createElement('button');
+    prevButton.textContent = 'Previous';
+    prevButton.addEventListener('click', () => {
+        if (currentPage > 0) {
+            currentPage--;
+            renderPage();
+        }
+    });
+
+    const nextButton = document.createElement('button');
+    nextButton.textContent = 'Next';
+    nextButton.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            renderPage();
+        }
+    });
+
+    const renderPage = () => {
+        const start = currentPage * cardsPerPage;
+        const end = start + cardsPerPage;
+        contentArea.textContent = list.slice(start, end).join('\n');
+        pageIndicator.textContent = `Page ${currentPage + 1} of ${totalPages}`;
+        prevButton.disabled = currentPage === 0;
+        nextButton.disabled = currentPage === totalPages - 1;
+    };
 
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
     closeButton.dataset.testid = 'close-button';
-    closeButton.style.marginTop = '10px';
     closeButton.addEventListener('click', () => {
         const modalBackdrop = document.querySelector('.list-modal-backdrop');
         if (modalBackdrop) {
@@ -53,10 +58,9 @@ export function showListModal(title, list) {
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy to Clipboard';
     copyButton.dataset.testid = 'copy-button';
-    copyButton.style.marginTop = '10px';
     copyButton.addEventListener('click', () => {
-        contentArea.select();
-        navigator.clipboard.writeText(contentArea.value);
+        const fullList = list.join('\n');
+        navigator.clipboard.writeText(fullList);
         copyButton.textContent = 'Copied!';
         setTimeout(() => {
             copyButton.textContent = 'Copy to Clipboard';
@@ -69,16 +73,23 @@ export function showListModal(title, list) {
         }
     });
 
+    const paginationContainer = document.createElement('div');
+    paginationContainer.className = 'pagination-container';
+    paginationContainer.appendChild(prevButton);
+    paginationContainer.appendChild(pageIndicator);
+    paginationContainer.appendChild(nextButton);
+
     const buttonContainer = document.createElement('div');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.justifyContent = 'flex-end';
-    buttonContainer.style.gap = '10px';
+    buttonContainer.className = 'modal-button-container';
     buttonContainer.appendChild(copyButton);
     buttonContainer.appendChild(closeButton);
 
     modal.appendChild(modalHeader);
     modal.appendChild(contentArea);
+    modal.appendChild(paginationContainer);
     modal.appendChild(buttonContainer);
     modalBackdrop.appendChild(modal);
     document.body.appendChild(modalBackdrop);
+    
+    renderPage();
 }
