@@ -3,7 +3,7 @@ import { CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
 import { showLoading, hideLoading } from './loadingIndicator.js';
 import { startNewBinder, startNewSection } from './layout.js';
-import { createCardElement } from './cards.js';
+import { createCardElement, updateCardState } from './cards.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
 import { showToast } from './ui/toast.js';
