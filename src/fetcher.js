@@ -77,6 +77,7 @@ function renderPage(results, tooltip, pageCards) {
         const el = createCardElement(c, cardIndex);
         el.dataset.cardIndex = cardIndex;
         appState.grid.appendChild(el);
+        updateCardState(el);
 
         appState.binder.totalCards++;
         if (!isCardMissing(c)) {
