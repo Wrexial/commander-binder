@@ -889,7 +889,11 @@ footer a:hover {
   margin-top: 10px;
 }
 
-.pagination-container button {
+.pagination-container p {
+  margin: 0 1rem;
+}
+
+.list-modal button {
   background-color: var(--button-bg);
   color: var(--button-text);
   border: none;
@@ -899,16 +903,21 @@ footer a:hover {
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.pagination-container button:hover {
+.list-modal button:hover {
   background-color: var(--button-bg-hover);
   transform: translateY(-2px);
 }
 
-.pagination-container button:disabled {
+.list-modal button:disabled {
   background-color: var(--card-bg-default);
   color: var(--muted);
   cursor: not-allowed;
   transform: none;
+}
+
+.list-modal button[disabled]:hover {
+  transform: none;
+  background-color: var(--card-bg-default);
 }
 
 .modal-button-container {
