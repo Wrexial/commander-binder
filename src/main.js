@@ -9,12 +9,24 @@ import { createSignInButton } from './components/SignInButton.js';
 import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
+import { initCardInteractions } from './cardInteractions.js';
+import { createGlobalExportButton } from './layout.js';
 
 export const mainState = {
   loggedInUserId: undefined,
   isLoggedIn: false,
   guestUserId: undefined,
 };
+
+function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
+  clerk.mountUserButton(userButtonDiv);
+  mainState.isLoggedIn = true;
+  mainState.loggedInUserId = clerk.user.id;
+  updateOwnedCounter();
+  const shareButton = createShareButton(mainState.loggedInUserId);
+  userActionsDiv.appendChild(shareButton);
+  shareButton.classList.remove('hidden');
+}
 
 export async function setupUI() {
   const clerk = getClerk();
@@ -39,19 +51,6 @@ export async function setupUI() {
   }
   document.querySelector('.main-header').insertAdjacentElement('afterend', userActionsDiv);
 }
-
-function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
-  clerk.mountUserButton(userButtonDiv);
-  mainState.isLoggedIn = true;
-  mainState.loggedInUserId = clerk.user.id;
-  updateOwnedCounter();
-  const shareButton = createShareButton(mainState.loggedInUserId);
-  userActionsDiv.appendChild(shareButton);
-  shareButton.classList.remove('hidden');
-}
-
-import { initCardInteractions } from './cardInteractions.js';
-import { createGlobalExportButton } from './layout.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
   await initClerk();

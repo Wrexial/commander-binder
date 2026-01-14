@@ -1,5 +1,4 @@
 // src/utils/__tests__/cardState.test.js
-/* globals global */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   loadCardStates,
@@ -28,7 +27,7 @@ vi.mock('../../clerk.js', () => ({
 }));
 
 
-global.fetch = vi.fn();
+globalThis.fetch = vi.fn();
 
 describe('cardState', () => {
   beforeEach(async () => {

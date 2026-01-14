@@ -1,10 +1,9 @@
 // src/utils/__tests__/colors.test.js
-/* globals global */
 import { describe, it, expect, vi } from 'vitest';
 import { getCardBorderStyle, getCardBackground, lightenColor } from '../colors';
 
 // Mock getComputedStyle
-global.getComputedStyle = vi.fn(() => ({
+globalThis.getComputedStyle = vi.fn(() => ({
   getPropertyValue: (prop) => {
     if (prop === '--colorless') return '#aaaaaa';
     if (prop === '--mtg-W') return '#f8f3e0';

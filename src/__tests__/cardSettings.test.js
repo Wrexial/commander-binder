@@ -1,5 +1,4 @@
 // src/__tests__/cardSettings.test.js
-/* globals global */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock localStorage
@@ -15,7 +14,7 @@ const localStorageMock = (() => {
         }),
     };
 })();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock });
 
 
 describe('cardSettings', () => {
