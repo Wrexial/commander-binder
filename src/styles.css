@@ -713,6 +713,15 @@ body {
   -webkit-user-select: none;
 }
 
+.binder-header {
+    position: sticky;
+    top: 60px;
+    background: var(--bg);
+    z-index: 9;
+    padding-block: 0.5rem;
+    margin-block: -0.5rem;
+}
+
 .binder-header::before,
 .page-header::before {
   content: "−";
