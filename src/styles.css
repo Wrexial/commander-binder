@@ -170,13 +170,19 @@ body {
 
 .export-missing-button {
   margin-left: auto; /* Pushes it to the right */
-  font-size: 0.8rem;
-  padding: 4px 8px;
+  margin-right: 1rem;
+  font-size: 0.9rem;
+  padding: 8px 12px;
   cursor: pointer;
   background-color: var(--button-bg);
   color: var(--button-text);
   border: none;
   border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.export-missing-button:hover {
+  background-color: var(--button-bg-hover);
 }
 
 
