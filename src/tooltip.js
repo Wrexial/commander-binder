@@ -14,7 +14,8 @@ export function showTooltip(e, card, tooltip) {
     return;
   }
 
-  hideTooltip(tooltip);
+  hideTooltip(tooltip, true);
+  pinnedTooltip = false;
   activeTooltip = tooltip;
 
   tooltipTimeout = setTimeout(() => {
@@ -109,8 +110,9 @@ function finishTooltip(images, tooltip, event) {
   container.style.alignItems = "center";
   container.style.justifyContent = "center";
 
-  const maxTooltipHeight = window.innerHeight * 0.5;
-  const maxTooltipWidth = window.innerWidth * 0.8;
+  const isMobile = window.innerWidth <= 768;
+  const maxTooltipHeight = window.innerHeight * (isMobile ? 0.8 : 0.6);
+  const maxTooltipWidth = window.innerWidth * (isMobile ? 0.95 : 0.8);
   const imgWidth = Math.min(maxTooltipWidth / images.length, 400);
 
   images.forEach(el => {
@@ -208,8 +210,8 @@ window.addEventListener(
 
 window.addEventListener(
   "touchstart",
-  () => {
-    if (activeTooltip) {
+  (e) => {
+    if (activeTooltip && !activeTooltip.contains(e.target)) {
       hideTooltip(activeTooltip);
     }
   },

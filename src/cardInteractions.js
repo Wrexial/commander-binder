@@ -9,6 +9,7 @@ import { updateBinderCounts } from './layout.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 function getState(el) {
     if (!elementState.has(el)) {
@@ -20,7 +21,7 @@ function getState(el) {
 // --- Delegated Event Handlers ---
 
 function handleMouseEnter(event, tooltip) {
-    if (!cardSettings.showTooltip) return;
+    if (!cardSettings.showTooltip || isTouchDevice) return;
     const cardElement = event.target.closest('.card');
     if (cardElement) {
         cardElement.setAttribute('aria-describedby', 'tooltip');
@@ -29,18 +30,59 @@ function handleMouseEnter(event, tooltip) {
 }
 
 function handleMouseLeave(event, tooltip) {
-    if (!cardSettings.showTooltip) return;
+    if (!cardSettings.showTooltip || isTouchDevice) return;
     const cardElement = event.target.closest('.card');
     // Check relatedTarget to prevent hiding when moving between child elements
-    if (cardElement && !cardElement.contains(event.relatedTarget)) {
+    if (cardElement && !cardElement.contains(event.relatedTarget) && !tooltip.contains(event.relatedTarget)) {
         hideTooltip(tooltip);
         cardElement.removeAttribute('aria-describedby');
     }
 }
 
 function handleMouseMove(event, tooltip) {
-    if (cardSettings.showTooltip && tooltip.style.display !== 'none') {
+    if (!isTouchDevice && cardSettings.showTooltip && tooltip.style.display !== 'none') {
         positionTooltip(event, tooltip);
+    }
+}
+
+let touchTimer;
+let touchStartX, touchStartY;
+function handleTouchStart(event, tooltip) {
+    const cardElement = event.target.closest('.card');
+    if (!cardElement) return;
+
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+
+    const state = getState(cardElement);
+    state.isLongPress = false;
+
+    touchTimer = setTimeout(() => {
+        state.isLongPress = true;
+        showTooltip(event.touches[0], cardElement.cardData, tooltip);
+        if (navigator.vibrate) navigator.vibrate(10);
+    }, 500);
+}
+
+function handleTouchMove(event) {
+    const touch = event.touches[0];
+    const dx = Math.abs(touch.clientX - touchStartX);
+    const dy = Math.abs(touch.clientY - touchStartY);
+    if (dx > 10 || dy > 10) {
+        clearTimeout(touchTimer);
+    }
+}
+
+function handleTouchEnd(event) {
+    clearTimeout(touchTimer);
+    const cardElement = event.target.closest('.card');
+    if (!cardElement) return;
+
+    const state = getState(cardElement);
+    if (state.isLongPress) {
+        state.suppressUntil = Date.now() + 100;
+        state.isLongPress = false;
+        // preventDefault might not be enough to stop the simulated click
     }
 }
 
@@ -95,6 +137,7 @@ export function initCardInteractions(container, tooltip) {
     container.addEventListener("mousemove", e => handleMouseMove(e, tooltip));
     container.addEventListener("click", handleContainerClick);
 
-    // Note: A full implementation would also delegate touchstart, touchmove, and touchend 
-    // to replicate the long-press feature in a scalable way.
+    container.addEventListener("touchstart", e => handleTouchStart(e, tooltip), { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: true });
+    container.addEventListener("touchend", handleTouchEnd);
 }

@@ -212,6 +212,12 @@ body {
   }
 }
 
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .card {
   position: relative;
   font-family: serif;
@@ -445,6 +451,7 @@ body {
 .tooltip.show {
   transform: scale(1);
   opacity: 1;
+  pointer-events: auto;
 }
 
 .tooltip img {
