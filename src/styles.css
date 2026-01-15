@@ -670,7 +670,7 @@ body {
 
 @media (max-width: 768px) {
   #card-settings {
-    margin: 0 -0.25rem 0.5rem;
+    margin: 0 -0.25rem 0; /* Remove bottom margin to close gap with binder header */
     padding: 0.5rem;
     gap: 0.5rem;
     display: grid;
@@ -679,6 +679,7 @@ body {
       "counter export";
     grid-template-columns: 1fr auto;
     align-items: center;
+    border-bottom: 1px solid var(--card-border-default);
   }
   #search-wrapper {
     grid-area: search;
@@ -907,24 +908,33 @@ body {
 
 @media (max-width: 768px) {
   .binder-header {
-    top: 96px; /* Adjusted for taller 2-row layout */
-    padding-block: 0.4rem;
+    top: 98px; /* Safe estimate for 2-row sticky header height */
+    padding-block: 0.5rem;
     font-size: 0.95rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex; /* Flex layout to handle title + button */
+    /* Allow wrapping */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping */
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
   }
   
-  /* Make the text part truncate properly within the flex item */
+  /* Make the text part wrap */
   .binder-header-text { 
-     overflow: hidden;
-     text-overflow: ellipsis;
-     white-space: nowrap;
-     flex: 1;
+     overflow: visible;
+     text-overflow: clip;
+     white-space: normal;
+     flex: 1 1 auto; /* Take available space */
      margin-right: 4px;
+     line-height: 1.2;
+  }
+
+  .binder-header .export-missing-button {
+      flex-shrink: 0;
+      margin-left: auto;
   }
 }
 
