@@ -296,7 +296,7 @@ body {
   .card {
     font-size: 0.95rem;
     padding: 6px 8px;
-    min-height: 2.4em;
+    min-height: 4.5em; /* Increased to fit name between corner elements */
   }
 }
 
@@ -358,7 +358,7 @@ body {
 
 @media (min-width: 768px) {
   .card-name {
-    padding: 0 10px;
+    padding: 12px 10px; /* Vertical padding to clear top/bottom icons */
     font-size: 0.95rem;
   }
 }
@@ -820,27 +820,16 @@ body {
 .owned-badge {
   display: none;
   position: absolute;
-  bottom: 4px;
-  right: 4px; /* move closer to the corner */
+  top: 2px;
+  right: 2px;
   background: rgba(60,179,113,0.95);
   color: #fff;
-  padding: 0 5px;
+  padding: 2px 5px;
   font-size: 0.55rem;
-  line-height: 1.4;
-  border-radius: 5px;
+  line-height: 1.2;
+  border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-  z-index: 4; /* above the toggle */
-}
-
-@media (max-width: 768px) {
-  .owned-badge {
-    bottom: auto;
-    top: 2px;
-    right: 2px;
-    padding: 2px 4px;
-    font-size: 0.5rem;
-    border-radius: 3px;
-  }
+  z-index: 4;
 }
 
 .card.owned .owned-badge {
