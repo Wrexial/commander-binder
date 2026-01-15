@@ -20,10 +20,8 @@ export function updateOwnedCounter() {
   const totalOwnedCount = ownedCards.size;
 
   if (searchTerm) {
-    ownedCounter.textContent = `Owned: ${ownedVisibleCount} of ${
-      visibleCards.length
-    } shown (${totalOwnedCount} total)`;
+    ownedCounter.textContent = `Owned: ${ownedVisibleCount}/${visibleCards.length} shown (${totalOwnedCount} total)`;
   } else {
-    ownedCounter.textContent = `Owned: ${totalOwnedCount} / ${appState.seenNames.size}`;
+    ownedCounter.textContent = `Owned: ${totalOwnedCount}/${appState.seenNames.size}`;
   }
 }
