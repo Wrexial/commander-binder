@@ -166,7 +166,7 @@ export function updateBinderCounts(cardElement) {
 
     const ownedCountSpan = binder.querySelector('.owned-count');
     if (ownedCountSpan) {
-        ownedCountSpan.textContent = `Owned: ${ownedCards} / ${totalCards}`;
+        ownedCountSpan.textContent = `Owned: ${ownedCards}/${totalCards}`;
     }
 }
 

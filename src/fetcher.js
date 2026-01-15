@@ -117,6 +117,20 @@ function updateBinderHeader() {
     if (header && appState.binder.startDate && appState.binder.endDate) {
         const startYear = new Date(appState.binder.startDate).getFullYear();
         const endYear = new Date(appState.binder.endDate).getFullYear();
-        header.childNodes[0].nodeValue = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
+        
+        // Wrap text in a span for mobile layout control
+        let textSpan = header.querySelector('.binder-header-text');
+        if (!textSpan) {
+            textSpan = document.createElement('span');
+            textSpan.className = 'binder-header-text';
+            // Move existing text node into span
+            if(header.firstChild && header.firstChild.nodeType === 3) {
+                textSpan.textContent = header.firstChild.nodeValue;
+                header.replaceChild(textSpan, header.firstChild);
+            } else {
+                header.prepend(textSpan);
+            }
+        }
+        textSpan.textContent = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
     }
 }
