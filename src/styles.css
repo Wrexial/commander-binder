@@ -286,8 +286,9 @@ body {
 
 @media (max-width: 768px) {
   .card {
-    padding: 2px 4px;
+    padding: 2px;
     font-size: 0.75rem;
+    min-height: 4em; /* Increased to allow room for text between corner elements */
   }
 }
 
@@ -323,6 +324,15 @@ body {
   display: none; /* Hidden by default */
 }
 
+@media (max-width: 768px) {
+  .card-slot-number {
+    top: 2px;
+    left: 2px;
+    font-size: 0.55rem;
+    opacity: 0.8;
+  }
+}
+
 .card-name {
   flex: 1 1 auto;
   display: flex;
@@ -336,6 +346,14 @@ body {
   width: 100%;
   position: relative;
   font-size: 0.7rem;
+}
+
+@media (max-width: 768px) {
+  .card-name {
+    padding: 10px 2px; /* Extra vertical padding to avoid corners */
+    font-size: 0.6rem;
+    line-height: 1.1;
+  }
 }
 
 @media (min-width: 768px) {
@@ -377,6 +395,12 @@ body {
   /* don’t interfere with hover */
 }
 
+@media (max-width: 768px) {
+  .edhrec-rank {
+    display: none;
+  }
+}
+
 .card:hover .edhrec-rank {
   opacity: 1;
 }
@@ -401,6 +425,21 @@ body {
   z-index: 2;
   pointer-events: none; /* avoid accidental taps when hidden */
   transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+@media (max-width: 768px) {
+  .edhrec-link {
+    width: 14px;
+    height: 14px;
+    bottom: 2px;
+    left: 2px;
+    opacity: 0.8; /* Make it visible but subtle on mobile */
+    pointer-events: auto; /* allow clicking on mobile if needed */
+  }
+  .edhrec-link img {
+    width: 10px;
+    height: 10px;
+  }
 }
 
 .edhrec-link img {
@@ -625,10 +664,18 @@ body {
 @media (max-width: 768px) {
   #card-settings {
     margin: 0 -0.5rem 1rem;
-    padding: 0.75rem 0.5rem;
+    padding: 0.5rem;
     gap: 0.5rem;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row; 
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  #search-wrapper {
+    flex: 1 1 200px;
+  }
+  #owned-counter {
+    font-size: 0.8rem;
+    margin: 0;
   }
 }
 
@@ -723,6 +770,17 @@ body {
   z-index: 3; /* keep toggle above card content */
 } 
 
+@media (max-width: 768px) {
+  .card-toggle {
+    bottom: 2px;
+    right: 2px;
+    padding: 1px 3px;
+    font-size: 0.6rem;
+    min-width: 12px;
+    min-height: 12px;
+  }
+}
+
 .card.owned {
   border: 2px solid rgba(60,179,113,0.9); /* green outline for owned cards */
 }
@@ -772,6 +830,17 @@ body {
   border-radius: 5px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   z-index: 4; /* above the toggle */
+}
+
+@media (max-width: 768px) {
+  .owned-badge {
+    bottom: auto;
+    top: 2px;
+    right: 2px;
+    padding: 2px 4px;
+    font-size: 0.5rem;
+    border-radius: 3px;
+  }
 }
 
 .card.owned .owned-badge {
@@ -997,4 +1066,21 @@ footer a:hover {
   background-color: var(--card-bg-default);
   border-color: var(--card-border-default);
   box-shadow: none;
+}
+
+#toggles-container {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+@media (max-width: 768px) {
+  #toggles-container {
+    gap: 1rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
 }

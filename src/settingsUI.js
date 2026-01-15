@@ -3,7 +3,7 @@ import { updateCardStyles } from './cards.js';
 
 export function initCardSettings() {
   document
-    .querySelectorAll("#card-settings [data-setting]")
+    .querySelectorAll("[data-setting]")
     .forEach(el => {
       const key = el.dataset.setting;
       if (el.tagName === 'INPUT' && el.type === 'checkbox') {
