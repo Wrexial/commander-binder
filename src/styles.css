@@ -884,16 +884,7 @@ body {
 
 
 .binder-header,
-.page-header {
-  cursor: pointer;
-  position: relative;
-  padding-left: 20px;
-  user-select: none;
-  -webkit-user-select: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+
 
 .binder-header {
     position: sticky;

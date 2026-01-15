@@ -23,12 +23,25 @@ export function startNewBinder(results) {
 
   const header = document.createElement("h2");
   header.className = "binder-header";
-  header.textContent = `Binder ${binderNumber}`;
   header.style.color = color;
 
+  const content = document.createElement('div');
+  content.className = 'binder-header-content';
+
+  const title = document.createElement("span");
+  title.className = "binder-title";
+  title.textContent = `Binder ${binderNumber}`;
+  content.appendChild(title);
+
+  const dates = document.createElement('span');
+  dates.className = 'binder-dates';
+  content.appendChild(dates);
+
   const ownedCount = document.createElement("span");
-  ownedCount.className = "owned-count";
-  header.appendChild(ownedCount);
+  ownedCount.className = "binder-owned";
+  content.appendChild(ownedCount);
+
+  header.appendChild(content);
 
   const exportButton = document.createElement('button');
   exportButton.textContent = 'Export Missing';
