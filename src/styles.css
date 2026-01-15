@@ -669,7 +669,7 @@ body {
 
 @media (max-width: 768px) {
   #card-settings {
-    margin: 0 -0.25rem 0; /* Remove bottom margin to close gap with binder header */
+    margin: 0; /* Remove bottom margin to close gap with binder header */
     padding: 0.5rem;
     gap: 0.5rem;
     display: grid;
