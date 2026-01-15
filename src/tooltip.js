@@ -111,9 +111,9 @@ function finishTooltip(images, tooltip, event) {
   container.style.justifyContent = "center";
 
   const isMobile = window.innerWidth <= 768;
-  const maxTooltipHeight = window.innerHeight * (isMobile ? 0.8 : 0.6);
-  const maxTooltipWidth = window.innerWidth * (isMobile ? 0.95 : 0.8);
-  const imgWidth = Math.min(maxTooltipWidth / images.length, 400);
+  const maxTooltipHeight = window.innerHeight * (isMobile ? 0.7 : 0.6);
+  const maxTooltipWidth = window.innerWidth * (isMobile ? 0.9 : 0.8);
+  const imgWidth = Math.min(maxTooltipWidth / images.length, 300);
 
   images.forEach(el => {
     if (el.tagName === "IMG") {
@@ -179,7 +179,7 @@ export function positionTooltip(e, tooltip) {
   let y = e.clientY + padding;
 
   // Flip horizontally if overflowing
-  if (x + rect.width > vw) {
+  if (x + rect.width > vw - padding) {
     x = e.clientX - rect.width - padding;
   }
 
@@ -187,12 +187,21 @@ export function positionTooltip(e, tooltip) {
   x = Math.max(padding, x);
 
   // Flip vertically if overflowing
-  if (y + rect.height > vh) {
+  if (y + rect.height > vh - padding) {
     y = e.clientY - rect.height - padding;
   }
 
   // Clamp top
   y = Math.max(padding, y);
+
+  // Ensure it doesn't go off the right edge even after flip/clamp
+  if (x + rect.width > vw - padding) {
+    x = vw - rect.width - padding;
+  }
+  // Ensure it doesn't go off the bottom edge
+  if (y + rect.height > vh - padding) {
+    y = vh - rect.height - padding;
+  }
 
   tooltip.style.left = `${x}px`;
   tooltip.style.top = `${y}px`;

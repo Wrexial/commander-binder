@@ -62,6 +62,9 @@ body {
   display: flex;
   align-items: center;
   margin-bottom: 2rem;
+  position: relative;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .user-actions {
@@ -69,9 +72,21 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 10px;
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .main-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .user-actions {
+    margin-left: 0;
+    align-items: center;
+    order: -1;
+    width: 100%;
+  }
 }
 
 #share-button,
@@ -200,21 +215,9 @@ body {
   gap: 0.75rem 1rem;
 }
 
-@media (max-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
 }
 
@@ -222,17 +225,17 @@ body {
   position: relative;
   font-family: serif;
   font-weight: 400;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   /* center via the inner name element (better control for wrapping/spacing) */
   display: flex;
   align-items: center;
   justify-content: center;
   /* Default padding; extra space is only added when `has-toggle` is present */
-  padding: 6px 8px;
+  padding: 4px 6px;
   border: 1px solid var(--card-border, var(--card-border-default));
   border-radius: 6px;
-  min-height: 2.4em;
-  line-height: 1.2em;
+  min-height: 2.2em;
+  line-height: 1.1em;
   word-wrap: break-word;
   background: var(--card-bg, var(--card-bg-default));
   transition: transform 0.12s ease, box-shadow 0.18s ease, background 0.12s ease, padding 0.12s ease;
@@ -245,6 +248,14 @@ body {
   user-select: none;
   -webkit-touch-callout: none;
   touch-action: manipulation;
+}
+
+@media (min-width: 768px) {
+  .card {
+    font-size: 0.95rem;
+    padding: 6px 8px;
+    min-height: 2.4em;
+  }
 }
 
 .card::before {
@@ -438,9 +449,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  overflow: hidden;
+  overflow: visible;
   object-fit: contain;
-  max-height: 50vh;
+  max-height: 90vh;
+  max-width: 95vw;
 
   /* Animation */
   transform: scale(0.95);
@@ -458,7 +470,7 @@ body {
   border-radius: 10px;
   object-fit: contain;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  max-height: 100%;
+  max-height: 80vh;
   width: auto;
   display: block;
   transition: transform 0.15s ease-out;
