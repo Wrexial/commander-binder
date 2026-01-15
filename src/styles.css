@@ -663,7 +663,7 @@ body {
   background-color: rgba(26, 32, 44, 0.8);
   backdrop-filter: blur(10px);
   z-index: 10;
-  margin: 0 -1rem 1rem;
+  margin-bottom: 1rem;
   border-bottom: 1px solid var(--card-border-default);
 }
 
