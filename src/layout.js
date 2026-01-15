@@ -164,8 +164,15 @@ export function updateBinderCounts(cardElement) {
     const ownedCards = binder.querySelectorAll('.card.owned').length;
     const totalCards = binder.querySelectorAll('.card').length;
 
+    // Mobile layout has a specific owned-count element
+    const ownedCountEl = binder.querySelector('.binder-owned');
+    if (ownedCountEl) {
+        ownedCountEl.textContent = `Owned: ${ownedCards}/${totalCards}`;
+    }
+
+    // Legacy/Desktop support if we want it there too, or if other parts use .owned-count
     const ownedCountSpan = binder.querySelector('.owned-count');
-    if (ownedCountSpan) {
+    if (ownedCountSpan && ownedCountSpan !== ownedCountEl) {
         ownedCountSpan.textContent = `Owned: ${ownedCards}/${totalCards}`;
     }
 }

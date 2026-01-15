@@ -118,19 +118,43 @@ function updateBinderHeader() {
         const startYear = new Date(appState.binder.startDate).getFullYear();
         const endYear = new Date(appState.binder.endDate).getFullYear();
         
-        // Wrap text in a span for mobile layout control
-        let textSpan = header.querySelector('.binder-header-text');
-        if (!textSpan) {
-            textSpan = document.createElement('span');
-            textSpan.className = 'binder-header-text';
-            // Move existing text node into span
-            if(header.firstChild && header.firstChild.nodeType === 3) {
-                textSpan.textContent = header.firstChild.nodeValue;
-                header.replaceChild(textSpan, header.firstChild);
-            } else {
-                header.prepend(textSpan);
-            }
+        let container = header.querySelector('.binder-header-content');
+        if (!container) {
+            // Clear existing content if it's not structured yet
+            const exportBtn = header.querySelector('.export-missing-button');
+            header.innerHTML = ''; // Start fresh
+
+            container = document.createElement('div');
+            container.className = 'binder-header-content';
+            header.appendChild(container);
+
+            if (exportBtn) header.appendChild(exportBtn); // Re-append button
         }
-        textSpan.textContent = `Binder ${binderNumber} (${startYear} - ${endYear}) `;
+
+        // We'll update the innerHTML of container to match the requested layout
+        // Mobile Layout:
+        // Top Left: Binder X
+        // Bottom Left: Dates
+        // Top Right: Owned Count
+        // Bottom Right: Export Button (handled by grid layout in CSS)
+
+        // On desktop, we might want to keep it simple, but let's use spans so CSS can handle it.
+        
+        // Check if we already have the structure
+        const titleSpan = container.querySelector('.binder-title');
+        
+        if (!titleSpan) {
+            container.innerHTML = `
+                <div class="binder-title">Binder ${binderNumber}</div>
+                <div class="binder-dates">(${startYear} - ${endYear})</div>
+                <div class="binder-owned owned-count">Owned: 0/0</div>
+            `;
+        } else {
+            // Update values
+            container.querySelector('.binder-title').textContent = `Binder ${binderNumber}`;
+            container.querySelector('.binder-dates').textContent = `(${startYear} - ${endYear})`;
+            // owned-count is updated by layout.js, but we might need to initialize it? 
+            // layout.js updates it based on DOM query.
+        }
     }
 }

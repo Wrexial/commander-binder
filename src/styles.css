@@ -898,43 +898,76 @@ body {
 .binder-header {
     position: sticky;
     top: 60px;
-    background-color: rgba(26, 32, 44, 0.8);
+    background-color: rgba(26, 32, 44, 0.95);
     backdrop-filter: blur(10px);
     z-index: 9;
     padding-block: 0.5rem;
-    margin-block: -0.5rem;
+    /* margin-block: -0.5rem;  <-- Removed negative margin to fix gap/overlap issues */
     border-bottom: 1px solid var(--card-border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.binder-header-content {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.binder-owned {
+  display: none; /* Hidden on desktop by default unless we want it? User only asked for mobile layout changes */
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-left: 1rem;
 }
 
 @media (max-width: 768px) {
   .binder-header {
-    top: 98px; /* Safe estimate for 2-row sticky header height */
-    padding-block: 0.5rem;
-    font-size: 0.95rem;
-    /* Allow wrapping */
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    display: flex;
-    flex-wrap: wrap; /* Allow wrapping */
+    top: 98px; 
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem; /* Left padding for the '-' icon */
+    font-size: 0.9rem;
+    display: grid;
+    grid-template-areas: 
+      "title owned"
+      "dates export";
+    grid-template-columns: 1fr auto;
+    gap: 2px 10px;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    white-space: normal; /* Allow content to fit grid */
   }
-  
-  /* Make the text part wrap */
-  .binder-header-text { 
-     overflow: visible;
-     text-overflow: clip;
-     white-space: normal;
-     flex: 1 1 auto; /* Take available space */
-     margin-right: 4px;
-     line-height: 1.2;
+
+  .binder-header-content {
+    display: contents; /* Let children participate in the parent grid */
+  }
+
+  .binder-title {
+    grid-area: title;
+    font-weight: bold;
+    justify-self: start;
+  }
+
+  .binder-dates {
+    grid-area: dates;
+    font-size: 0.75rem;
+    color: var(--muted);
+    justify-self: start;
+  }
+
+  .binder-owned {
+    display: block;
+    grid-area: owned;
+    justify-self: end;
+    margin: 0;
+    font-size: 0.75rem;
   }
 
   .binder-header .export-missing-button {
-      flex-shrink: 0;
-      margin-left: auto;
+      grid-area: export;
+      margin: 0;
+      justify-self: end;
+      font-size: 0.75rem;
+      padding: 4px 8px;
   }
 }
 
@@ -943,9 +976,19 @@ body {
   content: "−";
   position: absolute;
   left: 0;
+  top: 50%;
+  transform: translateY(-50%); /* Vertically center the icon */
   width: 20px;
   text-align: center;
   font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  .binder-header::before {
+    top: 1rem; /* Align with the top row (Title) */
+    transform: none;
+    left: 4px;
+  }
 }
 
 .binder.collapsed > .section,
