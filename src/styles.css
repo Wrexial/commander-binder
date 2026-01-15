@@ -991,8 +991,22 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* On mobile, we use the ::before pseudo-element again, but position it relative to the grid item */
   .binder-header::before {
-    display: none; /* Hide the pseudo-element '-' since we put it in the title */
+    display: block; 
+    position: static; /* Let it flow in the title area */
+    transform: none;
+    width: auto;
+    margin-right: 4px;
+    display: inline-block;
+  }
+  
+  .binder-title {
+    grid-area: title;
+    font-weight: bold;
+    justify-self: start;
+    display: flex; /* Flex to align icon and text */
+    align-items: center;
   }
 }
 
@@ -1105,4 +1119,40 @@ body {
     font-size: 0.8rem;
     flex-wrap: wrap;
   }
+}
+
+footer {
+  margin-top: auto;
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+  border-top: 1px solid var(--card-border-default);
+}
+
+footer a {
+  color: var(--link-text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  text-decoration: underline;
+  color: var(--link-text-hover);
+}
+
+footer a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+  border-radius: 2px;
+}
+
+.binder.collapsed > .section,
+.section.collapsed > .grid {
+  display: none;
+}
+
+.binder.collapsed > .binder-header::before,
+.section.collapsed > .page-header::before {
+  content: "+";
 }

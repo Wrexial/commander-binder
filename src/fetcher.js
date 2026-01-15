@@ -114,6 +114,16 @@ function updateBinderHeader() {
     const header = appState.binder.querySelector(".binder-header");
     const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
 
+    // Ensure click listener for collapse is attached to the whole header
+    if (header && !header.hasAttribute('data-has-click-listener')) {
+        header.setAttribute('data-has-click-listener', 'true');
+        header.addEventListener('click', (e) => {
+            // Prevent collapse when clicking export button
+            if (e.target.closest('.export-missing-button')) return;
+            appState.binder.classList.toggle('collapsed');
+        });
+    }
+
     if (header && appState.binder.startDate && appState.binder.endDate) {
         const startYear = new Date(appState.binder.startDate).getFullYear();
         const endYear = new Date(appState.binder.endDate).getFullYear();
@@ -145,16 +155,55 @@ function updateBinderHeader() {
         
         if (!titleSpan) {
             container.innerHTML = `
-                <div class="binder-title">-Binder ${binderNumber}</div>
+                <div class="binder-title">Binder ${binderNumber}</div>
                 <div class="binder-dates">(${startYear} - ${endYear})</div>
                 <div class="binder-owned owned-count">Owned: 0/0</div>
             `;
         } else {
             // Update values
-            container.querySelector('.binder-title').textContent = `-Binder ${binderNumber}`;
+            container.querySelector('.binder-title').textContent = `Binder ${binderNumber}`;
             container.querySelector('.binder-dates').textContent = `(${startYear} - ${endYear})`;
             // owned-count is updated by layout.js, but we might need to initialize it? 
             // layout.js updates it based on DOM query.
         }
     }
+}
+
+function startNewBinder(results) {
+  const newBinder = document.createElement("div");
+  newBinder.className = "binder";
+  
+  const header = document.createElement("h2");
+  header.className = "binder-header";
+  header.textContent = "Binder "; // Initial text
+  
+  // Create export button immediately so it's always there
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'export-missing-button';
+  exportBtn.textContent = 'Export Binder';
+  exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const binderCards = newBinder.querySelectorAll('.card');
+      const missingNames = Array.from(binderCards)
+        .filter(card => !card.classList.contains('owned'))
+        .map(card => card.cardData.name);
+      
+      if(missingNames.length) {
+        import('./ui/modal.js').then(m => m.showListModal('Missing from Binder', missingNames));
+      } else {
+        alert('No missing cards in this binder.');
+      }
+  });
+  header.appendChild(exportBtn);
+
+  // Add click listener for collapsing
+  header.addEventListener('click', (e) => {
+      if (e.target.closest('.export-missing-button')) return;
+      newBinder.classList.toggle('collapsed');
+  });
+
+  newBinder.appendChild(header);
+  results.appendChild(newBinder);
+
+  appState.binder = newBinder;
 }
