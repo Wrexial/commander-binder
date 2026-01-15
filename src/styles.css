@@ -998,6 +998,7 @@ body {
     justify-self: start;
     display: flex; /* Flex to align icon and text */
     align-items: center;
+    gap: 0.5rem;
   }
 }
 
@@ -1143,7 +1144,7 @@ footer a:focus-visible {
   display: none;
 }
 
-.binder.collapsed > .binder-header::before,
+.binder.collapsed .binder-title::before,
 .section.collapsed > .page-header::before {
   content: "+";
 }

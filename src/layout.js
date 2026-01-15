@@ -170,25 +170,18 @@ export function startNewSection(pageSets = new Map()) {
   appState.binder.appendChild(appState.section);
 }
 
-export function updateBinderCounts(cardElement) {
-    const binder = cardElement.closest('.binder');
+export function updateBinderCounts(binder) {
     if (binder) {
         const ownedCards = binder.querySelectorAll('.card.owned').length;
         const totalCards = binder.querySelectorAll('.card').length;
         const binderOwnedEl = binder.querySelector('.binder-owned');
         if (binderOwnedEl) binderOwnedEl.textContent = `Owned: ${ownedCards}/${totalCards}`;
     }
-    
-    // Also update Section/Page counts
-    const section = cardElement.closest('.section');
-    if (section) {
-        const pageOwnedEl = section.querySelector('.page-owned');
-        if (pageOwnedEl) {
-             const owned = section.querySelectorAll('.card.owned').length;
-             const total = section.querySelectorAll('.card').length;
-             pageOwnedEl.textContent = `Owned: ${owned}/${total}`;
-        }
-    }
+}
+
+export function updateAllBinderCounts() {
+    const binders = document.querySelectorAll('.binder');
+    binders.forEach(updateBinderCounts);
 }
 
 export function createGlobalExportButton() {

@@ -10,7 +10,7 @@ import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { initCardInteractions } from './cardInteractions.js';
-import { createGlobalExportButton } from './layout.js';
+import { createGlobalExportButton, updateAllBinderCounts } from './layout.js';
 
 export const mainState = {
   loggedInUserId: undefined,
@@ -65,4 +65,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   initSearch();
   initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);
+  updateAllBinderCounts();
 });

@@ -113,7 +113,7 @@ async function handleContainerClick(event) {
     }
 
     updateOwnedCounter(); // Update global counter
-    updateBinderCounts(cardElement);
+    updateBinderCounts(cardElement.closest('.binder'));
 
     // Undo logic
     showUndo(isOwned ? 'Marked as owned' : 'Marked as missing', async () => {
