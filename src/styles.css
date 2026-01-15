@@ -898,6 +898,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding-left: 24px;
+    cursor: pointer;
 }
 
 .binder-header-content {
@@ -967,13 +969,16 @@ body {
   font-weight: bold;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+  position: relative;
+  padding-left: 24px;
+  cursor: pointer;
 }
 
 .binder-header::before,
 .page-header::before {
   content: "−";
   position: absolute;
-  left: 0;
+  left: 4px;
   top: 50%;
   transform: translateY(-50%); /* Vertically center the icon */
   width: 20px;
@@ -999,6 +1004,19 @@ body {
     display: flex; /* Flex to align icon and text */
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: baseline;
+    padding-left: 0;
+  }
+
+  .page-header::before {
+    position: static;
+    transform: none;
+    width: auto;
+    margin-right: 8px;
   }
 }
 
@@ -1144,7 +1162,7 @@ footer a:focus-visible {
   display: none;
 }
 
-.binder.collapsed .binder-title::before,
+.binder.collapsed > .binder-header::before,
 .section.collapsed > .page-header::before {
   content: "+";
 }

@@ -133,6 +133,25 @@ export function startNewSection(pageSets = new Map()) {
     section.classList.toggle("collapsed");
   });
 
+  let longPressTimer;
+  header.addEventListener('touchstart', () => {
+    longPressTimer = setTimeout(() => {
+        section.classList.toggle("collapsed");
+    }, 500);
+  }, { passive: true });
+
+  header.addEventListener('touchend', () => {
+      clearTimeout(longPressTimer);
+  });
+
+  header.addEventListener('touchmove', () => {
+      clearTimeout(longPressTimer);
+  });
+
+  header.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+  });
+
   const setTooltip = document.getElementById("set-tooltip");
 
   const setCodes = Array.from(pageSets.entries()).map(([setCode, setObj]) => {

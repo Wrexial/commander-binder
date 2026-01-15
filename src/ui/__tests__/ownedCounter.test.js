@@ -61,7 +61,7 @@ describe('updateOwnedCounter', () => {
     
     // ownedCards has 'card1', 'card3', 'card5' = 3
     // appState.seenNames has 4
-    expect(ownedCounterEl.textContent).toBe('Owned: 3 / 4');
+    expect(ownedCounterEl.textContent).toBe('Owned: 3/4');
   });
 
   it('should display search-specific counts when search input has value', () => {
@@ -71,7 +71,7 @@ describe('updateOwnedCounter', () => {
     // Visible cards: card1, card2, card5 (length 3)
     // Owned and visible: card1, card5 (length 2)
     // Total owned: 3
-    expect(ownedCounterEl.textContent).toBe('Owned: 2 of 3 shown (3 total)');
+    expect(ownedCounterEl.textContent).toBe('Owned: 2/3 shown (3 total)');
   });
 
   it('should not throw an error if the counter or search input element is missing', () => {
@@ -84,6 +84,6 @@ describe('updateOwnedCounter', () => {
     searchInputEl.value = 'search with no results';
     updateOwnedCounter();
 
-    expect(ownedCounterEl.textContent).toBe('Owned: 0 of 0 shown (3 total)');
+    expect(ownedCounterEl.textContent).toBe('Owned: 0/0 shown (3 total)');
   });
 });
