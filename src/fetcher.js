@@ -145,13 +145,13 @@ function updateBinderHeader() {
         
         if (!titleSpan) {
             container.innerHTML = `
-                <div class="binder-title">Binder ${binderNumber}</div>
+                <div class="binder-title">-Binder ${binderNumber}</div>
                 <div class="binder-dates">(${startYear} - ${endYear})</div>
                 <div class="binder-owned owned-count">Owned: 0/0</div>
             `;
         } else {
             // Update values
-            container.querySelector('.binder-title').textContent = `Binder ${binderNumber}`;
+            container.querySelector('.binder-title').textContent = `-Binder ${binderNumber}`;
             container.querySelector('.binder-dates').textContent = `(${startYear} - ${endYear})`;
             // owned-count is updated by layout.js, but we might need to initialize it? 
             // layout.js updates it based on DOM query.

@@ -916,7 +916,6 @@ body {
 }
 
 .binder-owned {
-  display: none; /* Hidden on desktop by default unless we want it? User only asked for mobile layout changes */
   font-size: 0.9rem;
   color: var(--muted);
   margin-left: 1rem;
@@ -924,8 +923,8 @@ body {
 
 @media (max-width: 768px) {
   .binder-header {
-    top: 98px; 
-    padding: 0.5rem 0.5rem 0.5rem 1.5rem; /* Left padding for the '-' icon */
+    top: 92px; /* Decreased from 98px to close gap */
+    padding: 0.5rem; /* Removed left padding */
     font-size: 0.9rem;
     display: grid;
     grid-template-areas: 
@@ -934,7 +933,7 @@ body {
     grid-template-columns: 1fr auto;
     gap: 2px 10px;
     align-items: center;
-    white-space: normal; /* Allow content to fit grid */
+    white-space: normal;
   }
 
   .binder-header-content {
@@ -971,6 +970,14 @@ body {
   }
 }
 
+/* Page Header Styles */
+.page-header {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
 .binder-header::before,
 .page-header::before {
   content: "−";
@@ -985,89 +992,11 @@ body {
 
 @media (max-width: 768px) {
   .binder-header::before {
-    top: 1rem; /* Align with the top row (Title) */
-    transform: none;
-    left: 4px;
+    display: none; /* Hide the pseudo-element '-' since we put it in the title */
   }
 }
 
-.binder.collapsed > .section,
-.section.collapsed > .grid {
-  display: none;
-}
-
-.binder.collapsed > .binder-header::before,
-.section.collapsed > .page-header::before {
-  content: "+";
-}
-
-.owned-count {
-  float: right;
-  font-size: 0.9rem;
-  font-weight: normal;
-  color: var(--muted);
-  margin-left: 1rem;
-}
-
-.page-header {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  font-weight: bold;
-}
-
-#search-tooltip {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: #2d3748;
-    border: 1px solid #4a5568;
-    border-radius: 5px;
-    padding: 10px;
-    z-index: 1001;
-    color: var(--text);
-}
-
-#search-tooltip h4 {
-    margin-top: 0;
-}
-
-#search-tooltip ul {
-    margin: 0;
-    padding-left: 20px;
-}
-
-#search-tooltip li {
-    margin-bottom: 5px;
-}
-
-footer {
-  text-align: center;
-  margin-top: 2rem;
-  padding: 0.1rem;
-  background-color: var(--bg);
-  color: var(--muted);
-}
-
-footer a {
-  color: var(--link-text);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-footer a:hover {
-  text-decoration: underline;
-  color: var(--link-text-hover);
-}
-
-footer a:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-shadow);
-  border-radius: 2px;
-}
-
-footer a:hover {
-  text-decoration: underline;
-}/* Modal styles */
+/* Modal styles */
 .list-modal-backdrop {
   position: fixed;
   left: 0;
