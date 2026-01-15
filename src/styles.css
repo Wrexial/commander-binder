@@ -665,19 +665,21 @@ body {
 
 @media (max-width: 768px) {
   #card-settings {
-    margin: 0 -0.5rem 1rem;
-    padding: 0.5rem;
+    margin: 0 -0.25rem 0.5rem;
+    padding: 0.4rem 0.5rem;
     gap: 0.5rem;
     flex-direction: row; 
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
   }
   #search-wrapper {
-    flex: 1 1 200px;
+    flex: 1;
+    min-width: 0;
   }
   #owned-counter {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     margin: 0;
+    flex-shrink: 0;
   }
 }
 
@@ -716,6 +718,14 @@ body {
   transition: all 0.3s ease;
   background-color: #2d3748;
   color: var(--text);
+}
+
+@media (max-width: 768px) {
+  #search-input {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
 }
 
 #search-input:focus {
@@ -867,6 +877,9 @@ body {
   padding-left: 20px;
   user-select: none;
   -webkit-user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .binder-header {
@@ -878,6 +891,17 @@ body {
     padding-block: 0.5rem;
     margin-block: -0.5rem;
     border-bottom: 1px solid var(--card-border-default);
+}
+
+@media (max-width: 768px) {
+  .binder-header {
+    top: 42px; /* Matches the new height of the sticky search bar */
+    padding-block: 0.3rem;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .binder-header::before,
