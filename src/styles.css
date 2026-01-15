@@ -288,7 +288,7 @@ body {
   .card {
     padding: 2px;
     font-size: 0.75rem;
-    min-height: 4em; /* Increased to allow room for text between corner elements */
+    min-height: 4.8em; /* Further increased to prevent text/icon overlap */
   }
 }
 
@@ -326,10 +326,10 @@ body {
 
 @media (max-width: 768px) {
   .card-slot-number {
-    top: 2px;
-    left: 2px;
-    font-size: 0.55rem;
-    opacity: 0.8;
+    top: 1px;
+    left: 1px;
+    font-size: 0.5rem;
+    opacity: 0.6;
   }
 }
 
@@ -346,13 +346,14 @@ body {
   width: 100%;
   position: relative;
   font-size: 0.7rem;
+  z-index: 2; /* Ensure name is above background but below buttons */
 }
 
 @media (max-width: 768px) {
   .card-name {
-    padding: 10px 2px; /* Extra vertical padding to avoid corners */
+    padding: 14px 2px; /* Increased vertical padding to strictly clear corner icons */
     font-size: 0.6rem;
-    line-height: 1.1;
+    line-height: 1.05;
   }
 }
 
@@ -429,16 +430,16 @@ body {
 
 @media (max-width: 768px) {
   .edhrec-link {
-    width: 14px;
-    height: 14px;
-    bottom: 2px;
-    left: 2px;
-    opacity: 0.8; /* Make it visible but subtle on mobile */
+    width: 12px;
+    height: 12px;
+    bottom: 1px;
+    left: 1px;
+    opacity: 0.7; /* Make it visible but subtle on mobile */
     pointer-events: auto; /* allow clicking on mobile if needed */
   }
   .edhrec-link img {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 }
 
@@ -757,12 +758,13 @@ body {
 
 @media (max-width: 768px) {
   .card-toggle {
-    bottom: 2px;
-    right: 2px;
-    padding: 1px 3px;
-    font-size: 0.6rem;
-    min-width: 12px;
-    min-height: 12px;
+    bottom: 1px;
+    right: 1px;
+    padding: 1px 2px;
+    font-size: 0.55rem;
+    min-width: 10px;
+    min-height: 10px;
+    opacity: 0.8;
   }
 }
 
@@ -809,11 +811,11 @@ body {
   right: 2px;
   background: rgba(60,179,113,0.95);
   color: #fff;
-  padding: 2px 5px;
-  font-size: 0.55rem;
-  line-height: 1.2;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  padding: 2px 4px;
+  font-size: 0.5rem;
+  line-height: 1;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   z-index: 4;
 }
 
