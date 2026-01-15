@@ -4,7 +4,6 @@ import { cardSettings } from './cardSettings.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
-let pinnedTooltip = false; // when true, tooltip will not auto-hide on scroll/touch
 
 const multiLayouts = ["modal_dfc", "transform", "double_faced_token"];
 
@@ -14,8 +13,7 @@ export function showTooltip(e, card, tooltip) {
     return;
   }
 
-  hideTooltip(tooltip, true);
-  pinnedTooltip = false;
+  hideTooltip(tooltip);
   activeTooltip = tooltip;
 
   tooltipTimeout = setTimeout(() => {
@@ -130,24 +128,6 @@ function finishTooltip(images, tooltip, event) {
 
   tooltip.appendChild(container);
 
-  // add pin control
-  const controls = document.createElement('div');
-  controls.className = 'tooltip-controls';
-  const pinBtn = document.createElement('button');
-  pinBtn.className = 'tooltip-pin';
-  pinBtn.textContent = pinnedTooltip ? 'Unpin' : 'Pin';
-  pinBtn.setAttribute('aria-pressed', pinnedTooltip ? 'true' : 'false');
-  pinBtn.setAttribute('aria-label', pinnedTooltip ? 'Unpin tooltip' : 'Pin tooltip');
-  pinBtn.addEventListener('click', () => {
-    pinnedTooltip = !pinnedTooltip;
-    pinBtn.textContent = pinnedTooltip ? 'Unpin' : 'Pin';
-    pinBtn.setAttribute('aria-pressed', pinnedTooltip ? 'true' : 'false');
-    pinBtn.setAttribute('aria-label', pinnedTooltip ? 'Unpin tooltip' : 'Pin tooltip');
-  });
-
-  controls.appendChild(pinBtn);
-  tooltip.appendChild(controls);
-
   tooltip.classList.add("show"); // trigger scale/fade animation
 
   // After adding images to tooltip
@@ -157,9 +137,8 @@ function finishTooltip(images, tooltip, event) {
 }
 
 // ---------------- Hide Tooltip ----------------
-export function hideTooltip(tooltip, force = false) {
+export function hideTooltip(tooltip) {
   clearTimeout(tooltipTimeout);
-  if (pinnedTooltip && !force) return;
   tooltip.classList.remove("show");
   tooltip.style.display = "none";
   activeTooltip = null;

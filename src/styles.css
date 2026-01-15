@@ -551,21 +551,6 @@ body {
   transform: scale(1.03);
 }
 
-.tooltip-controls {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.tooltip-pin {
-  background: transparent;
-  border: 1px solid rgba(0,0,0,0.08);
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
 .tooltip .loading {
   display: inline-block;
   padding: 8px 14px;
