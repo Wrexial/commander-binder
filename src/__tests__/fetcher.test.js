@@ -27,16 +27,11 @@ describe('fetchNextPage', () => {
     appState.seenSetCodes = new Set();
     appState.pageCards = [];
     appState.count = 0;
-    appState.binder = {
-      totalCards: 0,
-      ownedCards: 0,
-      startDate: null,
-      endDate: null,
-      querySelector: vi.fn().mockReturnValue({
-        textContent: '',
-        childNodes: [document.createTextNode('')],
-      }),
-    };
+    appState.binder = document.createElement('div');
+    const header = document.createElement('div');
+    header.className = 'binder-header';
+    appState.binder.appendChild(header);
+
     appState.grid = {
       appendChild: vi.fn(),
     };

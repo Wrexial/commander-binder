@@ -125,13 +125,12 @@ describe('layout', () => {
             binder.querySelector('.export-missing-button').click();
             
             const expectedList = [
-                '--- Missing Cards (1-4) ---',
                 'Card 0',
                 'Card 1',
                 'Card 3',
                 'Card 4',
-            ].join('\n');
-            expect(modalSpy).toHaveBeenCalledWith('Missing Cards', expectedList.trim());
+            ];
+            expect(modalSpy).toHaveBeenCalledWith('Missing Cards', expectedList);
             modalSpy.mockRestore();
         });
     });

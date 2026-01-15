@@ -21,7 +21,7 @@ function getState(el) {
 // --- Delegated Event Handlers ---
 
 function handleMouseEnter(event, tooltip) {
-    if (!cardSettings.showTooltip || isTouchDevice) return;
+    if (!cardSettings.showTooltip) return;
     const cardElement = event.target.closest('.card');
     if (cardElement) {
         cardElement.setAttribute('aria-describedby', 'tooltip');
@@ -30,7 +30,7 @@ function handleMouseEnter(event, tooltip) {
 }
 
 function handleMouseLeave(event, tooltip) {
-    if (!cardSettings.showTooltip || isTouchDevice) return;
+    if (!cardSettings.showTooltip) return;
     const cardElement = event.target.closest('.card');
     // Check relatedTarget to prevent hiding when moving between child elements
     if (cardElement && !cardElement.contains(event.relatedTarget) && !tooltip.contains(event.relatedTarget)) {
@@ -40,7 +40,7 @@ function handleMouseLeave(event, tooltip) {
 }
 
 function handleMouseMove(event, tooltip) {
-    if (!isTouchDevice && cardSettings.showTooltip && tooltip.style.display !== 'none') {
+    if (cardSettings.showTooltip && tooltip.style.display !== 'none') {
         positionTooltip(event, tooltip);
     }
 }

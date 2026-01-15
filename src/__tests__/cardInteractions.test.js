@@ -28,9 +28,11 @@ describe('initCardInteractions', () => {
     // Setup DOM
     document.body.innerHTML = `
       <div id="container">
-        <div class="card" style="width: 100px; height: 100px;">
-          <a class="edhrec-link">EDHREC</a>
-          <button class="card-toggle"></button>
+        <div class="binder">
+            <div class="card" style="width: 100px; height: 100px;">
+            <a class="edhrec-link">EDHREC</a>
+            <button class="card-toggle"></button>
+            </div>
         </div>
       </div>
       <div id="tooltip"></div>
@@ -98,7 +100,8 @@ describe('initCardInteractions', () => {
     it('should update binder counts on click', async () => {
       initCardInteractions(container, tooltipElement);
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      expect(layout.updateBinderCounts).toHaveBeenCalledWith(cardElement);
+      const binderElement = container.querySelector('.binder');
+      expect(layout.updateBinderCounts).toHaveBeenCalledWith(binderElement);
     });
 
     it('should not toggle ownership when in view-only mode', async () => {

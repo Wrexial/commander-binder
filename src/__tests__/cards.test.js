@@ -1,6 +1,6 @@
 // src/__tests__/cards.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCardElement } from '../cards';
+import { createCardElement, updateCardState } from '../cards';
 import { appState } from '../appState';
 import * as cardState from '../cardState';
 
@@ -40,7 +40,7 @@ describe('createCardElement', () => {
   it('should create a card element with the correct class and data', () => {
     cardState.isCardMissing.mockReturnValue(true);
     const element = createCardElement(card, 0);
-    expect(element.className).toBe('card has-toggle');
+    expect(element.className).toBe('card loading has-toggle');
     expect(element.cardData).toEqual(card);
   });
 
@@ -71,6 +71,7 @@ describe('createCardElement', () => {
   it('should add the "owned" class if the card is not missing', () => {
     cardState.isCardMissing.mockReturnValue(false);
     const element = createCardElement(card, 0);
+    updateCardState(element);
     expect(element.classList.contains('owned')).toBe(true);
   });
 
@@ -87,4 +88,22 @@ describe('createCardElement', () => {
     expect(toggleButton).toBeNull();
     appState.isViewOnlyMode = false; // Reset for other tests
   });
+});
+
+describe('updateCardState', () => {
+    const card = {
+        id: 'card1',
+        name: 'Serra Angel',
+        related_uris: {
+        edhrec: 'http://edhrec.com/serra-angel',
+        },
+        color_identity: ['W'],
+    };
+
+    it('should remove the loading class', () => {
+        const element = createCardElement(card, 0);
+        expect(element.classList.contains('loading')).toBe(true);
+        updateCardState(element);
+        expect(element.classList.contains('loading')).toBe(false);
+    });
 });

@@ -22,7 +22,7 @@ describe('setupUI', () => {
 
   beforeEach(() => {
     // Setup DOM
-    document.body.innerHTML = '<div class="main-header"></div>';
+    document.body.innerHTML = '<div id="user-actions"></div>';
 
     // Reset mocks and module state before each test
     vi.clearAllMocks();
@@ -50,7 +50,7 @@ describe('setupUI', () => {
     expect(guestModeText.createGuestModeText).toHaveBeenCalledTimes(1);
     expect(appState.isViewOnlyMode).toBe(true);
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();
-    const guestText = document.querySelector('.user-actions').querySelector('div');
+    const guestText = document.querySelector('#user-button').querySelector('div');
     expect(guestText).toBeDefined();
   });
 
@@ -63,7 +63,7 @@ describe('setupUI', () => {
     expect(signInButton.createSignInButton).toHaveBeenCalledTimes(1);
     expect(appState.isViewOnlyMode).toBe(true);
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
-    const signIn = document.querySelector('.user-actions').querySelector('button');
+    const signIn = document.querySelector('#user-button').querySelector('button');
     expect(signIn).toBeDefined();
   });
 

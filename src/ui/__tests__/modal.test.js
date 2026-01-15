@@ -9,22 +9,19 @@ describe('modal', () => {
     });
 
     it('should show a modal with a title and list', () => {
-        showListModal('Test Title', 'Test List');
+        showListModal('Test Title', ['Test Item 1', 'Test Item 2']);
         const modal = document.querySelector('.list-modal');
         expect(modal).not.toBeNull();
         expect(modal.querySelector('h2').textContent).toBe('Test Title');
-        expect(modal.querySelector('textarea').value).toBe('Test List');
+        expect(modal.querySelector('.modal-content-area').textContent).toBe('Test Item 1\nTest Item 2');
     });
 
     it('should close the modal when the close button is clicked', async () => {
-        showListModal('Test Title', 'Test List');
+        showListModal('Test Title', ['Test Item 1', 'Test Item 2']);
         const closeButton = document.querySelector('[data-testid="close-button"]');
         closeButton.click();
-
-        // Wait for the modal to be removed from the DOM
-        await vi.runAllTimersAsync();
         
-        const modal = document.querySelector('.list-modal');
+        const modal = document.querySelector('.list-modal-backdrop');
         expect(modal).toBeNull();
     });
 
@@ -36,9 +33,9 @@ describe('modal', () => {
             configurable: true,
         });
 
-        showListModal('Test Title', 'Test List');
+        showListModal('Test Title', ['Test Item 1', 'Test Item 2']);
         const copyButton = document.querySelector('[data-testid="copy-button"]');
         copyButton.click();
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Test List');
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Test Item 1\nTest Item 2');
     });
 });
