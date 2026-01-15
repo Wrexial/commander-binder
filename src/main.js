@@ -30,8 +30,7 @@ function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
 
 export async function setupUI() {
   const clerk = getClerk();
-  const userActionsDiv = document.createElement('div');
-  userActionsDiv.className = 'user-actions';
+  const userActionsDiv = document.getElementById('user-actions');
 
   const userButtonDiv = document.createElement('div');
   userButtonDiv.id = 'user-button';
@@ -49,7 +48,6 @@ export async function setupUI() {
     mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
   }
-  document.querySelector('.main-header').appendChild(userActionsDiv);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
