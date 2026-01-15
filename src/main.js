@@ -49,7 +49,7 @@ export async function setupUI() {
     mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
   }
-  document.querySelector('.main-header').insertAdjacentElement('afterend', userActionsDiv);
+  document.querySelector('.main-header').appendChild(userActionsDiv);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
