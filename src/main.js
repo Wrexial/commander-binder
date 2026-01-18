@@ -10,7 +10,7 @@ import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { initCardInteractions } from './cardInteractions.js';
-import { createGlobalExportButton, updateAllBinderCounts } from './layout.js';
+import { createGlobalExportButton, createGlobalExportOwnedButton, updateAllBinderCounts } from './layout.js';
 import { createBulkAddModal } from './ui/bulkAddModal.js';
 
 function showBulkAddModal() {
