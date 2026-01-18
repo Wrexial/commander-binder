@@ -10,11 +10,11 @@ import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { initCardInteractions } from './cardInteractions.js';
-import { createGlobalExportButton, createGlobalExportOwnedButton, updateAllBinderCounts } from './layout.js';
+import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, updateAllBinderCounts } from './layout.js';
 import { createBulkAddModal } from './ui/bulkAddModal.js';
 
-function showBulkAddModal() {
-  const modal = createBulkAddModal();
+async function showBulkAddModal() {
+  const modal = await createBulkAddModal();
   if (modal) {
     modal.show();
   }
@@ -71,14 +71,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCardSettings();
   createGlobalExportButton();
   createGlobalExportOwnedButton();
+  createGlobalBulkAddButton(showBulkAddModal);
   initSearch();
   initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);
   updateAllBinderCounts();
-
-  document.body.addEventListener('click', (e) => {
-    if (e.target.classList.contains('bulk-add-button')) {
-      showBulkAddModal();
-    }
-  });
 });

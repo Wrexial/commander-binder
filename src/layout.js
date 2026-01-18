@@ -97,11 +97,6 @@ export function startNewBinder(results) {
   });
   header.appendChild(exportButton);
 
-  const bulkAddButton = document.createElement('button');
-  bulkAddButton.textContent = 'Bulk Add';
-  bulkAddButton.className = 'bulk-add-button';
-  header.appendChild(bulkAddButton);
-
   let longPressTimer;
 
   function handleInteraction(event) {
