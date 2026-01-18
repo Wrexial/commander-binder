@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "http-server . -p 8080",
-    "build": "vite build",
+    "build": "node scripts/download-data.js && vite build",
     "fetch-data": "node scripts/download-data.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "netlify dev:exec drizzle-kit migrate",
