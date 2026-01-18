@@ -2,7 +2,7 @@ import { searchCards } from '../search.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from './toast.js';
 import { setCardsOwned } from '../cardState.js';
-import { fetchJsonData } from '../data.js';
+import { cardStore } from '../loadedCards.js';
 
 let modal;
 let textArea;
@@ -185,12 +185,7 @@ export async function createBulkAddModal() {
     return;
   }
 
-  try {
-    const cardData = await fetchJsonData();
-    allCardNames = cardData.data.map(card => card.name);
-  } catch (error) {
-    console.error("Failed to load card data for autocomplete:", error);
-  }
+  allCardNames = cardStore.getAll().map(card => card.name);
 
   modal = document.createElement('div');
   modal.id = 'bulk-add-modal';

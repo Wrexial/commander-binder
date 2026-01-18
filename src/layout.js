@@ -6,6 +6,7 @@ import { getOwnedCardIds, isCardMissing } from './cardState.js';
 import { showListModal } from './ui/modal.js';
 import { fetchJsonData } from './data.js';
 import { showToast } from './ui/toast.js';
+import { cardStore } from './loadedCards.js';
 
 export function createGlobalExportOwnedButton() {
   const userActionsDiv = document.getElementById('user-actions');
@@ -21,14 +22,14 @@ export function createGlobalExportOwnedButton() {
       return;
     }
 
-    const allCardsData = await fetchJsonData();
-    if (!allCardsData || !allCardsData.data) {
+    const allCardsData = cardStore.getAll();
+    if (!allCardsData || allCardsData.length === 0) {
         alert('Could not fetch card data.');
         return;
     }
 
     const ownedCardIdsSet = new Set(ownedCardIds);
-    const ownedCards = allCardsData.data.filter(card => ownedCardIdsSet.has(card.id));
+    const ownedCards = allCardsData.filter(card => ownedCardIdsSet.has(card.id));
 
     const cardNames = ownedCards.map(card => card.name);
     

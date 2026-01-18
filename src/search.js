@@ -2,15 +2,14 @@ import { appState } from './appState.js';
 import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
-import { fetchJsonData } from './data.js';
+import { cardStore } from './loadedCards.js';
 
 export async function searchCards(query, filterUnowned = true) {
-    const allCards = await fetchJsonData();
+    const allCards = cardStore.getAll();
     if (!allCards) return { data: [] };
 
     const conditions = parseQuery(query);
-    let filteredCards = allCards.data;
-
+    let filteredCards = allCards;
     if (conditions.length > 0) {
         filteredCards = allCards.data.filter(card => {
             return conditions.every(condition => evaluateCondition(card, condition));
