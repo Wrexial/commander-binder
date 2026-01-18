@@ -99,3 +99,7 @@ export async function setCardsOwned(cards, owned) {
   
   updateOwnedCounter();
 }
+
+export function getOwnedCardIds() {
+  return Array.from(ownedCards);
+}

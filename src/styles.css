@@ -966,6 +966,49 @@ body {
   }
 }
 
+/* Bulk Add Modal */
+.bulk-add-button {
+  margin-left: 10px;
+}
+
+#bulk-add-modal .modal-content {
+  width: 500px;
+}
+
+#bulk-add-modal textarea {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+#bulk-add-modal .preview {
+  height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 5px;
+  margin-bottom: 10px;
+}
+
+.suggestions-container {
+  display: none;
+  position: absolute;
+  width: 100%;
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 5px;
+  z-index: 1002;
+  color: var(--text);
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background-color: #4a5568;
+}
+
 /* Page Header Styles */
 .page-header {
   font-size: 1rem;

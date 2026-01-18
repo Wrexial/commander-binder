@@ -2,8 +2,55 @@ import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
 import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
-import { isCardMissing } from './cardState.js';
+import { getOwnedCardIds, isCardMissing } from './cardState.js';
 import { showListModal } from './ui/modal.js';
+import { fetchJsonData } from './fetcher.js';
+
+export function createGlobalExportOwnedButton() {
+  const userActionsDiv = document.getElementById('user-actions');
+  if (!userActionsDiv) return;
+
+  const exportButton = document.createElement('button');
+  exportButton.textContent = 'Export All Owned';
+  exportButton.className = 'global-export-button';
+  exportButton.addEventListener('click', async () => {
+    const ownedCardIds = getOwnedCardIds();
+    if (ownedCardIds.length === 0) {
+      alert('No owned cards to export.');
+      return;
+    }
+
+    const allCardsData = await fetchJsonData();
+    if (!allCardsData || !allCardsData.data) {
+        alert('Could not fetch card data.');
+        return;
+    }
+
+    const ownedCardIdsSet = new Set(ownedCardIds);
+    const ownedCards = allCardsData.data.filter(card => ownedCardIdsSet.has(card.id));
+
+    const cardNames = ownedCards.map(card => card.name);
+    
+    const fileContent = cardNames.join('\n');
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'owned_cards.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  const shareButton = document.getElementById('share-button');
+  if (shareButton) {
+    userActionsDiv.insertBefore(exportButton, shareButton);
+  } else {
+    userActionsDiv.appendChild(exportButton);
+  }
+}
 
 export function startNewBinder(results) {
   const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
@@ -61,6 +108,11 @@ export function startNewBinder(results) {
     showListModal('Missing Cards', cardNames);
   });
   header.appendChild(exportButton);
+
+  const bulkAddButton = document.createElement('button');
+  bulkAddButton.textContent = 'Bulk Add';
+  bulkAddButton.className = 'bulk-add-button';
+  header.appendChild(bulkAddButton);
 
   let longPressTimer;
 

@@ -11,6 +11,14 @@ import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { initCardInteractions } from './cardInteractions.js';
 import { createGlobalExportButton, updateAllBinderCounts } from './layout.js';
+import { createBulkAddModal } from './ui/bulkAddModal.js';
+
+function showBulkAddModal() {
+  const modal = createBulkAddModal();
+  if (modal) {
+    modal.show();
+  }
+}
 
 export const mainState = {
   loggedInUserId: undefined,
@@ -62,8 +70,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initCardSettings();
   createGlobalExportButton();
+  createGlobalExportOwnedButton();
   initSearch();
   initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);
   updateAllBinderCounts();
+
+  document.body.addEventListener('click', (e) => {
+    if (e.target.classList.contains('bulk-add-button')) {
+      showBulkAddModal();
+    }
+  });
 });
