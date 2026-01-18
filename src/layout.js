@@ -4,7 +4,6 @@ import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
 import { getOwnedCardIds, isCardMissing } from './cardState.js';
 import { showListModal } from './ui/modal.js';
-import { fetchJsonData } from './data.js';
 import { showToast } from './ui/toast.js';
 import { cardStore } from './loadedCards.js';
 
