@@ -7,26 +7,20 @@ import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 
 export function createGlobalBulkAddButton(onClick) {
-  const userActionsDiv = document.getElementById('user-actions');
-  if (!userActionsDiv) return;
+  const settingsContainer = document.getElementById('card-settings');
+  if (!settingsContainer) return;
 
   const bulkAddButton = document.createElement('button');
   bulkAddButton.textContent = 'Bulk Add';
   bulkAddButton.className = 'global-export-button';
   bulkAddButton.addEventListener('click', onClick);
 
-  // Insert it before the export button to keep a nice order
-  const exportButton = document.getElementById('global-export-owned-button');
-  if (exportButton) {
-    userActionsDiv.insertBefore(bulkAddButton, exportButton);
-  } else {
-    userActionsDiv.appendChild(bulkAddButton);
-  }
+  settingsContainer.appendChild(bulkAddButton);
 }
 
 export function createGlobalExportOwnedButton() {
-  const userActionsDiv = document.getElementById('user-actions');
-  if (!userActionsDiv) return;
+  const settingsContainer = document.getElementById('card-settings');
+  if (!settingsContainer) return;
 
   const exportButton = document.createElement('button');
   exportButton.textContent = 'Export All Owned';
@@ -50,12 +44,7 @@ export function createGlobalExportOwnedButton() {
     });
   });
 
-  const shareButton = document.getElementById('share-button');
-  if (shareButton) {
-    userActionsDiv.insertBefore(exportButton, shareButton);
-  } else {
-    userActionsDiv.appendChild(exportButton);
-  }
+  settingsContainer.appendChild(exportButton);
 }
 
 export function startNewBinder(results) {
@@ -95,25 +84,6 @@ export function startNewBinder(results) {
   content.appendChild(ownedCount);
 
   header.appendChild(content);
-
-  const exportButton = document.createElement('button');
-  exportButton.textContent = 'Export Missing';
-  exportButton.className = 'export-missing-button';
-  exportButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-
-    const allCards = newBinder.querySelectorAll('.card');
-    const missingCards = Array.from(allCards).filter(card => isCardMissing(card.cardData));
-
-    if (missingCards.length === 0) {
-      alert('No missing cards in this binder.');
-      return;
-    }
-
-    const cardNames = missingCards.map(card => card.cardData.name);
-    showListModal('Missing Cards', cardNames);
-  });
-  header.appendChild(exportButton);
 
   let longPressTimer;
 

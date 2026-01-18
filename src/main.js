@@ -69,9 +69,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadCardStates();
 
   initCardSettings();
-  createGlobalExportButton();
-  createGlobalExportOwnedButton();
   createGlobalBulkAddButton(showBulkAddModal);
+  createGlobalExportOwnedButton();
+  createGlobalExportButton();
   initSearch();
   initCardInteractions(results, tooltip);
   initLazyCards(results, tooltip);
