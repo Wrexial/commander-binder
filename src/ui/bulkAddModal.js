@@ -115,17 +115,18 @@ function handleAutocomplete(event) {
 function selectSuggestion(suggestion) {
   const text = textArea.value;
   const cursorPos = textArea.selectionStart;
-  
+
   let start = text.lastIndexOf('\n', cursorPos - 1) + 1;
   let end = text.indexOf('\n', cursorPos);
   if (end === -1) {
     end = text.length;
   }
 
-  const newText = text.substring(0, start) + suggestion + text.substring(end);
+  const restOfText = text.substring(end);
+  const newText = text.substring(0, start) + suggestion + '\n' + restOfText.trimStart();
   textArea.value = newText;
-  
-  const newCursorPos = start + suggestion.length;
+
+  const newCursorPos = start + suggestion.length + 1;
   textArea.focus();
   textArea.setSelectionRange(newCursorPos, newCursorPos);
 

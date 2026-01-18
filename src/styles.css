@@ -1090,10 +1090,12 @@ body {
 .list-modal textarea {
   width: 100%;
   height: 100%;
-  background-color: transparent;
-  color: var(--text);
+  background-color: #fff;
+  color: var(--bg);
   border: none;
   resize: none;
+  padding: 10px;
+  border-radius: 4px;
 }
 
 .pagination-container {
