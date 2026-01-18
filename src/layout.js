@@ -4,7 +4,7 @@ import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
 import { getOwnedCardIds, isCardMissing } from './cardState.js';
 import { showListModal } from './ui/modal.js';
-import { fetchJsonData } from './fetcher.js';
+import { fetchJsonData } from './data.js';
 
 export function createGlobalExportOwnedButton() {
   const userActionsDiv = document.getElementById('user-actions');

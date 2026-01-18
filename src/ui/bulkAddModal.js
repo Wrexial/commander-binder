@@ -2,7 +2,7 @@ import { searchCards } from '../search.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from './toast.js';
 import { toggleCardOwnership } from '../cardInteractions.js';
-import { fetchJsonData } from '../fetcher.js';
+import { fetchJsonData } from '../data.js';
 
 let modal;
 let textArea;

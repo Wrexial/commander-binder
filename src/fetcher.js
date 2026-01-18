@@ -8,26 +8,6 @@ import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
 import { showToast } from './ui/toast.js';
 
-let allCardsData = null;
-
-export async function fetchJsonData() {
-    if (allCardsData) {
-        return allCardsData;
-    }
-    try {
-        const response = await fetch('/all-pages.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        allCardsData = await response.json();
-        return allCardsData;
-    } catch (error) {
-        console.error("Failed to fetch all-pages.json:", error);
-        showToast("Failed to load card data. Some features may not work.", "error");
-        return null;
-    }
-}
-
 async function fetchScryfallData(url) {
     const res = await fetch(url);
     if (!res.ok) {
@@ -35,7 +15,6 @@ async function fetchScryfallData(url) {
     }
     return res.json();
 }
-
 function processScryfallData(data) {
     const newCards = [];
     for (const card of data.data) {

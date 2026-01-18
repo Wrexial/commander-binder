@@ -2,6 +2,27 @@ import { appState } from './appState.js';
 import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardMissing } from './cardState.js';
+import { fetchJsonData } from './data.js';
+
+export async function searchCards(query, filterUnowned = true) {
+    const allCards = await fetchJsonData();
+    if (!allCards) return { data: [] };
+
+    const conditions = parseQuery(query);
+    let filteredCards = allCards.data;
+
+    if (conditions.length > 0) {
+        filteredCards = allCards.data.filter(card => {
+            return conditions.every(condition => evaluateCondition(card, condition));
+        });
+    }
+
+    if (filterUnowned) {
+        filteredCards = filteredCards.filter(card => !isCardMissing(card));
+    }
+
+    return { data: filteredCards };
+}
 
 export function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
