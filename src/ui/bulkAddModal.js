@@ -188,30 +188,25 @@ async function handleConfirm() {
 }
 
 export async function createBulkAddModal() {
-  if (document.getElementById('bulk-add-modal')) {
-    const existingModal = document.getElementById('bulk-add-modal');
+  if (document.querySelector('.list-modal-backdrop')) {
+    const existingModal = document.querySelector('.list-modal-backdrop');
     existingModal.style.display = 'block';
     return;
   }
 
   allCardNames = cardStore.getAll().map(card => card.name);
 
+  const modalBackdrop = document.createElement('div');
+  modalBackdrop.className = 'list-modal-backdrop';
+
   modal = document.createElement('div');
-  modal.id = 'bulk-add-modal';
-  modal.className = 'modal';
-
-  const modalContent = document.createElement('div');
-  modalContent.className = 'modal-content';
-
-  const closeButton = document.createElement('span');
-  closeButton.className = 'close-button';
-  closeButton.innerHTML = '&times;';
-  closeButton.onclick = () => {
-    modal.style.display = 'none';
-  };
+  modal.className = 'list-modal';
 
   const title = document.createElement('h2');
   title.textContent = 'Bulk Add Cards';
+
+  const contentArea = document.createElement('div');
+  contentArea.className = 'modal-content-area';
 
   const textAreaWrapper = document.createElement('div');
   textAreaWrapper.style.position = 'relative';
@@ -232,22 +227,40 @@ export async function createBulkAddModal() {
   preview = document.createElement('div');
   preview.className = 'preview';
 
+  contentArea.appendChild(textAreaWrapper);
+  contentArea.appendChild(preview);
+
   confirmButton = document.createElement('button');
   confirmButton.textContent = 'Confirm';
   confirmButton.onclick = handleConfirm;
 
-  modalContent.appendChild(closeButton);
-  modalContent.appendChild(title);
-  modalContent.appendChild(textAreaWrapper);
-  modalContent.appendChild(preview);
-  modalContent.appendChild(confirmButton);
-  modal.appendChild(modalContent);
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'Close';
+  closeButton.addEventListener('click', () => {
+    document.body.removeChild(modalBackdrop);
+  });
 
-  document.body.appendChild(modal);
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'modal-button-container';
+  buttonContainer.appendChild(confirmButton);
+  buttonContainer.appendChild(closeButton);
+
+  modal.appendChild(title);
+  modal.appendChild(contentArea);
+  modal.appendChild(buttonContainer);
+  modalBackdrop.appendChild(modal);
+
+  document.body.appendChild(modalBackdrop);
+
+  modalBackdrop.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) {
+      document.body.removeChild(modalBackdrop);
+    }
+  });
 
   return {
     show: () => {
-      modal.style.display = 'block';
+      modalBackdrop.style.display = 'block';
       textArea.focus();
     },
   };
