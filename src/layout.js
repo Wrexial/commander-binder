@@ -5,6 +5,7 @@ import { positionTooltip } from './tooltip.js';
 import { getOwnedCardIds, isCardMissing } from './cardState.js';
 import { showListModal } from './ui/modal.js';
 import { fetchJsonData } from './data.js';
+import { showToast } from './ui/toast.js';
 
 export function createGlobalExportOwnedButton() {
   const userActionsDiv = document.getElementById('user-actions');
@@ -31,17 +32,13 @@ export function createGlobalExportOwnedButton() {
 
     const cardNames = ownedCards.map(card => card.name);
     
-    const fileContent = cardNames.join('\n');
-    const blob = new Blob([fileContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'owned_cards.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const textToCopy = cardNames.join('\n');
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showToast('Owned cards copied to clipboard!', 'success');
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+      showToast('Failed to copy cards. See console for details.', 'error');
+    });
   });
 
   const shareButton = document.getElementById('share-button');
