@@ -4,9 +4,11 @@ import { appState } from "./appState.js";
 import { isCardMissing } from "./cardState.js";
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { CARDS_PER_PAGE } from './config.js';
+import { cardStore } from "./loadedCards.js";
 
 
 export function createCardElement(card, cardIndex) {
+  cardStore.add(card);
   const div = document.createElement("div");
   div.className = "card loading";
   div.cardData = card;

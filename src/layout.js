@@ -12,7 +12,7 @@ export function createGlobalBulkAddButton(onClick) {
 
   const bulkAddButton = document.createElement('button');
   bulkAddButton.textContent = 'Bulk Add';
-  bulkAddButton.className = 'bulk-add-button global-button'; // Added global-button for consistency
+  bulkAddButton.className = 'global-export-button';
   bulkAddButton.addEventListener('click', onClick);
 
   // Insert it before the export button to keep a nice order
