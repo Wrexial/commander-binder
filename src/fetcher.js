@@ -97,6 +97,12 @@ function renderPage(results, tooltip, pageCards) {
     appState.count += pageCards.length;
     updateOwnedCounter();
 
+    const exportOwnedButton = document.getElementById('global-export-owned-button');
+    if (exportOwnedButton && exportOwnedButton.disabled) {
+        exportOwnedButton.disabled = false;
+        exportOwnedButton.title = 'Export all currently loaded owned cards.';
+    }
+
     if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
         startNewBinder(results);
     }

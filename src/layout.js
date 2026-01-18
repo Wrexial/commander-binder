@@ -12,8 +12,12 @@ export function createGlobalExportOwnedButton() {
   if (!userActionsDiv) return;
 
   const exportButton = document.createElement('button');
+  exportButton.id = 'global-export-owned-button';
   exportButton.textContent = 'Export All Owned';
   exportButton.className = 'global-export-button';
+  exportButton.disabled = true;
+  exportButton.title = 'Scroll to load cards before exporting.';
+
   exportButton.addEventListener('click', async () => {
     const ownedCardIds = getOwnedCardIds();
     if (ownedCardIds.length === 0) {
@@ -23,15 +27,14 @@ export function createGlobalExportOwnedButton() {
 
     const allCardsData = cardStore.getAll();
     if (!allCardsData || allCardsData.length === 0) {
-        alert('Could not fetch card data.');
-        return;
+      alert('No card data has been loaded yet. Please scroll down to load some cards first.');
+      return;
     }
 
     const ownedCardIdsSet = new Set(ownedCardIds);
     const ownedCards = allCardsData.filter(card => ownedCardIdsSet.has(card.id));
-
     const cardNames = ownedCards.map(card => card.name);
-    
+
     const textToCopy = cardNames.join('\n');
     navigator.clipboard.writeText(textToCopy).then(() => {
       showToast('Owned cards copied to clipboard!', 'success');
