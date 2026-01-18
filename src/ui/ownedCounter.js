@@ -1,5 +1,5 @@
 import { appState } from "../appState.js";
-import { ownedCards } from "../cardState.js";
+import { getOwnedCardObjects, isCardMissing } from "../cardState.js";
 
 export function updateOwnedCounter() {
   const ownedCounter = document.getElementById("owned-counter");
@@ -13,11 +13,11 @@ export function updateOwnedCounter() {
 
   // Count owned cards from the visible set
   const ownedVisibleCount = visibleCards.filter(
-    (card) => ownedCards.has(card.cardData.id)
+    (card) => !isCardMissing(card.cardData)
   ).length;
 
   // Always show total owned relative to total cards
-  const totalOwnedCount = ownedCards.size;
+  const totalOwnedCount = getOwnedCardObjects().length;
 
   if (searchTerm) {
     ownedCounter.textContent = `Owned: ${ownedVisibleCount}/${visibleCards.length} shown (${totalOwnedCount} total)`;
