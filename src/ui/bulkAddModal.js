@@ -18,6 +18,15 @@ async function validateCard(name) {
   if (cardCache.has(name)) {
     return cardCache.get(name);
   }
+
+  // First, check the local cardStore
+  const localCard = cardStore.getAll().find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (localCard) {
+    cardCache.set(name, localCard);
+    return localCard;
+  }
+
+  // If not found locally, then search
   try {
     const result = await searchCards(name, false);
     const card = result.data.find(c => c.name.toLowerCase() === name.toLowerCase());
