@@ -6,6 +6,24 @@ import { getOwnedCardIds, isCardMissing, getOwnedCardObjects } from './cardState
 import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 
+export function createGlobalBulkAddButton(onClick) {
+  const userActionsDiv = document.getElementById('user-actions');
+  if (!userActionsDiv) return;
+
+  const bulkAddButton = document.createElement('button');
+  bulkAddButton.textContent = 'Bulk Add';
+  bulkAddButton.className = 'bulk-add-button global-button'; // Added global-button for consistency
+  bulkAddButton.addEventListener('click', onClick);
+
+  // Insert it before the export button to keep a nice order
+  const exportButton = document.getElementById('global-export-owned-button');
+  if (exportButton) {
+    userActionsDiv.insertBefore(bulkAddButton, exportButton);
+  } else {
+    userActionsDiv.appendChild(bulkAddButton);
+  }
+}
+
 export function createGlobalExportOwnedButton() {
   const userActionsDiv = document.getElementById('user-actions');
   if (!userActionsDiv) return;
