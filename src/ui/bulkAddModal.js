@@ -1,7 +1,7 @@
 import { searchCards } from '../search.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from './toast.js';
-import { toggleCardOwnership } from '../cardInteractions.js';
+import { setCardsOwned } from '../cardState.js';
 import { fetchJsonData } from '../data.js';
 
 let modal;
@@ -169,7 +169,7 @@ async function handleConfirm() {
   const invalidNames = cardNames.filter((name, index) => !cards[index]);
 
   if (validCards.length > 0) {
-    await toggleCardOwnership(validCards, true);
+    await setCardsOwned(validCards, true);
     showToast(`Successfully added ${validCards.length} cards!`, 'success');
   }
 
