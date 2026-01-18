@@ -102,3 +102,8 @@ export function updateCardStyles() {
   });
 }
 
+export function updateAllCardStates() {
+  document.querySelectorAll('.card').forEach(cardElement => {
+    updateCardState(cardElement);
+  });
+}
