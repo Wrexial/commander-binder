@@ -2,40 +2,28 @@ import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
 import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
-import { getOwnedCardIds, isCardMissing } from './cardState.js';
+import { getOwnedCardIds, isCardMissing, getOwnedCardObjects } from './cardState.js';
 import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
-import { cardStore } from './loadedCards.js';
 
 export function createGlobalExportOwnedButton() {
   const userActionsDiv = document.getElementById('user-actions');
   if (!userActionsDiv) return;
 
   const exportButton = document.createElement('button');
-  exportButton.id = 'global-export-owned-button';
   exportButton.textContent = 'Export All Owned';
   exportButton.className = 'global-export-button';
-  exportButton.disabled = true;
-  exportButton.title = 'Scroll to load cards before exporting.';
 
   exportButton.addEventListener('click', async () => {
-    const ownedCardIds = getOwnedCardIds();
-    if (ownedCardIds.length === 0) {
+    const ownedCards = getOwnedCardObjects();
+    if (ownedCards.length === 0) {
       alert('No owned cards to export.');
       return;
     }
-
-    const allCardsData = cardStore.getAll();
-    if (!allCardsData || allCardsData.length === 0) {
-      alert('No card data has been loaded yet. Please scroll down to load some cards first.');
-      return;
-    }
-
-    const ownedCardIdsSet = new Set(ownedCardIds);
-    const ownedCards = allCardsData.filter(card => ownedCardIdsSet.has(card.id));
+    
     const cardNames = ownedCards.map(card => card.name);
-
     const textToCopy = cardNames.join('\n');
+
     navigator.clipboard.writeText(textToCopy).then(() => {
       showToast('Owned cards copied to clipboard!', 'success');
     }).catch(err => {

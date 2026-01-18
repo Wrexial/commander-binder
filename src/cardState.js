@@ -3,7 +3,7 @@ import { mainState } from "./main.js";
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
 import { getClerk } from './clerk.js';
 
-export const ownedCards = new Set();
+const ownedCardData = new Map();
 let initialized = false;
 
 async function authenticatedFetch(url, options = {}) {
@@ -46,25 +46,60 @@ export async function loadCardStates() {
   }
 
   const rows = await res.json();
-  for (const { cardId } of rows) {
-    ownedCards.add(cardId);
+  const ownedCardIds = rows.map(({ cardId }) => cardId);
+
+  // After fetching IDs, fetch the full card objects for them.
+  if (ownedCardIds.length > 0) {
+    try {
+      // Scryfall's collection endpoint can take a maximum of 75 identifiers at a time.
+      const idChunks = [];
+      for (let i = 0; i < ownedCardIds.length; i += 75) {
+        idChunks.push(ownedCardIds.slice(i, i + 75));
+      }
+
+      const requests = idChunks.map(chunk =>
+        fetch('https://api.scryfall.com/cards/collection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifiers: chunk.map(id => ({ id })),
+          }),
+        }).then(res => res.json())
+      );
+      
+      const responses = await Promise.all(requests);
+      const ownedCardObjects = responses.flatMap(response => response.data || []);
+      
+      ownedCardObjects.forEach(card => {
+        if (card) {
+          ownedCardData.set(card.id, card);
+        }
+      });
+
+    } catch (error) {
+      console.error('Failed to fetch owned card objects:', error);
+    }
   }
 
   initialized = true;
 }
 
+export function getOwnedCardObjects() {
+  return Array.from(ownedCardData.values());
+}
+
 export function isCardMissing(card) {
   if (!initialized) return false;
-  return !ownedCards.has(card.id);
+  return !ownedCardData.has(card.id);
 }
 
 export async function toggleCardOwned(card) {
   const isOwned = !isCardMissing(card);
 
   if (isOwned) {
-    ownedCards.delete(card.id);
+    ownedCardData.delete(card.id);
   } else {
-    ownedCards.add(card.id);
+    ownedCardData.set(card.id, card);
   }
 
   authenticatedFetch("/.netlify/functions/toggle-card", {
@@ -83,9 +118,9 @@ export async function toggleCardOwned(card) {
 export async function setCardsOwned(cards, owned) {
   for (const card of cards) {
     if (owned) {
-      ownedCards.add(card.id);
+      ownedCardData.set(card.id, card);
     } else {
-      ownedCards.delete(card.id);
+      ownedCardData.delete(card.id);
     }
   }
 
@@ -101,5 +136,5 @@ export async function setCardsOwned(cards, owned) {
 }
 
 export function getOwnedCardIds() {
-  return Array.from(ownedCards);
+  return Array.from(ownedCardData.keys());
 }
