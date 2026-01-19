@@ -1,5 +1,6 @@
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
 import { getClerk } from './clerk.js';
+import { mainState } from "./main.js";
 
 const ownedCardData = new Map();
 let initialized = false;
