@@ -46,40 +46,13 @@ export async function loadCardStates() {
   }
 
   const rows = await res.json();
-  const ownedCardIds = rows.map(({ cardId }) => cardId);
+  const ownedCardIds = new Set(rows.map(({ cardId }) => cardId));
 
-  // After fetching IDs, fetch the full card objects for them.
-  if (ownedCardIds.length > 0) {
-    try {
-      // Scryfall's collection endpoint can take a maximum of 75 identifiers at a time.
-      const idChunks = [];
-      for (let i = 0; i < ownedCardIds.length; i += 75) {
-        idChunks.push(ownedCardIds.slice(i, i + 75));
-      }
-
-      const requests = idChunks.map(chunk =>
-        fetch('https://api.scryfall.com/cards/collection', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            identifiers: chunk.map(id => ({ id })),
-          }),
-        }).then(res => res.json())
-      );
-      
-      const responses = await Promise.all(requests);
-      const ownedCardObjects = responses.flatMap(response => response.data || []);
-      
-      ownedCardObjects.forEach(card => {
-        if (card) {
-          ownedCardData.set(card.id, card);
-        }
-      });
-
-    } catch (error) {
-      console.error('Failed to fetch owned card objects:', error);
+  mainState.allCards.forEach(card => {
+    if (ownedCardIds.has(card.id)) {
+      ownedCardData.set(card.id, card);
     }
-  }
+  });
 
   initialized = true;
 }
