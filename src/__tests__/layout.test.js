@@ -110,7 +110,7 @@ describe('layout', () => {
 
         it('should show an alert if no cards are missing', () => {
             const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-            cardState.isCardMissing.mockReturnValue(false);
+            cardState.isCardOwned.mockReturnValue(true);
             
             binder.querySelector('.export-missing-button').click();
             
@@ -120,7 +120,7 @@ describe('layout', () => {
 
         it('should show a modal with a chunked list of missing cards', () => {
             const modalSpy = vi.spyOn(modal, 'showListModal');
-            cardState.isCardMissing.mockImplementation(card => card.id !== 'card-2'); // All but one are missing
+            cardState.isCardOwned.mockImplementation(card => card.id === 'card-2'); // Only one is owned
             
             binder.querySelector('.export-missing-button').click();
             

@@ -73,7 +73,7 @@ describe('fetchNextPage', () => {
     };
     global.fetch.mockResolvedValue(mockResponse);
     cards.createCardElement.mockReturnValue(document.createElement('div'));
-    cardState.isCardMissing.mockReturnValue(true);
+    cardState.isCardOwned.mockReturnValue(false);
 
     await fetchNextPage(null, null);
 

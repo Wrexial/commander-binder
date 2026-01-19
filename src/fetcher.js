@@ -5,7 +5,7 @@ import { showLoading, hideLoading } from './loadingIndicator.js';
 import { startNewBinder, startNewSection, updateBinderCounts } from './layout.js';
 import { createCardElement, updateCardState } from './cards.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
-import { isCardMissing } from './cardState.js';
+import { isCardOwned } from './cardState.js';
 import { showToast } from './ui/toast.js';
 
 async function fetchScryfallData(url) {

@@ -2,7 +2,7 @@ import { updateOwnedCounter } from "./ui/ownedCounter.js";
 import { getClerk } from './clerk.js';
 import { mainState } from "./main.js";
 
-const ownedCardData = new Map();
+const ownedCardIds = new Set();
 let initialized = false;
 
 async function authenticatedFetch(url, options = {}) {
@@ -45,30 +45,27 @@ export async function loadCardStates() {
   }
 
   const rows = await res.json();
-  const ownedCardIds = new Set(rows.map(({ cardId }) => cardId));
+  rows.forEach(({ cardId }) => ownedCardIds.add(cardId));
 
-  if (ownedCardIds.has(card.id)) {
-    ownedCardData.set(card.id, undefined);
-  }
   initialized = true;
 }
 
-export function getOwnedCardObjects() {
-  return Array.from(ownedCardData.values());
+export function getOwnedCardIds() {
+  return ownedCardIds;
 }
 
-export function isCardMissing(card) {
+export function isCardOwned(card) {
   if (!initialized) return false;
-  return !ownedCardData.has(card.id);
+  return ownedCardIds.has(card.id);
 }
 
 export async function toggleCardOwned(card) {
-  const isOwned = !isCardMissing(card);
+  const isOwned = isCardOwned(card);
 
   if (isOwned) {
-    ownedCardData.delete(card.id);
+    ownedCardIds.delete(card.id);
   } else {
-    ownedCardData.set(card.id, card);
+    ownedCardIds.add(card.id);
   }
 
   authenticatedFetch("/.netlify/functions/toggle-card", {
@@ -87,9 +84,9 @@ export async function toggleCardOwned(card) {
 export async function setCardsOwned(cards, owned) {
   for (const card of cards) {
     if (owned) {
-      ownedCardData.set(card.id, card);
+      ownedCardIds.add(card.id);
     } else {
-      ownedCardData.delete(card.id);
+      ownedCardIds.delete(card.id);
     }
   }
 

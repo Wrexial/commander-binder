@@ -1,7 +1,7 @@
 import { appState } from './appState.js';
 import { debounce } from './utils/debounce.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
-import { isCardMissing } from './cardState.js';
+import { isCardOwned } from './cardState.js';
 import { cardStore } from './loadedCards.js';
 
 export async function searchCards(query, filterUnowned = true) {
@@ -17,7 +17,7 @@ export async function searchCards(query, filterUnowned = true) {
     }
 
     if (filterUnowned) {
-        filteredCards = filteredCards.filter(card => !isCardMissing(card));
+        filteredCards = filteredCards.filter(card => isCardOwned(card));
     }
 
     return { data: filteredCards };
@@ -172,7 +172,7 @@ function cardMatchesFilter(card, filter) {
   } else if (filter.startsWith('is:')) {
     const term = filter.substring(3);
     if (term === 'owned') {
-      match = !isCardMissing(card.cardData);
+      match = isCardOwned(card.cardData);
     }
   } else {
     const cardName = card.cardData.name.toLowerCase();

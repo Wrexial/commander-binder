@@ -66,7 +66,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const results = document.getElementById("results");
 
   await setupUI();
-  await loadCardStates();
+  // Do not block on this, let it run in the background
+  loadCardStates();
+  initLazyCards(results, tooltip);
+  updateAllBinderCounts();
 
   initCardSettings();
   createGlobalBulkAddButton(showBulkAddModal);
@@ -74,6 +77,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   createGlobalExportButton();
   initSearch();
   initCardInteractions(results, tooltip);
-  initLazyCards(results, tooltip);
-  updateAllBinderCounts();
 });

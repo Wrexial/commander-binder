@@ -2,7 +2,7 @@
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
-import { isCardMissing, toggleCardOwned, setCardsOwned } from "./cardState.js";
+import { isCardOwned, toggleCardOwned, setCardsOwned } from "./cardState.js";
 import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { updateBinderCounts } from './layout.js';
@@ -100,7 +100,7 @@ async function handleContainerClick(event) {
     const state = getState(cardElement);
     if (state.suppressUntil && Date.now() < state.suppressUntil) return;
 
-    const wasMissing = isCardMissing(card);
+    const wasMissing = !isCardOwned(card);
     event.stopPropagation();
     
     const isOwned = await toggleCardOwned(card);

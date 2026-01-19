@@ -209,7 +209,7 @@ describe('evaluateCondition', () => {
   });
 
   it('should handle owned filters', () => {
-    vi.spyOn(cardState, 'isCardMissing').mockReturnValue(false);
+    vi.spyOn(cardState, 'isCardOwned').mockReturnValue(true);
     const condition = { type: 'filter', value: 'is:owned' };
     const result = evaluateCondition(card, condition);
     expect(result).toBe(true);

@@ -2,7 +2,7 @@ import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
 import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
-import { getOwnedCardIds, isCardMissing, getOwnedCardObjects } from './cardState.js';
+import { getOwnedCardIds, isCardOwned } from './cardState.js';
 import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 
@@ -235,7 +235,7 @@ export function createGlobalExportButton() {
   exportButton.className = 'global-export-button';
   exportButton.addEventListener('click', () => {
     const allCards = document.querySelectorAll('.card');
-    const missingCards = Array.from(allCards).filter(card => isCardMissing(card.cardData));
+    const missingCards = Array.from(allCards).filter(card => !isCardOwned(card.cardData));
 
     if (missingCards.length === 0) {
       alert('No missing cards found.');

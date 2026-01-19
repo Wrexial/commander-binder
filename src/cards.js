@@ -1,7 +1,7 @@
 // cards.js
 import { cardSettings } from "./cardSettings.js";
 import { appState } from "./appState.js";
-import { isCardMissing } from "./cardState.js";
+import { isCardOwned } from "./cardState.js";
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { CARDS_PER_PAGE } from './config.js';
 import { cardStore } from "./loadedCards.js";
@@ -60,9 +60,9 @@ export function createCardElement(card, cardIndex) {
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "card-toggle";
     // Toggle indicates whether you own the card (checkmark when owned)
-      toggleBtn.title = !isCardMissing(card) ? "Mark as missing" : "Mark as owned";
-      toggleBtn.setAttribute('aria-label', !isCardMissing(card) ? 'Mark as missing' : 'Mark as owned');
-      toggleBtn.setAttribute('aria-pressed', (!isCardMissing(card)).toString());
+      toggleBtn.title = isCardOwned(card) ? "Mark as missing" : "Mark as owned";
+      toggleBtn.setAttribute('aria-label', isCardOwned(card) ? 'Mark as missing' : 'Mark as owned');
+      toggleBtn.setAttribute('aria-pressed', (isCardOwned(card)).toString());
       // toggle button has no visible checkmark; owned state shown via badge
       toggleBtn.textContent = "";
   
@@ -82,7 +82,7 @@ export function createCardElement(card, cardIndex) {
 
 export function updateCardState(cardElement) {
     cardElement.classList.remove('loading');
-    if (!isCardMissing(cardElement.cardData)) {
+    if (isCardOwned(cardElement.cardData)) {
         cardElement.classList.add('owned');
     }
 }

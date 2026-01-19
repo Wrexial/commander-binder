@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   loadCardStates,
-  isCardMissing,
+  isCardOwned,
   toggleCardOwned,
   setCardsOwned,
   ownedCards,
@@ -33,7 +33,7 @@ describe('cardState', () => {
   beforeEach(async () => {
     ownedCards.clear();
     vi.clearAllMocks();
-    // Ensure the module is "initialized" for isCardMissing tests
+    // Ensure the module is "initialized" for isCardOwned tests
     const mockResponse = { ok: true, json: () => Promise.resolve([]) };
     fetch.mockResolvedValue(mockResponse);
     await loadCardStates();
@@ -76,19 +76,19 @@ describe('cardState', () => {
     });
   });
 
-  describe('isCardMissing', () => {
-    it('should return true if a card is not in the owned set', () => {
+  describe('isCardOwned', () => {
+    it('should return false if a card is not in the owned set', () => {
       ownedCards.add('card1');
       const card = { id: 'card2' };
-      const result = isCardMissing(card);
-      expect(result).toBe(true);
+      const result = isCardOwned(card);
+      expect(result).toBe(false);
     });
 
-    it('should return false if a card is in the owned set', () => {
+    it('should return true if a card is in the owned set', () => {
       ownedCards.add('card1');
       const card = { id: 'card1' };
-      const result = isCardMissing(card);
-      expect(result).toBe(false);
+      const result = isCardOwned(card);
+      expect(result).toBe(true);
     });
   });
 

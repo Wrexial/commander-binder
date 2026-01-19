@@ -18,7 +18,7 @@ vi.mock('../appState', () => ({
 }));
 
 vi.mock('../cardState', () => ({
-  isCardMissing: vi.fn(),
+  isCardOwned: vi.fn(),
   toggleCardOwned: vi.fn(),
   setCardsOwned: vi.fn(),
 }));
@@ -38,7 +38,7 @@ describe('createCardElement', () => {
   });
 
   it('should create a card element with the correct class and data', () => {
-    cardState.isCardMissing.mockReturnValue(true);
+    cardState.isCardOwned.mockReturnValue(false);
     const element = createCardElement(card, 0);
     expect(element.className).toBe('card loading has-toggle');
     expect(element.cardData).toEqual(card);
@@ -69,14 +69,14 @@ describe('createCardElement', () => {
   });
 
   it('should add the "owned" class if the card is not missing', () => {
-    cardState.isCardMissing.mockReturnValue(false);
+    cardState.isCardOwned.mockReturnValue(true);
     const element = createCardElement(card, 0);
     updateCardState(element);
     expect(element.classList.contains('owned')).toBe(true);
   });
 
-  it('should not add the "owned" class if the card is missing', () => {
-    cardState.isCardMissing.mockReturnValue(true);
+  it('should not add the "owned" class if the card is not owned', () => {
+    cardState.isCardOwned.mockReturnValue(false);
     const element = createCardElement(card, 0);
     expect(element.classList.contains('owned')).toBe(false);
   });

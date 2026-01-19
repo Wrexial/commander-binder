@@ -46,7 +46,7 @@ describe('initCardInteractions', () => {
     cardSettings.showTooltip = true;
     appState.isViewOnlyMode = false;
     cardState.toggleCardOwned.mockResolvedValue(true); // Assume it becomes owned
-    cardState.isCardMissing.mockReturnValue(true); // Assume it was missing before click
+    cardState.isCardOwned.mockReturnValue(false); // Assume it was not owned before click
   });
 
   describe('Tooltip Interactions', () => {
