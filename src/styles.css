@@ -664,6 +664,7 @@ body {
   padding: 1rem;
   font-size: 0.9rem;
   align-items: center;
+  justify-content: center;
   position: sticky;
   top: 0;
   background-color: rgba(26, 32, 44, 0.8);
