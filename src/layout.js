@@ -2,7 +2,7 @@ import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
 import { appState } from './appState.js';
 import { lightenColor } from './utils/colors.js';
 import { positionTooltip } from './tooltip.js';
-import { getOwnedCardIds, isCardOwned } from './cardState.js';
+import { isCardOwned } from './cardState.js';
 import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 

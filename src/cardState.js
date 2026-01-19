@@ -50,10 +50,6 @@ export async function loadCardStates() {
   initialized = true;
 }
 
-export function getOwnedCardIds() {
-  return ownedCardIds;
-}
-
 export function isCardOwned(card) {
   if (!initialized) return false;
   return ownedCardIds.has(card.id);
@@ -99,8 +95,4 @@ export async function setCardsOwned(cards, owned) {
   });
   
   updateOwnedCounter();
-}
-
-export function getOwnedCardIds() {
-  return Array.from(ownedCardData.keys());
 }

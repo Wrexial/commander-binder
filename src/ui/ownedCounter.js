@@ -1,5 +1,5 @@
 import { appState } from "../appState.js";
-import { getOwnedCardIds, isCardOwned } from "../cardState.js";
+import { isCardOwned } from "../cardState.js";
 
 export function updateOwnedCounter() {
   const ownedCounter = document.getElementById("owned-counter");
