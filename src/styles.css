@@ -102,6 +102,13 @@ body {
   max-width: 600px;
 }
 
+#toggles-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .user-actions {
   display: flex;
   flex-direction: row;
@@ -657,7 +664,6 @@ body {
   padding: 1rem;
   font-size: 0.9rem;
   align-items: center;
-  justify-content: center;
   position: sticky;
   top: 0;
   background-color: rgba(26, 32, 44, 0.8);

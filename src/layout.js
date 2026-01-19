@@ -7,7 +7,7 @@ import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 
 export function createGlobalBulkAddButton(onClick) {
-  const settingsContainer = document.getElementById('card-settings');
+  const settingsContainer = document.getElementById('toggles-container');
   if (!settingsContainer) return;
 
   const bulkAddButton = document.createElement('button');
@@ -19,7 +19,7 @@ export function createGlobalBulkAddButton(onClick) {
 }
 
 export function createGlobalExportOwnedButton() {
-  const settingsContainer = document.getElementById('card-settings');
+  const settingsContainer = document.getElementById('toggles-container');
   if (!settingsContainer) return;
 
   const exportButton = document.createElement('button');
@@ -227,7 +227,7 @@ export function updateAllBinderCounts() {
 }
 
 export function createGlobalExportButton() {
-  const settingsContainer = document.getElementById('card-settings');
+  const settingsContainer = document.getElementById('toggles-container');
   if (!settingsContainer) return;
 
   const exportButton = document.createElement('button');
