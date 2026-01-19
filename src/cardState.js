@@ -1,5 +1,3 @@
-
-import { mainState } from "./main.js";
 import { updateOwnedCounter } from "./ui/ownedCounter.js";
 import { getClerk } from './clerk.js';
 
@@ -48,12 +46,9 @@ export async function loadCardStates() {
   const rows = await res.json();
   const ownedCardIds = new Set(rows.map(({ cardId }) => cardId));
 
-  mainState.allCards.forEach(card => {
-    if (ownedCardIds.has(card.id)) {
-      ownedCardData.set(card.id, card);
-    }
-  });
-
+  if (ownedCardIds.has(card.id)) {
+    ownedCardData.set(card.id, undefined);
+  }
   initialized = true;
 }
 
