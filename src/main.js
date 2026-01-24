@@ -12,6 +12,7 @@ import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { initCardInteractions } from './cardInteractions.js';
 import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, updateAllBinderCounts } from './layout.js';
 import { createBulkAddModal } from './ui/bulkAddModal.js';
+import { updateAllCardStates } from './cards.js';
 
 async function showBulkAddModal() {
   const modal = await createBulkAddModal();
@@ -66,8 +67,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const results = document.getElementById("results");
 
   await setupUI();
-  // Do not block on this, let it run in the background
-  loadCardStates();
+  await loadCardStates();
+  updateAllCardStates();
+  
   initLazyCards(results, tooltip);
   updateAllBinderCounts();
 
