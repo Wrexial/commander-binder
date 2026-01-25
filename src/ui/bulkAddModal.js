@@ -222,6 +222,11 @@ export async function createBulkAddModal() {
   textArea.addEventListener('input', handleInputValidation);
   textArea.addEventListener('keyup', handleAutocomplete);
   textArea.addEventListener('keydown', handleKeyDown);
+  textArea.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && event.ctrlKey) {
+      handleConfirm();
+    }
+  });
 
   suggestionsContainer = document.createElement('div');
   suggestionsContainer.className = 'suggestions-container';
