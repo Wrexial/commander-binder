@@ -53,13 +53,10 @@ function createLine(name, card) {
 
 const handleInputValidation = debounce(async () => {
   const lines = textArea.value.split('\n');
+  const uniqueLines = [...new Set(lines.map(line => line.trim()).filter(Boolean))];
   preview.innerHTML = '';
-  const validationPromises = lines.map(line => {
-    const name = line.trim();
-    if (name) {
-      return validateCard(name).then(card => ({ name, card }));
-    }
-    return Promise.resolve(null);
+  const validationPromises = uniqueLines.map(name => {
+    return validateCard(name).then(card => ({ name, card }));
   });
 
   const results = await Promise.all(validationPromises);
@@ -166,7 +163,7 @@ function updateActiveSuggestion() {
 
 async function handleConfirm() {
   const lines = textArea.value.split('\n');
-  const cardNames = lines.map(line => line.trim()).filter(Boolean);
+  const cardNames = [...new Set(lines.map(line => line.trim()).filter(Boolean))];
 
   if (cardNames.length === 0) {
     showToast('No card names to add.', 'error');
