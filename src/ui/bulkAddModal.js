@@ -4,6 +4,7 @@ import { showToast } from './toast.js';
 import { setCardsOwned } from '../cardState.js';
 import { cardStore } from '../loadedCards.js';
 import { updateAllCardStates } from '../cards.js';
+import { updateAllBinderCounts } from '../layout.js';
 
 let modal;
 let textArea;
@@ -183,6 +184,7 @@ async function handleConfirm() {
     await setCardsOwned(validCards, true);
     showToast(`Successfully added ${validCards.length} cards!`, 'success');
     updateAllCardStates();
+    updateAllBinderCounts();
   }
 
   if (invalidNames.length > 0) {
