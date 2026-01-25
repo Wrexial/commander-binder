@@ -19,6 +19,18 @@ export function createGlobalBulkAddButton(onClick) {
   settingsContainer.appendChild(bulkAddButton);
 }
 
+export function createGlobalBulkCheckButton(onClick) {
+  const settingsContainer = document.getElementById('toggles-container');
+  if (!settingsContainer) return;
+
+  const bulkCheckButton = document.createElement('button');
+  bulkCheckButton.textContent = 'Bulk Check';
+  bulkCheckButton.className = 'global-export-button';
+  bulkCheckButton.addEventListener('click', onClick);
+
+  settingsContainer.appendChild(bulkCheckButton);
+}
+
 export function createGlobalExportOwnedButton() {
   const settingsContainer = document.getElementById('toggles-container');
   if (!settingsContainer) return;

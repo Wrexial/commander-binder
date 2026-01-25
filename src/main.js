@@ -10,12 +10,20 @@ import { createGuestModeText } from './components/GuestModeText.js';
 import { createShareButton } from './components/ShareButton.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { initCardInteractions } from './cardInteractions.js';
-import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, updateAllBinderCounts } from './layout.js';
+import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, createGlobalBulkCheckButton, updateAllBinderCounts } from './layout.js';
 import { createBulkAddModal } from './ui/bulkAddModal.js';
+import { createBulkCheckModal } from './ui/bulkCheckModal.js';
 import { updateAllCardStates } from './cards.js';
 
 async function showBulkAddModal() {
   const modal = await createBulkAddModal();
+  if (modal) {
+    modal.show();
+  }
+}
+
+async function showBulkCheckModal() {
+  const modal = await createBulkCheckModal();
   if (modal) {
     modal.show();
   }
@@ -75,6 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initCardSettings();
   createGlobalBulkAddButton(showBulkAddModal);
+  createGlobalBulkCheckButton(showBulkCheckModal);
   createGlobalExportOwnedButton();
   createGlobalExportButton();
   initSearch();
