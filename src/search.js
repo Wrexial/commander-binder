@@ -11,8 +11,8 @@ export async function searchCards(query, filterUnowned = true) {
     const conditions = parseQuery(query);
     let filteredCards = allCards;
     if (conditions.length > 0) {
-        filteredCards = allCards.data.filter(card => {
-            return conditions.every(condition => evaluateCondition(card, condition));
+        filteredCards = allCards.filter(card => {
+            return conditions.every(condition => evaluateCondition({ cardData: card }, condition));
         });
     }
 
