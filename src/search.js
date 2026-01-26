@@ -174,6 +174,17 @@ function cardMatchesFilter(card, filter) {
     if (term === 'owned') {
       match = isCardOwned(card.cardData);
     }
+  } else if (filter.startsWith('price:')) {
+    const priceTerm = getFilterValue(filter, 'price:').replace(',', '.');
+    const price = parseFloat(card.cardData.prices.usd);
+    if (isNaN(price)) {
+      match = false;
+    } else if (priceTerm.includes('-')) {
+      const [minPrice, maxPrice] = priceTerm.split('-').map(p => parseFloat(p));
+      match = price >= minPrice && price <= maxPrice;
+    } else {
+      match = price >= parseFloat(priceTerm);
+    }
   } else {
     const cardName = card.cardData.name.toLowerCase();
     const searchTerm = getFilterValue(filter);
