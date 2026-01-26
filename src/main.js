@@ -14,6 +14,7 @@ import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBu
 import { createBulkAddModal } from './ui/bulkAddModal.js';
 import { createBulkCheckModal } from './ui/bulkCheckModal.js';
 import { updateAllCardStates } from './cards.js';
+import { showStatisticsModal } from './statistics.js';
 
 async function showBulkAddModal() {
   const modal = await createBulkAddModal();
@@ -42,6 +43,12 @@ function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
   updateOwnedCounter();
   const shareButton = createShareButton(mainState.loggedInUserId);
   userActionsDiv.appendChild(shareButton);
+  
+  const statsButton = document.createElement('button');
+  statsButton.textContent = 'Show Statistics';
+  statsButton.addEventListener('click', showStatisticsModal);
+  userActionsDiv.appendChild(statsButton);
+  
   shareButton.classList.remove('hidden');
 }
 
