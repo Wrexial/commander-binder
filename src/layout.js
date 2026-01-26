@@ -8,32 +8,32 @@ import { showListModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
 
 export function createGlobalBulkAddButton(onClick) {
-  const settingsContainer = document.getElementById('toggles-container');
-  if (!settingsContainer) return;
+  const container = document.getElementById('user-actions');
+  if (!container) return;
 
   const bulkAddButton = document.createElement('button');
   bulkAddButton.textContent = 'Bulk Add';
   bulkAddButton.className = 'global-export-button';
   bulkAddButton.addEventListener('click', onClick);
 
-  settingsContainer.appendChild(bulkAddButton);
+  container.appendChild(bulkAddButton);
 }
 
 export function createGlobalBulkCheckButton(onClick) {
-  const settingsContainer = document.getElementById('toggles-container');
-  if (!settingsContainer) return;
+  const container = document.getElementById('user-actions');
+  if (!container) return;
 
   const bulkCheckButton = document.createElement('button');
   bulkCheckButton.textContent = 'Bulk Check';
   bulkCheckButton.className = 'global-export-button';
   bulkCheckButton.addEventListener('click', onClick);
 
-  settingsContainer.appendChild(bulkCheckButton);
+  container.appendChild(bulkCheckButton);
 }
 
 export function createGlobalExportOwnedButton() {
-  const settingsContainer = document.getElementById('toggles-container');
-  if (!settingsContainer) return;
+  const container = document.getElementById('user-actions');
+  if (!container) return;
 
   const exportButton = document.createElement('button');
   exportButton.textContent = 'Export All Owned';
@@ -59,7 +59,7 @@ export function createGlobalExportOwnedButton() {
     });
   });
 
-  settingsContainer.appendChild(exportButton);
+  container.appendChild(exportButton);
 }
 
 export function startNewBinder(results) {
@@ -242,8 +242,8 @@ export function updateAllBinderCounts() {
 }
 
 export function createGlobalExportButton() {
-  const settingsContainer = document.getElementById('toggles-container');
-  if (!settingsContainer) return;
+  const container = document.getElementById('user-actions');
+  if (!container) return;
 
   const exportButton = document.createElement('button');
   exportButton.textContent = 'Export All Missing Cards';
@@ -261,5 +261,5 @@ export function createGlobalExportButton() {
     showListModal('All Missing Cards', cardNames);
   });
 
-  settingsContainer.appendChild(exportButton);
+  container.appendChild(exportButton);
 }

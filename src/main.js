@@ -43,12 +43,14 @@ function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
   updateOwnedCounter();
   const shareButton = createShareButton(mainState.loggedInUserId);
   userActionsDiv.appendChild(shareButton);
-  
+
   const statsButton = document.createElement('button');
   statsButton.textContent = 'Show Statistics';
   statsButton.className = 'stats-button';
   statsButton.addEventListener('click', showStatisticsModal);
   userActionsDiv.appendChild(statsButton);
+
+  createGlobalBulkAddButton(showBulkAddModal);
   
   shareButton.classList.remove('hidden');
 }
@@ -64,6 +66,11 @@ export async function setupUI() {
   if (mainState.guestUserId) {
     const guestModeText = createGuestModeText();
     userButtonDiv.appendChild(guestModeText);
+    const statsButton = document.createElement('button');
+    statsButton.textContent = 'Show Statistics';
+    statsButton.className = 'stats-button';
+    statsButton.addEventListener('click', showStatisticsModal);
+    userActionsDiv.appendChild(statsButton);
     appState.isViewOnlyMode = true;
   } else if (clerk.user) {
     setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk);
@@ -90,7 +97,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateAllBinderCounts();
 
   initCardSettings();
-  createGlobalBulkAddButton(showBulkAddModal);
   createGlobalBulkCheckButton(showBulkCheckModal);
   createGlobalExportOwnedButton();
   createGlobalExportButton();
