@@ -13,10 +13,11 @@ function calculateStatistics(cards) {
 
     for (const card of cards) {
         // Total Value
-        const prices = [
-            card.prices.eur,
-            card.prices.eur_foil,
-        ].filter(p => p !== null).map(p => parseFloat(p));
+        const printings = cardStore.getPrintings(card.name);
+        const prices = printings.flatMap(p => [
+            p.prices.eur,
+            p.prices.eur_foil,
+        ]).filter(p => p !== null).map(p => parseFloat(p));
         const price = prices.length > 0 ? Math.min(...prices) : null;
 
         if (price) {
