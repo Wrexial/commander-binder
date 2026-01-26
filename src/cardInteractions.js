@@ -6,6 +6,7 @@ import { isCardOwned, toggleCardOwned, setCardsOwned } from "./cardState.js";
 import { showUndo } from './ui/toast.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { updateBinderCounts } from './layout.js';
+import { cardStore } from './loadedCards.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -128,6 +129,30 @@ async function handleContainerClick(event) {
     });
 }
 
+function handleContextMenu(event, tooltip) {
+    if (tooltip.style.display === 'none') return;
+
+    const cardElement = event.target.closest('.card');
+    if (!cardElement || appState.isViewOnlyMode) return;
+
+    event.preventDefault();
+
+    const cardName = cardElement.cardData.name;
+    const printings = cardStore.getPrintings(cardName);
+    if (printings.length <= 1) return;
+
+    const state = getState(cardElement);
+    const currentIndex = state.printingIndex || 0;
+    const nextIndex = (currentIndex + 1) % printings.length;
+    state.printingIndex = nextIndex;
+
+    const nextPrinting = printings[nextIndex];
+    cardElement.cardData = nextPrinting; 
+
+    // Re-show the tooltip with the new card data
+    showTooltip(event, nextPrinting, tooltip);
+}
+
 
 // --- Main Initialization ---
 
@@ -136,6 +161,7 @@ export function initCardInteractions(container, tooltip) {
     container.addEventListener("mouseout", e => handleMouseLeave(e, tooltip));
     container.addEventListener("mousemove", e => handleMouseMove(e, tooltip));
     container.addEventListener("click", handleContainerClick);
+    container.addEventListener("contextmenu", e => handleContextMenu(e, tooltip));
 
     container.addEventListener("touchstart", e => handleTouchStart(e, tooltip), { passive: true });
     container.addEventListener("touchmove", handleTouchMove, { passive: true });

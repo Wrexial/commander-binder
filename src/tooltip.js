@@ -1,6 +1,7 @@
 // tooltip.js
 import { imageCache } from './config.js';
 import { cardSettings } from './cardSettings.js';
+import { cardStore } from './loadedCards.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
@@ -19,6 +20,14 @@ export function showTooltip(e, card, tooltip) {
   tooltipTimeout = setTimeout(() => {
     tooltip.innerHTML = `<div class="loading">Loading...</div>`;
     tooltip.style.display = "flex";
+
+    const printings = cardStore.getPrintings(card.name);
+    if (printings.length > 1) {
+        const indicator = document.createElement('span');
+        indicator.className = 'printing-indicator';
+        indicator.textContent = `Right-click to see ${printings.length} versions`;
+        tooltip.appendChild(indicator);
+    }
 
     const images = [];
 
