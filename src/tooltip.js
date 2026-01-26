@@ -38,11 +38,12 @@ export function showTooltip(e, card, tooltip) {
         textContainer.appendChild(indicator);
     }
 
-    const price = Math.min(...[card.prices.eur, card.prices.eur_foil].filter(p => p).map(p => parseFloat(p)));
+    const prices = [card.prices.eur, card.prices.eur_foil].filter(p => p).map(p => parseFloat(p));
+    const price = prices.length > 0 ? Math.min(...prices) : null;
 
     const descriptor = document.createElement('div');
     descriptor.className = 'card-descriptor';
-    descriptor.textContent = `${card.set_name} #${card.collector_number} · €${price ? price.toFixed(2) : 'N/A'}`;
+    descriptor.textContent = `${card.set_name} #${card.collector_number} · €${price !== null ? price.toFixed(2) : 'N/A'}`;
     textContainer.appendChild(descriptor);
 
     tooltip.style.display = "flex";
