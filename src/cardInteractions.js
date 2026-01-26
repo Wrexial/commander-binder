@@ -130,10 +130,14 @@ async function handleContainerClick(event) {
 }
 
 function handleContextMenu(event, tooltip) {
-    if (tooltip.style.display === 'none') return;
-
     const cardElement = event.target.closest('.card');
     if (!cardElement) return;
+
+    event.preventDefault();
+
+    if (tooltip.style.display === 'none') return;
+    
+    if (appState.isViewOnlyMode) return;
 
     event.preventDefault();
 
