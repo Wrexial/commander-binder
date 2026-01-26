@@ -4,6 +4,7 @@ import { appState } from './appState.js';
 import { showLoading, hideLoading } from './loadingIndicator.js';
 import { startNewBinder, startNewSection, updateBinderCounts } from './layout.js';
 import { createCardElement, updateCardState } from './cards.js';
+import { cardStore } from './loadedCards.js';
 import { updateOwnedCounter } from './ui/ownedCounter.js';
 import { isCardOwned } from './cardState.js';
 import { showToast } from './ui/toast.js';
@@ -16,16 +17,21 @@ async function fetchScryfallData(url) {
     return res.json();
 }
 function processScryfallData(data) {
-    const newCards = [];
+    const newUniqueCards = [];
     for (const card of data.data) {
         if (!card.games.includes("paper")) continue;
-        if (appState.seenNames.has(card.name)) continue;
+        
+        const isNewUniqueCard = !appState.seenNames.has(card.name);
 
-        appState.seenNames.add(card.name);
+        cardStore.add(card);
+
+        if (isNewUniqueCard) {
+            appState.seenNames.add(card.name);
+            newUniqueCards.push(card);
+        }
         appState.seenSetCodes.add(card.set.toLowerCase());
-        newCards.push(card);
     }
-    return newCards;
+    return newUniqueCards;
 }
 
 export async function fetchNextPage(results, tooltip) {
@@ -58,7 +64,7 @@ export async function fetchNextPage(results, tooltip) {
         hideLoading();
     }
 
-    if (appState.nextPageUrl) {
+    if (appState.pageCards.length < CARDS_PER_PAGE && appState.nextPageUrl) {
         fetchNextPage(results, tooltip);
     }
 }
@@ -77,7 +83,6 @@ function renderPage(results, tooltip, pageCards) {
         el.dataset.cardIndex = cardIndex;
         appState.grid.appendChild(el);
         updateCardState(el);
-
     });
     updateBinderCounts(appState.binder);
 

@@ -1,23 +1,36 @@
 // src/loadedCards.js
 
-const loadedCards = new Map();
+const cardsByName = new Map();
 
 export const cardStore = {
   add(card) {
-    if (card && card.id && !loadedCards.has(card.id)) {
-      loadedCards.set(card.id, card);
+    if (!card || !card.name) return;
+
+    if (!cardsByName.has(card.name)) {
+      cardsByName.set(card.name, []);
+    }
+
+    const printings = cardsByName.get(card.name);
+    if (!printings.some(p => p.id === card.id)) {
+      printings.push(card);
+      printings.sort((a, b) => new Date(a.released_at) - new Date(b.released_at));
     }
   },
-  
-  getById(id) {
-    return loadedCards.get(id);
+
+  getPrintings(name) {
+    return cardsByName.get(name) || [];
+  },
+
+  getOldestPrinting(name) {
+    const printings = this.getPrintings(name);
+    return printings.length > 0 ? printings[0] : undefined;
   },
 
   getAll() {
-    return Array.from(loadedCards.values());
+    return Array.from(cardsByName.values()).map(printings => printings[0]);
   },
-  
+
   clear() {
-    loadedCards.clear();
+    cardsByName.clear();
   }
 };
