@@ -4,6 +4,7 @@ import { appState } from "./appState.js";
 import { isCardOwned } from "./cardState.js";
 import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
 import { CARDS_PER_PAGE } from './config.js';
+import { cardStore } from './loadedCards.js';
 
 export function createCardElement(card, cardIndex) {
   const div = document.createElement("div");
@@ -46,10 +47,11 @@ export function createCardElement(card, cardIndex) {
     div.style.setProperty('--card-bg', getCardBackground(card));
     div.style.setProperty('--card-text', '#111111');
 
-    const prices = [
-        card.prices.eur,
-        card.prices.eur_foil,
-    ].filter(p => p !== null).map(p => parseFloat(p));
+    const printings = cardStore.getPrintings(card.name);
+    const prices = printings.flatMap(p => [
+        p.prices.eur,
+        p.prices.eur_foil,
+    ]).filter(p => p !== null).map(p => parseFloat(p));
     const price = prices.length > 0 ? Math.min(...prices) : null;
 
     if (price) {
