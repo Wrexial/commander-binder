@@ -9,12 +9,15 @@ function calculateStatistics(cards) {
     const colorCombinations = {};
     const types = {};
     const rarities = {};
+    const pricedCards = [];
 
     for (const card of cards) {
         // Total Value
         const price = card.prices.eur || card.prices.eur_foil;
         if (price) {
-            totalValue += parseFloat(price);
+            const priceValue = parseFloat(price);
+            totalValue += priceValue;
+            pricedCards.push({ name: card.name, price: priceValue });
         }
 
         // Colors
@@ -47,6 +50,9 @@ function calculateStatistics(cards) {
         rarities[rarity] = (rarities[rarity] || 0) + 1;
     }
 
+    const top5ValuableCards = pricedCards.sort((a, b) => b.price - a.price).slice(0, 5);
+    const averageCardValue = totalCards > 0 ? (totalValue / totalCards).toFixed(2) : 0;
+
     return {
         totalCards,
         totalValue: totalValue.toFixed(2),
@@ -54,6 +60,8 @@ function calculateStatistics(cards) {
         colorCombinations,
         types,
         rarities,
+        top5ValuableCards,
+        averageCardValue,
     };
 }
 
@@ -71,10 +79,15 @@ function createStatisticsHTML(stats) {
         .map(([combo, count]) => `<li>${combo.split('').map(createManaSymbol).join('')}: ${count}</li>`)
         .join('');
 
+    const top5ValuableCardsEntries = stats.top5ValuableCards
+        .map(card => `<li>${card.name} - €${card.price.toFixed(2)}</li>`)
+        .join('');
+
     return `
         <div class="stats-summary">
             <div><strong>Total Cards:</strong> ${stats.totalCards}</div>
             <div><strong>Total Value:</strong> €${stats.totalValue}</div>
+            <div><strong>Average Card Value:</strong> €${stats.averageCardValue}</div>
         </div>
         
         <h3>Colors</h3>
@@ -82,6 +95,9 @@ function createStatisticsHTML(stats) {
 
         <h3>Color Combinations</h3>
         <ul class="statistics-list">${colorCombinationEntries}</ul>
+
+        <h3>Top 5 Most Valuable Cards</h3>
+        <ul class="statistics-list">${top5ValuableCardsEntries}</ul>
 
         <h3>Types</h3>
         <ul>
@@ -118,6 +134,9 @@ export async function showStatisticsModal() {
     const stats = calculateStatistics(ownedCards);
     contentArea.innerHTML = createStatisticsHTML(stats);
 
+    const paginationContainer = document.createElement('div');
+    paginationContainer.className = 'pagination-container';
+
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'modal-button-container';
 
@@ -130,7 +149,14 @@ export async function showStatisticsModal() {
 
     modal.appendChild(modalHeader);
     modal.appendChild(contentArea);
+    modal.appendChild(paginationContainer);
     modal.appendChild(buttonContainer);
     modalBackdrop.appendChild(modal);
     document.body.appendChild(modalBackdrop);
+
+    modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) {
+            document.body.removeChild(modalBackdrop);
+        }
+    });
 }
