@@ -6,7 +6,6 @@ function calculateStatistics(cards) {
     const totalCards = cards.length;
     let totalValue = 0;
     const colors = {};
-    const types = {};
     const rarities = {};
 
     for (const card of cards) {
@@ -40,23 +39,17 @@ function calculateStatistics(cards) {
         totalCards,
         totalValue: totalValue.toFixed(2),
         colors,
-        types,
         rarities,
     };
 }
 
 function createStatisticsHTML(stats) {
     return `
-        <h2>Collection Statistics</h2>
         <p><strong>Total Cards:</strong> ${stats.totalCards}</p>
         <p><strong>Total Value:</strong> €${stats.totalValue}</p>
         <h3>Colors</h3>
         <ul>
             ${Object.entries(stats.colors).map(([color, count]) => `<li>${color}: ${count}</li>`).join('')}
-        </ul>
-        <h3>Types</h3>
-        <ul>
-            ${Object.entries(stats.types).map(([type, count]) => `<li>${type}: ${count}</li>`).join('')}
         </ul>
         <h3>Rarities</h3>
         <ul>
@@ -81,16 +74,27 @@ export async function showStatisticsModal() {
     const modal = document.createElement('div');
     modal.className = 'list-modal';
     
+    const modalHeader = document.createElement('h2');
+    modalHeader.textContent = 'Collection Statistics';
+
+    const contentArea = document.createElement('div');
+    contentArea.className = 'modal-content-area';
     const stats = calculateStatistics(ownedCards);
-    modal.innerHTML = createStatisticsHTML(stats);
+    contentArea.innerHTML = createStatisticsHTML(stats);
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'modal-button-container';
 
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
     closeButton.addEventListener('click', () => {
         document.body.removeChild(modalBackdrop);
     });
-    modal.appendChild(closeButton);
+    buttonContainer.appendChild(closeButton);
 
+    modal.appendChild(modalHeader);
+    modal.appendChild(contentArea);
+    modal.appendChild(buttonContainer);
     modalBackdrop.appendChild(modal);
     document.body.appendChild(modalBackdrop);
 }
