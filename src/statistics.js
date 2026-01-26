@@ -5,7 +5,9 @@ import { showToast } from './ui/toast.js';
 function calculateStatistics(cards) {
     const totalCards = cards.length;
     let totalValue = 0;
-    const colors = {};
+    const colors = { W: 0, U: 0, B: 0, R: 0, G: 0 };
+    const colorCombinations = {};
+    const types = {};
     const rarities = {};
 
     for (const card of cards) {
@@ -16,18 +18,28 @@ function calculateStatistics(cards) {
         }
 
         // Colors
-        if (card.colors) {
-            for (const color of card.colors) {
-                colors[color] = (colors[color] || 0) + 1;
+        let cardColors = card.colors;
+        if (card.card_faces && (!cardColors || cardColors.length === 0)) {
+            cardColors = card.card_faces.reduce((acc, face) => acc.concat(face.colors || []), []);
+        }
+        cardColors = [...new Set(cardColors)]; // Remove duplicates for MDFCs
+
+        if (cardColors.length > 0) {
+            // Individual colors
+            for (const color of cardColors) {
+                colors[color]++;
             }
-        } else if (card.card_faces) {
-            for (const face of card.card_faces) {
-                if (face.colors) {
-                    for (const color of face.colors) {
-                        colors[color] = (colors[color] || 0) + 1;
-                    }
-                }
-            }
+
+            // Color combinations
+            const key = cardColors.sort().join('');
+            colorCombinations[key] = (colorCombinations[key] || 0) + 1;
+        }
+
+        // Types
+        const typeLine = card.type_line.split(' // ')[0];
+        const supertypes = typeLine.split(' — ')[0].split(' ');
+        for (const type of supertypes) {
+            types[type] = (types[type] || 0) + 1;
         }
 
         // Rarities
@@ -39,17 +51,41 @@ function calculateStatistics(cards) {
         totalCards,
         totalValue: totalValue.toFixed(2),
         colors,
+        colorCombinations,
+        types,
         rarities,
     };
 }
 
+function createManaSymbol(symbol) {
+    return `<img src="https://svgs.scryfall.io/card-symbols/${symbol}.svg" class="mana-symbol" alt="${symbol}">`;
+}
+
 function createStatisticsHTML(stats) {
+    const colorEntries = Object.entries(stats.colors)
+        .filter(([, count]) => count > 0)
+        .map(([color, count]) => `<li>${createManaSymbol(color)}: ${count}</li>`).join('');
+
+    const colorCombinationEntries = Object.entries(stats.colorCombinations)
+        .sort((a, b) => b[1] - a[1])
+        .map(([combo, count]) => `<li>${combo.split('').map(createManaSymbol).join('')}: ${count}</li>`)
+        .join('');
+
     return `
-        <p><strong>Total Cards:</strong> ${stats.totalCards}</p>
-        <p><strong>Total Value:</strong> €${stats.totalValue}</p>
+        <div class="stats-summary">
+            <div><strong>Total Cards:</strong> ${stats.totalCards}</div>
+            <div><strong>Total Value:</strong> €${stats.totalValue}</div>
+        </div>
+        
         <h3>Colors</h3>
+        <ul class="statistics-list">${colorEntries}</ul>
+
+        <h3>Color Combinations</h3>
+        <ul class="statistics-list">${colorCombinationEntries}</ul>
+
+        <h3>Types</h3>
         <ul>
-            ${Object.entries(stats.colors).map(([color, count]) => `<li>${color}: ${count}</li>`).join('')}
+            ${Object.entries(stats.types).map(([type, count]) => `<li>${type}: ${count}</li>`).join('')}
         </ul>
         <h3>Rarities</h3>
         <ul>

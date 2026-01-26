@@ -998,6 +998,24 @@ body {
   color: var(--text);
 }
 
+.stats-summary {
+    margin-bottom: 1rem;
+}
+
+.mana-symbol {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    margin-right: 0.25em;
+}
+
+.mana-symbol {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    margin-right: 0.25em;
+}
+
 .suggestion-item {
   padding: 8px 12px;
   cursor: pointer;
