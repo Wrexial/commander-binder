@@ -133,7 +133,7 @@ function handleContextMenu(event, tooltip) {
     if (tooltip.style.display === 'none') return;
 
     const cardElement = event.target.closest('.card');
-    if (!cardElement || appState.isViewOnlyMode) return;
+    if (!cardElement) return;
 
     event.preventDefault();
 
