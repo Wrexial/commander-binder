@@ -18,16 +18,32 @@ export function showTooltip(e, card, tooltip) {
   activeTooltip = tooltip;
 
   tooltipTimeout = setTimeout(() => {
-    tooltip.innerHTML = `<div class="loading">Loading...</div>`;
-    tooltip.style.display = "flex";
+    tooltip.innerHTML = ''; // Clear existing content
 
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'tooltip-image-container';
+    imageContainer.innerHTML = `<div class="loading">Loading...</div>`;
+    tooltip.appendChild(imageContainer);
+
+    const textContainer = document.createElement('div');
+    textContainer.className = 'tooltip-text-container';
+    tooltip.appendChild(textContainer);
+    
     const printings = cardStore.getPrintings(card.name);
     if (printings.length > 1) {
+        const currentIndex = printings.findIndex(p => p.id === card.id);
         const indicator = document.createElement('span');
         indicator.className = 'printing-indicator';
-        indicator.textContent = `Right-click to see ${printings.length} versions`;
-        tooltip.appendChild(indicator);
+        indicator.textContent = `Version ${currentIndex + 1} of ${printings.length} (Right-click to cycle)`;
+        textContainer.appendChild(indicator);
     }
+
+    const descriptor = document.createElement('div');
+    descriptor.className = 'card-descriptor';
+    descriptor.textContent = `${card.set_name} #${card.collector_number} · ${card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1)}`;
+    textContainer.appendChild(descriptor);
+
+    tooltip.style.display = "flex";
 
     const images = [];
 
