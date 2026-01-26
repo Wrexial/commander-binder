@@ -1,4 +1,3 @@
-import { searchCards } from '../search.js';
 import { debounce } from '../utils/debounce.js';
 import { showToast } from './toast.js';
 import { setCardsOwned, isCardOwned } from '../cardState.js';
@@ -21,32 +20,24 @@ async function validateCard(name) {
     return cardCache.get(name);
   }
 
-  // First, check the local cardStore
+  // Check the local cardStore
   const localCard = cardStore.getAll().find(c => c.name.toLowerCase() === name.toLowerCase());
   if (localCard) {
     cardCache.set(name, localCard);
     return localCard;
   }
 
-  // If not found locally, then search
-  try {
-    const result = await searchCards(name, false);
-    const card = result.data.find(c => c.name.toLowerCase() === name.toLowerCase());
-    cardCache.set(name, card);
-    return card;
-  } catch (e) {
-    cardCache.set(name, null);
-    return null;
-  }
+  cardCache.set(name, null);
+  return null;
 }
 
 function createLine(name, card) {
   const line = document.createElement('div');
   line.textContent = name;
   if (card) {
-    line.style.color = 'green';
+    line.style.color = isCardOwned(card) ? 'green' : 'red';
   } else {
-    line.style.color = 'red';
+    line.style.color = 'black';
   }
   return line;
 }
