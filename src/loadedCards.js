@@ -6,11 +6,13 @@ export const cardStore = {
   add(card) {
     if (!card || !card.name) return;
 
-    if (!cardsByName.has(card.name)) {
-      cardsByName.set(card.name, []);
+    const primaryName = card.name.split(' // ')[0];
+
+    if (!cardsByName.has(primaryName)) {
+      cardsByName.set(primaryName, []);
     }
 
-    const printings = cardsByName.get(card.name);
+    const printings = cardsByName.get(primaryName);
     if (!printings.some(p => p.id === card.id)) {
       printings.push(card);
       printings.sort((a, b) => new Date(a.released_at) - new Date(b.released_at));
@@ -18,7 +20,8 @@ export const cardStore = {
   },
 
   getPrintings(name) {
-    return cardsByName.get(name) || [];
+    const primaryName = name.split(' // ')[0];
+    return cardsByName.get(primaryName) || [];
   },
 
   getOldestPrinting(name) {

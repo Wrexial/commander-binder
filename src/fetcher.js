@@ -21,12 +21,13 @@ function processScryfallData(data) {
     for (const card of data.data) {
         if (!card.games.includes("paper")) continue;
         
-        const isNewUniqueCard = !appState.seenNames.has(card.name);
+        const primaryName = card.name.split(' // ')[0];
+        const isNewUniqueCard = !appState.seenNames.has(primaryName);
 
         cardStore.add(card);
 
         if (isNewUniqueCard) {
-            appState.seenNames.add(card.name);
+            appState.seenNames.add(primaryName);
             newUniqueCards.push(card);
         }
         appState.seenSetCodes.add(card.set.toLowerCase());
