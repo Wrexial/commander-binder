@@ -11,7 +11,7 @@ function calculateStatistics(cards) {
 
     for (const card of cards) {
         // Total Value
-        const price = card.prices.usd || card.prices.usd_foil || card.prices.usd_etched;
+        const price = card.prices.eur || card.prices.eur_foil;
         if (price) {
             totalValue += parseFloat(price);
         }
@@ -29,14 +29,6 @@ function calculateStatistics(cards) {
                     }
                 }
             }
-        }
-
-
-        // Types
-        const typeLine = card.type_line.split(' // ')[0];
-        const supertypes = typeLine.split(' — ')[0].split(' ');
-        for (const type of supertypes) {
-            types[type] = (types[type] || 0) + 1;
         }
 
         // Rarities
@@ -57,7 +49,7 @@ function createStatisticsHTML(stats) {
     return `
         <h2>Collection Statistics</h2>
         <p><strong>Total Cards:</strong> ${stats.totalCards}</p>
-        <p><strong>Total Value:</strong> $${stats.totalValue}</p>
+        <p><strong>Total Value:</strong> €${stats.totalValue}</p>
         <h3>Colors</h3>
         <ul>
             ${Object.entries(stats.colors).map(([color, count]) => `<li>${color}: ${count}</li>`).join('')}

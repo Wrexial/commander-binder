@@ -46,6 +46,7 @@ function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
   
   const statsButton = document.createElement('button');
   statsButton.textContent = 'Show Statistics';
+  statsButton.className = 'stats-button';
   statsButton.addEventListener('click', showStatisticsModal);
   userActionsDiv.appendChild(statsButton);
   

@@ -152,7 +152,8 @@ body {
 
 #share-button,
 .sign-in-button,
-.global-export-button {
+.global-export-button,
+.stats-button {
   padding: 8px 12px;
   background-color: var(--button-bg);
   color: var(--button-text);
@@ -389,6 +390,19 @@ body {
     padding: 12px 10px; /* Vertical padding to clear top/bottom icons */
     font-size: 0.95rem;
   }
+}
+
+.card-price {
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: bold;
 }
 
 .card:hover {

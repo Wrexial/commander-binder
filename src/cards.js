@@ -77,6 +77,14 @@ export function createCardElement(card, cardIndex) {
       // Reserve space / keep layout stable when toggles exist
       div.classList.add('has-toggle');
     
+    const price = card.prices.eur || card.prices.eur_foil;
+    if (price) {
+        const priceEl = document.createElement('span');
+        priceEl.className = 'card-price';
+        priceEl.textContent = `€${price}`;
+        div.appendChild(priceEl);
+    }
+    
     return div;
 }
 
