@@ -77,11 +77,16 @@ export function createCardElement(card, cardIndex) {
       // Reserve space / keep layout stable when toggles exist
       div.classList.add('has-toggle');
     
-    const price = card.prices.eur || card.prices.eur_foil;
+    const prices = [
+        card.prices.eur,
+        card.prices.eur_foil,
+    ].filter(p => p !== null).map(p => parseFloat(p));
+    const price = prices.length > 0 ? Math.min(...prices) : null;
+
     if (price) {
         const priceEl = document.createElement('span');
         priceEl.className = 'card-price';
-        priceEl.textContent = `€${price}`;
+        priceEl.textContent = `€${price.toFixed(2)}`;
         div.appendChild(priceEl);
     }
     

@@ -13,7 +13,12 @@ function calculateStatistics(cards) {
 
     for (const card of cards) {
         // Total Value
-        const price = card.prices.eur || card.prices.eur_foil;
+        const prices = [
+            card.prices.eur,
+            card.prices.eur_foil,
+        ].filter(p => p !== null).map(p => parseFloat(p));
+        const price = prices.length > 0 ? Math.min(...prices) : null;
+
         if (price) {
             const priceValue = parseFloat(price);
             totalValue += priceValue;
