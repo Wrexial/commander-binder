@@ -48,6 +48,19 @@ export function createCardElement(card, cardIndex) {
     div.style.setProperty('--card-border', borderStyle.borderColor);
     div.style.setProperty('--card-bg', getCardBackground(card));
     div.style.setProperty('--card-text', '#111111');
+
+    const prices = [
+        card.prices.eur,
+        card.prices.eur_foil,
+    ].filter(p => p !== null).map(p => parseFloat(p));
+    const price = prices.length > 0 ? Math.min(...prices) : null;
+
+    if (price) {
+        const priceEl = document.createElement('span');
+        priceEl.className = 'card-price';
+        priceEl.textContent = `€${price.toFixed(2)}`;
+        div.appendChild(priceEl);
+    }
   
     if (appState.isViewOnlyMode) {
       const ownedBadge = document.createElement('span');
@@ -77,19 +90,7 @@ export function createCardElement(card, cardIndex) {
       // Reserve space / keep layout stable when toggles exist
       div.classList.add('has-toggle');
     
-    const prices = [
-        card.prices.eur,
-        card.prices.eur_foil,
-    ].filter(p => p !== null).map(p => parseFloat(p));
-    const price = prices.length > 0 ? Math.min(...prices) : null;
-
-    if (price) {
-        const priceEl = document.createElement('span');
-        priceEl.className = 'card-price';
-        priceEl.textContent = `€${price.toFixed(2)}`;
-        div.appendChild(priceEl);
-    }
-    
+        
     return div;
 }
 

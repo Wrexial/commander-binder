@@ -291,7 +291,7 @@ body {
   align-items: center;
   justify-content: center;
   /* Default padding; extra space is only added when `has-toggle` is present */
-  padding: 4px 6px;
+  padding: 4px 6px 20px;
   border: 1px solid var(--card-border, var(--card-border-default));
   border-radius: 6px;
   min-height: 2.2em;
@@ -314,7 +314,7 @@ body {
 
 @media (max-width: 768px) {
   .card {
-    padding: 2px;
+    padding: 2px 2px 18px;
     font-size: 0.75rem;
     min-height: 4.8em; /* Further increased to prevent text/icon overlap */
   }
@@ -323,7 +323,7 @@ body {
 @media (min-width: 768px) {
   .card {
     font-size: 0.95rem;
-    padding: 6px 8px;
+    padding: 6px 8px 22px;
     min-height: 4.5em; /* Increased to fit name between corner elements */
   }
 }
