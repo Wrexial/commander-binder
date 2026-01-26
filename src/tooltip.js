@@ -125,7 +125,10 @@ export function showTooltip(e, card, tooltip) {
 
 // ---------------- Render Tooltip ----------------
 function finishTooltip(images, tooltip, event) {
-  tooltip.innerHTML = "";
+  const imageContainer = tooltip.querySelector('.tooltip-image-container');
+  if (!imageContainer) return;
+
+  imageContainer.innerHTML = "";
 
   const container = document.createElement("div");
   container.style.display = "flex";
@@ -151,7 +154,7 @@ function finishTooltip(images, tooltip, event) {
     container.appendChild(el);
   });
 
-  tooltip.appendChild(container);
+  imageContainer.appendChild(container);
 
   tooltip.classList.add("show"); // trigger scale/fade animation
 
