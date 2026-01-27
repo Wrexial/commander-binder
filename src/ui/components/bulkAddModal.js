@@ -1,10 +1,10 @@
-import { searchCards } from '../search.js';
-import { debounce } from '../utils/debounce.js';
+import { searchCards } from '../../ui/search.js';
+import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
-import { setCardsOwned } from '../cardState.js';
-import { cardStore } from '../loadedCards.js';
-import { updateAllCardStates } from '../cards.js';
-import { updateAllBinderCounts } from '../layout.js';
+import { setCardsOwned } from '../../state/cardState.js';
+import { cardStore } from '../../state/cardStore.js';
+import { updateAllCardStates } from '../../ui/cards.js';
+import { updateAllBinderCounts } from '../../ui/layout.js';
 
 let modal;
 let textArea;
@@ -34,7 +34,7 @@ async function validateCard(name) {
     const card = result.data.find(c => c.name.toLowerCase() === name.toLowerCase());
     cardCache.set(name, card);
     return card;
-  } catch (e) {
+  } catch {
     cardCache.set(name, null);
     return null;
   }
@@ -97,7 +97,7 @@ function handleAutocomplete(event) {
 
   if (suggestions.length > 0) {
     suggestionsContainer.innerHTML = '';
-    suggestions.forEach((suggestion, index) => {
+    suggestions.forEach(suggestion => {
       const item = document.createElement('div');
       item.className = 'suggestion-item';
       item.textContent = suggestion;

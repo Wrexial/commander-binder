@@ -1,20 +1,20 @@
 // main.js
-import { appState } from './appState.js';
-import { initLazyCards } from './lazyCardLoader.js';
-import { initCardSettings } from "./settingsUI.js";
-import { loadCardStates } from "./cardState.js";
-import { initSearch } from './search.js';
-import { initClerk, getClerk } from './clerk.js';
-import { createSignInButton } from './components/SignInButton.js';
-import { createGuestModeText } from './components/GuestModeText.js';
-import { createShareButton } from './components/ShareButton.js';
-import { updateOwnedCounter } from './ui/ownedCounter.js';
-import { initCardInteractions } from './cardInteractions.js';
-import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, createGlobalBulkCheckButton, updateAllBinderCounts } from './layout.js';
-import { createBulkAddModal } from './ui/bulkAddModal.js';
-import { createBulkCheckModal } from './ui/bulkCheckModal.js';
-import { updateAllCardStates } from './cards.js';
-import { showStatisticsModal } from './statistics.js';
+import { appState } from './state/appState.js';
+import { initLazyCards } from './ui/lazyCardLoader.js';
+import { initCardSettings } from "./ui/settingsUI.js";
+import { loadCardStates } from "./state/cardState.js";
+import { initSearch } from './ui/search.js';
+import { initClerk, getClerk } from './auth/clerk.js';
+import { createSignInButton } from './ui/components/SignInButton.js';
+import { createGuestModeText } from './ui/components/GuestModeText.js';
+import { createShareButton } from './ui/components/ShareButton.js';
+import { updateOwnedCounter } from './ui/components/ownedCounter.js';
+import { initCardInteractions } from './ui/cardInteractions.js';
+import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, createGlobalBulkCheckButton, updateAllBinderCounts } from './ui/layout.js';
+import { createBulkAddModal } from './ui/components/bulkAddModal.js';
+import { createBulkCheckModal } from './ui/components/bulkCheckModal.js';
+import { updateAllCardStates } from './ui/cards.js';
+import { showStatisticsModal } from './ui/statistics.js';
 
 async function showBulkAddModal() {
   const modal = await createBulkAddModal();

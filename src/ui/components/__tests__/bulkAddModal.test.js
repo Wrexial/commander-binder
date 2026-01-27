@@ -1,3 +1,4 @@
+/* global describe, beforeEach, afterEach, it, expect */
 import { createBulkAddModal } from '../bulkAddModal';
 
 describe('bulkAddModal', () => {

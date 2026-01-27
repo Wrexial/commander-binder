@@ -1,16 +1,15 @@
 // src/cardInteractions.js
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
-import { cardSettings } from "./cardSettings.js";
-import { appState } from "./appState.js";
-import { isCardOwned, toggleCardOwned, setCardsOwned } from "./cardState.js";
-import { showUndo } from './ui/toast.js';
-import { updateOwnedCounter } from './ui/ownedCounter.js';
+import { cardSettings } from "../state/cardSettings.js";
+import { appState } from "../state/appState.js";
+import { isCardOwned, toggleCardOwned, setCardsOwned } from "../state/cardState.js";
+import { showUndo } from './components/toast.js';
+import { updateOwnedCounter } from './components/ownedCounter.js';
 import { updateBinderCounts } from './layout.js';
-import { cardStore } from './loadedCards.js';
+import { cardStore } from '../state/cardStore.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
-const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 function getState(el) {
     if (!elementState.has(el)) {

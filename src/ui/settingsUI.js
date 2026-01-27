@@ -1,4 +1,4 @@
-import { cardSettings, saveSettings } from "./cardSettings.js";
+import { cardSettings, saveSettings } from "../state/cardSettings.js";
 import { updateCardStyles } from './cards.js';
 
 export function initCardSettings() {

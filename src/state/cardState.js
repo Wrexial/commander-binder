@@ -1,6 +1,6 @@
-import { updateOwnedCounter } from "./ui/ownedCounter.js";
-import { getClerk } from './clerk.js';
-import { mainState } from "./main.js";
+import { updateOwnedCounter } from "../ui/components/ownedCounter.js";
+import { getClerk } from '../auth/clerk.js';
+import { mainState } from "../main.js";
 
 const ownedCardIds = new Set();
 let initialized = false;

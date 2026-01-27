@@ -1,6 +1,6 @@
-import { isCardOwned } from './cardState.js';
-import { cardStore } from './loadedCards.js';
-import { showToast } from './ui/toast.js';
+import { isCardOwned } from '../state/cardState.js';
+import { cardStore } from '../state/cardStore.js';
+import { showToast } from './components/toast.js';
 
 function calculateStatistics(cards) {
     const totalCards = cards.length;

@@ -1,5 +1,5 @@
-import { appState } from './appState.js';
-import { fetchNextPage } from './fetcher.js';
+import { appState } from '../state/appState.js';
+import { fetchNextPage } from '../api/scryfall.js';
 import { startNewBinder } from './layout.js';
 
 

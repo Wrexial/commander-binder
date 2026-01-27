@@ -1,9 +1,7 @@
-import { debounce } from '../utils/debounce.js';
+import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
-import { setCardsOwned, isCardOwned } from '../cardState.js';
-import { cardStore } from '../loadedCards.js';
-import { updateAllCardStates } from '../cards.js';
-import { updateAllBinderCounts } from '../layout.js';
+import { isCardOwned } from '../../state/cardState.js';
+import { cardStore } from '../../state/cardStore.js';
 
 let modal;
 let textArea;
@@ -85,7 +83,7 @@ function handleAutocomplete(event) {
 
   if (suggestions.length > 0) {
     suggestionsContainer.innerHTML = '';
-    suggestions.forEach((suggestion, index) => {
+    suggestions.forEach(suggestion => {
       const item = document.createElement('div');
       item.className = 'suggestion-item';
       item.textContent = suggestion;

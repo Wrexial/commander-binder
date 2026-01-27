@@ -1,6 +1,6 @@
 import { Clerk } from "@clerk/clerk-js";
 import { clerkDarkTheme } from "./clerk-dark-theme.js";
-import { VITE_CLERK_PUBLISHABLE_KEY } from "./config.js";
+import { VITE_CLERK_PUBLISHABLE_KEY } from "../config/constants.js";
 
 const clerk = new Clerk(VITE_CLERK_PUBLISHABLE_KEY);
 

@@ -1,10 +1,10 @@
 // cards.js
-import { cardSettings } from "./cardSettings.js";
-import { appState } from "./appState.js";
-import { isCardOwned } from "./cardState.js";
-import { getCardBorderStyle, getCardBackground } from './utils/colors.js';
-import { CARDS_PER_PAGE } from './config.js';
-import { cardStore } from './loadedCards.js';
+import { cardSettings } from "../state/cardSettings.js";
+import { appState } from "../state/appState.js";
+import { isCardOwned } from "../state/cardState.js";
+import { getCardBorderStyle, getCardBackground } from '../utils/colors.js';
+import { CARDS_PER_PAGE } from '../config/constants.js';
+import { cardStore } from '../state/cardStore.js';
 
 export function createCardElement(card, cardIndex) {
   const div = document.createElement("div");

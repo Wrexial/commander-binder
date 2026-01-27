@@ -1,5 +1,5 @@
 // src/components/ShareButton.js
-import { showToast } from '../ui/toast.js';
+import { showToast } from './toast.js';
 
 export function createShareButton(userId) {
   const shareButton = document.createElement('button');

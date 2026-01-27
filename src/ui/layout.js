@@ -1,11 +1,11 @@
-import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
-import { appState } from './appState.js';
-import { lightenColor } from './utils/colors.js';
+import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
+import { appState } from '../state/appState.js';
+import { lightenColor } from '../utils/colors.js';
 import { positionTooltip } from './tooltip.js';
-import { getOwnedCardIds, isCardOwned } from './cardState.js';
-import { cardStore } from './loadedCards.js';
-import { showListModal } from './ui/modal.js';
-import { showToast } from './ui/toast.js';
+import { getOwnedCardIds, isCardOwned } from '../state/cardState.js';
+import { cardStore } from '../state/cardStore.js';
+import { showListModal } from './components/modal.js';
+import { showToast } from './components/toast.js';
 
 export function createGlobalBulkAddButton(onClick) {
   const container = document.getElementById('user-actions');

@@ -1,13 +1,12 @@
 // fetcher.js
-import { CARDS_PER_PAGE, PAGES_PER_BINDER } from './config.js';
-import { appState } from './appState.js';
-import { showLoading, hideLoading } from './loadingIndicator.js';
-import { startNewBinder, startNewSection, updateBinderCounts } from './layout.js';
-import { createCardElement, updateCardState } from './cards.js';
-import { cardStore } from './loadedCards.js';
-import { updateOwnedCounter } from './ui/ownedCounter.js';
-import { isCardOwned } from './cardState.js';
-import { showToast } from './ui/toast.js';
+import { CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
+import { appState } from '../state/appState.js';
+import { showLoading, hideLoading } from '../ui/loadingIndicator.js';
+import { startNewBinder, startNewSection, updateBinderCounts } from '../ui/layout.js';
+import { createCardElement, updateCardState } from '../ui/cards.js';
+import { cardStore } from '../state/cardStore.js';
+import { updateOwnedCounter } from '../ui/components/ownedCounter.js';
+import { showToast } from '../ui/components/toast.js';
 
 async function fetchScryfallData(url) {
     const res = await fetch(url);

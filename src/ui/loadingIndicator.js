@@ -1,5 +1,5 @@
 // loader.js
-import { appState } from './appState.js';
+import { appState } from '../state/appState.js';
 
 export function showLoading() {
   appState.activeFetches++;

@@ -1,7 +1,7 @@
 // tooltip.js
-import { imageCache } from './config.js';
-import { cardSettings } from './cardSettings.js';
-import { cardStore } from './loadedCards.js';
+import { imageCache } from '../config/constants.js';
+import { cardSettings } from '../state/cardSettings.js';
+import { cardStore } from '../state/cardStore.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
