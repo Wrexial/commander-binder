@@ -6,45 +6,23 @@ import { getOwnedCardIds, isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showListModal } from './components/modal.js';
 import { showToast } from './components/toast.js';
+import { addButtonToSidebar } from './components/sidebar.js';
 
-export function createGlobalBulkAddButton(onClick) {
-  const container = document.getElementById('user-actions');
-  if (!container) return;
-
-  const bulkAddButton = document.createElement('button');
-  bulkAddButton.textContent = 'Bulk Add';
-  bulkAddButton.className = 'global-export-button';
-  bulkAddButton.addEventListener('click', onClick);
-
-  container.appendChild(bulkAddButton);
+export function createBulkAddButton(onClick) {
+  addButtonToSidebar('Bulk Add', onClick);
 }
 
-export function createGlobalBulkCheckButton(onClick) {
-  const container = document.getElementById('user-actions');
-  if (!container) return;
-
-  const bulkCheckButton = document.createElement('button');
-  bulkCheckButton.textContent = 'Bulk Check';
-  bulkCheckButton.className = 'global-export-button';
-  bulkCheckButton.addEventListener('click', onClick);
-
-  container.appendChild(bulkCheckButton);
+export function createBulkCheckButton(onClick) {
+  addButtonToSidebar('Bulk Check', onClick);
 }
 
-export function createGlobalExportOwnedButton() {
-  const container = document.getElementById('user-actions');
-  if (!container) return;
-
-  const exportButton = document.createElement('button');
-  exportButton.textContent = 'Export All Owned';
-  exportButton.className = 'global-export-button';
-
-  exportButton.addEventListener('click', async () => {
+export function createExportOwnedButton() {
+  addButtonToSidebar('Export All Owned', async () => {
     const ownedCardIds = getOwnedCardIds();
     const ownedCards = cardStore.getAll().filter(c => ownedCardIds.has(c.id));
 
     if (ownedCards.length === 0) {
-      alert('No owned cards to export.');
+      showToast('No owned cards to export.');
       return;
     }
     
@@ -58,8 +36,6 @@ export function createGlobalExportOwnedButton() {
       showToast('Failed to copy cards. See console for details.', 'error');
     });
   });
-
-  container.appendChild(exportButton);
 }
 
 export function startNewBinder(results) {
@@ -241,25 +217,3 @@ export function updateAllBinderCounts() {
     binders.forEach(updateBinderCounts);
 }
 
-export function createGlobalExportButton() {
-  const container = document.getElementById('user-actions');
-  if (!container) return;
-
-  const exportButton = document.createElement('button');
-  exportButton.textContent = 'Export All Missing Cards';
-  exportButton.className = 'global-export-button';
-  exportButton.addEventListener('click', () => {
-    const allCards = document.querySelectorAll('.card');
-    const missingCards = Array.from(allCards).filter(card => !isCardOwned(card.cardData));
-
-    if (missingCards.length === 0) {
-      alert('No missing cards found.');
-      return;
-    }
-
-    const cardNames = missingCards.map(card => card.cardData.name);
-    showListModal('All Missing Cards', cardNames);
-  });
-
-  container.appendChild(exportButton);
-}

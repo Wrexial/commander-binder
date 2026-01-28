@@ -1,0 +1,120 @@
+.sidebar {
+  height: 100%;
+  width: 250px;
+  position: fixed;
+  z-index: var(--z-index-sidebar);
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: transform 0.5s ease;
+  padding-top: 60px;
+  transform: translateX(-250px);
+}
+
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
+.sidebar a, .sidebar button {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar a:hover, .sidebar button:hover {
+  color: #f1f1f1;
+}
+
+#openbtn {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: var(--z-index-hamburger);
+  transition: transform 0.5s ease;
+}
+
+#openbtn span {
+  display: block;
+  position: absolute;
+  height: 3px;
+  width: 100%;
+  background: white;
+  border-radius: 3px;
+  opacity: 1;
+  left: 0;
+  transform: rotate(0deg);
+  transition: transform 0.25s ease-in-out, opacity 0.25s ease-in-out;
+  top: 18px; /* Central vertical point */
+}
+
+#openbtn span:nth-child(1) {
+  transform: translateY(-8px);
+}
+
+#openbtn span:nth-child(2) {
+  /* No vertical transform needed */
+}
+
+#openbtn span:nth-child(3) {
+  transform: translateY(8px);
+}
+
+#openbtn.is-active span:nth-child(1) {
+  transform: translateY(0) rotate(45deg);
+}
+
+#openbtn.is-active span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+#openbtn.is-active span:nth-child(3) {
+  transform: translateY(0) rotate(-45deg);
+}
+
+body.sidebar-open #openbtn {
+  transform: translateX(250px);
+}
+
+#openbtn:hover {
+  background-color: #444;
+}
+
+#main {
+  padding: 16px;
+}
+
+#sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-index-sidebar-backdrop);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.5s ease, visibility 0s 0.5s;
+}
+
+body.sidebar-open #sidebar-backdrop {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.5s ease;
+}

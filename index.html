@@ -31,67 +31,77 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/styles.css" />
-  <link rel="stylesheet" href="src/ui/flipCard.css" />
+  <link rel="stylesheet" href="src/ui/components/sidebar.css" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 </head>
 
 <body>
-  <main class="container">
-    <header class="main-header">
-      <img src="logo.png" alt="Logo" class="logo">
-      <div class="header-text">
-        <h1>Legendary Creature Collector</h1>
-        <p class="description">
-          A tool to browse and track your collection of Magic: The Gathering legendary creatures, ordered by their first appearance in the game.
-        </p>
-      </div>
-      <div class="user-actions" id="user-actions"></div>
-    </header>
-    <div id="toggles-container">
-      <label>
-        <input type="checkbox" data-setting="showTooltip" /> Show Tooltip
-      </label>
-      <label><input type="checkbox" data-setting="persistentReveal"> Reveal EDHREC links</label>
-    </div>
-    <div id="card-settings">
-      <div id="search-wrapper">
-        <input type="search" id="search-input" placeholder="Search cards..." />
-        <button id="clear-search">&times;</button>
-        <div id="search-tooltip" style="display: none;">
-          <h4>Search Syntax</h4>
-          <ul>
-            <li><code>t:</code> Type line (e.g., <code>t:dragon</code>)</li>
-            <li><code>o:</code> Oracle text (e.g., <code>o:"draw a card"</code>)</li>
-            <li><code>c:wug</code> or <code>c=wug</code> Exact colors</li>
-            <li><code>c>wg</code> Colors include</li>
-            <li><code>c&lt;wug</code> Colors are a subset</li>
-            <li><code>s:</code> Set code (e.g., <code>s:dom</code>)</li>
-            <li><code>d:2018</code> or <code>d:2018-2020</code> Release year/range</li>
-            <li><code>r:</code> Rarity (e.g., <code>r:mythic</code>)</li>
-            <li><code>is:owned</code> Owned cards</li>
-            <li><code>price:5.00</code> or <code>price:1.50-20.00</code> Price range</li>
-            <li><code>!</code> Negate a filter (e.g., <code>!t:goblin</code>)</li>
-            <li><code>(term) and (term)</code> AND operation</li>
-            <li><code>(term) or (term)</code> OR operation</li>
-            <li>Group terms with parentheses for complex queries.</li>
-          </ul>
-        </div>
-      </div>
-      <div id="owned-counter"></div>
-    </div>
-
-    <div id="no-results-message" style="display: none;">No cards found.</div>
-    <div id="results"></div>
-  </main>
-    <!-- Toast / undo area -->
-    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-
-    <div id="loading-indicator" class="loading-indicator">Loading...</div>
-    <div id="set-tooltip" class="set-tooltip"></div>
-    <div id="tooltip" class="tooltip" role="tooltip"></div>
+  <div id="sidebar-backdrop"></div>
+  <div id="sidebar" class="sidebar">
   </div>
+  <button id="openbtn">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+  <div id="main">
+    <main class="container">
+      <header class="main-header">
+        <img src="logo.png" alt="Logo" class="logo">
+        <div class="header-text">
+          <h1>Legendary Creature Collector</h1>
+          <p class="description">
+            A tool to browse and track your collection of Magic: The Gathering legendary creatures, ordered by their first appearance in the game.
+          </p>
+        </div>
+        <div id="user-actions" class="user-actions"></div>
+      </header>
+      <div id="toggles-container">
+        <label>
+          <input type="checkbox" data-setting="showTooltip" /> Show Tooltip
+        </label>
+        <label><input type="checkbox" data-setting="persistentReveal"> Reveal EDHREC links</label>
+      </div>
+      <div id="card-settings">
+        <div id="search-wrapper">
+          <input type="search" id="search-input" placeholder="Search cards..." />
+          <button id="clear-search">&times;</button>
+          <div id="search-tooltip" style="display: none;">
+            <h4>Search Syntax</h4>
+            <ul>
+              <li><code>t:</code> Type line (e.g., <code>t:dragon</code>)</li>
+              <li><code>o:</code> Oracle text (e.g., <code>o:"draw a card"</code>)</li>
+              <li><code>c:wug</code> or <code>c=wug</code> Exact colors</li>
+              <li><code>c>wg</code> Colors include</li>
+              <li><code>c&lt;wug</code> Colors are a subset</li>
+              <li><code>s:</code> Set code (e.g., <code>s:dom</code>)</li>
+              <li><code>d:2018</code> or <code>d:2018-2020</code> Release year/range</li>
+              <li><code>r:</code> Rarity (e.g., <code>r:mythic</code>)</li>
+              <li><code>is:owned</code> Owned cards</li>
+              <li><code>price:5.00</code> or <code>price:1.50-20.00</code> Price range</li>
+              <li><code>!</code> Negate a filter (e.g., <code>!t:goblin</code>)</li>
+              <li><code>(term) and (term)</code> AND operation</li>
+              <li><code>(term) or (term)</code> OR operation</li>
+              <li>Group terms with parentheses for complex queries.</li>
+            </ul>
+          </div>
+        </div>
+        <div id="owned-counter"></div>
+      </div>
+
+      <div id="no-results-message" style="display: none;">No cards found.</div>
+      <div id="results"></div>
+    </main>
+  </div>
+
+  <!-- Toast / undo area -->
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="loading-indicator" class="loading-indicator">Loading...</div>
+  <div id="set-tooltip" class="set-tooltip"></div>
+  <div id="tooltip" class="tooltip" role="tooltip"></div>
 
   <script type="module" src="src/main.js"></script>
   <footer>

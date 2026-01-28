@@ -7,14 +7,15 @@ import { initSearch } from './ui/search.js';
 import { initClerk, getClerk } from './auth/clerk.js';
 import { createSignInButton } from './ui/components/SignInButton.js';
 import { createGuestModeText } from './ui/components/GuestModeText.js';
-import { createShareButton } from './ui/components/ShareButton.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
-import { createGlobalExportButton, createGlobalExportOwnedButton, createGlobalBulkAddButton, createGlobalBulkCheckButton, updateAllBinderCounts } from './ui/layout.js';
+import { createExportOwnedButton, createBulkAddButton, createBulkCheckButton, updateAllBinderCounts } from './ui/layout.js';
 import { createBulkAddModal } from './ui/components/bulkAddModal.js';
 import { createBulkCheckModal } from './ui/components/bulkCheckModal.js';
 import { updateAllCardStates } from './ui/cards.js';
+import { showToast } from './ui/components/toast.js';
 import { showStatisticsModal } from './ui/statistics.js';
+import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
 
 async function showBulkAddModal() {
   const modal = await createBulkAddModal();
@@ -36,53 +37,56 @@ export const mainState = {
   guestUserId: undefined,
 };
 
-function setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk) {
+function setupAuthenticatedUser(userButtonDiv, clerk) {
   clerk.mountUserButton(userButtonDiv);
   mainState.isLoggedIn = true;
   mainState.loggedInUserId = clerk.user.id;
   updateOwnedCounter();
-  const shareButton = createShareButton(mainState.loggedInUserId);
-  userActionsDiv.appendChild(shareButton);
+  addButtonToSidebar('Share', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('user', mainState.loggedInUserId);
+    navigator.clipboard.writeText(url.href);
+    showToast("Link copied to clipboard!");
+  });
 
-  const statsButton = document.createElement('button');
-  statsButton.textContent = 'Show Statistics';
-  statsButton.className = 'stats-button';
-  statsButton.addEventListener('click', showStatisticsModal);
-  userActionsDiv.appendChild(statsButton);
+  addButtonToSidebar('Show Statistics', showStatisticsModal);
 
-  createGlobalBulkAddButton(showBulkAddModal);
-  
-  shareButton.classList.remove('hidden');
+  createBulkAddButton(showBulkAddModal);
 }
 
 export async function setupUI() {
   const clerk = getClerk();
-  const userActionsDiv = document.getElementById('user-actions');
+  const userActionsContainer = document.getElementById('user-actions');
+  const openBtn = document.getElementById('openbtn');
+  const sidebar = document.getElementById('sidebar');
 
-  const userButtonDiv = document.createElement('div');
-  userButtonDiv.id = 'user-button';
-  userActionsDiv.appendChild(userButtonDiv);
+  // Clear previous state
+  userActionsContainer.innerHTML = '';
+  sidebar.innerHTML = '';
 
   if (mainState.guestUserId) {
     const guestModeText = createGuestModeText();
-    userButtonDiv.appendChild(guestModeText);
-    const statsButton = document.createElement('button');
-    statsButton.textContent = 'Show Statistics';
-    statsButton.className = 'stats-button';
-    statsButton.addEventListener('click', showStatisticsModal);
-    userActionsDiv.appendChild(statsButton);
+    userActionsContainer.appendChild(guestModeText);
+    addButtonToSidebar('Show Statistics', showStatisticsModal);
     appState.isViewOnlyMode = true;
+    if (openBtn) openBtn.style.display = 'none';
   } else if (clerk.user) {
-    setupAuthenticatedUser(userButtonDiv, userActionsDiv, clerk);
+    const userButtonDiv = document.createElement('div');
+    userButtonDiv.id = 'user-button';
+    userActionsContainer.appendChild(userButtonDiv);
+    setupAuthenticatedUser(userButtonDiv, clerk);
+    if (openBtn) openBtn.style.display = 'block';
   } else {
     const signInButton = createSignInButton(clerk);
-    userButtonDiv.appendChild(signInButton);
+    userActionsContainer.appendChild(signInButton);
     mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
+    if (openBtn) openBtn.style.display = 'none';
   }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  initSidebar();
   await initClerk();
   const urlParams = new URLSearchParams(window.location.search);
   mainState.guestUserId = urlParams.get('user');
@@ -97,9 +101,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateAllBinderCounts();
 
   initCardSettings();
-  createGlobalBulkCheckButton(showBulkCheckModal);
-  createGlobalExportOwnedButton();
-  createGlobalExportButton();
+  createBulkCheckButton(showBulkCheckModal);
+  createExportOwnedButton();
   initSearch();
   initCardInteractions(results, tooltip);
 });
