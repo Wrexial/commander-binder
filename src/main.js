@@ -47,14 +47,14 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   mainState.isLoggedIn = true;
   mainState.loggedInUserId = clerk.user.id;
   updateOwnedCounter();
-  addButtonToSidebar('Share', () => {
+  addButtonToSidebar('🔗 Share', () => {
     const url = new URL(window.location.href);
     url.searchParams.set('user', mainState.loggedInUserId);
     navigator.clipboard.writeText(url.href);
     showToast("Link copied to clipboard!");
   });
 
-  addButtonToSidebar('Show Statistics', showStatisticsModal);
+  addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
 
   createBulkAddButton(showBulkAddModal);
 }
@@ -72,7 +72,7 @@ export async function setupUI() {
   if (mainState.guestUserId) {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
-    addButtonToSidebar('Show Statistics', showStatisticsModal);
+    addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
     appState.isViewOnlyMode = true;
     if (openBtn) openBtn.style.display = 'block';
   } else if (clerk.user) {

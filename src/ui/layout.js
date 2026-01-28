@@ -9,15 +9,15 @@ import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
 
 export function createBulkAddButton(onClick) {
-  addButtonToSidebar('Bulk Add', onClick);
+  addButtonToSidebar('➕ Bulk Add', onClick);
 }
 
 export function createBulkCheckButton(onClick) {
-  addButtonToSidebar('Bulk Check', onClick);
+  addButtonToSidebar('✔️ Bulk Check', onClick);
 }
 
 export function createExportOwnedButton() {
-  addButtonToSidebar('Export All Owned', async () => {
+  addButtonToSidebar('📄 Export All Owned', async () => {
     const ownedCardIds = getOwnedCardIds();
     const ownedCards = cardStore.getAll().filter(c => ownedCardIds.has(c.id));
 
