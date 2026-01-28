@@ -10,6 +10,8 @@
   transition: transform 0.5s ease;
   padding-top: 60px;
   transform: translateX(-250px);
+  display: flex;
+  flex-direction: column;
 }
 
 body.sidebar-open .sidebar {
@@ -35,6 +37,7 @@ body.sidebar-open .sidebar {
 }
 
 #openbtn {
+  display: none;
   width: 40px;
   height: 40px;
   cursor: pointer;
@@ -117,4 +120,28 @@ body.sidebar-open #sidebar-backdrop {
   visibility: visible;
   pointer-events: auto;
   transition: opacity 0.5s ease;
+}
+
+.sidebar-settings-container {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #444;
+}
+
+.sidebar-settings-container label {
+  display: flex;
+  align-items: center;
+  padding: 8px 8px 8px 32px;
+  font-size: 18px;
+  color: #818181;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.sidebar-settings-container label:hover {
+  color: #f1f1f1;
+}
+
+.sidebar-settings-container input[type="checkbox"] {
+  margin-right: 10px;
 }

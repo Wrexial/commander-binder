@@ -9,7 +9,12 @@ import { createSignInButton } from './ui/components/SignInButton.js';
 import { createGuestModeText } from './ui/components/GuestModeText.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
-import { createExportOwnedButton, createBulkAddButton, createBulkCheckButton, updateAllBinderCounts } from './ui/layout.js';
+import { 
+  createExportOwnedButton, 
+  createBulkAddButton, 
+  createBulkCheckButton, 
+  updateAllBinderCounts,
+} from './ui/layout.js';
 import { createBulkAddModal } from './ui/components/bulkAddModal.js';
 import { createBulkCheckModal } from './ui/components/bulkCheckModal.js';
 import { updateAllCardStates } from './ui/cards.js';
@@ -69,7 +74,7 @@ export async function setupUI() {
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('Show Statistics', showStatisticsModal);
     appState.isViewOnlyMode = true;
-    if (openBtn) openBtn.style.display = 'none';
+    if (openBtn) openBtn.style.display = 'block';
   } else if (clerk.user) {
     const userButtonDiv = document.createElement('div');
     userButtonDiv.id = 'user-button';
@@ -99,10 +104,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   initLazyCards(results, tooltip);
   updateAllBinderCounts();
-
-  initCardSettings();
   createBulkCheckButton(showBulkCheckModal);
   createExportOwnedButton();
+
+  initCardSettings();
   initSearch();
   initCardInteractions(results, tooltip);
 });

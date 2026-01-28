@@ -13,6 +13,15 @@ export const cardSettings = {
   ..._stored
 };
 
+export function getSetting(key) {
+  return cardSettings[key];
+}
+
+export function setSetting(key, value) {
+  cardSettings[key] = value;
+  saveSettings();
+}
+
 export function saveSettings() {
   const toSave = { ...cardSettings };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
