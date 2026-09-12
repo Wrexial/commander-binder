@@ -7,6 +7,7 @@ import { showUndo } from './components/toast.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
+import { preloadCardImages } from '../utils/cardImages.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -18,12 +19,37 @@ function getState(el) {
     return elementState.get(el);
 }
 
+// Hover-intent preloading: start fetching a card's image shortly after the
+// cursor settles on it, so it is usually ready before the tooltip appears.
+const PRELOAD_DELAY_MS = 120;
+let preloadTimer;
+let preloadCard = null;
+
+function schedulePreload(cardElement) {
+    if (!cardElement || preloadCard === cardElement) return;
+    preloadCard = cardElement;
+    clearTimeout(preloadTimer);
+    preloadTimer = setTimeout(() => {
+        if (preloadCard === cardElement) {
+            preloadCardImages(cardElement.cardData);
+        }
+    }, PRELOAD_DELAY_MS);
+}
+
+function cancelPreload(cardElement) {
+    if (preloadCard === cardElement) {
+        clearTimeout(preloadTimer);
+        preloadCard = null;
+    }
+}
+
 // --- Delegated Event Handlers ---
 
 function handleMouseEnter(event, tooltip) {
     if (!cardSettings.showTooltip) return;
     const cardElement = event.target.closest('.card');
     if (cardElement) {
+        schedulePreload(cardElement);
         cardElement.setAttribute('aria-describedby', 'tooltip');
         showTooltip(event, cardElement.cardData, tooltip);
     }
@@ -34,6 +60,7 @@ function handleMouseLeave(event, tooltip) {
     const cardElement = event.target.closest('.card');
     // Check relatedTarget to prevent hiding when moving between child elements
     if (cardElement && !cardElement.contains(event.relatedTarget) && !tooltip.contains(event.relatedTarget)) {
+        cancelPreload(cardElement);
         hideTooltip(tooltip);
         cardElement.removeAttribute('aria-describedby');
     }
@@ -56,6 +83,12 @@ function handleTouchStart(event, tooltip) {
 
     const state = getState(cardElement);
     state.isLongPress = false;
+
+    // Touch has no hover phase; start the image early since the tooltip shows
+    // only after a 500ms long-press.
+    if (cardSettings.showTooltip) {
+        preloadCardImages(cardElement.cardData);
+    }
 
     touchTimer = setTimeout(() => {
         state.isLongPress = true;

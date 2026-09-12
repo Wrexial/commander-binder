@@ -1,12 +1,11 @@
 // tooltip.js
 import { getImage } from '../utils/imageCache.js';
+import { getCardImages } from '../utils/cardImages.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
-
-const multiLayouts = ["modal_dfc", "transform", "double_faced_token"];
 
 // ---------------- Show Tooltip ----------------
 export function showTooltip(e, card, tooltip) {
@@ -58,23 +57,7 @@ export function showTooltip(e, card, tooltip) {
     }
 
     // ---------------- Handle card images ----------------
-    if (card.card_faces && multiLayouts.includes(card.layout) && card.card_faces.length === 2) {
-        // MDFC's
-        card.card_faces.forEach((face, index) => {
-          let url = face?.image_uris?.normal;
-          if (!url && face?.image_uris === undefined) {
-            // sometimes Scryfall has image URL in "card_faces[index].image_uris" or "card_faces[index].normal"
-            url = face?.normal;
-          }
-          if (url) {
-            addImage(url, card.id + "-" + index);
-          }
-        });
-    } else {
-      // Normal single-faced card
-      const url = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || card.card_faces?.[0]?.normal;
-      if (url) addImage(url, card.id);
-    }
+    getCardImages(card).forEach(({ url, key }) => addImage(url, key));
 
     // ---------------- Wait for all images / flip cards to load ----------------
     let loaded = 0;
