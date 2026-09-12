@@ -34,7 +34,7 @@ vi.mock('../../ui/components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-import { fetchNextPage } from '../scryfall.js';
+import { fetchNextPage, setRequestSpacing } from '../scryfall.js';
 import { appState } from '../../state/appState.js';
 import { clearCache, writeCache, CACHE_TTL_MS } from '../responseCache.js';
 import * as layout from '../../ui/layout.js';
@@ -56,11 +56,18 @@ function makeCards(count, prefix = 'Card') {
   }));
 }
 
-function jsonResponse(body, { etag = null, status = 200, ok = true } = {}) {
+function jsonResponse(body, { etag = null, retryAfter = null, status = 200, ok = true } = {}) {
   return {
     ok,
     status,
-    headers: { get: (name) => (name === 'etag' ? etag : null) },
+    headers: {
+      get: (name) => {
+        const key = name.toLowerCase();
+        if (key === 'etag') return etag;
+        if (key === 'retry-after') return retryAfter;
+        return null;
+      },
+    },
     json: async () => body,
   };
 }
@@ -69,6 +76,10 @@ describe('fetchNextPage', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await clearCache();
+
+    // Tests exercise behavior, not real-world pacing. Disable the throttle so
+    // requests resolve immediately (and fake timers don't deadlock).
+    setRequestSpacing(0);
 
     global.fetch = vi.fn();
     appState.nextPageUrl = START_URL;
@@ -278,5 +289,73 @@ describe('fetchNextPage', () => {
     );
     expect(global.fetch).toHaveBeenCalledTimes(1); // halted, no auto-retry
     expect(appState.isLoading).toBe(false);
+  });
+
+  it('paces cold network requests but skips the delay for cache hits', async () => {
+    vi.useFakeTimers();
+    try {
+      setRequestSpacing(150);
+      global.fetch.mockImplementation((url) => {
+        if (url === START_URL) {
+          return Promise.resolve(jsonResponse({
+            has_more: true,
+            next_page: PAGE_2,
+            total_cards: 525, // 3 pages at 175/page -> prefetch pages 2 and 3
+            data: makeCards(175, 'A'),
+          }));
+        }
+        return Promise.resolve(jsonResponse({
+          has_more: true,
+          next_page: PAGE_2,
+          total_cards: 525,
+          data: makeCards(175, 'B'),
+        }));
+      });
+
+      const run = fetchNextPage(null, null);
+      // First request fires immediately despite the spacing.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      // Prefetch then waits out the gap before the next network request.
+      await vi.advanceTimersByTimeAsync(149);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      // Drain the final prefetch page so the serialized queue settles.
+      await vi.advanceTimersByTimeAsync(150);
+      expect(global.fetch).toHaveBeenCalledTimes(3);
+
+      await run;
+    } finally {
+      setRequestSpacing(0);
+      vi.useRealTimers();
+    }
+  });
+
+  it('waits and retries once when Scryfall returns 429', async () => {
+    vi.useFakeTimers();
+    try {
+      setRequestSpacing(0);
+      global.fetch
+        .mockResolvedValueOnce(jsonResponse({}, { status: 429, ok: false, retryAfter: '2' }))
+        .mockResolvedValueOnce(
+          jsonResponse({ has_more: false, next_page: null, data: makeCards(3) })
+        );
+
+      const run = fetchNextPage(null, null);
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await run;
+
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(cards.createCardElement).toHaveBeenCalledTimes(3);
+    } finally {
+      setRequestSpacing(0);
+      vi.useRealTimers();
+    }
   });
 });

@@ -16,8 +16,25 @@ import { readCache, writeCache, isFresh } from './responseCache.js';
  */
 const MAX_EMPTY_FETCHES_PER_CALL = 10;
 
-/** Parallelism for cache-warming. Scryfall asks clients to stay <= ~10 req/s. */
+/**
+ * Parallelism for cache-warming. This only governs how many pages are queued
+ * at once; actual network requests are paced by the global throttle below.
+ */
 const PREFETCH_CONCURRENCY = 4;
+
+/**
+ * Minimum spacing between real network requests to Scryfall (ms). Cache hits
+ * bypass this entirely, so warm loads stay instant. Scryfall asks clients to
+ * stay under ~10 req/s and to avoid concurrent requests; a cold collection can
+ * span hundreds of large search pages, so blasting the prefetch pool gets us
+ * rate limited (429). At 150ms we sit around 6-7 req/s even when nothing is
+ * cached.
+ */
+const DEFAULT_REQUEST_SPACING_MS = 150;
+
+/** Retry budget when Scryfall answers 429 Too Many Requests. */
+const MAX_RATE_LIMIT_RETRIES = 3;
+const RATE_LIMIT_BASE_DELAY_MS = 1000;
 
 /**
  * In-flight GETs keyed by URL. Deduplicates the background prefetch and the
@@ -32,8 +49,77 @@ let activeRun = null;
 /** Set when a fetch fails so auto-loading pauses instead of retrying forever. */
 let halted = false;
 
+/** Current spacing between network requests; overridable for tests/tuning. */
+let requestSpacingMs = DEFAULT_REQUEST_SPACING_MS;
+/** Timestamp of the last request that actually hit the network. */
+let lastNetworkRequestAt = 0;
+/** Tail of the serialized network queue. */
+let networkQueue = Promise.resolve();
+
+/**
+ * Override the minimum spacing between real network requests.
+ * @param {number} ms Spacing in milliseconds (0 disables pacing).
+ */
+export function setRequestSpacing(ms) {
+    requestSpacingMs = Math.max(0, Number(ms) || 0);
+    // Reconfiguring the pacing starts a fresh window so the next request fires
+    // immediately instead of inheriting the previous spacing.
+    lastNetworkRequestAt = 0;
+}
+
 function yieldToBrowser() {
     return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Run a network request through a serialized queue that enforces a minimum gap
+ * between requests. Cache hits never reach this, so only cold loads are slowed.
+ * Each queued task settles on its own, so one failure can't poison the queue.
+ * @template T
+ * @param {() => Promise<T>} task
+ * @returns {Promise<T>}
+ */
+function scheduleNetworkRequest(task) {
+    const run = networkQueue.then(async () => {
+        const wait = requestSpacingMs - (Date.now() - lastNetworkRequestAt);
+        if (wait > 0) await sleep(wait);
+        lastNetworkRequestAt = Date.now();
+        return task();
+    });
+    networkQueue = run.then(() => undefined, () => undefined);
+    return run;
+}
+
+/** Parse a Retry-After header (delta-seconds or HTTP date) into milliseconds. */
+function parseRetryAfter(value) {
+    if (!value) return null;
+    const seconds = Number(value);
+    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+    const date = Date.parse(value);
+    return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
+}
+
+/**
+ * Perform a fetch, backing off and retrying when Scryfall rate limits us.
+ * Runs inside the throttle gate, so a backoff also pauses the rest of the queue.
+ */
+async function requestFromNetwork(url, options) {
+    for (let attempt = 0; ; attempt++) {
+        const res = options ? await fetch(url, options) : await fetch(url);
+        if (res.status !== 429 || attempt >= MAX_RATE_LIMIT_RETRIES) return res;
+
+        let retryAfter = null;
+        try {
+            retryAfter = parseRetryAfter(res.headers?.get?.('retry-after'));
+        } catch {
+            retryAfter = null;
+        }
+        await sleep(retryAfter ?? RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
+    }
 }
 
 async function fetchScryfallData(url) {
@@ -47,11 +133,11 @@ async function fetchScryfallData(url) {
     const pending = inFlight.get(url);
     if (pending) return pending;
 
-    const request = (async () => {
+    const request = scheduleNetworkRequest(async () => {
         // Revalidate an expired record with its ETag to avoid re-downloading ~880KB.
         const res = cached?.etag
-            ? await fetch(url, { headers: { 'If-None-Match': cached.etag } })
-            : await fetch(url);
+            ? await requestFromNetwork(url, { headers: { 'If-None-Match': cached.etag } })
+            : await requestFromNetwork(url);
 
         if (res.status === 304 && cached) {
             await writeCache(url, cached.data, cached.etag);
@@ -70,7 +156,7 @@ async function fetchScryfallData(url) {
         }
         await writeCache(url, data, etag);
         return data;
-    })();
+    });
 
     inFlight.set(url, request);
     try {
