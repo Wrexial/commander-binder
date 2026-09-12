@@ -34,7 +34,7 @@ vi.mock('../../ui/components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-import { fetchNextPage, setRequestSpacing } from '../scryfall.js';
+import { fetchNextPage, setRequestThrottle } from '../scryfall.js';
 import { appState } from '../../state/appState.js';
 import { clearCache, writeCache, CACHE_TTL_MS } from '../responseCache.js';
 import * as layout from '../../ui/layout.js';
@@ -77,9 +77,10 @@ describe('fetchNextPage', () => {
     vi.clearAllMocks();
     await clearCache();
 
-    // Tests exercise behavior, not real-world pacing. Disable the throttle so
-    // requests resolve immediately (and fake timers don't deadlock).
-    setRequestSpacing(0);
+    // Tests exercise behavior, not real-world pacing. Disable both the spacing
+    // and the sliding-window cap so requests resolve immediately (and fake
+    // timers don't deadlock).
+    setRequestThrottle({ spacingMs: 0, maxRequests: 0 });
 
     global.fetch = vi.fn();
     appState.nextPageUrl = START_URL;
@@ -294,7 +295,7 @@ describe('fetchNextPage', () => {
   it('paces cold network requests but skips the delay for cache hits', async () => {
     vi.useFakeTimers();
     try {
-      setRequestSpacing(150);
+      setRequestThrottle({ spacingMs: 150, maxRequests: 0 });
       global.fetch.mockImplementation((url) => {
         if (url === START_URL) {
           return Promise.resolve(jsonResponse({
@@ -329,7 +330,7 @@ describe('fetchNextPage', () => {
 
       await run;
     } finally {
-      setRequestSpacing(0);
+      setRequestThrottle({ spacingMs: 0, maxRequests: 0 });
       vi.useRealTimers();
     }
   });
@@ -337,7 +338,7 @@ describe('fetchNextPage', () => {
   it('waits and retries once when Scryfall returns 429', async () => {
     vi.useFakeTimers();
     try {
-      setRequestSpacing(0);
+      setRequestThrottle({ spacingMs: 0, maxRequests: 0 });
       global.fetch
         .mockResolvedValueOnce(jsonResponse({}, { status: 429, ok: false, retryAfter: '2' }))
         .mockResolvedValueOnce(
@@ -354,8 +355,27 @@ describe('fetchNextPage', () => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
       expect(cards.createCardElement).toHaveBeenCalledTimes(3);
     } finally {
-      setRequestSpacing(0);
+      setRequestThrottle({ spacingMs: 0, maxRequests: 0 });
       vi.useRealTimers();
     }
+  });
+
+  it('never exceeds the sliding-window request ceiling', async () => {
+    // Small window keeps the test fast while proving the limiter works.
+    setRequestThrottle({ spacingMs: 0, maxRequests: 2, windowMs: 100 });
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ has_more: true, next_page: PAGE_2, data: [] }))
+      .mockResolvedValueOnce(jsonResponse({ has_more: true, next_page: PAGE_3, data: [] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ has_more: false, next_page: null, data: makeCards(20) })
+      );
+
+    const startedAt = Date.now();
+    await fetchNextPage(null, null);
+    const elapsed = Date.now() - startedAt;
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    // The 3rd request had to wait for the 1st to age out of the window.
+    expect(elapsed).toBeGreaterThanOrEqual(90);
   });
 });

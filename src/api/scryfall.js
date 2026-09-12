@@ -23,14 +23,17 @@ const MAX_EMPTY_FETCHES_PER_CALL = 10;
 const PREFETCH_CONCURRENCY = 4;
 
 /**
- * Minimum spacing between real network requests to Scryfall (ms). Cache hits
- * bypass this entirely, so warm loads stay instant. Scryfall asks clients to
- * stay under ~10 req/s and to avoid concurrent requests; a cold collection can
- * span hundreds of large search pages, so blasting the prefetch pool gets us
- * rate limited (429). At 150ms we sit around 6-7 req/s even when nothing is
- * cached.
+ * Scryfall requires clients to stay under 10 requests per second. We enforce
+ * that with a sliding-window limiter (the hard ceiling) plus a minimum gap
+ * between request starts (burst smoothing). Cache hits bypass both, so warm
+ * loads stay instant.
+ *
+ * The 150ms gap alone caps us near 6-7 req/s; the window guarantees we never
+ * exceed 8 starts in any rolling second even if that gap is tuned down.
  */
 const DEFAULT_REQUEST_SPACING_MS = 150;
+const DEFAULT_MAX_REQUESTS_PER_WINDOW = 8;
+const RATE_LIMIT_WINDOW_MS = 1000;
 
 /** Retry budget when Scryfall answers 429 Too Many Requests. */
 const MAX_RATE_LIMIT_RETRIES = 3;
@@ -51,20 +54,34 @@ let halted = false;
 
 /** Current spacing between network requests; overridable for tests/tuning. */
 let requestSpacingMs = DEFAULT_REQUEST_SPACING_MS;
+/** Max real network requests allowed within a rolling {@link rateLimitWindowMs}. */
+let maxRequestsPerWindow = DEFAULT_MAX_REQUESTS_PER_WINDOW;
+/** Sliding-window length in milliseconds. */
+let rateLimitWindowMs = RATE_LIMIT_WINDOW_MS;
 /** Timestamp of the last request that actually hit the network. */
 let lastNetworkRequestAt = 0;
+/** Start timestamps of recent network requests, oldest first. */
+const recentRequestStarts = [];
 /** Tail of the serialized network queue. */
 let networkQueue = Promise.resolve();
 
 /**
- * Override the minimum spacing between real network requests.
- * @param {number} ms Spacing in milliseconds (0 disables pacing).
+ * Override the network throttle. Production uses the defaults; tests call this
+ * to run without real-world delays (`maxRequests: 0` disables the window cap).
+ * @param {{spacingMs?: number, maxRequests?: number, windowMs?: number}} [config]
  */
-export function setRequestSpacing(ms) {
-    requestSpacingMs = Math.max(0, Number(ms) || 0);
-    // Reconfiguring the pacing starts a fresh window so the next request fires
-    // immediately instead of inheriting the previous spacing.
+export function setRequestThrottle({
+    spacingMs = DEFAULT_REQUEST_SPACING_MS,
+    maxRequests = DEFAULT_MAX_REQUESTS_PER_WINDOW,
+    windowMs = RATE_LIMIT_WINDOW_MS,
+} = {}) {
+    requestSpacingMs = Math.max(0, Number(spacingMs) || 0);
+    maxRequestsPerWindow = Math.max(0, Math.floor(Number(maxRequests) || 0));
+    rateLimitWindowMs = Math.max(1, Number(windowMs) || RATE_LIMIT_WINDOW_MS);
+    // Reconfiguring starts a fresh window so the next request fires immediately
+    // instead of inheriting the previous pacing.
     lastNetworkRequestAt = 0;
+    recentRequestStarts.length = 0;
 }
 
 function yieldToBrowser() {
@@ -76,18 +93,50 @@ function sleep(ms) {
 }
 
 /**
- * Run a network request through a serialized queue that enforces a minimum gap
- * between requests. Cache hits never reach this, so only cold loads are slowed.
- * Each queued task settles on its own, so one failure can't poison the queue.
+ * Block until both the inter-request gap and the sliding-window rate limit
+ * allow another network request to start.
+ */
+async function waitForRequestSlot() {
+    for (;;) {
+        const now = Date.now();
+        while (
+            recentRequestStarts.length > 0 &&
+            now - recentRequestStarts[0] >= rateLimitWindowMs
+        ) {
+            recentRequestStarts.shift();
+        }
+
+        const spacingWait = requestSpacingMs - (now - lastNetworkRequestAt);
+        if (spacingWait > 0) {
+            await sleep(spacingWait);
+            continue;
+        }
+
+        if (maxRequestsPerWindow > 0 && recentRequestStarts.length >= maxRequestsPerWindow) {
+            // Wait until the oldest request drops out of the rolling window.
+            const windowWait = rateLimitWindowMs - (now - recentRequestStarts[0]);
+            await sleep(windowWait > 0 ? windowWait : 1);
+            continue;
+        }
+
+        return;
+    }
+}
+
+/**
+ * Run a network request through a serialized queue that enforces both the
+ * inter-request gap and the Scryfall rate limit. Cache hits never reach this,
+ * so only cold loads are slowed. Each queued task settles on its own, so one
+ * failure can't poison the queue.
  * @template T
  * @param {() => Promise<T>} task
  * @returns {Promise<T>}
  */
 function scheduleNetworkRequest(task) {
     const run = networkQueue.then(async () => {
-        const wait = requestSpacingMs - (Date.now() - lastNetworkRequestAt);
-        if (wait > 0) await sleep(wait);
+        await waitForRequestSlot();
         lastNetworkRequestAt = Date.now();
+        recentRequestStarts.push(lastNetworkRequestAt);
         return task();
     });
     networkQueue = run.then(() => undefined, () => undefined);
