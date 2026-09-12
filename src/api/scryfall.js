@@ -17,22 +17,17 @@ import { readCache, writeCache, isFresh } from './responseCache.js';
 const MAX_EMPTY_FETCHES_PER_CALL = 10;
 
 /**
- * Parallelism for cache-warming. This only governs how many pages are queued
- * at once; actual network requests are paced by the global throttle below.
- */
-const PREFETCH_CONCURRENCY = 4;
-
-/**
- * Scryfall requires clients to stay under 10 requests per second. We enforce
- * that with a sliding-window limiter (the hard ceiling) plus a minimum gap
- * between request starts (burst smoothing). Cache hits bypass both, so warm
- * loads stay instant.
+ * Scryfall's guidance is under 10 requests/second overall, and it is stricter
+ * for /cards/search (every request this app makes is a search page). We run
+ * exactly ONE request at a time and space pages at least 1s apart, which stays
+ * below both limits even on a completely cold cache.
  *
- * The 150ms gap alone caps us near 6-7 req/s; the window guarantees we never
- * exceed 8 starts in any rolling second even if that gap is tuned down.
+ * The spacing is the primary control; the sliding window is a hard backstop in
+ * case the spacing is ever tuned down. Cache hits bypass both, so warm loads
+ * stay instant.
  */
-const DEFAULT_REQUEST_SPACING_MS = 150;
-const DEFAULT_MAX_REQUESTS_PER_WINDOW = 8;
+const DEFAULT_REQUEST_SPACING_MS = 1000;
+const DEFAULT_MAX_REQUESTS_PER_WINDOW = 1;
 const RATE_LIMIT_WINDOW_MS = 1000;
 
 /** Retry budget when Scryfall answers 429 Too Many Requests. */
@@ -40,8 +35,8 @@ const MAX_RATE_LIMIT_RETRIES = 3;
 const RATE_LIMIT_BASE_DELAY_MS = 1000;
 
 /**
- * In-flight GETs keyed by URL. Deduplicates the background prefetch and the
- * sequential render loop so a page is never downloaded twice.
+ * In-flight GETs keyed by URL. Deduplicates repeated triggers (a scroll event
+ * racing the auto-load continuation) so a page is never downloaded twice.
  * @type {Map<string, Promise<object>>}
  */
 const inFlight = new Map();
@@ -82,10 +77,6 @@ export function setRequestThrottle({
     // instead of inheriting the previous pacing.
     lastNetworkRequestAt = 0;
     recentRequestStarts.length = 0;
-}
-
-function yieldToBrowser() {
-    return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function sleep(ms) {
@@ -235,61 +226,6 @@ function processScryfallData(data) {
 }
 
 /**
- * Derive the `page=N` URLs for every page after the first. Scryfall's
- * `next_page` link is normalised and contains `page=2`, so substituting the
- * page number yields exactly the URLs the sequential render loop will use.
- */
-function derivePageUrls(nextPageUrl, totalPages) {
-    const pageParam = /([?&]page=)\d+/;
-    if (!nextPageUrl || !pageParam.test(nextPageUrl)) return [];
-
-    const urls = [];
-    for (let page = 2; page <= totalPages; page++) {
-        urls.push(nextPageUrl.replace(pageParam, `$1${page}`));
-    }
-    return urls;
-}
-
-async function runPool(items, limit, worker) {
-    let index = 0;
-    const runners = [];
-    for (let i = 0; i < Math.min(limit, items.length); i++) {
-        runners.push((async () => {
-            while (index < items.length) {
-                const item = items[index++];
-                try {
-                    await worker(item);
-                } catch {
-                    /* prefetch is best-effort; the render loop will retry */
-                }
-                await yieldToBrowser();
-            }
-        })());
-    }
-    await Promise.all(runners);
-}
-
-/**
- * Warm the cache for every remaining page in parallel. Rendering stays strictly
- * sequential (to preserve release order), but each page is usually already
- * cached by the time the render loop reaches it.
- */
-function startPrefetch(firstPage) {
-    if (appState.prefetchStarted) return;
-    appState.prefetchStarted = true;
-
-    const perPage = firstPage.data?.length || CARDS_PER_PAGE;
-    const totalCards = Number(firstPage.total_cards) || 0;
-    const totalPages = Math.ceil(totalCards / perPage);
-    if (totalPages <= 1) return;
-
-    const urls = derivePageUrls(firstPage.next_page, totalPages);
-    if (urls.length === 0) return;
-
-    runPool(urls, PREFETCH_CONCURRENCY, (url) => fetchScryfallData(url));
-}
-
-/**
  * Fetch the next page(s) and render any complete sections.
  *
  * Re-entrant-safe: calling it while a run is in flight marks the work as
@@ -335,10 +271,6 @@ async function runFetch(results, tooltip) {
 
         while (appState.nextPageUrl) {
             const data = await fetchScryfallData(appState.nextPageUrl);
-
-            if (!appState.prefetchStarted && data.has_more) {
-                startPrefetch(data);
-            }
 
             const newCards = processScryfallData(data);
             appState.pageCards.push(...newCards);

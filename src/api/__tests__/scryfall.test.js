@@ -87,7 +87,6 @@ describe('fetchNextPage', () => {
     appState.isLoading = false;
     appState.pendingFetch = false;
     appState.autoLoad = false;
-    appState.prefetchStarted = false;
     appState.seenNames = new Set();
     appState.seenSetCodes = new Set();
     appState.pageCards = [];
@@ -222,28 +221,29 @@ describe('fetchNextPage', () => {
     expect(appState.isLoading).toBe(false);
   });
 
-  it('warms the cache for the remaining pages in parallel', async () => {
-    global.fetch.mockImplementation((url) => {
-      if (url === START_URL) {
-        return Promise.resolve(jsonResponse({
-          has_more: true,
-          next_page: PAGE_2,
-          total_cards: 525, // 3 pages at 175/page
-          data: makeCards(175, 'A'),
-        }));
-      }
-      return Promise.resolve(jsonResponse({
-        has_more: true,
-        next_page: PAGE_3,
-        total_cards: 525,
-        data: makeCards(175, 'B'),
-      }));
-    });
+  it('runs Scryfall requests one at a time (never concurrently)', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const respond = (body) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          inFlight--;
+          resolve(jsonResponse(body));
+        }, 5);
+      });
+    };
+    global.fetch
+      .mockImplementationOnce(() => respond({ has_more: true, next_page: PAGE_2, data: [] }))
+      .mockImplementationOnce(() =>
+        respond({ has_more: false, next_page: null, data: makeCards(20) })
+      );
 
     await fetchNextPage(null, null);
 
-    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledWith(PAGE_2));
-    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledWith(PAGE_3));
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(maxInFlight).toBe(1);
   });
 
   it('yields and continues when a long run of pages has no new cards', async () => {
@@ -296,39 +296,25 @@ describe('fetchNextPage', () => {
     vi.useFakeTimers();
     try {
       setRequestThrottle({ spacingMs: 150, maxRequests: 0 });
-      global.fetch.mockImplementation((url) => {
-        if (url === START_URL) {
-          return Promise.resolve(jsonResponse({
-            has_more: true,
-            next_page: PAGE_2,
-            total_cards: 525, // 3 pages at 175/page -> prefetch pages 2 and 3
-            data: makeCards(175, 'A'),
-          }));
-        }
-        return Promise.resolve(jsonResponse({
-          has_more: true,
-          next_page: PAGE_2,
-          total_cards: 525,
-          data: makeCards(175, 'B'),
-        }));
-      });
+      // An empty first page forces the loop on to PAGE_2, so one run makes two
+      // sequential network requests.
+      global.fetch
+        .mockResolvedValueOnce(jsonResponse({ has_more: true, next_page: PAGE_2, data: [] }))
+        .mockResolvedValueOnce(
+          jsonResponse({ has_more: false, next_page: null, data: makeCards(20) })
+        );
 
       const run = fetchNextPage(null, null);
       // First request fires immediately despite the spacing.
       await vi.advanceTimersByTimeAsync(0);
       expect(global.fetch).toHaveBeenCalledTimes(1);
 
-      // Prefetch then waits out the gap before the next network request.
+      // The next page waits out the gap before it is requested.
       await vi.advanceTimersByTimeAsync(149);
       expect(global.fetch).toHaveBeenCalledTimes(1);
       await vi.advanceTimersByTimeAsync(1);
-      expect(global.fetch).toHaveBeenCalledTimes(2);
-
-      // Drain the final prefetch page so the serialized queue settles.
-      await vi.advanceTimersByTimeAsync(150);
-      expect(global.fetch).toHaveBeenCalledTimes(3);
-
       await run;
+      expect(global.fetch).toHaveBeenCalledTimes(2);
     } finally {
       setRequestThrottle({ spacingMs: 0, maxRequests: 0 });
       vi.useRealTimers();

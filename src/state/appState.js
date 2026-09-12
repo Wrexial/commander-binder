@@ -5,7 +5,6 @@ export const appState = {
   isLoading: false,
   pendingFetch: false,
   autoLoad: false,
-  prefetchStarted: false,
   activeFetches: 0,
   count: 0,
   seenNames: new Set(),

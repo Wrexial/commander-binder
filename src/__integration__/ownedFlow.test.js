@@ -62,11 +62,14 @@ function makeCard(i, prefix = 'Card') {
 }
 
 describe('owned markers applied on load', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
     global.IntersectionObserver = MockIntersectionObserver;
     setupDom();
+    // Disable Scryfall pacing so the integrated load paths stay fast.
+    const { setRequestThrottle } = await import('../api/scryfall.js');
+    setRequestThrottle({ spacingMs: 0, maxRequests: 0 });
     global.fetch = vi.fn(async (url) => {
       const u = String(url);
       if (u.includes('/owned-cards')) {
