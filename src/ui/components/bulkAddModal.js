@@ -44,9 +44,9 @@ function createLine(name, card) {
   const line = document.createElement('div');
   line.textContent = name;
   if (card) {
-    line.style.color = 'green';
+    line.style.color = 'var(--success)';
   } else {
-    line.style.color = 'red';
+    line.style.color = 'var(--danger)';
   }
   return line;
 }

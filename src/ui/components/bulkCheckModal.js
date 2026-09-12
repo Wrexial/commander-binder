@@ -33,9 +33,9 @@ function createLine(name, card) {
   const line = document.createElement('div');
   line.textContent = name;
   if (card) {
-    line.style.color = isCardOwned(card) ? 'green' : 'red';
+    line.style.color = isCardOwned(card) ? 'var(--success)' : 'var(--danger)';
   } else {
-    line.style.color = 'black';
+    line.style.color = 'var(--muted)';
   }
   return line;
 }

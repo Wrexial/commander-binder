@@ -1,10 +1,8 @@
 import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
 import { appState } from '../state/appState.js';
-import { lightenColor } from '../utils/colors.js';
 import { positionTooltip } from './tooltip.js';
 import { isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
-import { showListModal } from './components/modal.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
 
@@ -51,7 +49,7 @@ export function startNewBinder(results) {
   const color = cssColor || fallback;
 
   newBinder.style.borderColor = color;
-  newBinder.style.background = lightenColor(color, 0.9);
+  newBinder.style.setProperty('--binder-accent', color);
 
   const header = document.createElement("h2");
   header.className = "binder-header";
