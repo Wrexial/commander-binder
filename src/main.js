@@ -99,9 +99,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const results = document.getElementById("results");
 
   await setupUI();
-  await loadCardStates();
-  updateAllCardStates();
-  
+
+  // Load saved marks in parallel with the card grid so Clerk/Netlify/DB
+  // latency does not delay the first cards. Marks are re-applied here once
+  // the owned state arrives (cards may already be rendered).
+  loadCardStates()
+    .then(() => {
+      updateAllCardStates();
+      updateAllBinderCounts();
+      updateOwnedCounter();
+    })
+    .catch((err) => console.error("Failed to load card states:", err));
+
   initLazyCards(results, tooltip);
   updateAllBinderCounts();
   createBulkCheckButton(showBulkCheckModal);

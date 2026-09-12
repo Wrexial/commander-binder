@@ -261,6 +261,8 @@ function renderPage(results, tooltip, pageCards) {
         el.dataset.cardIndex = cardIndex;
         appState.grid.appendChild(el);
         updateCardState(el);
+        appState.binder.totalCards++;
+        if (el.classList.contains('owned')) appState.binder.ownedCards++;
     });
     updateBinderCounts(appState.binder);
 

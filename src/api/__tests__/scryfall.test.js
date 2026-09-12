@@ -81,6 +81,8 @@ describe('fetchNextPage', () => {
     appState.pageCards = [];
     appState.count = 0;
     appState.binder = document.createElement('div');
+    appState.binder.totalCards = 0;
+    appState.binder.ownedCards = 0;
     appState.grid = document.createElement('div');
   });
 

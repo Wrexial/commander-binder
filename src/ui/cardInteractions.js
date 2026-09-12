@@ -5,7 +5,7 @@ import { appState } from "../state/appState.js";
 import { isCardOwned, toggleCardOwned, setCardsOwned } from "../state/cardState.js";
 import { showUndo } from './components/toast.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
-import { updateBinderCounts } from './layout.js';
+import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
@@ -113,7 +113,7 @@ async function handleContainerClick(event) {
     }
 
     updateOwnedCounter(); // Update global counter
-    updateBinderCounts(cardElement.closest('.binder'));
+    adjustBinderOwnedCount(cardElement.closest('.binder'), isOwned ? 1 : -1);
 
     // Undo logic
     showUndo(isOwned ? 'Marked as owned' : 'Marked as missing', async () => {
@@ -124,7 +124,7 @@ async function handleContainerClick(event) {
           toggleBtn.setAttribute('aria-label', wasMissing ? 'Mark as owned' : 'Mark as missing');
         }
         updateOwnedCounter();
-        updateBinderCounts(cardElement);
+        adjustBinderOwnedCount(cardElement.closest('.binder'), wasMissing ? -1 : 1);
     });
 }
 

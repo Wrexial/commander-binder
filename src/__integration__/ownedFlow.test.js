@@ -172,4 +172,38 @@ describe('owned markers applied on load', () => {
       .find(c => c.cardData?.id === 'c-owned');
     expect(ownedEl.classList.contains('owned')).toBe(true);
   });
+
+  it('applies marks when the owned state resolves after cards have rendered', async () => {
+    let resolveOwned;
+    const ownedResponse = new Promise((resolve) => {
+      resolveOwned = () => resolve({ ok: true, json: async () => [{ cardId: 'c-owned' }] });
+    });
+
+    global.fetch = vi.fn((url) => {
+      const u = String(url);
+      if (u.includes('/owned-cards')) return ownedResponse;
+      if (u.includes('api.scryfall.com')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          json: async () => ({ has_more: false, next_page: null, total_cards: 1, data: [ownedCard] }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    await import('../main.js');
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+
+    // Cards render before the owned state has arrived...
+    await vi.waitFor(() => expect(document.querySelector('.card')).not.toBeNull());
+    expect(document.querySelector('.card').classList.contains('owned')).toBe(false);
+
+    // ...and are marked once it does.
+    resolveOwned();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.card').classList.contains('owned')).toBe(true)
+    );
+  });
 });

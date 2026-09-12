@@ -32,23 +32,25 @@ export async function loadCardStates() {
     initialized = true;
     return;
   }
-  
-  const options = {
-    method: "POST",
-    body: JSON.stringify({ userId }),
-  };
 
-  const res = await authenticatedFetch("/.netlify/functions/owned-cards", options);
+  try {
+    const options = {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    };
 
-  if (!res.ok) {
+    const res = await authenticatedFetch("/.netlify/functions/owned-cards", options);
+    if (!res.ok) return;
+
+    const rows = await res.json();
+    rows.forEach(({ cardId }) => ownedCardIds.add(cardId));
+  } catch (err) {
+    console.error("Failed to load owned cards:", err);
+  } finally {
+    // Always mark initialization complete so isCardOwned() returns a
+    // deterministic result even if the request failed.
     initialized = true;
-    return;
   }
-
-  const rows = await res.json();
-  rows.forEach(({ cardId }) => ownedCardIds.add(cardId));
-
-  initialized = true;
 }
 
 export function isCardOwned(card) {

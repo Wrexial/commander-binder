@@ -132,12 +132,14 @@ export function startNewBinder(results) {
   appState.binder = newBinder;
   appState.binder.totalCards = 0;
   appState.binder.ownedCards = 0;
+  appState.binder.sectionCount = 0;
   appState.binder.startDate = null;
   appState.binder.endDate = null;
 }
 
 export function startNewSection(pageSets = new Map()) {
-  const pageNumberInBinder = appState.binder.querySelectorAll('.section').length + 1;
+  appState.binder.sectionCount = (appState.binder.sectionCount || 0) + 1;
+  const pageNumberInBinder = appState.binder.sectionCount;
 
   const section = document.createElement("div");
   section.className = "section";
@@ -208,16 +210,29 @@ export function startNewSection(pageSets = new Map()) {
 }
 
 export function updateBinderCounts(binder) {
-    if (binder) {
-        const ownedCards = binder.querySelectorAll('.card.owned').length;
-        const totalCards = binder.querySelectorAll('.card').length;
-        const binderOwnedEl = binder.querySelector('.binder-owned');
-        if (binderOwnedEl) binderOwnedEl.textContent = `Owned: ${ownedCards}/${totalCards}`;
+    if (!binder) return;
+    const binderOwnedEl = binder.querySelector('.binder-owned');
+    if (binderOwnedEl) {
+        binderOwnedEl.textContent = `Owned: ${binder.ownedCards || 0}/${binder.totalCards || 0}`;
     }
 }
 
+// Adjust an owned-card counter without rescanning the binder. Used by toggles.
+export function adjustBinderOwnedCount(binder, delta) {
+    if (!binder) return;
+    binder.ownedCards = Math.max(0, (binder.ownedCards || 0) + delta);
+    updateBinderCounts(binder);
+}
+
+// Recompute a binder's counters from the DOM. Only needed for bulk operations.
+export function recountBinder(binder) {
+    if (!binder) return;
+    binder.totalCards = binder.querySelectorAll('.card').length;
+    binder.ownedCards = binder.querySelectorAll('.card.owned').length;
+    updateBinderCounts(binder);
+}
+
 export function updateAllBinderCounts() {
-    const binders = document.querySelectorAll('.binder');
-    binders.forEach(updateBinderCounts);
+    document.querySelectorAll('.binder').forEach(recountBinder);
 }
 
