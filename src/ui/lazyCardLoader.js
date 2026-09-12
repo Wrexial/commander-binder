@@ -18,6 +18,10 @@ export function initLazyCards(results, tooltip) {
   appState.nextPageUrl =
     "https://api.scryfall.com/cards/search?q=type:legendary type:creature&unique=prints&order=released&dir=asc";
 
+  // Collections must be fully loaded: search, statistics and bulk tools all
+  // depend on every card being present. Load the whole set in the background.
+  appState.autoLoad = true;
+
   // Start preloading
   fetchNextPage(results, tooltip);
 

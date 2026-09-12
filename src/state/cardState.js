@@ -1,6 +1,7 @@
 import { updateOwnedCounter } from "../ui/components/ownedCounter.js";
 import { getClerk } from '../auth/clerk.js';
 import { mainState } from "../main.js";
+import { cardStore } from './cardStore.js';
 
 const ownedCardIds = new Set();
 let initialized = false;
@@ -52,29 +53,44 @@ export async function loadCardStates() {
 
 export function isCardOwned(card) {
   if (!initialized) return false;
-  return ownedCardIds.has(card.id);
+  if (ownedCardIds.has(card.id)) return true;
+
+  // The UI shows one card per name (the oldest printing). A saved collection
+  // may have marked a different printing of that name, so treat the card as
+  // owned when any of its loaded printings has been saved.
+  return cardStore.getPrintings(card.name).some(p => ownedCardIds.has(p.id));
 }
 
 export async function toggleCardOwned(card) {
-  const isOwned = isCardOwned(card);
+  const wasOwned = isCardOwned(card);
 
-  if (isOwned) {
-    ownedCardIds.delete(card.id);
+  if (wasOwned) {
+    // Unmark every printing of this name so the card is fully un-owned.
+    const ids = new Set([card.id, ...cardStore.getPrintings(card.name).map(p => p.id)]);
+    ids.forEach(id => ownedCardIds.delete(id));
+
+    authenticatedFetch("/.netlify/functions/batch-toggle-cards", {
+      method: "POST",
+      body: JSON.stringify({
+        cardIds: Array.from(ids),
+        isOwned: false,
+      }),
+    });
   } else {
     ownedCardIds.add(card.id);
-  }
 
-  authenticatedFetch("/.netlify/functions/toggle-card", {
-    method: "POST",
-    body: JSON.stringify({
-      cardId: card.id,
-      isOwned: !isOwned,
-    }),
-  });
+    authenticatedFetch("/.netlify/functions/toggle-card", {
+      method: "POST",
+      body: JSON.stringify({
+        cardId: card.id,
+        isOwned: true,
+      }),
+    });
+  }
 
   updateOwnedCounter();
 
-  return !isOwned;
+  return !wasOwned;
 }
 
 export async function setCardsOwned(cards, owned) {

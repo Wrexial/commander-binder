@@ -2,7 +2,7 @@ import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/consta
 import { appState } from '../state/appState.js';
 import { lightenColor } from '../utils/colors.js';
 import { positionTooltip } from './tooltip.js';
-import { getOwnedCardIds, isCardOwned } from '../state/cardState.js';
+import { isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showListModal } from './components/modal.js';
 import { showToast } from './components/toast.js';
@@ -18,8 +18,7 @@ export function createBulkCheckButton(onClick) {
 
 export function createExportOwnedButton() {
   addButtonToSidebar('📄 Export All Owned', async () => {
-    const ownedCardIds = getOwnedCardIds();
-    const ownedCards = cardStore.getAll().filter(c => ownedCardIds.has(c.id));
+    const ownedCards = cardStore.getAll().filter(isCardOwned);
 
     if (ownedCards.length === 0) {
       showToast('No owned cards to export.');
@@ -124,6 +123,11 @@ export function startNewBinder(results) {
 
   newBinder.appendChild(header);
   results.appendChild(newBinder);
+
+  // Keep the infinite-scroll sentinel as the last child so new binders don't
+  // push it out of the observed position.
+  const sentinel = results.querySelector('#infinite-scroll-sentinel');
+  if (sentinel) results.appendChild(sentinel);
 
   appState.binder = newBinder;
   appState.binder.totalCards = 0;
