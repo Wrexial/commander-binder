@@ -26,7 +26,7 @@ const MAX_EMPTY_FETCHES_PER_CALL = 10;
  * case the spacing is ever tuned down. Cache hits bypass both, so warm loads
  * stay instant.
  */
-const DEFAULT_REQUEST_SPACING_MS = 150;
+const DEFAULT_REQUEST_SPACING_MS = 350;
 const DEFAULT_MAX_REQUESTS_PER_WINDOW = 8;
 const RATE_LIMIT_WINDOW_MS = 1000;
 
