@@ -12,5 +12,9 @@ export const appState = {
   binder: null,
   section: null,
   grid: null,
-  pageCards: []
+  pageCards: [],
+  // Coverage sample captured from the first API page, used to sanity-check the
+  // bulk-data subset before trusting it.
+  apiTotalCards: null,
+  apiSampleIds: null
 };

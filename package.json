@@ -12,7 +12,8 @@
     "db:studio": "netlify dev:exec drizzle-kit studio",
     "lint": "eslint src/**/*.js",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "verify:bulk": "node scripts/verify-bulk-coverage.mjs"
   },
   "author": "",
   "license": "ISC",

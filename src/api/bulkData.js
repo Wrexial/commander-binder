@@ -1,0 +1,373 @@
+// src/api/bulkData.js
+/**
+ * Scryfall bulk data client.
+ *
+ * Scryfall asks clients that need a large amount of card data to use its bulk
+ * data files instead of paginating `/cards/search` dozens of times. The files
+ * live on the `data.scryfall.io` CDN (not the rate-limited API) and are served
+ * as gzip-compressed JSON Lines (`.jsonl.gz`, one card per line), so we can
+ * stream, decompress and filter them without buffering the whole archive.
+ *
+ * `GET /bulk-data` (a single API request) tells us the current download URL and
+ * its `updated_at`. We key the cached, filtered subset on that timestamp, so a
+ * given day's cards are only downloaded once.
+ *
+ * Environments without IndexedDB (jsdom, SSR, private mode) degrade to an
+ * in-memory cache, mirroring `responseCache.js`.
+ */
+
+const BULK_INDEX_URL = 'https://api.scryfall.com/bulk-data';
+
+/** Scryfall asks clients to identify themselves; browsers drop this header. */
+const SCRYFALL_USER_AGENT = 'ScryfallCollectionTracker/1.0';
+const SCRYFALL_HEADERS = {
+  Accept: 'application/json',
+  'User-Agent': SCRYFALL_USER_AGENT,
+};
+
+/** The bulk index changes at most a few times a day; an hour is plenty. */
+const INDEX_TTL_MS = 60 * 60 * 1000;
+
+const DB_NAME = 'scryfall-bulk';
+const STORE_NAME = 'subsets';
+const DB_VERSION = 1;
+
+/**
+ * `default_cards` = every English printing (matches the app's current
+ * `unique=prints` data). Use `oracle_cards` for a much smaller download that
+ * only contains one printing per card.
+ */
+export const DEFAULT_BULK_TYPE = 'default_cards';
+
+const LEGENDARY_CREATURES_KEY = 'legendary-creatures';
+
+/** @type {{ts: number, entries: Map<string, object>}|null} */
+let indexCache = null;
+/** @type {Map<string, object>} */
+const memorySubsets = new Map();
+/** @type {Promise<IDBDatabase|null>|null} */
+let dbPromise = null;
+
+function getIndexedDB() {
+  return typeof indexedDB !== 'undefined' && indexedDB ? indexedDB : null;
+}
+
+function openDb() {
+  if (dbPromise) return dbPromise;
+
+  const idb = getIndexedDB();
+  if (!idb) {
+    dbPromise = Promise.resolve(null);
+    return dbPromise;
+  }
+
+  dbPromise = new Promise((resolve) => {
+    let request;
+    try {
+      request = idb.open(DB_NAME, DB_VERSION);
+    } catch {
+      resolve(null);
+      return;
+    }
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => resolve(null);
+    request.onblocked = () => resolve(null);
+  });
+
+  return dbPromise;
+}
+
+async function readSubset(key) {
+  if (memorySubsets.has(key)) return memorySubsets.get(key);
+
+  const db = await openDb();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => {
+        const value = req.result?.value ?? null;
+        if (value) memorySubsets.set(key, value);
+        resolve(value);
+      };
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function writeSubset(key, value) {
+  memorySubsets.set(key, value);
+  const db = await openDb();
+  if (!db) return;
+  try {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put({ key, value });
+  } catch {
+    /* best-effort persistence only */
+  }
+}
+
+/** Fetch and memoise the bulk-data index. */
+export async function loadBulkIndex({ force = false } = {}) {
+  if (!force && indexCache && Date.now() - indexCache.ts < INDEX_TTL_MS) {
+    return indexCache.entries;
+  }
+
+  const res = await fetch(BULK_INDEX_URL, { headers: SCRYFALL_HEADERS });
+  if (!res.ok) throw new Error(`Scryfall bulk-data index failed: HTTP ${res.status}`);
+
+  const body = await res.json();
+  const entries = new Map((body.data || []).map((entry) => [entry.type, entry]));
+  indexCache = { ts: Date.now(), entries };
+  return entries;
+}
+
+/** Look up a single bulk-data entry by type. */
+export async function getBulkEntry(type = DEFAULT_BULK_TYPE, options = {}) {
+  const entries = await loadBulkIndex(options);
+  const entry = entries.get(type);
+  if (!entry || !entry.jsonl_download_uri) {
+    throw new Error(`No Scryfall bulk-data entry of type "${type}"`);
+  }
+  return entry;
+}
+
+/** Matches Scryfall's `type:legendary type:creature` search filter. */
+export function isLegendaryCreature(card) {
+  if (typeof card?.type_line !== 'string') return false;
+  const typeLine = card.type_line.toLowerCase();
+  return typeLine.includes('legendary') && typeLine.includes('creature');
+}
+
+function isPaper(card) {
+  return Array.isArray(card?.games) && card.games.includes('paper');
+}
+
+/**
+ * Card layouts that are not playable cards. Scryfall's search excludes these by
+ * default; we mirror that so the bulk view doesn't include tokens/emblems.
+ */
+const NON_PLAYABLE_LAYOUTS = new Set([
+  'token',
+  'double_faced_token',
+  'emblem',
+  'art_series',
+  'vanguard',
+  'scheme',
+  'planar',
+  'augment',
+  'host',
+]);
+
+/**
+ * A paper, playable legendary creature. Bulk data carries tokens and other
+ * non-playable layouts the search hides, so we drop those. We deliberately do
+ * NOT try to mirror every default-search exclusion (e.g. Un-sets): that is
+ * set-specific and fragile, and would drop cards the app shows today. The
+ * coverage script reports the resulting delta.
+ *
+ * @param {object} card
+ * @returns {boolean}
+ */
+export function isPlayableLegendaryCreature(card) {
+  if (!isLegendaryCreature(card) || !isPaper(card)) return false;
+  if (NON_PLAYABLE_LAYOUTS.has(card.layout)) return false;
+  return true;
+}
+
+function* splitLines(text) {
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (line) yield line;
+  }
+}
+
+/**
+ * Yield the parsed JSON value of each line in a bulk-data response, streaming
+ * through gzip decompression where needed.
+ *
+ * @param {object} response A fetch `Response` (or a compatible mock).
+ * @returns {AsyncGenerator<string>} trimmed, non-empty JSONL lines
+ */
+export async function* readJsonlLines(response) {
+  const contentType = response?.headers?.get?.('content-type') || '';
+  const url = response?.url || '';
+  const gzipped = /gzip/i.test(contentType) || /\.gz(\?|#|$)/i.test(url);
+
+  const body = response?.body;
+  if (!body || typeof body.pipeThrough !== 'function') {
+    // No stream (e.g. a simple test mock): fall back to a single decode.
+    yield* splitLines((await response.text()) || '');
+    return;
+  }
+
+  let stream = body;
+  if (gzipped) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error(
+        'Scryfall bulk data is gzip-compressed and this browser cannot decompress it.'
+      );
+    }
+    stream = stream.pipeThrough(new DecompressionStream('gzip'));
+  }
+
+  if (typeof TextDecoderStream === 'undefined') {
+    // Older runtimes: buffer and decode once.
+    const buffer = await new Response(stream).arrayBuffer();
+    yield* splitLines(new TextDecoder().decode(buffer));
+    return;
+  }
+
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = '';
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let newline;
+      while ((newline = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+        if (line) yield line;
+      }
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  const tail = buffer.trim();
+  if (tail) yield tail;
+}
+
+/**
+ * Download a bulk file and keep only the cards that satisfy `predicate`.
+ * The archive is streamed, so peak memory stays bounded by the matches.
+ *
+ * @param {string} type Bulk type, e.g. `default_cards`.
+ * @param {(card: object) => boolean} predicate
+ * @param {{entry?: object, onProgress?: (received: number) => void}} [options]
+ * @returns {Promise<{updatedAt: string, cards: object[]}>}
+ */
+export async function downloadFilteredBulkCards(type, predicate, options = {}) {
+  const entry = options.entry || (await getBulkEntry(type));
+  const res = await fetch(entry.jsonl_download_uri, {
+    headers: { 'User-Agent': SCRYFALL_USER_AGENT },
+  });
+  if (!res.ok) throw new Error(`Scryfall bulk download failed: HTTP ${res.status}`);
+
+  const cards = [];
+  let lineCount = 0;
+  for await (const line of readJsonlLines(res)) {
+    lineCount++;
+    if (options.onProgress && lineCount % 500 === 0) options.onProgress(lineCount);
+    // A large file arrives in many chunks; yield to the event loop so the UI
+    // stays responsive while we parse it on the main thread.
+    if (lineCount % 2000 === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    let card;
+    try {
+      card = JSON.parse(line);
+    } catch {
+      continue; // skip a malformed line rather than aborting the whole file
+    }
+    if (predicate(card)) cards.push(card);
+  }
+
+  return { updatedAt: entry.updated_at, cards };
+}
+
+/**
+ * Sanity-check that a bulk subset actually covers the set the search API
+ * reports. The search's `total_cards` is the ground truth and page 1 gives a
+ * cheap sample of ids to spot-check membership.
+ *
+ * @param {object[]} cards The filtered bulk subset.
+ * @param {{expectedCount?: number|null, sampleIds?: string[]|null, tolerance?: number}} [options]
+ * @returns {{ok: boolean, count: number, expectedCount: number|null, countMatches: boolean, missingSampleIds: string[]}}
+ */
+export function verifyBulkCoverage(
+  cards,
+  { expectedCount = null, sampleIds = null, tolerance = 0 } = {}
+) {
+  const ids = new Set((cards || []).map((card) => card.id));
+  const missingSampleIds = [];
+  if (Array.isArray(sampleIds)) {
+    for (const id of sampleIds) {
+      if (!ids.has(id)) missingSampleIds.push(id);
+    }
+  }
+
+  const count = Array.isArray(cards) ? cards.length : 0;
+  const countMatches =
+    typeof expectedCount !== 'number' || Math.abs(count - expectedCount) <= tolerance;
+
+  return {
+    ok: missingSampleIds.length === 0 && countMatches,
+    count,
+    expectedCount: typeof expectedCount === 'number' ? expectedCount : null,
+    countMatches,
+    missingSampleIds,
+  };
+}
+
+/**
+ * Return every paper legendary-creature printing, sorted by release date to
+ * match the app's `order=released&dir=asc` view. Cached in IndexedDB and
+ * invalidated when Scryfall publishes a new bulk file.
+ *
+ * @param {{type?: string, force?: boolean}} [options]
+ * @returns {Promise<{updatedAt: string, type: string, fetchedAt: number, cards: object[]}>}
+ */
+export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = false } = {}) {
+  const cacheKey = `${type}:${LEGENDARY_CREATURES_KEY}`;
+  const entry = await getBulkEntry(type, { force });
+
+  if (!force) {
+    const cached = await readSubset(cacheKey);
+    if (cached && cached.updatedAt === entry.updated_at && Array.isArray(cached.cards)) {
+      return cached;
+    }
+  }
+
+  const { updatedAt, cards } = await downloadFilteredBulkCards(
+    type,
+    isPlayableLegendaryCreature,
+    { entry }
+  );
+  cards.sort((a, b) => String(a.released_at || '').localeCompare(String(b.released_at || '')));
+
+  const subset = { updatedAt, type, fetchedAt: Date.now(), cards };
+  await writeSubset(cacheKey, subset);
+  return subset;
+}
+
+/** Drop every cached subset and the memoised index (used by tests/manual refresh). */
+export async function clearBulkCache() {
+  indexCache = null;
+  memorySubsets.clear();
+
+  const db = await openDb();
+  if (!db) return;
+  await new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}

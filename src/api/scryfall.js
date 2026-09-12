@@ -47,6 +47,46 @@ let activeRun = null;
 /** Set when a fetch fails so auto-loading pauses instead of retrying forever. */
 let halted = false;
 
+/**
+ * Optional non-API page source. When set, the render loop pulls chunks from a
+ * pre-filtered Scryfall bulk subset instead of calling the rate-limited search
+ * API. `next_page` is a sentinel so the existing loop/observer keep working.
+ */
+let bulkPager = null;
+const BULK_SOURCE_SENTINEL = 'bulk:legendary-creatures';
+
+/**
+ * Render the remaining collection from an already-filtered bulk subset. Cards
+ * are served in `CARDS_PER_PAGE` chunks, so the render pipeline is unchanged.
+ * @param {object[]} cards
+ * @returns {boolean} whether a source was installed
+ */
+export function setBulkCardSource(cards) {
+    if (!Array.isArray(cards) || cards.length === 0) return false;
+
+    let offset = 0;
+    bulkPager = async () => {
+        const data = cards.slice(offset, offset + CARDS_PER_PAGE);
+        offset += data.length;
+        const hasMore = offset < cards.length;
+        return {
+            data,
+            has_more: hasMore,
+            next_page: hasMore ? BULK_SOURCE_SENTINEL : null,
+            total_cards: cards.length,
+        };
+    };
+
+    // Keep the loop alive even if the API already reached its last page.
+    if (!appState.nextPageUrl) appState.nextPageUrl = BULK_SOURCE_SENTINEL;
+    return true;
+}
+
+/** Drop the bulk source (falling back to the API, or in tests). */
+export function clearBulkCardSource() {
+    bulkPager = null;
+}
+
 /** Current spacing between network requests; overridable for tests/tuning. */
 let requestSpacingMs = DEFAULT_REQUEST_SPACING_MS;
 /** Max real network requests allowed within a rolling {@link rateLimitWindowMs}. */
@@ -270,7 +310,20 @@ async function runFetch(results, tooltip) {
         let emptyFetches = 0;
 
         while (appState.nextPageUrl) {
-            const data = await fetchScryfallData(appState.nextPageUrl);
+            const data = bulkPager
+                ? await bulkPager()
+                : await fetchScryfallData(appState.nextPageUrl);
+
+            // Remember the API's claimed total and a sample of ids from the
+            // first page so the bulk subset can be sanity-checked against them.
+            if (!bulkPager) {
+                if (appState.apiTotalCards == null && data.total_cards != null) {
+                    appState.apiTotalCards = Number(data.total_cards) || null;
+                }
+                if (appState.apiSampleIds == null && Array.isArray(data.data)) {
+                    appState.apiSampleIds = data.data.map((c) => c.id);
+                }
+            }
 
             const newCards = processScryfallData(data);
             appState.pageCards.push(...newCards);

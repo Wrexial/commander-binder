@@ -34,7 +34,7 @@ vi.mock('../../ui/components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-import { fetchNextPage, setRequestThrottle } from '../scryfall.js';
+import { fetchNextPage, setRequestThrottle, setBulkCardSource, clearBulkCardSource } from '../scryfall.js';
 import { appState } from '../../state/appState.js';
 import { clearCache, writeCache, CACHE_TTL_MS } from '../responseCache.js';
 import * as layout from '../../ui/layout.js';
@@ -87,6 +87,9 @@ describe('fetchNextPage', () => {
     appState.isLoading = false;
     appState.pendingFetch = false;
     appState.autoLoad = false;
+    appState.apiTotalCards = null;
+    appState.apiSampleIds = null;
+    clearBulkCardSource();
     appState.seenNames = new Set();
     appState.seenSetCodes = new Set();
     appState.pageCards = [];
@@ -219,6 +222,35 @@ describe('fetchNextPage', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(3);
     expect(appState.isLoading).toBe(false);
+  });
+
+  it('captures the API total and a page-1 sample for bulk verification', async () => {
+    global.fetch.mockResolvedValue(
+      jsonResponse({ has_more: false, next_page: null, total_cards: 999, data: makeCards(3, 'A') })
+    );
+
+    await fetchNextPage(null, null);
+
+    expect(appState.apiTotalCards).toBe(999);
+    expect(appState.apiSampleIds).toEqual(['A-0', 'A-1', 'A-2']);
+  });
+
+  it('renders the rest of the collection from a bulk source without more API calls', async () => {
+    global.fetch.mockResolvedValue(
+      jsonResponse({ has_more: true, next_page: PAGE_2, data: makeCards(175, 'A') })
+    );
+
+    await fetchNextPage(null, null); // API page 1
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    // Feed a small bulk batch and let the auto-load loop finish it.
+    expect(setBulkCardSource(makeCards(30, 'B'))).toBe(true);
+    appState.autoLoad = true;
+    await fetchNextPage(null, null);
+    await vi.waitFor(() => expect(appState.nextPageUrl).toBeNull());
+
+    // No further Scryfall requests: everything came from the bulk source.
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('runs Scryfall requests one at a time (never concurrently)', async () => {
