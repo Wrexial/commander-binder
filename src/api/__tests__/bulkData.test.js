@@ -9,6 +9,7 @@ import {
   getLegendaryCreatures,
   verifyBulkCoverage,
   clearBulkCache,
+  SUBSET_TTL_MS,
 } from '../bulkData.js';
 
 function makeCard(overrides = {}) {
@@ -171,9 +172,16 @@ describe('bulkData', () => {
       String(u).includes('cards.jsonl.gz')
     );
     expect(downloadCalls).toHaveLength(1);
+
+    // The TTL fast path means the second call makes no network requests at all
+    // (not even the bulk index).
+    const indexCalls = global.fetch.mock.calls.filter(([u]) =>
+      String(u).includes('/bulk-data')
+    );
+    expect(indexCalls).toHaveLength(1);
   });
 
-  it('re-downloads when Scryfall publishes a newer bulk file', async () => {
+  it('re-downloads when Scryfall publishes a newer bulk file after the TTL', async () => {
     const entry = {
       type: 'default_cards',
       updated_at: '2026-09-12T21:05:31.691+00:00',
@@ -192,15 +200,101 @@ describe('bulkData', () => {
       });
     });
 
-    await getLegendaryCreatures();
-    // A new bulk file is published; the memoised index now points at it.
-    entry.updated_at = '2026-09-13T21:05:31.691+00:00';
-    await getLegendaryCreatures();
+    const base = 1_000_000_000_000;
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(base);
+    try {
+      await getLegendaryCreatures();
+      // A new bulk file is published after the cache window expires.
+      nowSpy.mockReturnValue(base + SUBSET_TTL_MS + 1);
+      entry.updated_at = '2026-09-13T21:05:31.691+00:00';
+      await getLegendaryCreatures();
+    } finally {
+      nowSpy.mockRestore();
+    }
 
     const downloadCalls = global.fetch.mock.calls.filter(([u]) =>
       String(u).includes('cards.jsonl.gz')
     );
     expect(downloadCalls).toHaveLength(2);
+  });
+
+  it('revalidates after the TTL without re-downloading an unchanged file', async () => {
+    const entry = {
+      type: 'default_cards',
+      updated_at: '2026-09-12T21:05:31.691+00:00',
+      jsonl_download_uri: 'https://data.scryfall.io/default-cards/cards.jsonl.gz',
+    };
+    const jsonl = JSON.stringify(makeCard({ name: 'Legend' }));
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url).includes('/bulk-data')) {
+        return { ok: true, json: async () => ({ data: [entry] }) };
+      }
+      return mockResponse({
+        body: streamFromBytes(await gzipBytes(jsonl)),
+        url: entry.jsonl_download_uri,
+        contentType: 'application/gzip',
+      });
+    });
+
+    const base = 2_000_000_000_000;
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(base);
+    try {
+      await getLegendaryCreatures();
+      nowSpy.mockReturnValue(base + SUBSET_TTL_MS + 1);
+      await getLegendaryCreatures();
+    } finally {
+      nowSpy.mockRestore();
+    }
+
+    const indexCalls = global.fetch.mock.calls.filter(([u]) =>
+      String(u).includes('/bulk-data')
+    );
+    const downloadCalls = global.fetch.mock.calls.filter(([u]) =>
+      String(u).includes('cards.jsonl.gz')
+    );
+    expect(indexCalls).toHaveLength(2);
+    expect(downloadCalls).toHaveLength(1);
+  });
+
+  it('serves the cached subset when the bulk index is unreachable', async () => {
+    const entry = {
+      type: 'default_cards',
+      updated_at: '2026-09-12T21:05:31.691+00:00',
+      jsonl_download_uri: 'https://data.scryfall.io/default-cards/cards.jsonl.gz',
+    };
+    const jsonl = JSON.stringify(makeCard({ name: 'Offline Legend' }));
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url).includes('/bulk-data')) {
+        return { ok: true, json: async () => ({ data: [entry] }) };
+      }
+      return mockResponse({
+        body: streamFromBytes(await gzipBytes(jsonl)),
+        url: entry.jsonl_download_uri,
+        contentType: 'application/gzip',
+      });
+    });
+
+    const base = 3_000_000_000_000;
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(base);
+    try {
+      await getLegendaryCreatures();
+
+      // The index now fails and the cache window has expired.
+      global.fetch.mockImplementation(async (url) => {
+        if (String(url).includes('/bulk-data')) {
+          return { ok: false, status: 503, json: async () => ({}) };
+        }
+        return mockResponse({});
+      });
+      nowSpy.mockReturnValue(base + SUBSET_TTL_MS + 1);
+
+      const subset = await getLegendaryCreatures();
+      expect(subset.cards.map((c) => c.name)).toEqual(['Offline Legend']);
+    } finally {
+      nowSpy.mockRestore();
+    }
   });
 
   it('downloadFilteredBulkCards applies the predicate', async () => {

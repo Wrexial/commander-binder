@@ -28,6 +28,14 @@ const SCRYFALL_HEADERS = {
 /** The bulk index changes at most a few times a day; an hour is plenty. */
 const INDEX_TTL_MS = 60 * 60 * 1000;
 
+/**
+ * How long a downloaded bulk subset is trusted before re-checking Scryfall's
+ * index. Bulk files are published about once a day, so a few hours of cache
+ * means repeat visits make no network requests at all while still picking up a
+ * new file the same day.
+ */
+export const SUBSET_TTL_MS = 6 * 60 * 60 * 1000;
+
 const DB_NAME = 'scryfall-bulk';
 const STORE_NAME = 'subsets';
 const DB_VERSION = 1;
@@ -106,13 +114,44 @@ async function readSubset(key) {
 
 async function writeSubset(key, value) {
   memorySubsets.set(key, value);
+
+  // Best-effort: ask the browser not to evict this origin's storage.
+  requestPersistentStorage();
+
   const db = await openDb();
-  if (!db) return;
+  if (!db) return false;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put({ key, value });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => {
+        console.warn('Failed to persist Scryfall bulk data:', tx.error);
+        resolve(false);
+      };
+      tx.onabort = () => {
+        console.warn('Scryfall bulk data write aborted:', tx.error);
+        resolve(false);
+      };
+    } catch (err) {
+      console.warn('Failed to persist Scryfall bulk data:', err);
+      resolve(false);
+    }
+  });
+}
+
+let persistenceRequested = false;
+
+/** Ask the browser to keep IndexedDB around (best-effort, never throws). */
+function requestPersistentStorage() {
+  if (persistenceRequested) return;
+  persistenceRequested = true;
   try {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put({ key, value });
+    const result = navigator?.storage?.persist?.();
+    if (result && typeof result.catch === 'function') result.catch(() => {});
   } catch {
-    /* best-effort persistence only */
+    /* ignore */
   }
 }
 
@@ -324,20 +363,43 @@ export function verifyBulkCoverage(
 /**
  * Return every paper legendary-creature printing, sorted by release date to
  * match the app's `order=released&dir=asc` view. Cached in IndexedDB and
- * invalidated when Scryfall publishes a new bulk file.
+ * reused for {@link SUBSET_TTL_MS} before Scryfall's index is re-checked.
  *
  * @param {{type?: string, force?: boolean}} [options]
  * @returns {Promise<{updatedAt: string, type: string, fetchedAt: number, cards: object[]}>}
  */
 export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = false } = {}) {
   const cacheKey = `${type}:${LEGENDARY_CREATURES_KEY}`;
-  const entry = await getBulkEntry(type, { force });
+  const cached = await readSubset(cacheKey);
 
-  if (!force) {
-    const cached = await readSubset(cacheKey);
-    if (cached && cached.updatedAt === entry.updated_at && Array.isArray(cached.cards)) {
+  // Fast path: a subset downloaded within the TTL is served with no network
+  // request at all (not even the bulk index).
+  if (
+    !force &&
+    cached &&
+    Array.isArray(cached.cards) &&
+    Date.now() - (cached.fetchedAt || 0) < SUBSET_TTL_MS
+  ) {
+    return cached;
+  }
+
+  let entry;
+  try {
+    entry = await getBulkEntry(type, { force });
+  } catch (err) {
+    // Offline or rate-limited index: a stale subset beats no cards at all.
+    if (cached && Array.isArray(cached.cards)) {
+      console.warn('Scryfall bulk index unavailable; using cached bulk data.', err);
       return cached;
     }
+    throw err;
+  }
+
+  if (!force && cached && cached.updatedAt === entry.updated_at && Array.isArray(cached.cards)) {
+    // Unchanged upstream: extend the freshness window without re-downloading.
+    const refreshed = { ...cached, fetchedAt: Date.now() };
+    await writeSubset(cacheKey, refreshed);
+    return refreshed;
   }
 
   const { updatedAt, cards } = await downloadFilteredBulkCards(
