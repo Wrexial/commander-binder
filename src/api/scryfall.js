@@ -27,7 +27,7 @@ const MAX_EMPTY_FETCHES_PER_CALL = 10;
  * stay instant.
  */
 const DEFAULT_REQUEST_SPACING_MS = 1000;
-const DEFAULT_MAX_REQUESTS_PER_WINDOW = 1;
+const DEFAULT_MAX_REQUESTS_PER_WINDOW = 8;
 const RATE_LIMIT_WINDOW_MS = 1000;
 
 /** Retry budget when Scryfall answers 429 Too Many Requests. */
