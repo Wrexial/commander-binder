@@ -5,6 +5,7 @@ import { isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
+import { createExportModal } from './components/exportModal.js';
 
 export function createBulkAddButton(onClick) {
   addButtonToSidebar('➕ Bulk Add', onClick);
@@ -15,23 +16,17 @@ export function createBulkCheckButton(onClick) {
 }
 
 export function createExportOwnedButton() {
-  addButtonToSidebar('📄 Export All Owned', async () => {
+  addButtonToSidebar('📄 Export All Owned', () => {
     const ownedCards = cardStore.getAll().filter(isCardOwned);
 
     if (ownedCards.length === 0) {
       showToast('No owned cards to export.');
       return;
     }
-    
-    const cardNames = ownedCards.map(card => card.name);
-    const textToCopy = cardNames.join('\n');
 
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      showToast('Owned cards copied to clipboard!', 'success');
-    }).catch(err => {
-      console.error('Failed to copy text: ', err);
-      showToast('Failed to copy cards. See console for details.', 'error');
-    });
+    if (document.querySelector('.list-modal-backdrop')) return;
+
+    createExportModal(ownedCards.map((card) => card.name)).show();
   });
 }
 

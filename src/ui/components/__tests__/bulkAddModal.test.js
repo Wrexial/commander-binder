@@ -10,10 +10,8 @@ describe('bulkAddModal', () => {
   });
 
   afterEach(() => {
-    const backdrop = document.querySelector('.list-modal-backdrop');
-    if (backdrop) {
-      backdrop.remove();
-    }
+    modal?.destroy?.();
+    document.body.innerHTML = '';
   });
 
   it('should create and show the modal', () => {
