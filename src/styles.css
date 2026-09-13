@@ -252,6 +252,7 @@ body.sidebar-open {
   #share-button,
   .sign-in-button,
   .global-export-button,
+  .exit-guest-button,
   .guest-mode-text {
     padding: 4px 6px;
     font-size: 0.7rem;
@@ -261,7 +262,8 @@ body.sidebar-open {
 #share-button,
 .sign-in-button,
 .global-export-button,
-.stats-button {
+.stats-button,
+.exit-guest-button {
   padding: 9px 16px;
   background-color: var(--button-bg);
   color: var(--button-text);
@@ -278,7 +280,8 @@ body.sidebar-open {
 #share-button:hover,
 .sign-in-button:hover,
 .global-export-button:hover,
-.stats-button:hover {
+.stats-button:hover,
+.exit-guest-button:hover {
   background-color: var(--button-bg-hover);
   border-color: var(--accent);
   transform: translateY(-1px);
@@ -287,19 +290,28 @@ body.sidebar-open {
 #share-button:active,
 .sign-in-button:active,
 .global-export-button:active,
-.stats-button:active {
+.stats-button:active,
+.exit-guest-button:active {
   background-color: var(--button-bg-active);
   transform: translateY(0);
 }
 
 #share-button:focus-visible,
-.sign-in-button:focus-visible {
+.sign-in-button:focus-visible,
+.exit-guest-button:focus-visible {
   outline: none;
   box-shadow: var(--focus-shadow);
 }
 
 #share-button.hidden {
   display: none;
+}
+
+.guest-mode-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .guest-mode-text {
