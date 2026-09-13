@@ -1,33 +1,39 @@
-/* global describe, beforeEach, afterEach, it, expect */
-import { createBulkAddModal } from '../bulkAddModal';
+import { describe, beforeEach, afterEach, it, expect } from 'vitest';
+import { createBulkAddModal } from '../bulkAddModal.js';
 
 describe('bulkAddModal', () => {
   let modal;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     document.body.innerHTML = '';
-    modal = createBulkAddModal();
+    modal = await createBulkAddModal();
   });
 
   afterEach(() => {
-    const modalElement = document.getElementById('bulk-add-modal');
-    if (modalElement) {
-      modalElement.remove();
+    const backdrop = document.querySelector('.list-modal-backdrop');
+    if (backdrop) {
+      backdrop.remove();
     }
   });
 
   it('should create and show the modal', () => {
     modal.show();
-    const modalElement = document.getElementById('bulk-add-modal');
-    expect(modalElement).not.toBeNull();
-    expect(modalElement.style.display).toBe('block');
+
+    const backdrop = document.querySelector('.list-modal-backdrop');
+    expect(backdrop).not.toBeNull();
+    expect(backdrop.style.display).toBe('block');
   });
 
-  it('should hide the modal when the close button is clicked', () => {
+  it('should remove the modal when the close button is clicked', () => {
     modal.show();
-    const modalElement = document.getElementById('bulk-add-modal');
-    const closeButton = modalElement.querySelector('.close-button');
+
+    const closeButton = Array.from(
+      document.querySelectorAll('.modal-button-container button')
+    ).find((button) => button.textContent === 'Close');
+    expect(closeButton).not.toBeUndefined();
+
     closeButton.click();
-    expect(modalElement.style.display).toBe('none');
+
+    expect(document.querySelector('.list-modal-backdrop')).toBeNull();
   });
 });

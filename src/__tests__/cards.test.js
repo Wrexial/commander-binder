@@ -1,23 +1,23 @@
 // src/__tests__/cards.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCardElement, updateCardState } from '../cards';
-import { appState } from '../appState';
-import * as cardState from '../cardState';
+import { createCardElement, updateCardState } from '../ui/cards.js';
+import { appState } from '../state/appState.js';
+import * as cardState from '../state/cardState.js';
 
-vi.mock('../cardSettings', () => ({
+vi.mock('../state/cardSettings.js', () => ({
   cardSettings: {
     persistentReveal: false,
     showTooltip: true,
   },
 }));
 
-vi.mock('../appState', () => ({
+vi.mock('../state/appState.js', () => ({
   appState: {
     isViewOnlyMode: false,
   },
 }));
 
-vi.mock('../cardState', () => ({
+vi.mock('../state/cardState.js', () => ({
   isCardOwned: vi.fn(),
   toggleCardOwned: vi.fn(),
   setCardsOwned: vi.fn(),

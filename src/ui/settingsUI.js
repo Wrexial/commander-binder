@@ -33,6 +33,8 @@ function handleShowTooltipChange(value) {
 
 export function initCardSettings() {
     const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
     const settingsContainer = document.createElement('div');
     settingsContainer.className = 'sidebar-settings-container';
 

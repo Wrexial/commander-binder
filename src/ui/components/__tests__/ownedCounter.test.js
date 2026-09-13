@@ -1,27 +1,31 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { updateOwnedCounter } from '../ownedCounter.js';
-import { appState } from '../../appState.js';
-import { ownedCards } from '../../cardState.js';
+import { appState } from '../../../state/appState.js';
+import { getOwnedCardIds, isCardOwned } from '../../../state/cardState.js';
 
 // Mock dependencies from other modules
-vi.mock('../../appState.js', () => ({
+vi.mock('../../../state/appState.js', () => ({
   appState: {
     seenNames: new Set(),
   },
 }));
 
-vi.mock('../../cardState.js', () => ({
-  ownedCards: new Set(),
+vi.mock('../../../state/cardState.js', () => ({
+  getOwnedCardIds: vi.fn(),
+  isCardOwned: vi.fn(),
 }));
 
 describe('updateOwnedCounter', () => {
-  let ownedCounterEl, searchInputEl;
+  let ownedCounterEl, searchInputEl, ownedCards;
 
   beforeEach(() => {
     // Reset mocks and DOM
     vi.clearAllMocks();
     appState.seenNames.clear();
-    ownedCards.clear();
+    ownedCards = new Set();
+    getOwnedCardIds.mockReturnValue(ownedCards);
+    isCardOwned.mockImplementation((card) => ownedCards.has(card.id));
+
     document.body.innerHTML = `
       <div id="owned-counter"></div>
       <input id="search-input" value="" />
@@ -55,10 +59,10 @@ describe('updateOwnedCounter', () => {
     appState.seenNames.add('Card B');
     appState.seenNames.add('Card C');
     appState.seenNames.add('Card D');
-    
+
     searchInputEl.value = '';
     updateOwnedCounter();
-    
+
     // ownedCards has 'card1', 'card3', 'card5' = 3
     // appState.seenNames has 4
     expect(ownedCounterEl.textContent).toBe('Owned: 3/4');
@@ -78,7 +82,7 @@ describe('updateOwnedCounter', () => {
     document.body.innerHTML = '';
     expect(() => updateOwnedCounter()).not.toThrow();
   });
-  
+
   it('should handle a scenario with no cards in the DOM', () => {
     document.getElementById('card-grid').innerHTML = '';
     searchInputEl.value = 'search with no results';

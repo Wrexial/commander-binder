@@ -1,28 +1,28 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 // Mock all dependencies FIRST
-vi.mock('../appState.js', () => ({
+vi.mock('../state/appState.js', () => ({
   appState: { isViewOnlyMode: false },
 }));
-vi.mock('../clerk.js');
-vi.mock('../components/SignInButton.js');
-vi.mock('../components/GuestModeText.js');
-vi.mock('../components/ShareButton.js');
+vi.mock('../auth/clerk.js');
+vi.mock('../ui/components/SignInButton.js');
+vi.mock('../ui/components/GuestModeText.js');
 
 // NOW, import the modules we need, including the state object
 import { setupUI, mainState } from '../main.js';
-import { appState } from '../appState.js';
-import * as clerk from '../clerk.js';
-import * as signInButton from '../components/SignInButton.js';
-import * as guestModeText from '../components/GuestModeText.js';
-import * as shareButton from '../components/ShareButton.js';
-
+import { appState } from '../state/appState.js';
+import * as clerk from '../auth/clerk.js';
+import * as signInButton from '../ui/components/SignInButton.js';
+import * as guestModeText from '../ui/components/GuestModeText.js';
 
 describe('setupUI', () => {
-
   beforeEach(() => {
-    // Setup DOM
-    document.body.innerHTML = '<div id="user-actions"></div>';
+    // setupUI clears the user-actions and sidebar containers, so both must exist.
+    document.body.innerHTML = `
+      <div id="user-actions"></div>
+      <div id="sidebar"></div>
+      <button id="openbtn"></button>
+    `;
 
     // Reset mocks and module state before each test
     vi.clearAllMocks();
@@ -34,7 +34,6 @@ describe('setupUI', () => {
     // Provide default mock implementations
     signInButton.createSignInButton.mockReturnValue(document.createElement('button'));
     guestModeText.createGuestModeText.mockReturnValue(document.createElement('div'));
-    shareButton.createShareButton.mockReturnValue(document.createElement('button'));
   });
 
   afterEach(() => {
@@ -50,21 +49,21 @@ describe('setupUI', () => {
     expect(guestModeText.createGuestModeText).toHaveBeenCalledTimes(1);
     expect(appState.isViewOnlyMode).toBe(true);
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();
-    const guestText = document.querySelector('#user-button').querySelector('div');
-    expect(guestText).toBeDefined();
+    expect(document.querySelector('#user-actions').children.length).toBe(1);
   });
 
   it('should setup for a logged-out user if no user and no guestId', async () => {
     mainState.guestUserId = undefined;
-    clerk.getClerk.mockReturnValue({}); // No user object
+    const emptyClerk = {};
+    clerk.getClerk.mockReturnValue(emptyClerk); // No user object
 
     await setupUI();
 
-    expect(signInButton.createSignInButton).toHaveBeenCalledTimes(1);
+    expect(signInButton.createSignInButton).toHaveBeenCalledWith(emptyClerk);
     expect(appState.isViewOnlyMode).toBe(true);
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
-    const signIn = document.querySelector('#user-button').querySelector('button');
-    expect(signIn).toBeDefined();
+    const signIn = document.querySelector('#user-actions').querySelector('button');
+    expect(signIn).not.toBeNull();
   });
 
   it('should setup for an authenticated user if clerk.user exists', async () => {
@@ -73,18 +72,14 @@ describe('setupUI', () => {
       mountUserButton: vi.fn(),
     };
     clerk.getClerk.mockReturnValue(mockClerk);
-    const mockShareButton = document.createElement('button');
-    mockShareButton.classList.add('hidden');
-    shareButton.createShareButton.mockReturnValue(mockShareButton);
-
 
     await setupUI();
 
-    expect(mockClerk.mountUserButton).toHaveBeenCalled();
+    const userButton = document.getElementById('user-button');
+    expect(userButton).not.toBeNull();
+    expect(mockClerk.mountUserButton).toHaveBeenCalledWith(userButton);
     expect(mainState.isLoggedIn).toBe(true);
     expect(mainState.loggedInUserId).toBe('user-456');
-    expect(shareButton.createShareButton).toHaveBeenCalledWith('user-456');
-    expect(mockShareButton.classList.contains('hidden')).toBe(false);
 
     // Verify other paths not taken
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();

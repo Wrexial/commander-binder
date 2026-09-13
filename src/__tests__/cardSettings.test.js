@@ -24,7 +24,7 @@ describe('cardSettings', () => {
     });
 
     it('should load default settings when localStorage is empty', async () => {
-        const { cardSettings } = await import('../cardSettings');
+        const { cardSettings } = await import('../state/cardSettings.js');
         expect(cardSettings.showTooltip).toBe(true);
         expect(cardSettings.persistentReveal).toBe(false);
     });
@@ -35,7 +35,7 @@ describe('cardSettings', () => {
             persistentReveal: true,
         }));
         
-        const { cardSettings } = await import('../cardSettings');
+        const { cardSettings } = await import('../state/cardSettings.js');
         expect(cardSettings.showTooltip).toBe(false);
         expect(cardSettings.persistentReveal).toBe(true);
     });
@@ -44,13 +44,13 @@ describe('cardSettings', () => {
         localStorageMock.setItem('cardSettings', JSON.stringify({
             persistentReveal: true,
         }));
-        const { cardSettings } = await import('../cardSettings');
+        const { cardSettings } = await import('../state/cardSettings.js');
         expect(cardSettings.showTooltip).toBe(true); // From default
         expect(cardSettings.persistentReveal).toBe(true); // From localStorage
     });
 
     it('saveSettings should store the current settings in localStorage', async () => {
-        const { cardSettings, saveSettings } = await import('../cardSettings');
+        const { cardSettings, saveSettings } = await import('../state/cardSettings.js');
         
         // Modify settings
         cardSettings.showTooltip = false;

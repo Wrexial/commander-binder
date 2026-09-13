@@ -1,22 +1,22 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { initCardInteractions } from '../cardInteractions.js';
-import * as tooltip from '../tooltip.js';
-import { cardSettings } from '../cardSettings.js';
-import { appState } from '../appState.js';
-import * as cardState from '../cardState.js';
-import * as toast from '../ui/toast.js';
-import * as ownedCounter from '../ui/ownedCounter.js';
-import * as layout from '../layout.js';
+import { initCardInteractions } from '../ui/cardInteractions.js';
+import * as tooltip from '../ui/tooltip.js';
+import { cardSettings } from '../state/cardSettings.js';
+import { appState } from '../state/appState.js';
+import * as cardState from '../state/cardState.js';
+import * as toast from '../ui/components/toast.js';
+import * as ownedCounter from '../ui/components/ownedCounter.js';
+import * as layout from '../ui/layout.js';
 
 // Mock all dependencies
-vi.mock('../tooltip.js');
-vi.mock('../cardSettings.js');
-vi.mock('../appState.js');
-vi.mock('../cardState.js');
-vi.mock('../ui/toast.js');
-vi.mock('../ui/ownedCounter.js');
-vi.mock('../layout.js');
+vi.mock('../ui/tooltip.js');
+vi.mock('../state/cardSettings.js');
+vi.mock('../state/appState.js');
+vi.mock('../state/cardState.js');
+vi.mock('../ui/components/toast.js');
+vi.mock('../ui/components/ownedCounter.js');
+vi.mock('../ui/layout.js');
 
 describe('initCardInteractions', () => {
   let container, tooltipElement, cardElement;
@@ -101,7 +101,7 @@ describe('initCardInteractions', () => {
       initCardInteractions(container, tooltipElement);
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       const binderElement = container.querySelector('.binder');
-      expect(layout.updateBinderCounts).toHaveBeenCalledWith(binderElement);
+      expect(layout.adjustBinderOwnedCount).toHaveBeenCalledWith(binderElement, 1);
     });
 
     it('should not toggle ownership when in view-only mode', async () => {

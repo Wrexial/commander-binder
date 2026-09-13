@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { showLoading, hideLoading } from '../loadingIndicator.js';
-import { appState } from '../appState.js';
+import { showLoading, hideLoading } from '../ui/loadingIndicator.js';
+import { appState } from '../state/appState.js';
 
 describe('loadingIndicator', () => {
   let loader;

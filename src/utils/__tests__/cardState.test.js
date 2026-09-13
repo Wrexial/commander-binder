@@ -5,8 +5,8 @@ import {
   isCardOwned,
   toggleCardOwned,
   setCardsOwned,
-  ownedCards,
-} from '../../cardState';
+  getOwnedCardIds,
+} from '../../state/cardState.js';
 
 vi.mock('../../main.js', () => ({
   mainState: {
@@ -15,22 +15,31 @@ vi.mock('../../main.js', () => ({
   },
 }));
 
-vi.mock('../../ui/ownedCounter', () => ({
+vi.mock('../../ui/components/ownedCounter.js', () => ({
   updateOwnedCounter: vi.fn(),
 }));
-vi.mock('../../clerk.js', () => ({
-    getClerk: () => ({
-        session: {
-            getToken: () => Promise.resolve('test-token')
-        }
-    })
+
+vi.mock('../../state/cardStore.js', () => ({
+  cardStore: {
+    getPrintings: vi.fn(() => []),
+  },
 }));
 
+vi.mock('../../auth/clerk.js', () => ({
+  getClerk: () => ({
+    session: {
+      getToken: () => Promise.resolve('test-token'),
+    },
+  }),
+}));
 
 globalThis.fetch = vi.fn();
 
 describe('cardState', () => {
+  let ownedCards;
+
   beforeEach(async () => {
+    ownedCards = getOwnedCardIds();
     ownedCards.clear();
     vi.clearAllMocks();
     // Ensure the module is "initialized" for isCardOwned tests

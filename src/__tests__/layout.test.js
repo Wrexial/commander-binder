@@ -1,14 +1,9 @@
 // src/__tests__/layout.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { startNewBinder, startNewSection } from '../layout';
-import { appState } from '../appState';
-import * as modal from '../ui/modal.js';
-import * as cardState from '../cardState.js';
+import { startNewBinder, startNewSection } from '../ui/layout.js';
+import { appState } from '../state/appState.js';
 
-vi.mock('../ui/modal.js');
-vi.mock('../cardState.js');
-
-vi.mock('../appState', () => ({
+vi.mock('../state/appState.js', () => ({
     appState: {
         count: 0,
         binder: null,
@@ -52,11 +47,10 @@ describe('layout', () => {
             expect(header.textContent).toContain('Binder 1');
         });
 
-        it('should create an export button', () => {
+        it('should create the binder owned counter element', () => {
             startNewBinder(results);
-            const button = results.querySelector('.export-missing-button');
-            expect(button).not.toBeNull();
-            expect(button.textContent).toBe('Export Missing');
+            const owned = results.querySelector('.binder-owned');
+            expect(owned).not.toBeNull();
         });
     });
 
@@ -90,48 +84,6 @@ describe('layout', () => {
             startNewSection(pageSets);
             const header = appState.binder.querySelector('.page-header');
             expect(header.textContent).toContain('DOM, M21');
-        });
-    });
-
-    describe('Export Missing Feature', () => {
-        let binder;
-        beforeEach(() => {
-            startNewBinder(results);
-            binder = results.querySelector('.binder');
-
-            // Create some cards
-            for (let i = 0; i < 5; i++) {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.cardData = { id: `card-${i}`, name: `Card ${i}` };
-                binder.appendChild(card);
-            }
-        });
-
-        it('should show an alert if no cards are missing', () => {
-            const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-            cardState.isCardOwned.mockReturnValue(true);
-            
-            binder.querySelector('.export-missing-button').click();
-            
-            expect(alertSpy).toHaveBeenCalledWith('No missing cards in this binder.');
-            alertSpy.mockRestore();
-        });
-
-        it('should show a modal with a chunked list of missing cards', () => {
-            const modalSpy = vi.spyOn(modal, 'showListModal');
-            cardState.isCardOwned.mockImplementation(card => card.id === 'card-2'); // Only one is owned
-            
-            binder.querySelector('.export-missing-button').click();
-            
-            const expectedList = [
-                'Card 0',
-                'Card 1',
-                'Card 3',
-                'Card 4',
-            ];
-            expect(modalSpy).toHaveBeenCalledWith('Missing Cards', expectedList);
-            modalSpy.mockRestore();
         });
     });
 });

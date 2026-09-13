@@ -1,12 +1,12 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { initLazyCards } from '../lazyCardLoader.js';
-import { appState } from '../appState.js';
-import * as fetcher from '../fetcher.js';
-import * as layout from '../layout.js';
+import { initLazyCards } from '../ui/lazyCardLoader.js';
+import { appState } from '../state/appState.js';
+import * as fetcher from '../api/scryfall.js';
+import * as layout from '../ui/layout.js';
 
 // Mock dependencies
-vi.mock('../fetcher.js');
-vi.mock('../layout.js');
+vi.mock('../api/scryfall.js');
+vi.mock('../ui/layout.js');
 
 let mockInstances = [];
 class MockIntersectionObserver {

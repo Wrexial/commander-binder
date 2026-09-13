@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { showListModal } from '../../ui/modal';
+import { showListModal } from '../modal.js';
 
 vi.useFakeTimers();
 

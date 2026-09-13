@@ -1,9 +1,9 @@
 // src/utils/__tests__/search.test.js
 import { describe, it, expect, vi } from 'vitest';
-import { parseQuery, evaluateCondition } from '../../search';
-import * as cardState from '../../cardState';
+import { parseQuery, evaluateCondition } from '../../ui/search.js';
+import * as cardState from '../../state/cardState.js';
 
-vi.mock('../../appState', () => ({
+vi.mock('../../state/appState.js', () => ({
   appState: {
     seenSetCodes: new Set(['dom']),
   },

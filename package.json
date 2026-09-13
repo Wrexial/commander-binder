@@ -33,7 +33,7 @@
   "devDependencies": {
     "@netlify/functions": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.17",
-    "drizzle-kit": "^0.18.1",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.2",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsdoc": "^62.0.0",
