@@ -252,8 +252,22 @@ body.sidebar-open {
   #share-button,
   .sign-in-button,
   .global-export-button,
-  .exit-guest-button,
   .guest-mode-text {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+  }
+
+  /* Stack the guest controls and shrink them so the header title keeps its
+     room on narrow screens. The `.user-actions` prefix beats the base button
+     rules further down the file, which would otherwise win on specificity. */
+  .user-actions .guest-mode-container {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .guest-mode-container .guest-mode-text,
+  .guest-mode-container .exit-guest-button {
     padding: 4px 6px;
     font-size: 0.7rem;
   }
