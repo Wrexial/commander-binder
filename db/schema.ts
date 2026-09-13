@@ -10,3 +10,4 @@ export const ownedCards = pgTable(
 );
 
 export { userSettings } from "./userSettings";
+export { shareLinks } from "./shareLinks";

@@ -1,7 +1,3 @@
 [dev]
   framework = "vite"
   port = 8080          # Netlify Dev port
-
-[[edge_functions]]
-function = "test"
-path = "/test"

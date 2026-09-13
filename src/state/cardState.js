@@ -1,45 +1,28 @@
 import { updateOwnedCounter } from "../ui/components/ownedCounter.js";
-import { getClerk } from '../auth/clerk.js';
 import { mainState } from "../main.js";
 import { cardStore } from './cardStore.js';
+import { authenticatedFetch } from '../api/authenticatedFetch.js';
 
 const ownedCardIds = new Set();
 let initialized = false;
 
-async function authenticatedFetch(url, options = {}) {
-  const clerk = getClerk();
-  const token = await clerk.session?.getToken();
-
-  const headers = {
-    ...options.headers,
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  return fetch(url, {
-    ...options,
-    headers,
-  });
-}
-
 export async function loadCardStates() {
-  const userId = mainState.guestUserId || mainState.loggedInUserId;
-
-  if (!userId) {
+  if (!mainState.loggedInUserId && !mainState.shareToken) {
     initialized = true;
     return;
   }
 
   try {
-    const options = {
-      method: "POST",
-      body: JSON.stringify({ userId }),
-    };
+    // Signed-in callers are resolved server-side from their token; guests pass
+    // the share token instead. Neither ever sends a raw user id.
+    const body = mainState.loggedInUserId
+      ? {}
+      : { shareToken: mainState.shareToken };
 
-    const res = await authenticatedFetch("/.netlify/functions/owned-cards", options);
+    const res = await authenticatedFetch("/.netlify/functions/owned-cards", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
     if (!res.ok) return;
 
     const rows = await res.json();

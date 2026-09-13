@@ -1,17 +1,26 @@
-import type { Context } from "@netlify/functions";
-import { db } from "../../db";
-import { ownedCards } from "../../db/schema";
 import { eq } from "drizzle-orm";
+import { db } from "../../db";
+import { ownedCards, shareLinks } from "../../db/schema";
+import { getUserId } from "../utils/auth";
 
-export async function handler(event, context: Context) {
+export async function handler(event) {
+  const { shareToken } = JSON.parse(event.body || "{}");
+
   let userId;
-  const { user } = context.netlifyContext || {};
 
-  if (user) {
-    userId = user.sub;
+  if (shareToken) {
+    // A share token is an explicit capability: honour it even when the caller
+    // also has a session, so opening someone's share link shows *their*
+    // collection and a rotated token stops resolving immediately.
+    const [row] = await db
+      .select({ userId: shareLinks.userId })
+      .from(shareLinks)
+      .where(eq(shareLinks.token, shareToken));
+
+    userId = row?.userId;
   } else {
-    const body = JSON.parse(event.body || "{}");
-    userId = body.userId;
+    // No share token: signed-in callers are pinned to their verified identity.
+    userId = await getUserId(event);
   }
 
   if (!userId) {

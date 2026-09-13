@@ -11,7 +11,7 @@ import {
 vi.mock('../../main.js', () => ({
   mainState: {
     loggedInUserId: null,
-    guestUserId: null,
+    shareToken: null,
   },
 }));
 
@@ -54,7 +54,7 @@ describe('cardState', () => {
     it('should load card states for a logged-in user', async () => {
       const { mainState } = await import('../../main.js');
       mainState.loggedInUserId = 'user123';
-      mainState.guestUserId = null;
+      mainState.shareToken = null;
 
       const mockResponse = {
         ok: true,
@@ -71,7 +71,7 @@ describe('cardState', () => {
     it('should load card states for a guest user', async () => {
       const { mainState } = await import('../../main.js');
       mainState.loggedInUserId = null;
-      mainState.guestUserId = 'guest123';
+      mainState.shareToken = 'share123';
 
       const mockResponse = {
         ok: true,

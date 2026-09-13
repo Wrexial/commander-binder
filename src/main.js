@@ -19,6 +19,7 @@ import { createBulkAddModal } from './ui/components/bulkAddModal.js';
 import { createBulkCheckModal } from './ui/components/bulkCheckModal.js';
 import { updateAllCardStates } from './ui/cards.js';
 import { showToast } from './ui/components/toast.js';
+import { getShareToken } from './api/share.js';
 import { showStatisticsModal } from './ui/statistics.js';
 import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
 
@@ -39,7 +40,7 @@ async function showBulkCheckModal() {
 export const mainState = {
   loggedInUserId: undefined,
   isLoggedIn: false,
-  guestUserId: undefined,
+  shareToken: undefined,
 };
 
 function setupAuthenticatedUser(userButtonDiv, clerk) {
@@ -47,11 +48,29 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   mainState.isLoggedIn = true;
   mainState.loggedInUserId = clerk.user.id;
   updateOwnedCounter();
-  addButtonToSidebar('🔗 Share', () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('user', mainState.loggedInUserId);
-    navigator.clipboard.writeText(url.href);
-    showToast("Link copied to clipboard!");
+
+  addButtonToSidebar('🔗 Share', async () => {
+    try {
+      const token = await getShareToken();
+      const url = new URL(window.location.href);
+      url.searchParams.delete('user');
+      url.searchParams.set('share', token);
+      await navigator.clipboard.writeText(url.href);
+      showToast("Link copied to clipboard!");
+    } catch (err) {
+      console.error('Failed to create share link:', err);
+      showToast('Could not create a share link.', 'error');
+    }
+  });
+
+  addButtonToSidebar('♻️ Regenerate Share Link', async () => {
+    try {
+      await getShareToken({ regenerate: true });
+      showToast('Share link regenerated. Old links no longer work.', 'success');
+    } catch (err) {
+      console.error('Failed to regenerate share link:', err);
+      showToast('Could not regenerate the share link.', 'error');
+    }
   });
 
   addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
@@ -69,7 +88,7 @@ export async function setupUI() {
   userActionsContainer.innerHTML = '';
   sidebar.innerHTML = '';
 
-  if (mainState.guestUserId) {
+  if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
@@ -94,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initSidebar();
   await initClerk();
   const urlParams = new URLSearchParams(window.location.search);
-  mainState.guestUserId = urlParams.get('user');
+  mainState.shareToken = urlParams.get('share');
   const tooltip = document.getElementById("tooltip");
   const results = document.getElementById("results");
 

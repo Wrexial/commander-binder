@@ -12,3 +12,16 @@ export async function verifyToken(token: string) {
     return null;
   }
 }
+
+/**
+ * Resolve the authenticated Clerk user id from an Authorization: Bearer token.
+ * Returns null when the header is missing or the token fails verification, so
+ * callers can decide how to respond (and never trust a user id from the body).
+ */
+export async function getUserId(event: { headers?: Record<string, string | undefined> }) {
+  const token = event.headers?.authorization?.split(' ')[1];
+  if (!token) return null;
+
+  const user = await verifyToken(token);
+  return typeof user?.sub === 'string' ? user.sub : null;
+}

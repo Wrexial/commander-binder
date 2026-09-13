@@ -1,25 +1,16 @@
 import { db } from "../../db";
 import { ownedCards } from "../../db/schema";
 import { and, eq } from "drizzle-orm";
-import { verifyToken } from "../utils/auth";
+import { getUserId } from "../utils/auth";
 
 export async function handler(event) {
-  const token = event.headers.authorization?.split(" ")[1];
-  if (!token) {
+  const userId = await getUserId(event);
+  if (!userId) {
     return {
       statusCode: 401,
       body: JSON.stringify({ message: "Unauthorized" }),
     };
   }
-
-  const user = await verifyToken(token);
-  if (!user) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "Unauthorized" }),
-    };
-  }
-  const userId = user.sub;
 
   const { cardId, isOwned } = JSON.parse(event.body || "{}");
 

@@ -26,7 +26,7 @@ describe('setupUI', () => {
 
     // Reset mocks and module state before each test
     vi.clearAllMocks();
-    mainState.guestUserId = undefined;
+    mainState.shareToken = undefined;
     mainState.loggedInUserId = undefined;
     mainState.isLoggedIn = false;
     appState.isViewOnlyMode = false;
@@ -40,8 +40,8 @@ describe('setupUI', () => {
     document.body.innerHTML = '';
   });
 
-  it('should setup for a guest user if guestUserId is present', async () => {
-    mainState.guestUserId = 'guest-123';
+  it('should setup for a guest user if a share token is present', async () => {
+    mainState.shareToken = 'share-123';
     clerk.getClerk.mockReturnValue({}); // No user object
 
     await setupUI();
@@ -52,8 +52,8 @@ describe('setupUI', () => {
     expect(document.querySelector('#user-actions').children.length).toBe(1);
   });
 
-  it('should setup for a logged-out user if no user and no guestId', async () => {
-    mainState.guestUserId = undefined;
+  it('should setup for a logged-out user if no user and no share token', async () => {
+    mainState.shareToken = undefined;
     const emptyClerk = {};
     clerk.getClerk.mockReturnValue(emptyClerk); // No user object
 
