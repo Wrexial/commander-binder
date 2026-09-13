@@ -93,18 +93,19 @@
   --z-index-tooltip: 2200;
 }
 
+html {
+  background-color: var(--surface-0);
+}
+
 body {
   font-family: 'Roboto', sans-serif;
   margin: 0;
   padding: 1rem;
   color: var(--text);
-  background-color: var(--surface-0);
-  background-image:
-    radial-gradient(900px 520px at 12% -10%, rgba(76, 140, 200, 0.16), transparent 62%),
-    radial-gradient(820px 520px at 100% 0%, rgba(212, 175, 55, 0.10), transparent 58%),
-    linear-gradient(180deg, #121826 0%, #0c1018 100%);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  /* The page backdrop is painted by the fixed ::before layer below. A fixed
+     pseudo-element is composited once; `background-attachment: fixed`
+     repaints the whole gradient on every scroll frame. */
+  background-color: transparent;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -113,6 +114,22 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fixed, composited page backdrop. Kept off the scroll path so scrolling the
+   thousands of cards below never repaints it. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--surface-0);
+  background-image:
+    radial-gradient(900px 520px at 12% -10%, rgba(76, 140, 200, 0.16), transparent 62%),
+    radial-gradient(820px 520px at 100% 0%, rgba(212, 175, 55, 0.10), transparent 58%),
+    linear-gradient(180deg, #121826 0%, #0c1018 100%);
+  background-repeat: no-repeat;
 }
 
 body.sidebar-open {
@@ -379,6 +396,13 @@ body.sidebar-open {
   border-radius: var(--radius-md);
   background: var(--surface-2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  /* Skip layout and paint for off-screen pages. A section holds
+     CARDS_PER_PAGE cards, so rendering cost tracks the viewport instead of
+     the full collection. The intrinsic size is a placeholder used while a
+     section is skipped; `auto` remembers the real height once measured. */
+  content-visibility: auto;
+  contain-intrinsic-size: 340px;
+  contain-intrinsic-size: auto 340px;
 }
 
 @media (max-width: 768px) {
@@ -604,15 +628,18 @@ body.sidebar-open {
     opacity: 0.7; /* Make it visible but subtle on mobile */
     pointer-events: auto; /* allow clicking on mobile if needed */
   }
-  .edhrec-link img {
+  .edhrec-link::after {
     width: 8px;
     height: 8px;
   }
 }
 
-.edhrec-link img {
+/* Icon drawn in CSS so each card doesn't carry an extra <img> element. */
+.edhrec-link::after {
+  content: '';
   width: 14px;
   height: 14px;
+  background: url('/edhrec-icon.ico') center / contain no-repeat;
 }
 
 .card:hover .edhrec-link,
@@ -868,6 +895,12 @@ body.sidebar-open {
     margin: 0; /* Remove bottom margin to close gap with binder header */
     padding: 0.5rem;
     gap: 0.5rem;
+    /* Solid surface instead of a live backdrop blur: blurring everything
+       scrolling behind a sticky bar is a major source of scroll jank on
+       low-end phones. */
+    background: var(--surface-1);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     display: grid;
     grid-template-areas: 
       "search search"
@@ -1033,9 +1066,21 @@ body.sidebar-open {
   font-weight: 700;
 }
 
+/* Draw the "owned" tick as an inline SVG instead of a literal Unicode glyph.
+   A glyph depends on the button font containing U+2713 and on the stylesheet
+   being decoded as UTF-8; the SVG renders identically on every device. */
 .card.owned .card-toggle::after {
-  content: '✓';
-  color: #0b4227;
+  content: '';
+  width: 11px;
+  height: 11px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 8.5l3.5 3.5 7.5-8' fill='none' stroke='%230b4227' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+@media (max-width: 768px) {
+  .card.owned .card-toggle::after {
+    width: 9px;
+    height: 9px;
+  }
 }
 
 .card:hover .card-toggle {
@@ -1065,15 +1110,17 @@ body.sidebar-open {
 
 .card:not(.owned) {
   border: 1px dashed var(--border-strong);
-  filter: saturate(0.55);
 }
 
-.card:not(.owned):hover {
-  filter: saturate(0.95);
-}
-
+/* Desaturate "missing" cards with a cheap overlay rather than a per-card
+   `filter`. A filter forces an offscreen compositing layer for every card,
+   which is ruinous when thousands are on screen. */
 .card:not(.owned)::before {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.card:not(.owned):hover::before {
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 
@@ -1178,6 +1225,9 @@ body.sidebar-open {
   .binder-header {
     top: 104px; /* Clear the taller mobile settings bar */
     padding: 0.5rem; /* Removed left padding */
+    background: var(--surface-1);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     font-size: 0.9rem;
     display: grid;
     grid-template-areas: 

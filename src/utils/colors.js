@@ -1,6 +1,27 @@
+/**
+ * Cache of resolved CSS custom properties. The theme variables are static for
+ * the lifetime of the page, but `getComputedStyle` forces a style flush on
+ * every call. Card creation asks for the same handful of variables thousands
+ * of times, so resolve each one once.
+ * @type {Map<string, string>|null}
+ */
+let cssVarCache = null;
+
+/** Drop memoized CSS variables (after a theme change, or in tests). */
+export function clearCssVarCache() {
+  cssVarCache = null;
+}
+
 function getCssVar(name, fallback) {
+  if (!cssVarCache) cssVarCache = new Map();
+
+  const cached = cssVarCache.get(name);
+  if (cached !== undefined) return cached;
+
   const v = getComputedStyle(document.documentElement).getPropertyValue(name);
-  return (v || fallback).trim();
+  const value = (v || fallback).trim();
+  cssVarCache.set(name, value);
+  return value;
 }
 
 export function getCardBorderStyle(card) {

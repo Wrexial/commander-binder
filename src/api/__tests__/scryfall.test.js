@@ -117,6 +117,18 @@ describe('fetchNextPage', () => {
     expect(appState.isLoading).toBe(false);
   });
 
+  it('attaches a rendered page to the grid in a single DOM mutation', async () => {
+    global.fetch.mockResolvedValue(
+      jsonResponse({ has_more: false, next_page: null, data: makeCards(20) })
+    );
+
+    const appendSpy = vi.spyOn(appState.grid, 'appendChild');
+    await fetchNextPage(null, null);
+
+    expect(cards.createCardElement).toHaveBeenCalledTimes(20);
+    expect(appendSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps fetching while pages yield too few new cards, then stops', async () => {
     global.fetch
       .mockResolvedValueOnce(

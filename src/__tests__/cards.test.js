@@ -56,6 +56,19 @@ describe('createCardElement', () => {
     expect(edhrecLink.href).toBe('http://edhrec.com/serra-angel');
   });
 
+  it('should draw the EDHREC icon in CSS instead of an <img>', () => {
+    const element = createCardElement(card, 0);
+    const edhrecLink = element.querySelector('.edhrec-link');
+    expect(edhrecLink.querySelector('img')).toBeNull();
+    expect(edhrecLink.getAttribute('aria-label')).toBe('View on EDHREC');
+  });
+
+  it('should resolve the owned state only once per card', () => {
+    cardState.isCardOwned.mockReturnValue(false);
+    createCardElement(card, 0);
+    expect(cardState.isCardOwned).toHaveBeenCalledTimes(1);
+  });
+
   it('should create a card element with a toggle button', () => {
     const element = createCardElement(card, 0);
     const toggleButton = element.querySelector('.card-toggle');

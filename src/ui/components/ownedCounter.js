@@ -16,13 +16,13 @@ export function updateOwnedCounter() {
     return;
   }
 
-  const visibleCards = Array.from(document.querySelectorAll(".card")).filter(
-    (card) => card.style.display !== "none"
-  );
+  let visibleCount = 0;
+  let ownedVisibleCount = 0;
+  document.querySelectorAll(".card").forEach((card) => {
+    if (card.style.display === "none") return;
+    visibleCount++;
+    if (isCardOwned(card.cardData)) ownedVisibleCount++;
+  });
 
-  const ownedVisibleCount = visibleCards.filter(
-    (card) => isCardOwned(card.cardData)
-  ).length;
-
-  ownedCounter.textContent = `Owned: ${ownedVisibleCount}/${visibleCards.length} shown (${totalOwnedCount} total)`;
+  ownedCounter.textContent = `Owned: ${ownedVisibleCount}/${visibleCount} shown (${totalOwnedCount} total)`;
 }

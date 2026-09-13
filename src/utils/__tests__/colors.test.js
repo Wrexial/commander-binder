@@ -1,6 +1,6 @@
 // src/utils/__tests__/colors.test.js
 import { describe, it, expect, vi } from 'vitest';
-import { getCardBorderStyle, getCardBackground, lightenColor } from '../colors';
+import { getCardBorderStyle, getCardBackground, lightenColor, clearCssVarCache } from '../colors';
 
 // Mock getComputedStyle
 globalThis.getComputedStyle = vi.fn(() => ({
@@ -52,6 +52,20 @@ describe('getCardBackground', () => {
     const card = { color_identity: ['W', 'U'] };
     const background = getCardBackground(card);
     expect(background).toBe('linear-gradient(to right, #fdf8ec 0%, #fdf8ec 50%, #e3f0fa 50%, #e3f0fa 100%)');
+  });
+});
+
+describe('CSS variable caching', () => {
+  it('resolves each variable once and reuses it across cards', () => {
+    clearCssVarCache();
+    globalThis.getComputedStyle.mockClear();
+
+    getCardBorderStyle({ color_identity: ['W'] });
+    const afterFirst = globalThis.getComputedStyle.mock.calls.length;
+    expect(afterFirst).toBeGreaterThan(0);
+
+    getCardBorderStyle({ color_identity: ['W'] });
+    expect(globalThis.getComputedStyle.mock.calls.length).toBe(afterFirst);
   });
 });
 

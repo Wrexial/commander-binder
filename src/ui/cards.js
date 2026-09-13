@@ -28,12 +28,10 @@ export function createCardElement(card, cardIndex) {
       edhrecBtn.href = card.related_uris.edhrec;
       edhrecBtn.target = "_blank";
       edhrecBtn.rel = "noopener noreferrer";
+      // The icon is drawn by CSS (::after) instead of an <img>, removing one
+      // image element per card from the DOM.
+      edhrecBtn.setAttribute("aria-label", "View on EDHREC");
   
-      const icon = document.createElement("img");
-      icon.src = "/edhrec-icon.ico";
-      icon.alt = "EDHREC";
-  
-      edhrecBtn.appendChild(icon);
       div.appendChild(edhrecBtn);
   
       // If user enabled persistent reveal, show the EDHREC link by default
@@ -69,13 +67,14 @@ export function createCardElement(card, cardIndex) {
       return div;
     }
   
+    const owned = isCardOwned(card);
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "card-toggle";
     // Toggle indicates whether you own the card (checkmark when owned)
-      toggleBtn.title = isCardOwned(card) ? "Mark as missing" : "Mark as owned";
-      toggleBtn.setAttribute('aria-label', isCardOwned(card) ? 'Mark as missing' : 'Mark as owned');
-      toggleBtn.setAttribute('aria-pressed', (isCardOwned(card)).toString());
-      // toggle button has no visible checkmark; owned state shown via badge
+      toggleBtn.title = owned ? "Mark as missing" : "Mark as owned";
+      toggleBtn.setAttribute('aria-label', owned ? 'Mark as missing' : 'Mark as owned');
+      toggleBtn.setAttribute('aria-pressed', owned.toString());
+      // The visible +/tick is drawn by CSS on .card-toggle::after.
       toggleBtn.textContent = "";
   
       div.appendChild(toggleBtn);

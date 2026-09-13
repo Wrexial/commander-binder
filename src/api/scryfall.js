@@ -375,15 +375,19 @@ function renderPage(results, tooltip, pageCards) {
     }));
 
     startNewSection(pageSets);
+    // Build the page off-document, then attach it in a single mutation: one
+    // reflow per page instead of one per card.
+    const fragment = document.createDocumentFragment();
     pageCards.forEach((c, i) => {
         const cardIndex = appState.count + i;
         const el = createCardElement(c, cardIndex);
         el.dataset.cardIndex = cardIndex;
-        appState.grid.appendChild(el);
         updateCardState(el);
         appState.binder.totalCards++;
         if (el.classList.contains('owned')) appState.binder.ownedCards++;
+        fragment.appendChild(el);
     });
+    appState.grid.appendChild(fragment);
     updateBinderCounts(appState.binder);
 
     const dates = Array.from(pageSets.values()).map(set => set.date);

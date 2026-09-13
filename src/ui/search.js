@@ -219,16 +219,32 @@ export function initSearch() {
     const searchTerm = searchInput.value.toLowerCase().trim();
     const conditions = parseQuery(searchTerm);
 
+    // Single pass: evaluate each card once and roll section/binder visibility
+    // up as we go, instead of re-querying and re-allocating arrays per binder.
     let visibleCardCount = 0;
-    document.querySelectorAll('.card').forEach(card => {
-      const isVisible = conditions.every(condition => evaluateCondition(card, condition));
+    const hasConditions = conditions.length > 0;
 
-      if (isVisible) {
-        visibleCardCount++;
-        card.style.display = '';
-      } else {
-        card.style.display = 'none';
-      }
+    document.querySelectorAll('.binder').forEach(binder => {
+      let visibleCardsInBinder = 0;
+
+      binder.querySelectorAll('.section').forEach(section => {
+        let visibleCardsInSection = 0;
+
+        section.querySelectorAll('.card').forEach(card => {
+          const isVisible =
+            !hasConditions ||
+            conditions.every(condition => evaluateCondition(card, condition));
+
+          card.style.display = isVisible ? '' : 'none';
+          if (isVisible) visibleCardsInSection++;
+        });
+
+        section.style.display = visibleCardsInSection === 0 ? 'none' : '';
+        if (visibleCardsInSection > 0) visibleCardsInBinder++;
+        visibleCardCount += visibleCardsInSection;
+      });
+
+      binder.style.display = visibleCardsInBinder === 0 ? 'none' : '';
     });
 
     updateOwnedCounter();
@@ -238,25 +254,6 @@ export function initSearch() {
     } else {
       noResultsMessage.style.display = 'none';
     }
-
-    document.querySelectorAll('.binder').forEach(binder => {
-      let visibleCardsInBinder = 0;
-      binder.querySelectorAll('.section').forEach(section => {
-        const visibleCardsInSection = Array.from(section.querySelectorAll('.card')).filter(card => card.style.display !== 'none').length;
-        if (visibleCardsInSection === 0) {
-          section.style.display = 'none';
-        } else {
-          section.style.display = '';
-          visibleCardsInBinder++;
-        }
-      });
-
-      if (visibleCardsInBinder === 0) {
-        binder.style.display = 'none';
-      } else {
-        binder.style.display = '';
-      }
-    });
 
     if (searchInput.value) {
       clearSearchButton.style.display = 'block';
