@@ -1,13 +1,15 @@
 // src/__tests__/cards.test.js
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCardElement, updateCardState } from '../ui/cards.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createCardElement, updateCardState, applyDisplayMode, refreshCardElement } from '../ui/cards.js';
 import { appState } from '../state/appState.js';
+import { cardSettings } from '../state/cardSettings.js';
 import * as cardState from '../state/cardState.js';
 
 vi.mock('../state/cardSettings.js', () => ({
   cardSettings: {
     persistentReveal: false,
     showTooltip: true,
+    displayMode: 'text',
   },
 }));
 
@@ -100,6 +102,154 @@ describe('createCardElement', () => {
     const toggleButton = element.querySelector('.card-toggle');
     expect(toggleButton).toBeNull();
     appState.isViewOnlyMode = false; // Reset for other tests
+  });
+});
+
+describe('displayed printing price', () => {
+  const pricedCard = (overrides = {}) => ({
+    id: 'priced',
+    name: 'Serra Angel',
+    color_identity: ['W'],
+    prices: { eur: '12.50', eur_foil: '30.00' },
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    cardState.isCardOwned.mockReturnValue(false);
+  });
+
+  it('shows the displayed printing\'s own price, not a cheaper reprint', () => {
+    const element = createCardElement(pricedCard(), 0);
+    expect(element.querySelector('.card-price').textContent).toBe('€12.50');
+  });
+
+  it('falls back to the foil price when there is no non-foil price', () => {
+    const element = createCardElement(
+      pricedCard({ prices: { eur: null, eur_foil: '7.25' } }),
+      0
+    );
+    expect(element.querySelector('.card-price').textContent).toBe('€7.25');
+  });
+
+  it('omits the badge when the printing has no price', () => {
+    const element = createCardElement(pricedCard({ prices: {} }), 0);
+    expect(element.querySelector('.card-price')).toBeNull();
+  });
+
+  it('updates the price when the displayed printing changes', () => {
+    const element = createCardElement(pricedCard(), 0);
+    expect(element.querySelector('.card-price').textContent).toBe('€12.50');
+
+    element.cardData = pricedCard({ id: 'cheap', prices: { eur: '1.00' } });
+    refreshCardElement(element);
+
+    expect(element.querySelector('.card-price').textContent).toBe('€1.00');
+  });
+});
+
+describe('image display mode', () => {
+  const textOnlyCard = {
+    id: 'card-text',
+    name: 'Serra Angel',
+    color_identity: ['W'],
+  };
+
+  const cardWithImages = {
+    id: 'card-img',
+    name: 'Serra Angel',
+    related_uris: { edhrec: 'http://edhrec.com/serra-angel' },
+    color_identity: ['W'],
+    image_uris: {
+      thumb: 'https://images.test/thumb.webp',
+      grid: 'https://images.test/grid.webp',
+      normal: 'https://images.test/normal.jpg',
+    },
+  };
+
+  beforeEach(() => {
+    cardSettings.displayMode = 'images';
+    cardState.isCardOwned.mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    cardSettings.displayMode = 'text';
+    document.body.innerHTML = '';
+  });
+
+  it('renders a lazy-loaded thumbnail instead of the name', () => {
+    const element = createCardElement(cardWithImages, 0);
+    expect(element.classList.contains('image-tile')).toBe(true);
+    expect(element.querySelector('.card-name')).toBeNull();
+
+    const img = element.querySelector('.card-image');
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe('https://images.test/thumb.webp');
+    expect(img.getAttribute('loading')).toBe('lazy');
+    expect(img.getAttribute('decoding')).toBe('async');
+  });
+
+  it('offers the sharper grid art to wide viewports', () => {
+    const element = createCardElement(cardWithImages, 0);
+    const source = element.querySelector('picture source');
+    expect(source.getAttribute('srcset')).toBe('https://images.test/grid.webp');
+    expect(source.getAttribute('media')).toContain('min-width');
+  });
+
+  it('keeps the interactive overlays in image mode', () => {
+    appState.isViewOnlyMode = false;
+    const element = createCardElement(cardWithImages, 0);
+    expect(element.querySelector('.card-toggle')).not.toBeNull();
+    expect(element.querySelector('.owned-badge')).not.toBeNull();
+    expect(element.querySelector('.edhrec-link')).not.toBeNull();
+  });
+
+  it('falls back to the text tile when a card has no image', () => {
+    const element = createCardElement(textOnlyCard, 0);
+    expect(element.classList.contains('image-tile')).toBe(false);
+    expect(element.querySelector('.card-name').textContent).toBe('Serra Angel');
+  });
+
+  it('uses the front face image for multi-face cards', () => {
+    const dfc = {
+      id: 'dfc',
+      name: 'Delver of Secrets // Insectile Aberration',
+      color_identity: ['U'],
+      layout: 'transform',
+      card_faces: [
+        { image_uris: { thumb: 'https://images.test/front.webp' } },
+        { image_uris: { thumb: 'https://images.test/back.webp' } },
+      ],
+    };
+    const element = createCardElement(dfc, 0);
+    expect(element.querySelector('.card-image').getAttribute('src')).toBe(
+      'https://images.test/front.webp'
+    );
+  });
+});
+
+describe('applyDisplayMode', () => {
+  it('re-renders mounted cards for the new mode', () => {
+    const card = {
+      id: 'card1',
+      name: 'Serra Angel',
+      color_identity: ['W'],
+      image_uris: { thumb: 'https://images.test/thumb.webp' },
+    };
+    cardState.isCardOwned.mockReturnValue(false);
+
+    cardSettings.displayMode = 'text';
+    const element = createCardElement(card, 0);
+    element.dataset.cardIndex = '0';
+    document.body.appendChild(element);
+    expect(element.querySelector('.card-name')).not.toBeNull();
+
+    cardSettings.displayMode = 'images';
+    applyDisplayMode();
+    expect(element.querySelector('.card-image')).not.toBeNull();
+    expect(element.classList.contains('image-tile')).toBe(true);
+
+    cardSettings.displayMode = 'text';
+    document.body.innerHTML = '';
   });
 });
 

@@ -2,6 +2,8 @@ const DEFAULT_SETTINGS = {
   showTooltip: true,
   // persistentReveal: boolean — if true, EDHREC links are revealed by default
   persistentReveal: false,
+  // displayMode: 'text' | 'images' — cards show their name or their artwork
+  displayMode: 'text',
 };
 
 const STORAGE_KEY = "cardSettings";

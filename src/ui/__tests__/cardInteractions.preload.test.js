@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('../../utils/cardImages.js', () => ({ preloadCardImages: vi.fn() }));
+vi.mock('../../utils/cardImages.js', () => ({
+  preloadCardImages: vi.fn(),
+  getCardImageUrls: vi.fn(() => null),
+}));
 vi.mock('../tooltip.js', () => ({
   showTooltip: vi.fn(),
   hideTooltip: vi.fn(),

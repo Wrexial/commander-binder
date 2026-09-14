@@ -258,7 +258,9 @@ function processScryfallData(data) {
 
         if (isNewUniqueCard) {
             appState.seenNames.add(primaryName);
-            newUniqueCards.push(card);
+            // Default to the card's base (oldest) printing so the thumbnail
+            // and its price line up, whatever order the source delivered.
+            newUniqueCards.push(cardStore.getOldestPrinting?.(primaryName) || card);
         }
         appState.seenSetCodes.add(card.set.toLowerCase());
     }

@@ -8,6 +8,7 @@ import { updateOwnedCounter } from './components/ownedCounter.js';
 import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
 import { preloadCardImages } from '../utils/cardImages.js';
+import { refreshCardElement } from './cards.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -184,6 +185,10 @@ function handleContextMenu(event, tooltip) {
 
     const nextPrinting = printings[nextIndex];
     cardElement.cardData = nextPrinting; 
+
+    // Keep the tile in sync with the printing the tooltip now shows (matters in
+    // image mode, where the artwork differs per printing).
+    refreshCardElement(cardElement);
 
     // Re-show the tooltip with the new card data
     showTooltip(event, nextPrinting, tooltip);

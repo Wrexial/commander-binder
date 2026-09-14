@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { initCardSettings } from '../ui/settingsUI.js';
 import { getSetting, setSetting } from '../state/cardSettings.js';
-import { updateCardStyles } from '../ui/cards.js';
+import { updateCardStyles, applyDisplayMode } from '../ui/cards.js';
 
 // Mock dependencies
 vi.mock('../state/cardSettings.js', () => ({
@@ -11,6 +11,7 @@ vi.mock('../state/cardSettings.js', () => ({
 
 vi.mock('../ui/cards.js', () => ({
   updateCardStyles: vi.fn(),
+  applyDisplayMode: vi.fn(),
 }));
 
 describe('initCardSettings', () => {
@@ -29,15 +30,32 @@ describe('initCardSettings', () => {
     initCardSettings();
 
     const toggles = document.querySelectorAll('#sidebar input[type="checkbox"]');
-    expect(toggles.length).toBe(2);
+    expect(toggles.length).toBe(3);
 
     expect(getSetting).toHaveBeenCalledWith('showTooltip');
     expect(getSetting).toHaveBeenCalledWith('persistentReveal');
+    expect(getSetting).toHaveBeenCalledWith('displayMode');
 
     const showTooltipToggle = document.querySelector('[data-setting="showTooltip"]');
     const persistentRevealToggle = document.querySelector('[data-setting="persistentReveal"]');
+    const displayModeToggle = document.querySelector('[data-setting="displayMode"]');
     expect(showTooltipToggle.checked).toBe(true);
     expect(persistentRevealToggle.checked).toBe(false);
+    expect(displayModeToggle.checked).toBe(false);
+  });
+
+  it('should switch to image mode and re-render cards', () => {
+    getSetting.mockImplementation((key) => (key === 'displayMode' ? 'text' : false));
+
+    initCardSettings();
+
+    const toggle = document.querySelector('[data-setting="displayMode"]');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+
+    expect(setSetting).toHaveBeenCalledWith('displayMode', 'images');
+    expect(applyDisplayMode).toHaveBeenCalled();
+    expect(document.body.classList.contains('images-mode')).toBe(true);
   });
 
   it('should persist checkbox changes through setSetting', () => {
