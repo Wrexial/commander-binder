@@ -434,8 +434,8 @@ body.sidebar-open {
 /* Image tiles are much taller than text tiles, so give skipped sections a
    closer placeholder height while in images mode. */
 body.images-mode .section {
-  contain-intrinsic-size: 430px;
-  contain-intrinsic-size: auto 430px;
+  contain-intrinsic-size: 1200px;
+  contain-intrinsic-size: auto 1200px;
 }
 
 @media (min-width: 769px) {
@@ -462,6 +462,26 @@ body.images-mode .section {
 @media (max-width: 768px) {
   .grid {
     gap: 0.15rem;
+  }
+}
+
+/* Mobile image grid: five tiny columns stacked with slot number, version,
+   price, toggle, EDHREC and owned overlays reads as noise. Give the artwork
+   room and drop the redundant page slot number. */
+@media (max-width: 768px) {
+  body.images-mode .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+  }
+
+  body.images-mode .card.image-tile .card-slot-number {
+    display: none !important;
+  }
+
+  /* Slot number is gone, so the version badge takes the freed corner. */
+  body.images-mode .card.image-tile .card-versions {
+    top: 3px;
+    left: 3px;
   }
 }
 
