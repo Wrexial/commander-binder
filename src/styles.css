@@ -836,32 +836,10 @@ body.images-mode .section {
 }
 
 @media (max-width: 768px) {
+  /* The tile footer is too cramped at phone grid widths; the tooltip carries
+     these details instead (see .tooltip-card-details). */
   .card-footer {
-    height: 22px;
-    gap: 4px;
-    padding: 0 4px;
-    font-size: 0.55rem;
-  }
-
-  /* Set names are too long for a phone-width tile; keep the collector number. */
-  .card-footer .card-footer-set {
     display: none;
-  }
-
-  .card-footer .card-price {
-    font-size: 0.55rem;
-    padding: 0 4px;
-  }
-
-  .card-footer .card-versions {
-    font-size: 0.5rem;
-    padding: 0 4px;
-  }
-
-  .card-footer .edhrec-link,
-  .card-footer .card-toggle {
-    width: 14px;
-    height: 14px;
   }
 }
 
@@ -1134,6 +1112,78 @@ body.tooltip-open {
   border-radius: var(--radius-sm);
   width: 100%;
   text-align: center;
+}
+
+/* Mobile-only card details shown inside the tooltip (the tile footer is hidden
+   on phones because it crowds the 3-column image grid). */
+.tooltip-card-details {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  pointer-events: auto; /* .tooltip disables pointer events */
+}
+
+.tooltip-card-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.tooltip-card-meta {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: #d7deea;
+}
+
+.tooltip-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.tooltip-edhrec-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--edhrec-hover);
+}
+
+.tooltip-edhrec-link::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: url('/edhrec-icon.ico') center / contain no-repeat;
+}
+
+.tooltip-owned-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.tooltip-owned-status.owned {
+  background: linear-gradient(180deg, #52d596, var(--success));
+  color: #06210f;
+}
+
+.tooltip-owned-status.missing {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--muted);
 }
 
 /* Explicit cycle control for touch devices, which have no right-click. */

@@ -1,8 +1,10 @@
 // tooltip.js
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
+import { getDisplayedPrice } from '../utils/prices.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
+import { isCardOwned } from '../state/cardState.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
@@ -39,6 +41,61 @@ function getBackdrop() {
   return backdrop;
 }
 
+/**
+ * Build the card details shown inside the mobile tooltip: name, set/number,
+ * price, printing count, EDHREC link and owned status. Mirrors the desktop tile
+ * footer, which is hidden on phones because it crowds the small image grid.
+ *
+ * @param {object} card
+ * @param {{index: number, total: number}} version
+ * @returns {HTMLElement}
+ */
+function createTooltipDetails(card, version) {
+  const details = document.createElement('div');
+  details.className = 'tooltip-card-details';
+
+  const name = document.createElement('div');
+  name.className = 'tooltip-card-name';
+  name.textContent = card.name;
+  details.appendChild(name);
+
+  const bits = [];
+  if (card.set_name) bits.push(card.set_name);
+  if (card.collector_number) bits.push(`#${card.collector_number}`);
+  const price = getDisplayedPrice(card);
+  if (price !== null) bits.push(`€${price.toFixed(2)}`);
+  if (version.total > 1) bits.push(`${version.index}/${version.total} printings`);
+
+  if (bits.length > 0) {
+    const meta = document.createElement('div');
+    meta.className = 'tooltip-card-meta';
+    meta.textContent = bits.join(' · ');
+    details.appendChild(meta);
+  }
+
+  const status = document.createElement('div');
+  status.className = 'tooltip-card-status';
+
+  if (card.related_uris?.edhrec) {
+    const link = document.createElement('a');
+    link.className = 'tooltip-edhrec-link';
+    link.href = card.related_uris.edhrec;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.setAttribute('aria-label', 'View on EDHREC');
+    status.appendChild(link);
+  }
+
+  const owned = isCardOwned(card);
+  const badge = document.createElement('span');
+  badge.className = `tooltip-owned-status ${owned ? 'owned' : 'missing'}`;
+  badge.textContent = owned ? 'Owned' : 'Missing';
+  status.appendChild(badge);
+  details.appendChild(status);
+
+  return details;
+}
+
 // ---------------- Show Tooltip ----------------
 export function showTooltip(e, card, tooltip) {
   if (!cardSettings.showTooltip) {
@@ -68,11 +125,17 @@ export function showTooltip(e, card, tooltip) {
     imageContainer.innerHTML = `<div class="loading">Loading...</div>`;
     tooltip.appendChild(imageContainer);
 
-    // The card's name, set/number, price, printing count and owned state now
-    // live in the tile footer. The tooltip only carries the explicit cycle
-    // control that touch devices need (they have no right-click).
-    const { total } = cardStore.getPrintingPosition(card);
-    if (total > 1 && typeof tooltip.onCycle === 'function') {
+    const position = cardStore.getPrintingPosition(card);
+
+    // Phones hide the tile footer (too cramped at 3 columns), so the tooltip
+    // carries the card's details instead.
+    if (mobile) {
+      tooltip.appendChild(createTooltipDetails(card, position));
+    }
+
+    // The tooltip also carries the explicit cycle control that touch devices
+    // need (they have no right-click).
+    if (position.total > 1 && typeof tooltip.onCycle === 'function') {
       const textContainer = document.createElement('div');
       textContainer.className = 'tooltip-text-container';
 

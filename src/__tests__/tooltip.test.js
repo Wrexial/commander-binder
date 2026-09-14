@@ -77,8 +77,10 @@ describe('tooltip', () => {
 
       expect(tooltip.style.display).toBe('flex');
       expect(getCardImages).toHaveBeenCalledWith(card);
-      // The descriptor moved to the tile footer; the tooltip is images only.
+      // The descriptor moved to the tile footer; the tooltip is images only
+      // on desktop (the mobile tooltip adds its own details block).
       expect(tooltip.querySelector('.card-descriptor')).toBeNull();
+      expect(tooltip.querySelector('.tooltip-card-details')).toBeNull();
       expect(tooltip.querySelectorAll('img').length).toBe(1);
       expect(tooltip.classList.contains('mdfc')).toBe(false);
     });
@@ -187,6 +189,19 @@ describe('tooltip', () => {
       positionTooltip({ clientX: 5, clientY: 5 }, tooltip);
       expect(tooltip.style.left).toBe('');
       expect(tooltip.style.top).toBe('');
+    });
+
+    it('shows the card details in the tooltip (instead of the hidden tile footer)', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      const details = tooltip.querySelector('.tooltip-card-details');
+      expect(details).not.toBeNull();
+      expect(details.querySelector('.tooltip-card-name').textContent).toBe('Serra Angel');
+      expect(details.querySelector('.tooltip-card-meta').textContent).toContain('Dominaria');
+      expect(details.querySelector('.tooltip-card-meta').textContent).toContain('#1');
+      expect(details.querySelector('.tooltip-card-meta').textContent).toContain('€1.00');
+      expect(details.querySelector('.tooltip-owned-status')).not.toBeNull();
     });
 
     it('closes when the backdrop edge is tapped', () => {
