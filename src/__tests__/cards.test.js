@@ -1,8 +1,9 @@
 // src/__tests__/cards.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createCardElement, updateCardState, applyDisplayMode, refreshCardElement } from '../ui/cards.js';
+import { createCardElement, updateCardState, applyDisplayMode, refreshCardElement, updateCardVersionCounts } from '../ui/cards.js';
 import { appState } from '../state/appState.js';
 import { cardSettings } from '../state/cardSettings.js';
+import { cardStore } from '../state/cardStore.js';
 import * as cardState from '../state/cardState.js';
 
 vi.mock('../state/cardSettings.js', () => ({
@@ -144,6 +145,83 @@ describe('displayed printing price', () => {
     refreshCardElement(element);
 
     expect(element.querySelector('.card-price').textContent).toBe('€1.00');
+  });
+});
+
+describe('version badge', () => {
+  const base = {
+    id: 'v1',
+    name: 'Serra Angel',
+    released_at: '1993-01-01',
+    color_identity: ['W'],
+  };
+  const reprint = (id, releasedAt) => ({
+    id,
+    name: 'Serra Angel',
+    released_at: releasedAt,
+    color_identity: ['W'],
+  });
+
+  beforeEach(() => {
+    cardState.isCardOwned.mockReturnValue(false);
+    cardStore.clear();
+  });
+
+  afterEach(() => {
+    cardStore.clear();
+    document.body.innerHTML = '';
+  });
+
+  it('shows "index/total printings" for a multi-printing card', () => {
+    cardStore.add(base);
+    cardStore.add(reprint('v2', '2000-01-01'));
+    cardStore.add(reprint('v3', '2010-01-01'));
+
+    const element = createCardElement(base, 0);
+    const badge = element.querySelector('.card-versions');
+    expect(badge).not.toBeNull();
+    expect(badge.querySelector('.card-versions-full').textContent).toBe('1/3 printings');
+    expect(badge.querySelector('.card-versions-short').textContent).toBe('1/3');
+    expect(badge.getAttribute('aria-label')).toBe('1 of 3 printings');
+  });
+
+  it('reflects the index of the printing being displayed', () => {
+    cardStore.add(base);
+    cardStore.add(reprint('v2', '2000-01-01'));
+
+    const element = createCardElement(reprint('v2', '2000-01-01'), 0);
+    expect(element.querySelector('.card-versions-full').textContent).toBe('2/2 printings');
+    expect(element.querySelector('.card-versions-short').textContent).toBe('2/2');
+  });
+
+  it('matches the tooltip for the same printing', () => {
+    cardStore.add(base);
+    cardStore.add(reprint('v2', '2000-01-01'));
+    cardStore.add(reprint('v3', '2010-01-01'));
+
+    const element = createCardElement(reprint('v2', '2000-01-01'), 0);
+    const badge = element.querySelector('.card-versions-short').textContent;
+    const { index, total } = cardStore.getPrintingPosition(reprint('v2', '2000-01-01'));
+
+    expect(badge).toBe(`${index}/${total}`);
+  });
+
+  it('omits the badge for single-printing cards', () => {
+    cardStore.add(base);
+    const element = createCardElement(base, 0);
+    expect(element.querySelector('.card-versions')).toBeNull();
+  });
+
+  it('adds the badge once a later printing is known', () => {
+    cardStore.add(base);
+    const element = createCardElement(base, 0);
+    document.body.appendChild(element);
+    expect(element.querySelector('.card-versions')).toBeNull();
+
+    cardStore.add(reprint('v2', '2000-01-01'));
+    updateCardVersionCounts();
+
+    expect(element.querySelector('.card-versions-full').textContent).toBe('1/2 printings');
   });
 });
 

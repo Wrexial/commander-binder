@@ -47,6 +47,36 @@ describe('cardStore', () => {
     expect(cardStore.getOldestPrinting('Unknown')).toBeUndefined();
   });
 
+  describe('getPrintingPosition', () => {
+    it('returns the 1-based release-ordered position and total', () => {
+      cardStore.add(card('a', 'Card', '2010-01-01'));
+      cardStore.add(card('b', 'Card', '2015-01-01'));
+      cardStore.add(card('c', 'Card', '2020-01-01'));
+
+      expect(cardStore.getPrintingPosition(card('a', 'Card', '2010-01-01'))).toEqual({
+        index: 1,
+        total: 3,
+      });
+      expect(cardStore.getPrintingPosition(card('c', 'Card', '2020-01-01'))).toEqual({
+        index: 3,
+        total: 3,
+      });
+    });
+
+    it('reports a single printing', () => {
+      cardStore.add(card('a', 'Card', '2010-01-01'));
+
+      expect(cardStore.getPrintingPosition(card('a', 'Card', '2010-01-01'))).toEqual({
+        index: 1,
+        total: 1,
+      });
+    });
+
+    it('returns zeroes for a card with no name', () => {
+      expect(cardStore.getPrintingPosition(null)).toEqual({ index: 0, total: 0 });
+    });
+  });
+
   it('clear empties the store', () => {
     cardStore.add(card('a', 'Card', '2010-01-01'));
     cardStore.clear();

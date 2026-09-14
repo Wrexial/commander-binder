@@ -3,7 +3,7 @@ import { CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
 import { appState } from '../state/appState.js';
 import { showLoading, hideLoading } from '../ui/loadingIndicator.js';
 import { startNewBinder, startNewSection, updateBinderCounts } from '../ui/layout.js';
-import { createCardElement, updateCardState, updateAllCardStates } from '../ui/cards.js';
+import { createCardElement, updateCardState, updateAllCardStates, updateCardVersionCounts } from '../ui/cards.js';
 import { cardStore } from '../state/cardStore.js';
 import { updateOwnedCounter } from '../ui/components/ownedCounter.js';
 import { showToast } from '../ui/components/toast.js';
@@ -357,6 +357,7 @@ async function runFetch(results, tooltip) {
         // have been marked on a printing other than the one first rendered.
         if (!appState.nextPageUrl) {
             updateAllCardStates();
+            updateCardVersionCounts();
         }
     } catch (err) {
         console.error("Scryfall fetch failed:", err);

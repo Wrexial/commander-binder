@@ -14,6 +14,7 @@ vi.mock('../state/cardSettings.js', () => ({
 vi.mock('../state/cardStore.js', () => ({
   cardStore: {
     getPrintings: vi.fn(() => []),
+    getPrintingPosition: vi.fn(() => ({ index: 1, total: 1 })),
   },
 }));
 

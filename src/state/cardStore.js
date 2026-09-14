@@ -54,6 +54,23 @@ export const cardStore = {
     return printings.length > 0 ? printings[0] : undefined;
   },
 
+  /**
+   * Position of a printing among all known printings of the same card name:
+   * a 1-based release-ordered index (1 = base printing) plus the total. Shared
+   * by the tile badge and the tooltip so they can never disagree about
+   * "version X of Y".
+   * @param {object} card
+   * @returns {{ index: number, total: number }}
+   */
+  getPrintingPosition(card) {
+    const primaryName = card?.name?.split(" // ")[0];
+    if (!primaryName) return { index: 0, total: 0 };
+
+    const printings = cardsByName.get(primaryName) || [];
+    const position = printings.findIndex((printing) => printing.id === card.id);
+    return { index: position >= 0 ? position + 1 : 1, total: printings.length };
+  },
+
   getAll() {
     return Array.from(cardsByName.values()).map((printings) => printings[0]);
   },

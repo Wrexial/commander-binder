@@ -28,12 +28,11 @@ export function showTooltip(e, card, tooltip) {
     textContainer.className = 'tooltip-text-container';
     tooltip.appendChild(textContainer);
     
-    const printings = cardStore.getPrintings(card.name);
-    if (printings.length > 1) {
-        const currentIndex = printings.findIndex(p => p.id === card.id);
+    const { index, total } = cardStore.getPrintingPosition(card);
+    if (total > 1) {
         const indicator = document.createElement('span');
         indicator.className = 'printing-indicator';
-        indicator.textContent = `Version ${currentIndex + 1} of ${printings.length} (Right-click to cycle)`;
+        indicator.textContent = `Version ${index} of ${total} (Right-click to cycle)`;
         textContainer.appendChild(indicator);
     }
 

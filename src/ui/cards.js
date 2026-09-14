@@ -5,6 +5,7 @@ import { isCardOwned } from "../state/cardState.js";
 import { getCardBorderStyle, getCardBackground } from '../utils/colors.js';
 import { getCardImageUrls } from '../utils/cardImages.js';
 import { CARDS_PER_PAGE } from '../config/constants.js';
+import { cardStore } from '../state/cardStore.js';
 
 /**
  * Price of the printing actually shown (cheapest of its non-foil and foil EUR
@@ -20,6 +21,41 @@ function getDisplayedPrice(card) {
     .filter((p) => Number.isFinite(p));
 
   return prices.length > 0 ? Math.min(...prices) : null;
+}
+
+/**
+ * Which version of a card is currently shown, and how many exist. Delegates to
+ * the store so the tile badge and the tooltip always agree (the store is also
+ * the order right-click cycling walks through).
+ * @param {object} card
+ * @returns {{ index: number, total: number }}
+ */
+function getVersionInfo(card) {
+  return cardStore.getPrintingPosition(card);
+}
+
+/**
+ * Small badge reading "2/5 printings" (desktop) or "2/5" (mobile; the long
+ * label is hidden by CSS).
+ * @param {{index: number, total: number}} version
+ * @returns {HTMLElement}
+ */
+function createVersionBadge({ index, total }) {
+  const el = document.createElement('span');
+  el.className = 'card-versions';
+  el.title = `${total} printings`;
+  el.setAttribute('aria-label', `${index} of ${total} printings`);
+
+  const full = document.createElement('span');
+  full.className = 'card-versions-full';
+  full.textContent = `${index}/${total} printings`;
+
+  const short = document.createElement('span');
+  short.className = 'card-versions-short';
+  short.textContent = `${index}/${total}`;
+
+  el.append(full, short);
+  return el;
 }
 
 /**
@@ -113,6 +149,12 @@ function populateCard(div, card, cardIndex) {
       div.appendChild(priceEl);
   }
 
+  // Version badge: only shown when a card has more than one printing.
+  const version = getVersionInfo(card);
+  if (version.total > 1) {
+    div.appendChild(createVersionBadge(version));
+  }
+
   if (appState.isViewOnlyMode) {
     const ownedBadge = document.createElement('span');
     ownedBadge.className = 'owned-badge';
@@ -192,5 +234,33 @@ export function updateCardStyles() {
 export function updateAllCardStates() {
   document.querySelectorAll('.card').forEach(cardElement => {
     updateCardState(cardElement);
+  });
+}
+
+/** Refresh the version badge on every mounted card once all printings load. */
+export function updateCardVersionCounts() {
+  document.querySelectorAll('.card').forEach((cardElement) => {
+    const card = cardElement.cardData;
+    if (!card) return;
+
+    const version = getVersionInfo(card);
+    let badge = cardElement.querySelector('.card-versions');
+
+    if (version.total <= 1) {
+      if (badge) badge.remove();
+      return;
+    }
+
+    if (!badge) {
+      cardElement.appendChild(createVersionBadge(version));
+      return;
+    }
+
+    badge.querySelector('.card-versions-full').textContent =
+      `${version.index}/${version.total} printings`;
+    badge.querySelector('.card-versions-short').textContent =
+      `${version.index}/${version.total}`;
+    badge.title = `${version.total} printings`;
+    badge.setAttribute('aria-label', `${version.index} of ${version.total} printings`);
   });
 }
