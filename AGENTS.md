@@ -8,20 +8,21 @@ A Scryfall-based Magic: The Gathering collection tracker. The frontend is a
 vanilla JavaScript SPA bundled with **Vite** and styled with plain CSS. It is
 deployed on **Netlify**, using Netlify Functions for the backend API and a
 **Neon Postgres** database accessed through **Drizzle ORM**. Authentication is
-handled by **Clerk**. The Scryfall public API
-provides card data.
+handled by **Clerk**. The Scryfall public API provides card data.
 
 ## Commands
 
 Run from the repository root:
 
 ```bash
+npm start              # Alias for `npm run dev`
 npm run dev            # Frontend only: Vite dev server (port 5173, strict)
-npm run dev:netlify    # Full stack: Vite dev server + Netlify Functions (port 8080)
+npm run dev:netlify    # Full stack: Netlify Dev + Functions (port 8080)
 npm run build          # Production build (sourcemaps enabled)
 npm run lint           # ESLint (JS/TS across the repo)
 npm test               # Vitest (jsdom), single run
 npm run test:coverage  # Vitest with v8 coverage
+npm run verify:bulk    # Scryfall bulk-data coverage check (network; see scripts/)
 
 npm run db:generate    # Generate Drizzle migrations from db/schema.ts
 npm run db:migrate     # Run migrations via `netlify dev:exec`
@@ -30,33 +31,51 @@ npm run db:studio      # Open Drizzle Studio
 
 Netlify functions only run under Netlify Dev (`npm run dev:netlify`, port 8080) —
 the bare Vite server on 5173 does not serve them, so `/.netlify/functions/*` 404s
-there. DB scripts require `NETLIFY_DATABASE_URL`; Clerk verification requires
-`VITE_CLERK_ISSUER_URL`. Environment values live in `.env` (gitignored, never
-commit it).
+there.
+
+### Environment
+
+Environment values live in `.env` (gitignored, never commit it). `.env.example`
+is the one env file allowed by `.gitignore`, so add new keys there too.
+
+- `VITE_CLERK_PUBLISHABLE_KEY` — frontend Clerk initialization.
+- `VITE_CLERK_ISSUER_URL` — function-side JWT verification (`netlify/utils/auth.ts`).
+- `NETLIFY_DATABASE_URL` — required by the `db:*` scripts and the Neon client.
 
 ## Architecture
 
+- Frontend code is plain JavaScript (ES modules); only `netlify/**/*.ts` and
+  `db/*.ts` are TypeScript (run through Netlify's/esbuild's transpilation).
 - `src/main.js` — app entry point; wires up all UI modules.
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`).
-- `src/auth/` — Clerk setup and theme.
+- `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
+- `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `cardState`, `cardStore`,
   `cardSettings`). State is plain exported objects, not a framework store.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
-  `settingsUI`, `statistics`, etc.), including `components/` (modals, sidebar,
-  toast, counter, buttons) and their colocated CSS.
-- `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`).
+  `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`, `tooltip`,
+  `cardInteractions`), including `components/` (modals such as `bulkAddModal`,
+  `bulkCardModal`, `bulkCheckModal`, `exportModal`, plus `flipCard`, `sidebar`,
+  `toast`, `ownedCounter`, `SignInButton`, `GuestModeText`) and their colocated CSS.
+- `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
+  `html`).
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
-- `netlify/functions/` — HTTP handlers (owned cards, toggling, batch operations,
-  `share-link`).
+- `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
+  `batch-toggle-cards`, `share-link`).
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
   (`verifyToken`, `getUserId`).
+- `scripts/verify-bulk-coverage.mjs` — checks that Scryfall's bulk file covers the
+  app's legendary-creature search (used by `npm run verify:bulk`).
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
   user's Clerk id is never exposed in the URL.
-- `src/__tests__/` and `src/**/__tests__/` — Vitest tests. Mock Clerk lives in
+- Tests are colocated under `__tests__/` folders (`src/__tests__/`,
+  `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,
+  `src/ui/components/__tests__/`, `src/utils/__tests__/`). Cross-module flows live
+  in `src/__integration__/ownedFlow.test.js`. Mock Clerk lives in
   `src/__mocks__/@clerk/clerk-js.js`.
 
 ## Conventions
@@ -64,6 +83,10 @@ commit it).
 - ES modules throughout (`"type": "module"`); use `import`/`export`.
 - Vanilla JS/DOM for the frontend — no React/Vue. Prefer existing component
   factory patterns (e.g. `createXModal()` returning `{ show }`).
+- Escape untrusted strings with `escapeHtml` from `src/utils/html.js` before
+  interpolating them into `innerHTML`.
+- Use `authenticatedFetch` (`src/api/authenticatedFetch.js`) for requests that
+  need the Clerk token rather than calling `fetch` directly.
 - Keep modules focused; add new UI logic under `src/ui/` and new state under
   `src/state/`.
 - Netlify function handlers are `async` and return `{ statusCode, body }` with
@@ -87,4 +110,4 @@ commit it).
 - Keep `drizzle-kit` on the 0.31+ line. `drizzle.config.ts` and the `db:*`
   scripts use the current `dialect`/`generate`/`migrate`/`studio` API, which the
   old 0.18.x CLI (split `generate:pg`/`up:pg` commands) does not support.
-- Clerk is the only auth integration (the Auth0 dependency was removed).
+- Clerk is the only auth integration.
