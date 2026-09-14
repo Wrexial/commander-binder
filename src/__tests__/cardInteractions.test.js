@@ -87,6 +87,32 @@ describe('initCardInteractions', () => {
       expect(cardElement.hasAttribute('aria-describedby')).toBe(false);
     });
 
+    it('ignores the mouse events a tap synthesizes (so taps still toggle)', () => {
+      const nowSpy = vi.spyOn(Date, 'now');
+      let now = 1_000_000;
+      nowSpy.mockImplementation(() => now);
+
+      try {
+        initCardInteractions(container, tooltipElement);
+
+        const touchStart = new Event('touchstart', { bubbles: true });
+        touchStart.touches = [{ clientX: 10, clientY: 10 }];
+        cardElement.dispatchEvent(touchStart);
+        cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+
+        // Synthetic mouseover right after the touch: ignored.
+        cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        expect(tooltip.showTooltip).not.toHaveBeenCalled();
+
+        // Long after the touch: a real hover still works.
+        now += 1000;
+        cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        expect(tooltip.showTooltip).toHaveBeenCalled();
+      } finally {
+        nowSpy.mockRestore();
+      }
+    });
+
     it('should not hide tooltip when moving between child elements', () => {
         initCardInteractions(container, tooltipElement);
         const childLink = cardElement.querySelector('.edhrec-link');

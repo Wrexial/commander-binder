@@ -46,7 +46,17 @@ function cancelPreload(cardElement) {
 
 // --- Delegated Event Handlers ---
 
+// Touch devices synthesize mouse events around a tap (mouseover → click). Those
+// would open the hover tooltip and then have the tap swallowed by the tooltip's
+// click guard, so ignore mouse events briefly after any touch.
+const TOUCH_MOUSE_GRACE_MS = 700;
+let lastTouchAt = 0;
+function isSyntheticMouseEvent() {
+    return Date.now() - lastTouchAt < TOUCH_MOUSE_GRACE_MS;
+}
+
 function handleMouseEnter(event, tooltip) {
+    if (isSyntheticMouseEvent()) return;
     if (!cardSettings.showTooltip) return;
     const cardElement = event.target.closest('.card');
     if (cardElement) {
@@ -63,6 +73,7 @@ function handleMouseEnter(event, tooltip) {
 }
 
 function handleMouseLeave(event, tooltip) {
+    if (isSyntheticMouseEvent()) return;
     if (!cardSettings.showTooltip) return;
     const cardElement = event.target.closest('.card');
     // Check relatedTarget to prevent hiding when moving between child elements
@@ -88,6 +99,7 @@ function handleTouchStart(event, tooltip) {
 
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
+    lastTouchAt = Date.now();
 
     const state = getState(cardElement);
     state.isLongPress = false;
@@ -121,6 +133,7 @@ function handleTouchMove(event) {
 
 function handleTouchEnd(event) {
     clearTimeout(touchTimer);
+    lastTouchAt = Date.now();
     const cardElement = event.target.closest('.card');
     if (!cardElement) return;
 
