@@ -64,6 +64,18 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   createBulkAddButton(() => showModal(createBulkAddModal));
 }
 
+/**
+ * Show/hide the sidebar hamburger and flag the body so the mobile top bars can
+ * reserve room for it (the button is fixed, so it would otherwise overlap the
+ * header logo and the sticky search bar).
+ * @param {HTMLElement|null} button
+ * @param {boolean} visible
+ */
+function setHamburgerVisible(button, visible) {
+  if (button) button.style.display = visible ? 'block' : 'none';
+  document.body.classList.toggle('has-hamburger', visible);
+}
+
 export async function setupUI() {
   const clerk = getClerk();
   const userActionsContainer = document.getElementById('user-actions');
@@ -79,19 +91,19 @@ export async function setupUI() {
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
     appState.isViewOnlyMode = true;
-    if (openBtn) openBtn.style.display = 'block';
+    setHamburgerVisible(openBtn, true);
   } else if (clerk.user) {
     const userButtonDiv = document.createElement('div');
     userButtonDiv.id = 'user-button';
     userActionsContainer.appendChild(userButtonDiv);
     setupAuthenticatedUser(userButtonDiv, clerk);
-    if (openBtn) openBtn.style.display = 'block';
+    setHamburgerVisible(openBtn, true);
   } else {
     const signInButton = createSignInButton(clerk);
     userActionsContainer.appendChild(signInButton);
     mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
-    if (openBtn) openBtn.style.display = 'none';
+    setHamburgerVisible(openBtn, false);
   }
 }
 

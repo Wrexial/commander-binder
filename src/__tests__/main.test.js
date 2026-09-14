@@ -27,6 +27,7 @@ describe('setupUI', () => {
 
     // Reset mocks and module state before each test
     vi.clearAllMocks();
+    document.body.classList.remove('has-hamburger');
     mainState.shareToken = undefined;
     mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = false;
@@ -50,6 +51,8 @@ describe('setupUI', () => {
     expect(appState.isViewOnlyMode).toBe(true);
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();
     expect(document.querySelector('#user-actions').children.length).toBe(1);
+    // The top bars reserve room for the fixed hamburger.
+    expect(document.body.classList.contains('has-hamburger')).toBe(true);
   });
 
   it('should setup for a logged-out user if no user and no share token', async () => {
@@ -64,6 +67,7 @@ describe('setupUI', () => {
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
     const signIn = document.querySelector('#user-actions').querySelector('button');
     expect(signIn).not.toBeNull();
+    expect(document.body.classList.contains('has-hamburger')).toBe(false);
   });
 
   it('should setup for an authenticated user if clerk.user exists', async () => {
@@ -83,5 +87,6 @@ describe('setupUI', () => {
     // Verify other paths not taken
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
+    expect(document.body.classList.contains('has-hamburger')).toBe(true);
   });
 });

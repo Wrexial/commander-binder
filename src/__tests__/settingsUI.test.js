@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { initCardSettings } from '../ui/settingsUI.js';
 import { getSetting, setSetting } from '../state/cardSettings.js';
-import { updateCardStyles, applyDisplayMode } from '../ui/cards.js';
+import { applyDisplayMode } from '../ui/cards.js';
 
 // Mock dependencies
 vi.mock('../state/cardSettings.js', () => ({
@@ -30,17 +30,14 @@ describe('initCardSettings', () => {
     initCardSettings();
 
     const toggles = document.querySelectorAll('#sidebar input[type="checkbox"]');
-    expect(toggles.length).toBe(3);
+    expect(toggles.length).toBe(2);
 
     expect(getSetting).toHaveBeenCalledWith('showTooltip');
-    expect(getSetting).toHaveBeenCalledWith('persistentReveal');
     expect(getSetting).toHaveBeenCalledWith('displayMode');
 
     const showTooltipToggle = document.querySelector('[data-setting="showTooltip"]');
-    const persistentRevealToggle = document.querySelector('[data-setting="persistentReveal"]');
     const displayModeToggle = document.querySelector('[data-setting="displayMode"]');
     expect(showTooltipToggle.checked).toBe(true);
-    expect(persistentRevealToggle.checked).toBe(false);
     expect(displayModeToggle.checked).toBe(false);
   });
 
@@ -61,12 +58,11 @@ describe('initCardSettings', () => {
   it('should persist checkbox changes through setSetting', () => {
     initCardSettings();
 
-    const toggle = document.querySelector('[data-setting="persistentReveal"]');
-    toggle.checked = true;
+    const toggle = document.querySelector('[data-setting="showTooltip"]');
+    toggle.checked = false;
     toggle.dispatchEvent(new Event('change'));
 
-    expect(setSetting).toHaveBeenCalledWith('persistentReveal', true);
-    expect(updateCardStyles).toHaveBeenCalled();
+    expect(setSetting).toHaveBeenCalledWith('showTooltip', false);
   });
 
   it('should not throw if the sidebar is missing', () => {

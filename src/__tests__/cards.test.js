@@ -14,7 +14,6 @@ import * as cardState from '../state/cardState.js';
 
 vi.mock('../state/cardSettings.js', () => ({
   cardSettings: {
-    persistentReveal: false,
     showTooltip: true,
     displayMode: 'text',
   },

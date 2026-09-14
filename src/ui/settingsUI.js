@@ -37,10 +37,6 @@ function createSettingToggle({
   return labelEl;
 }
 
-function handlePersistentRevealChange() {
-  updateCardStyles();
-}
-
 function handleDisplayModeChange(value) {
   document.body.classList.toggle('images-mode', value === 'images');
   applyDisplayMode();
@@ -58,11 +54,6 @@ export function initCardSettings() {
     setting: 'showTooltip',
     label: ' Show Tooltip',
   });
-  const persistentRevealToggle = createSettingToggle({
-    setting: 'persistentReveal',
-    label: ' Reveal EDHREC links',
-    onChange: handlePersistentRevealChange,
-  });
   // The display-mode control stores a string ('text' | 'images').
   const displayModeToggle = createSettingToggle({
     setting: 'displayMode',
@@ -73,7 +64,6 @@ export function initCardSettings() {
   });
 
   settingsContainer.appendChild(showTooltipToggle);
-  settingsContainer.appendChild(persistentRevealToggle);
   settingsContainer.appendChild(displayModeToggle);
   sidebar.appendChild(settingsContainer);
 

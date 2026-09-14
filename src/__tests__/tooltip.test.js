@@ -192,15 +192,20 @@ describe('tooltip', () => {
     });
 
     it('shows the card details in the tooltip (instead of the hidden tile footer)', () => {
+      cardStore.getPrintingPosition.mockReturnValue({ index: 2, total: 5 });
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
       const details = tooltip.querySelector('.tooltip-card-details');
       expect(details).not.toBeNull();
       expect(details.querySelector('.tooltip-card-name').textContent).toBe('Serra Angel');
-      expect(details.querySelector('.tooltip-card-meta').textContent).toContain('Dominaria');
-      expect(details.querySelector('.tooltip-card-meta').textContent).toContain('#1');
-      expect(details.querySelector('.tooltip-card-meta').textContent).toContain('€1.00');
+      // The set is its own (truncatable) span; everything else stays together so
+      // the meta line never wraps.
+      expect(details.querySelector('.tooltip-card-set').textContent).toBe('Dominaria');
+      const rest = details.querySelector('.tooltip-card-meta-rest').textContent;
+      expect(rest).toContain('#1');
+      expect(rest).toContain('€1.00');
+      expect(rest).toContain('2/5 printings');
       expect(details.querySelector('.tooltip-owned-status')).not.toBeNull();
     });
 

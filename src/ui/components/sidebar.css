@@ -1,6 +1,6 @@
 .sidebar {
   height: 100%;
-  width: 288px;
+  width: var(--sidebar-width);
   position: fixed;
   z-index: var(--z-index-sidebar);
   top: 0;
@@ -12,7 +12,7 @@
   overflow-y: auto;
   transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   padding: 84px 0 24px;
-  transform: translateX(-288px);
+  transform: translateX(-100%);
   display: flex;
   flex-direction: column;
   scrollbar-width: thin;
@@ -84,8 +84,8 @@ body.sidebar-open .sidebar {
 
 #openbtn {
   display: none;
-  width: 42px;
-  height: 42px;
+  width: var(--openbtn-size);
+  height: var(--openbtn-size);
   cursor: pointer;
   background: var(--surface-glass);
   backdrop-filter: blur(10px);
@@ -93,8 +93,8 @@ body.sidebar-open .sidebar {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: var(--openbtn-offset);
+  left: var(--openbtn-offset);
   z-index: var(--z-index-hamburger);
   transition:
     transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
@@ -144,7 +144,7 @@ body.sidebar-open .sidebar {
 }
 
 body.sidebar-open #openbtn {
-  transform: translateX(288px);
+  transform: translateX(var(--sidebar-width));
 }
 
 #openbtn:hover {

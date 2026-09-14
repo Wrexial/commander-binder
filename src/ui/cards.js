@@ -222,7 +222,7 @@ function createCardFooter(card, price, version) {
  */
 function populateCard(div, card, cardIndex) {
   div.replaceChildren();
-  div.classList.remove('has-toggle', 'reveal-links', 'image-tile');
+  div.classList.remove('has-toggle', 'image-tile');
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
@@ -257,13 +257,7 @@ function populateCard(div, card, cardIndex) {
   }
 
   const edhrec = createEdhrecLink(card);
-  if (edhrec) {
-    div.appendChild(edhrec);
-    // If user enabled persistent reveal, show the EDHREC link by default
-    if (cardSettings.persistentReveal) {
-      div.classList.add('reveal-links');
-    }
-  }
+  if (edhrec) div.appendChild(edhrec);
 
   if (price !== null) div.appendChild(createPriceElement(price));
   if (version.total > 1) div.appendChild(createVersionBadge(version));
@@ -315,9 +309,6 @@ export function updateCardStyles() {
   document.querySelectorAll('.card').forEach((div) => {
     const card = div.cardData;
     if (!card) return;
-
-    // Toggle EDHREC link visibility
-    div.classList.toggle('reveal-links', cardSettings.persistentReveal);
 
     // Update styles based on settings
     const borderStyle = getCardBorderStyle(card);

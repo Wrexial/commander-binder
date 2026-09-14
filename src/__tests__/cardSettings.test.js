@@ -25,7 +25,6 @@ describe('cardSettings', () => {
   it('should load default settings when localStorage is empty', async () => {
     const { cardSettings } = await import('../state/cardSettings.js');
     expect(cardSettings.showTooltip).toBe(true);
-    expect(cardSettings.persistentReveal).toBe(false);
     expect(cardSettings.displayMode).toBe('images');
   });
 
@@ -34,25 +33,32 @@ describe('cardSettings', () => {
       'cardSettings',
       JSON.stringify({
         showTooltip: false,
-        persistentReveal: true,
+        displayMode: 'text',
       })
     );
 
     const { cardSettings } = await import('../state/cardSettings.js');
     expect(cardSettings.showTooltip).toBe(false);
-    expect(cardSettings.persistentReveal).toBe(true);
+    expect(cardSettings.displayMode).toBe('text');
   });
 
   it('should merge stored settings with defaults', async () => {
-    localStorageMock.setItem(
-      'cardSettings',
-      JSON.stringify({
-        persistentReveal: true,
-      })
-    );
+    localStorageMock.setItem('cardSettings', JSON.stringify({ displayMode: 'text' }));
     const { cardSettings } = await import('../state/cardSettings.js');
     expect(cardSettings.showTooltip).toBe(true); // From default
-    expect(cardSettings.persistentReveal).toBe(true); // From localStorage
+    expect(cardSettings.displayMode).toBe('text'); // From localStorage
+  });
+
+  it('drops the removed persistentReveal preference', async () => {
+    localStorageMock.setItem('cardSettings', JSON.stringify({ persistentReveal: true }));
+    const { cardSettings, saveSettings } = await import('../state/cardSettings.js');
+
+    expect(cardSettings.persistentReveal).toBeUndefined();
+    saveSettings();
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      'cardSettings',
+      JSON.stringify({ showTooltip: true, displayMode: 'images' })
+    );
   });
 
   it('saveSettings should store the current settings in localStorage', async () => {
@@ -65,7 +71,7 @@ describe('cardSettings', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ showTooltip: false, persistentReveal: false, displayMode: 'images' })
+      JSON.stringify({ showTooltip: false, displayMode: 'images' })
     );
   });
 });

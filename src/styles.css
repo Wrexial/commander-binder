@@ -82,6 +82,11 @@
   --link-text: var(--focus);
   --link-text-hover: #6ed9d2;
 
+  /* Sidebar / hamburger geometry (shared with sidebar.css) */
+  --sidebar-width: 288px;
+  --openbtn-size: 42px;
+  --openbtn-offset: 10px;
+
   /* Z-indexes */
   --z-index-sidebar-backdrop: 1000;
   --z-index-sidebar: 1010;
@@ -139,6 +144,11 @@ body.sidebar-open {
 @media (max-width: 768px) {
   body {
     padding: 0.25rem;
+  }
+
+  /* Keep the sidebar (and its close button) on-screen on very narrow phones. */
+  :root {
+    --sidebar-width: min(288px, 82vw);
   }
 }
 
@@ -230,6 +240,13 @@ body.sidebar-open {
 }
 
 @media (max-width: 768px) {
+  /* The fixed hamburger sits at the top-left; reserve room for it so it does
+     not cover the logo. Only applies while the button is actually shown. */
+  .has-hamburger .main-header {
+    padding-left: 40px;
+    gap: 0.75rem;
+  }
+
   .logo {
     width: 32px;
     height: 32px;
@@ -345,7 +362,7 @@ body.sidebar-open {
 }
 
 .container {
-  max-width: 1920px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
   padding: 0 1rem;
@@ -938,76 +955,9 @@ body.images-mode .section {
 }
 
 .card:hover .edhrec-link,
-.card.reveal-links .edhrec-link,
 .card:focus-within .edhrec-link {
   opacity: 1;
   pointer-events: auto;
-}
-
-.card.reveal-links {
-  /* stronger ring and slower pulse to indicate reveal on mobile */
-  animation: reveal-pulse 1.6s ease-out;
-  box-shadow: 0 0 0 8px rgba(76, 140, 200, 0.08);
-}
-
-/* One-time hint bubble shown on first long-press on touch devices */
-.reveal-hint {
-  position: absolute;
-  left: 8px;
-  bottom: -36px;
-  padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
-  font-size: 0.78rem;
-  border-radius: 8px;
-  opacity: 0;
-  transform: translateY(6px);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-  pointer-events: none;
-  z-index: 20;
-}
-
-.reveal-hint.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-@media (min-width: 700px) {
-  .reveal-hint {
-    display: none;
-  }
-}
-.card.reveal-links .edhrec-link {
-  transition:
-    transform 0.15s ease,
-    opacity 0.12s ease,
-    background 0.12s ease;
-  background: var(--edhrec-hover);
-  border-radius: 4px;
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* subtle pulse animation for reveal (stronger) */
-@keyframes reveal-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(76, 140, 200, 0.08);
-  }
-  50% {
-    box-shadow: 0 0 0 10px rgba(76, 140, 200, 0.08);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(76, 140, 200, 0);
-  }
-}
-
-/* Mobile: subtle scale for reveal */
-@media (max-width: 700px) {
-  .card.reveal-links .edhrec-link {
-    transform: translateY(-2px) scale(1.08);
-  }
 }
 
 .edhrec-link:hover {
@@ -1135,9 +1085,28 @@ body.tooltip-open {
 }
 
 .tooltip-card-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
   margin-top: 2px;
   font-size: 0.8rem;
   color: #d7deea;
+  white-space: nowrap;
+}
+
+/* The set name is the only part allowed to truncate, so the number, price and
+   printing count always stay on the single meta line. */
+.tooltip-card-set {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltip-card-meta-rest {
+  flex: 0 0 auto;
 }
 
 .tooltip-card-status {
@@ -1331,6 +1300,10 @@ body.tooltip-open {
     grid-template-columns: 1fr auto;
     align-items: center;
     border-bottom: 1px solid var(--card-border-default);
+  }
+  /* Clear the fixed hamburger when this bar sticks to the top of the viewport. */
+  .has-hamburger #card-settings {
+    padding-left: 40px;
   }
   #search-wrapper {
     grid-area: search;
