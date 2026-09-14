@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('../../../state/cardState.js', () => ({
   isCardOwned: vi.fn(() => false),
   setCardsOwned: vi.fn(() => Promise.resolve()),
+  getOwnedCardIds: vi.fn(() => new Set()),
 }));
 
 vi.mock('../../../state/cardStore.js', () => ({

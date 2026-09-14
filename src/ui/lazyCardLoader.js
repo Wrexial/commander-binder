@@ -1,5 +1,6 @@
 import { appState } from '../state/appState.js';
-import { fetchNextPage, setBulkCardSource } from '../api/scryfall.js';
+import { fetchNextPage } from './cardFeed.js';
+import { setBulkCardSource, BULK_SOURCE_SENTINEL } from '../api/scryfall.js';
 import { getLegendaryCreatures, verifyBulkCoverage } from '../api/bulkData.js';
 import { startNewBinder } from './layout.js';
 
@@ -100,6 +101,8 @@ async function loadFullCollectionFromBulk(results, tooltip, firstPage) {
     }
 
     if (setBulkCardSource(cards)) {
+      // Keep the loop alive even if the API already reached its last page.
+      if (!appState.nextPageUrl) appState.nextPageUrl = BULK_SOURCE_SENTINEL;
       appState.autoLoad = true;
       fetchNextPage(results, tooltip);
     }

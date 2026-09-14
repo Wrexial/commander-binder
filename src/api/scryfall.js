@@ -1,25 +1,12 @@
-// scryfall.js
-import { CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
-import { appState } from '../state/appState.js';
-import { showLoading, hideLoading } from '../ui/loadingIndicator.js';
-import { startNewBinder, startNewSection, updateBinderCounts } from '../ui/layout.js';
-import {
-  createCardElement,
-  updateCardState,
-  updateAllCardStates,
-  updateCardVersionCounts,
-} from '../ui/cards.js';
-import { cardStore, primaryName } from '../state/cardStore.js';
-import { updateOwnedCounter } from '../ui/components/ownedCounter.js';
-import { showToast } from '../ui/components/toast.js';
-import { readCache, writeCache, isFresh } from './responseCache.js';
-
+// src/api/scryfall.js
 /**
- * When a page yields too few new unique cards to render a section, we keep
- * pulling pages within the same call. Bounded so a long run of reprint-only
- * pages can't block the main thread.
+ * Pure Scryfall search-page fetcher: response caching, request pacing and
+ * rate-limit backoff. It has no UI or render-loop knowledge, so it can be used
+ * (and tested) on its own. Pagination and rendering live in
+ * `src/ui/cardFeed.js`.
  */
-const MAX_EMPTY_FETCHES_PER_CALL = 10;
+import { CARDS_PER_PAGE } from '../config/constants.js';
+import { readCache, writeCache, isFresh } from './responseCache.js';
 
 /**
  * Scryfall's guidance is under 10 requests/second overall, and it is stricter
@@ -46,23 +33,17 @@ const RATE_LIMIT_BASE_DELAY_MS = 1000;
  */
 const inFlight = new Map();
 
-/** Promise for the currently executing fetchNextPage run (or null). */
-let activeRun = null;
-
-/** Set when a fetch fails so auto-loading pauses instead of retrying forever. */
-let halted = false;
-
 /**
  * Optional non-API page source. When set, the render loop pulls chunks from a
  * pre-filtered Scryfall bulk subset instead of calling the rate-limited search
  * API. `next_page` is a sentinel so the existing loop/observer keep working.
  */
 let bulkPager = null;
-const BULK_SOURCE_SENTINEL = 'bulk:legendary-creatures';
+export const BULK_SOURCE_SENTINEL = 'bulk:legendary-creatures';
 
 /**
- * Render the remaining collection from an already-filtered bulk subset. Cards
- * are served in `CARDS_PER_PAGE` chunks, so the render pipeline is unchanged.
+ * Serve pages from an already-filtered bulk subset instead of the API. Cards
+ * are returned in `CARDS_PER_PAGE` chunks so the render pipeline is unchanged.
  * @param {object[]} cards
  * @returns {boolean} whether a source was installed
  */
@@ -82,14 +63,17 @@ export function setBulkCardSource(cards) {
     };
   };
 
-  // Keep the loop alive even if the API already reached its last page.
-  if (!appState.nextPageUrl) appState.nextPageUrl = BULK_SOURCE_SENTINEL;
   return true;
 }
 
 /** Drop the bulk source (falling back to the API, or in tests). */
 export function clearBulkCardSource() {
   bulkPager = null;
+}
+
+/** True when pages are currently being served from an installed bulk subset. */
+export function isUsingBulkSource() {
+  return Boolean(bulkPager);
 }
 
 /** Current spacing between network requests; overridable for tests/tuning. */
@@ -251,190 +235,12 @@ async function fetchScryfallData(url) {
   }
 }
 
-function processScryfallData(data) {
-  const newUniqueCards = [];
-  for (const card of data.data) {
-    if (!card.games.includes('paper')) continue;
-
-    const name = primaryName(card);
-    const isNewUniqueCard = !appState.seenNames.has(name);
-
-    cardStore.add(card);
-
-    if (isNewUniqueCard) {
-      appState.seenNames.add(name);
-      // Default to the card's base (oldest) printing so the thumbnail
-      // and its price line up, whatever order the source delivered.
-      newUniqueCards.push(cardStore.getOldestPrinting(name) || card);
-    }
-    appState.seenSetCodes.add(card.set.toLowerCase());
-  }
-  return newUniqueCards;
-}
-
 /**
- * Fetch the next page(s) and render any complete sections.
- *
- * Re-entrant-safe: calling it while a run is in flight marks the work as
- * pending, and it is automatically re-run when the current run finishes. This
- * is what makes "scroll to the bottom during a fetch" reliable.
- *
- * @returns {Promise<void>} resolves when this run (or the in-flight one) finishes
+ * Fetch one page from whichever source is active (an installed bulk subset or
+ * the rate-limited search API).
+ * @param {string} url Next-page URL (ignored by the bulk source).
+ * @returns {Promise<object>}
  */
-export function fetchNextPage(results, tooltip) {
-  if (activeRun) {
-    appState.pendingFetch = true;
-    return activeRun;
-  }
-  if (!appState.nextPageUrl) return Promise.resolve();
-
-  activeRun = runFetch(results, tooltip).finally(() => {
-    activeRun = null;
-
-    // Keep loading everything by default (collections must be complete),
-    // or immediately when another trigger arrived mid-run.
-    const shouldContinue =
-      appState.nextPageUrl && !halted && (appState.pendingFetch || appState.autoLoad);
-    appState.pendingFetch = false;
-
-    if (shouldContinue) {
-      // Yield so the browser can paint/handle input between pages.
-      setTimeout(() => fetchNextPage(results, tooltip), 0);
-    }
-  });
-
-  return activeRun;
-}
-
-async function runFetch(results, tooltip) {
-  if (!appState.nextPageUrl) return;
-
-  halted = false;
-  appState.isLoading = true;
-  showLoading();
-
-  try {
-    let emptyFetches = 0;
-
-    while (appState.nextPageUrl) {
-      const data = bulkPager ? await bulkPager() : await fetchScryfallData(appState.nextPageUrl);
-
-      // Remember the API's claimed total and a sample of ids from the
-      // first page so the bulk subset can be sanity-checked against them.
-      if (!bulkPager) {
-        if (appState.apiTotalCards == null && data.total_cards != null) {
-          appState.apiTotalCards = Number(data.total_cards) || null;
-        }
-        if (appState.apiSampleIds == null && Array.isArray(data.data)) {
-          appState.apiSampleIds = data.data.map((c) => c.id);
-        }
-      }
-
-      const newCards = processScryfallData(data);
-      appState.pageCards.push(...newCards);
-
-      let renderedSections = 0;
-      while (appState.pageCards.length >= CARDS_PER_PAGE) {
-        renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
-        renderedSections++;
-      }
-
-      appState.nextPageUrl = data.has_more ? data.next_page : null;
-
-      if (!appState.nextPageUrl && appState.pageCards.length > 0) {
-        renderPage(results, tooltip, [...appState.pageCards]);
-        appState.pageCards = [];
-      }
-
-      // Rendered visible content; return to the caller/observer.
-      if (renderedSections > 0) break;
-
-      // Page was all duplicates; keep topping up, but bounded.
-      if (++emptyFetches >= MAX_EMPTY_FETCHES_PER_CALL) {
-        appState.pendingFetch = true;
-        break;
-      }
-    }
-
-    // Every printing is now loaded, so re-evaluate saved marks: a card may
-    // have been marked on a printing other than the one first rendered.
-    if (!appState.nextPageUrl) {
-      updateAllCardStates();
-      updateCardVersionCounts();
-    }
-  } catch (err) {
-    console.error('Scryfall fetch failed:', err);
-    showToast('Failed to fetch cards from Scryfall. Please try again later.', 'error');
-    halted = true;
-    appState.pendingFetch = false;
-  } finally {
-    appState.isLoading = false;
-    hideLoading();
-  }
-}
-
-function renderPage(results, tooltip, pageCards) {
-  const pageSets = new Map();
-  pageCards.forEach((c) =>
-    pageSets.set(c.set, {
-      name: c.set_name,
-      date: c.released_at,
-    })
-  );
-
-  startNewSection(pageSets);
-  // Build the page off-document, then attach it in a single mutation: one
-  // reflow per page instead of one per card.
-  const fragment = document.createDocumentFragment();
-  pageCards.forEach((c, i) => {
-    const cardIndex = appState.count + i;
-    const el = createCardElement(c, cardIndex);
-    el.dataset.cardIndex = cardIndex;
-    updateCardState(el);
-    appState.binder.totalCards++;
-    if (el.classList.contains('owned')) appState.binder.ownedCards++;
-    fragment.appendChild(el);
-  });
-  appState.grid.appendChild(fragment);
-  updateBinderCounts(appState.binder);
-
-  const dates = Array.from(pageSets.values()).map((set) => set.date);
-  const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
-  const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
-
-  if (!appState.binder.startDate || minDate < appState.binder.startDate) {
-    appState.binder.startDate = minDate;
-  }
-  if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
-    appState.binder.endDate = maxDate;
-  }
-
-  updateBinderHeader();
-
-  appState.count += pageCards.length;
-  updateOwnedCounter();
-
-  if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
-    startNewBinder(results);
-  }
-}
-
-function updateBinderHeader() {
-  const header = appState.binder.querySelector('.binder-header');
-  if (!header) return;
-
-  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
-  const titleEl = header.querySelector('.binder-title');
-  if (titleEl) {
-    titleEl.textContent = `Binder ${binderNumber}`;
-  }
-
-  if (appState.binder.startDate && appState.binder.endDate) {
-    const startYear = new Date(appState.binder.startDate).getFullYear();
-    const endYear = new Date(appState.binder.endDate).getFullYear();
-    const datesEl = header.querySelector('.binder-dates');
-    if (datesEl) {
-      datesEl.textContent = `(${startYear} - ${endYear})`;
-    }
-  }
+export async function fetchPage(url) {
+  return bulkPager ? bulkPager() : fetchScryfallData(url);
 }

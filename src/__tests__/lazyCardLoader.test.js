@@ -1,10 +1,11 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { initLazyCards } from '../ui/lazyCardLoader.js';
 import { appState } from '../state/appState.js';
-import * as fetcher from '../api/scryfall.js';
+import * as feed from '../ui/cardFeed.js';
 import * as layout from '../ui/layout.js';
 
 // Mock dependencies
+vi.mock('../ui/cardFeed.js');
 vi.mock('../api/scryfall.js');
 vi.mock('../ui/layout.js');
 
@@ -50,8 +51,8 @@ describe('initLazyCards', () => {
     );
 
     // Check that initial fetch is called
-    expect(fetcher.fetchNextPage).toHaveBeenCalledWith(results, 'tooltip');
-    expect(fetcher.fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(feed.fetchNextPage).toHaveBeenCalledWith(results, 'tooltip');
+    expect(feed.fetchNextPage).toHaveBeenCalledTimes(1);
 
     // Check that IntersectionObserver was created and observes the sentinel
     expect(mockInstances.length).toBe(1);
@@ -66,26 +67,26 @@ describe('initLazyCards', () => {
     initLazyCards(results, 'tooltip');
 
     // Reset the mock call count from initialization
-    fetcher.fetchNextPage.mockClear();
+    feed.fetchNextPage.mockClear();
 
     // Get the observer instance to manually trigger it
     const observerInstance = mockInstances[0];
     observerInstance.mockIntersect(true);
 
-    expect(fetcher.fetchNextPage).toHaveBeenCalledWith(results, 'tooltip');
-    expect(fetcher.fetchNextPage).toHaveBeenCalledTimes(1);
+    expect(feed.fetchNextPage).toHaveBeenCalledWith(results, 'tooltip');
+    expect(feed.fetchNextPage).toHaveBeenCalledTimes(1);
   });
 
   it('should not fetch next page when sentinel does not intersect', () => {
     const results = document.createElement('div');
     initLazyCards(results, 'tooltip');
 
-    fetcher.fetchNextPage.mockClear();
+    feed.fetchNextPage.mockClear();
 
     const observerInstance = mockInstances[0];
     observerInstance.mockIntersect(false);
 
-    expect(fetcher.fetchNextPage).not.toHaveBeenCalled();
+    expect(feed.fetchNextPage).not.toHaveBeenCalled();
   });
 
   it('should disconnect observer when there is no next page', () => {
@@ -102,6 +103,6 @@ describe('initLazyCards', () => {
 
     expect(observerInstance.disconnect).toHaveBeenCalled();
     expect(sentinel.isConnected).toBe(false); // Check if sentinel is removed from DOM
-    expect(fetcher.fetchNextPage).toHaveBeenCalledTimes(1); // Only the initial call
+    expect(feed.fetchNextPage).toHaveBeenCalledTimes(1); // Only the initial call
   });
 });

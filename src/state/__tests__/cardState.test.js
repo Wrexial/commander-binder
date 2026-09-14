@@ -8,15 +8,11 @@ import {
   getOwnedCardIds,
 } from '../../state/cardState.js';
 
-vi.mock('../../main.js', () => ({
+vi.mock('../mainState.js', () => ({
   mainState: {
     loggedInUserId: null,
     shareToken: null,
   },
-}));
-
-vi.mock('../../ui/components/ownedCounter.js', () => ({
-  updateOwnedCounter: vi.fn(),
 }));
 
 vi.mock('../../state/cardStore.js', () => ({
@@ -52,7 +48,7 @@ describe('cardState', () => {
 
   describe('loadCardStates', () => {
     it('should load card states for a logged-in user', async () => {
-      const { mainState } = await import('../../main.js');
+      const { mainState } = await import('../mainState.js');
       mainState.loggedInUserId = 'user123';
       mainState.shareToken = null;
 
@@ -69,7 +65,7 @@ describe('cardState', () => {
     });
 
     it('should load card states for a guest user', async () => {
-      const { mainState } = await import('../../main.js');
+      const { mainState } = await import('../mainState.js');
       mainState.loggedInUserId = null;
       mainState.shareToken = 'share123';
 
@@ -103,7 +99,7 @@ describe('cardState', () => {
 
   describe('toggleCardOwned', () => {
     it('should add a card to the owned set if it is missing', async () => {
-      const { mainState } = await import('../../main.js');
+      const { mainState } = await import('../mainState.js');
       mainState.loggedInUserId = 'user123';
       const card = { id: 'card1' };
       await toggleCardOwned(card);
@@ -111,7 +107,7 @@ describe('cardState', () => {
     });
 
     it('should remove a card from the owned set if it is present', async () => {
-      const { mainState } = await import('../../main.js');
+      const { mainState } = await import('../mainState.js');
       mainState.loggedInUserId = 'user123';
       ownedCards.add('card1');
       const card = { id: 'card1' };
@@ -122,7 +118,7 @@ describe('cardState', () => {
 
   describe('setCardsOwned', () => {
     it('should add multiple cards to the owned set', async () => {
-      const { mainState } = await import('../../main.js');
+      const { mainState } = await import('../mainState.js');
       mainState.loggedInUserId = 'user123';
       const cards = [{ id: 'card1' }, { id: 'card2' }];
       await setCardsOwned(cards, true);
@@ -131,7 +127,7 @@ describe('cardState', () => {
     });
 
     it('should remove multiple cards from the owned set', async () => {
-      const { mainState } = await import('../../main.js');
+      const { mainState } = await import('../mainState.js');
       mainState.loggedInUserId = 'user123';
       ownedCards.add('card1');
       ownedCards.add('card2');

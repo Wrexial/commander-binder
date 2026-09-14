@@ -1,5 +1,4 @@
-import { updateOwnedCounter } from '../ui/components/ownedCounter.js';
-import { mainState } from '../main.js';
+import { mainState } from './mainState.js';
 import { cardStore } from './cardStore.js';
 import { authenticatedFetch } from '../api/authenticatedFetch.js';
 
@@ -64,8 +63,6 @@ export async function toggleCardOwned(card) {
     ownedCardIds.add(card.id);
   }
 
-  updateOwnedCounter();
-
   return !wasOwned;
 }
 
@@ -82,8 +79,6 @@ export async function setCardsOwned(cards, owned) {
       ownedCardIds.delete(card.id);
     }
   }
-
-  updateOwnedCounter();
 }
 
 /**

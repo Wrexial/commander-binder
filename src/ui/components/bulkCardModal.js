@@ -6,6 +6,7 @@ import { isCardOwned, setCardsOwned } from '../../state/cardState.js';
 import { cardStore } from '../../state/cardStore.js';
 import { updateAllCardStates } from '../cards.js';
 import { updateAllBinderCounts } from '../layout.js';
+import { updateOwnedCounter } from './ownedCounter.js';
 
 const MAX_SUGGESTIONS = 6;
 const VALIDATION_DEBOUNCE_MS = 250;
@@ -249,6 +250,7 @@ export function createBulkCardModal(mode) {
       showToast(`Added ${missing.length} card${missing.length === 1 ? '' : 's'}.`, 'success');
       updateAllCardStates();
       updateAllBinderCounts();
+      updateOwnedCounter();
       // Re-render: the added cards now show up under "Owned".
       renderPreview();
     } catch (err) {

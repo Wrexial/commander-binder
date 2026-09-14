@@ -51,16 +51,21 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
 - `src/main.js` — app entry point; wires up all UI modules.
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
-  auth/share helpers (`authenticatedFetch.js`, `share.js`).
+  auth/share helpers (`authenticatedFetch.js`, `share.js`). `scryfall.js` is
+  deliberately DOM-free: it only caches/paces/retries requests and exposes
+  `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
-- `src/state/` — module-level state objects (`appState`, `cardState`, `cardStore`,
-  `cardSettings`). State is plain exported objects, not a framework store.
+- `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
+  `cardStore`, `cardSettings`). State is plain exported objects, not a framework
+  store. `mainState.js` holds session state so `cardState.js` can read it without
+  importing `main.js` (avoids a cycle).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`, `tooltip`,
   `cardInteractions`), including `components/` (the shared modal shell `modal.js`,
   the bulk/export modals, `sidebar`, `toast`, `ownedCounter`, `SignInButton`,
-  `GuestModeText`) and their colocated CSS.
+  `GuestModeText`) and their colocated CSS. `cardFeed.js` owns the
+  fetch→render pagination loop and is the only place that drives rendering.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`). `idb.js` is the shared IndexedDB wrapper
   used by `responseCache.js` and `bulkData.js`.

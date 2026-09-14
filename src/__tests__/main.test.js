@@ -9,7 +9,8 @@ vi.mock('../ui/components/SignInButton.js');
 vi.mock('../ui/components/GuestModeText.js');
 
 // NOW, import the modules we need, including the state object
-import { setupUI, mainState } from '../main.js';
+import { setupUI } from '../main.js';
+import { mainState } from '../state/mainState.js';
 import { appState } from '../state/appState.js';
 import * as clerk from '../auth/clerk.js';
 import * as signInButton from '../ui/components/SignInButton.js';

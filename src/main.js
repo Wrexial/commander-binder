@@ -21,6 +21,7 @@ import { showToast } from './ui/components/toast.js';
 import { getShareToken } from './api/share.js';
 import { showStatisticsModal } from './ui/statistics.js';
 import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
+import { mainState } from './state/mainState.js';
 
 async function showBulkAddModal() {
   const modal = await createBulkAddModal();
@@ -35,12 +36,6 @@ async function showBulkCheckModal() {
     modal.show();
   }
 }
-
-export const mainState = {
-  loggedInUserId: undefined,
-  isLoggedIn: false,
-  shareToken: undefined,
-};
 
 function setupAuthenticatedUser(userButtonDiv, clerk) {
   clerk.mountUserButton(userButtonDiv);
