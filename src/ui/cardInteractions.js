@@ -1,5 +1,5 @@
 // src/ui/cardInteractions.js
-import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
+import { showTooltip } from './tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
@@ -21,80 +21,11 @@ function getState(el) {
   return elementState.get(el);
 }
 
-// Hover-intent preloading: start fetching a card's image shortly after the
-// cursor settles on it, so it is usually ready before the tooltip appears.
-const PRELOAD_DELAY_MS = 120;
-let preloadTimer;
-let preloadCard = null;
-
-function schedulePreload(cardElement) {
-  if (!cardElement || preloadCard === cardElement) return;
-  preloadCard = cardElement;
-  clearTimeout(preloadTimer);
-  preloadTimer = setTimeout(() => {
-    if (preloadCard === cardElement) {
-      preloadCardImages(cardElement.cardData);
-    }
-  }, PRELOAD_DELAY_MS);
-}
-
-function cancelPreload(cardElement) {
-  if (preloadCard === cardElement) {
-    clearTimeout(preloadTimer);
-    preloadCard = null;
-  }
-}
-
 // --- Delegated Event Handlers ---
 
-// Touch devices synthesize mouse events around a tap (mouseover → click). Those
-// would open the hover tooltip and then have the tap swallowed by the tooltip's
-// click guard, so ignore mouse events briefly after any touch.
-const TOUCH_MOUSE_GRACE_MS = 700;
-let lastTouchAt = 0;
-function isSyntheticMouseEvent() {
-  return Date.now() - lastTouchAt < TOUCH_MOUSE_GRACE_MS;
-}
-
-function handleMouseEnter(event, tooltip) {
-  if (isSyntheticMouseEvent()) return;
-  if (!cardSettings.showTooltip) return;
-  const cardElement = event.target.closest('.card');
-  if (cardElement) {
-    schedulePreload(cardElement);
-    cardElement.setAttribute('aria-describedby', 'tooltip');
-    // Touch devices have no right-click, so the tooltip's "Next printing"
-    // button drives the cycle through this handler. View-only shares cannot
-    // cycle, so leave the button off there.
-    tooltip.onCycle = appState.isViewOnlyMode
-      ? null
-      : (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
-    showTooltip(event, cardElement.cardData, tooltip);
-  }
-}
-
-function handleMouseLeave(event, tooltip) {
-  if (isSyntheticMouseEvent()) return;
-  if (!cardSettings.showTooltip) return;
-  const cardElement = event.target.closest('.card');
-  // Check relatedTarget to prevent hiding when moving between child elements
-  if (
-    cardElement &&
-    !cardElement.contains(event.relatedTarget) &&
-    !tooltip.contains(event.relatedTarget)
-  ) {
-    cancelPreload(cardElement);
-    hideTooltip(tooltip);
-    cardElement.removeAttribute('aria-describedby');
-    tooltip.onCycle = null;
-  }
-}
-
-function handleMouseMove(event, tooltip) {
-  if (cardSettings.showTooltip && tooltip.style.display !== 'none') {
-    positionTooltip(event, tooltip);
-  }
-}
+// The card tooltip is touch-only: on PC the tile footer carries the name, set,
+// price and status, so hover previews were removed. Touch has no hover phase,
+// so a long-press opens the tooltip (and its "Next printing" button).
 
 let touchTimer;
 let touchStartX, touchStartY;
@@ -104,15 +35,16 @@ function handleTouchStart(event, tooltip) {
 
   touchStartX = event.touches[0].clientX;
   touchStartY = event.touches[0].clientY;
-  lastTouchAt = Date.now();
 
   const state = getState(cardElement);
   state.isLongPress = false;
 
-  // The open tooltip owns the cycle action on touch (no right-click).
+  // The tooltip owns the cycle action on touch (no right-click), so use the
+  // default touch wording rather than any label left by the statistics modal.
   tooltip.onCycle = appState.isViewOnlyMode
     ? null
     : (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
+  tooltip.cycleLabel = null;
 
   // Touch has no hover phase; start the image early since the tooltip shows
   // only after a 500ms long-press.
@@ -138,7 +70,6 @@ function handleTouchMove(event) {
 
 function handleTouchEnd(event) {
   clearTimeout(touchTimer);
-  lastTouchAt = Date.now();
   const cardElement = event.target.closest('.card');
   if (!cardElement) return;
 
@@ -211,9 +142,8 @@ async function handleContainerClick(event, tooltip) {
 }
 
 /**
- * Advance a tile to its next printing and refresh both the tile and the open
- * tooltip. Shared by desktop right-click and the tooltip's "Next printing"
- * button (the only route on touch devices).
+ * Advance a tile to its next printing and refresh it. Desktop right-click and
+ * the tooltip's "Next printing" button (touch) both route through here.
  */
 function cycleCardPrinting(cardElement, event, tooltip) {
   if (!cardElement || !cardElement.cardData || appState.isViewOnlyMode) return;
@@ -226,11 +156,16 @@ function cycleCardPrinting(cardElement, event, tooltip) {
 
   cardElement.cardData = next;
 
-  // Keep the tile in sync with the printing the tooltip now shows (matters in
-  // image mode, where the artwork differs per printing).
+  // Keep the tile in sync with the newly displayed printing (matters in image
+  // mode, where the artwork, price and version badge differ per printing).
   refreshCardElement(cardElement);
 
-  showTooltip(event, next, tooltip);
+  // Only refresh the tooltip when it is actually open (touch long-press).
+  // `showTooltip` sets display to 'flex'; it starts empty and 'none' when
+  // hidden, so check for the open value explicitly.
+  if (tooltip && tooltip.style.display === 'flex') {
+    showTooltip(event, next, tooltip);
+  }
 }
 
 function handleContextMenu(event, tooltip) {
@@ -238,18 +173,12 @@ function handleContextMenu(event, tooltip) {
   if (!cardElement) return;
 
   event.preventDefault();
-
-  if (tooltip.style.display === 'none') return;
-
   cycleCardPrinting(cardElement, event, tooltip);
 }
 
 // --- Main Initialization ---
 
 export function initCardInteractions(container, tooltip) {
-  container.addEventListener('mouseover', (e) => handleMouseEnter(e, tooltip));
-  container.addEventListener('mouseout', (e) => handleMouseLeave(e, tooltip));
-  container.addEventListener('mousemove', (e) => handleMouseMove(e, tooltip));
   container.addEventListener('click', (e) => handleContainerClick(e, tooltip));
   container.addEventListener('contextmenu', (e) => handleContextMenu(e, tooltip));
 

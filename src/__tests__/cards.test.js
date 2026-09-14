@@ -215,6 +215,24 @@ describe('version badge', () => {
     expect(element.querySelector('.card-versions')).toBeNull();
   });
 
+  it('hints at right-click cycling for multi-printing cards', () => {
+    cardStore.add(base);
+    cardStore.add(reprint('v2', '2000-01-01'));
+
+    const element = createCardElement(base, 0);
+    expect(element.title).toBe('Right-click for next printing');
+    expect(element.querySelector('.card-name').title).toBe('Right-click for next printing');
+    expect(element.querySelector('.card-versions').title).toContain(
+      'right-click for next printing'
+    );
+  });
+
+  it('does not hint at right-click cycling for a single printing', () => {
+    cardStore.add(base);
+    const element = createCardElement(base, 0);
+    expect(element.hasAttribute('title')).toBe(false);
+  });
+
   it('adds the badge once a later printing is known', () => {
     cardStore.add(base);
     const element = createCardElement(base, 0);
@@ -225,6 +243,7 @@ describe('version badge', () => {
     updateCardVersionCounts();
 
     expect(element.querySelector('.card-versions-full').textContent).toBe('1/2 printings');
+    expect(element.title).toBe('Right-click for next printing');
   });
 });
 
@@ -276,12 +295,56 @@ describe('image display mode', () => {
     expect(source.getAttribute('media')).toContain('min-width');
   });
 
-  it('keeps the interactive overlays in image mode', () => {
+  it('gathers the interactive controls into the tile footer', () => {
     appState.isViewOnlyMode = false;
     const element = createCardElement(cardWithImages, 0);
-    expect(element.querySelector('.card-toggle')).not.toBeNull();
-    expect(element.querySelector('.owned-badge')).not.toBeNull();
-    expect(element.querySelector('.edhrec-link')).not.toBeNull();
+    const footer = element.querySelector('.card-footer');
+    expect(footer).not.toBeNull();
+    expect(footer.querySelector('.card-toggle')).not.toBeNull();
+    expect(footer.querySelector('.edhrec-link')).not.toBeNull();
+    expect(footer.querySelector('.owned-badge')).toBeNull();
+  });
+
+  it('shows the name, set, number and price in the footer', () => {
+    const element = createCardElement(
+      {
+        ...cardWithImages,
+        set_name: 'Dominaria',
+        collector_number: '42',
+        prices: { eur: '3.50' },
+      },
+      0
+    );
+    const footer = element.querySelector('.card-footer');
+    expect(footer.querySelector('.card-footer-name').textContent).toBe('Serra Angel');
+    expect(footer.querySelector('.card-footer-set').textContent).toBe('Dominaria');
+    expect(footer.querySelector('.card-footer-num').textContent).toBe('#42');
+    expect(footer.querySelector('.card-price').textContent).toBe('€3.50');
+  });
+
+  it('shows an owned badge instead of a toggle in view-only mode', () => {
+    appState.isViewOnlyMode = true;
+    const element = createCardElement(cardWithImages, 0);
+    const footer = element.querySelector('.card-footer');
+    expect(footer.querySelector('.card-toggle')).toBeNull();
+    expect(footer.querySelector('.owned-badge')).not.toBeNull();
+    appState.isViewOnlyMode = false;
+  });
+
+  it('can still add the version badge to the footer after later printings load', () => {
+    cardStore.clear();
+    const card = { ...cardWithImages, released_at: '2020-01-01' };
+    cardStore.add(card);
+    const element = createCardElement(card, 0);
+    document.body.appendChild(element);
+    expect(element.querySelector('.card-versions')).toBeNull();
+
+    cardStore.add({ ...card, id: 'card-img-2', released_at: '2021-01-01' });
+    updateCardVersionCounts();
+
+    expect(element.querySelector('.card-footer-actions .card-versions')).not.toBeNull();
+    expect(element.querySelector('.card-versions-short').textContent).toBe('1/2');
+    cardStore.clear();
   });
 
   it('falls back to the text tile when a card has no image', () => {

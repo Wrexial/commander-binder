@@ -249,6 +249,8 @@ describe('showStatisticsModal', () => {
 
     expect(showTooltip).toHaveBeenCalledTimes(1);
     expect(showTooltip.mock.calls[0][1]).toMatchObject({ name: 'Grail' });
+    // The modal advertises the right-click shortcut rather than touch wording.
+    expect(document.getElementById('tooltip').cycleLabel).toBe('Right-click for next printing');
 
     // Right-click cycles to the next printing, like the main card grid.
     row.dispatchEvent(new MouseEvent('contextmenu', { clientX: 10, clientY: 10 }));

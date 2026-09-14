@@ -25,14 +25,16 @@ vi.mock('../../state/cardStore.js', () => ({
 
 import { initCardInteractions } from '../cardInteractions.js';
 import { preloadCardImages } from '../../utils/cardImages.js';
+import { cardSettings } from '../../state/cardSettings.js';
 
-describe('hover image preloading', () => {
+describe('touch image preloading', () => {
   let container;
   let tooltip;
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    cardSettings.showTooltip = true;
 
     container = document.createElement('div');
     tooltip = document.createElement('div');
@@ -50,34 +52,33 @@ describe('hover image preloading', () => {
     document.body.innerHTML = '';
   });
 
-  it('preloads the image once the hover settles', () => {
-    const card = container.querySelector('.card');
-    card.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+  /** Dispatch a touchstart with coordinates onto an element. */
+  function startTouch(target) {
+    const event = new Event('touchstart', { bubbles: true });
+    event.touches = [{ clientX: 10, clientY: 10 }];
+    target.dispatchEvent(event);
+  }
 
-    expect(preloadCardImages).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(120);
+  it('preloads the image as soon as a touch starts', () => {
+    const card = container.querySelector('.card');
+    startTouch(card);
+
     expect(preloadCardImages).toHaveBeenCalledWith(card.cardData);
   });
 
-  it('does not preload when the cursor leaves before the delay', () => {
+  it('does not preload when tooltips are disabled', () => {
+    cardSettings.showTooltip = false;
     const card = container.querySelector('.card');
-    card.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    card.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+    startTouch(card);
 
-    vi.advanceTimersByTime(200);
     expect(preloadCardImages).not.toHaveBeenCalled();
   });
 
-  it('does not restart the timer while moving within the same card', () => {
+  it('does not preload on mouse hover (touch-only tooltip)', () => {
     const card = container.querySelector('.card');
-    const child = document.createElement('span');
-    card.appendChild(child);
-
     card.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    vi.advanceTimersByTime(100);
-    child.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    vi.advanceTimersByTime(30); // 130ms since entering the card
 
-    expect(preloadCardImages).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(500);
+    expect(preloadCardImages).not.toHaveBeenCalled();
   });
 });

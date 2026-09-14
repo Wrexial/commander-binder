@@ -470,6 +470,9 @@ function wireTopCardTooltips(container, tooltip, topCards) {
     const row = event.currentTarget;
     if (!row.cardData) return;
     tooltip.onCycle = (cycleEvent) => cycleRowPrinting(row, cycleEvent);
+    // The statistics modal is mouse-driven, so spell out the right-click
+    // shortcut instead of the generic touch wording.
+    tooltip.cycleLabel = 'Right-click for next printing';
     preloadCardImages(row.cardData);
     row.setAttribute('aria-describedby', 'tooltip');
     showTooltip(event, row.cardData, tooltip);
@@ -483,6 +486,7 @@ function wireTopCardTooltips(container, tooltip, topCards) {
 
   const handleLeave = (event) => {
     tooltip.onCycle = null;
+    tooltip.cycleLabel = null;
     event.currentTarget.removeAttribute('aria-describedby');
     hideTooltip(tooltip);
   };
@@ -570,7 +574,11 @@ export function showStatisticsModal() {
     ariaLabel: 'Collection Statistics',
     onClose: () => {
       cleanupTopCardTooltips();
-      if (tooltip) hideTooltip(tooltip);
+      if (tooltip) {
+        tooltip.onCycle = null;
+        tooltip.cycleLabel = null;
+        hideTooltip(tooltip);
+      }
     },
   });
   const { modal, close } = shell;

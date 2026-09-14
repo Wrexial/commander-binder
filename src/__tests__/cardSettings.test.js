@@ -26,7 +26,7 @@ describe('cardSettings', () => {
     const { cardSettings } = await import('../state/cardSettings.js');
     expect(cardSettings.showTooltip).toBe(true);
     expect(cardSettings.persistentReveal).toBe(false);
-    expect(cardSettings.displayMode).toBe('text');
+    expect(cardSettings.displayMode).toBe('images');
   });
 
   it('should load settings from localStorage if they exist', async () => {
@@ -65,7 +65,7 @@ describe('cardSettings', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ showTooltip: false, persistentReveal: false, displayMode: 'text' })
+      JSON.stringify({ showTooltip: false, persistentReveal: false, displayMode: 'images' })
     );
   });
 });

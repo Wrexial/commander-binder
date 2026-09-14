@@ -7,6 +7,7 @@ import * as cardState from '../state/cardState.js';
 import * as toast from '../ui/components/toast.js';
 import * as ownedCounter from '../ui/components/ownedCounter.js';
 import * as layout from '../ui/layout.js';
+import { cardStore } from '../state/cardStore.js';
 
 // Mock all dependencies
 vi.mock('../ui/tooltip.js');
@@ -16,6 +17,12 @@ vi.mock('../state/cardState.js');
 vi.mock('../ui/components/toast.js');
 vi.mock('../ui/components/ownedCounter.js');
 vi.mock('../ui/layout.js');
+vi.mock('../state/cardStore.js', () => ({
+  cardStore: {
+    getPrintings: vi.fn(() => []),
+    getPrintingPosition: vi.fn(() => ({ index: 1, total: 1 })),
+  },
+}));
 
 describe('initCardInteractions', () => {
   let container, tooltipElement, cardElement;
@@ -46,92 +53,81 @@ describe('initCardInteractions', () => {
     appState.isViewOnlyMode = false;
     cardState.toggleCardOwned.mockResolvedValue(true); // Assume it becomes owned
     cardState.isCardOwned.mockReturnValue(false); // Assume it was not owned before click
+    cardStore.getPrintings.mockReturnValue([]);
   });
 
-  describe('Tooltip Interactions', () => {
-    it('should show tooltip on mouseover if enabled', () => {
-      initCardInteractions(container, tooltipElement);
-      cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-      expect(tooltip.showTooltip).toHaveBeenCalledWith(
-        expect.any(Event),
-        cardElement.cardData,
-        tooltipElement
-      );
-      expect(cardElement.getAttribute('aria-describedby')).toBe('tooltip');
-    });
+  describe('Card tooltip (touch only)', () => {
+    /** Dispatch a touchstart with coordinates onto an element. */
+    function startTouch(target) {
+      const event = new Event('touchstart', { bubbles: true });
+      event.touches = [{ clientX: 10, clientY: 10 }];
+      target.dispatchEvent(event);
+    }
 
-    it('should not show tooltip on mouseover if disabled', () => {
-      cardSettings.showTooltip = false;
+    it('does not open on mouse hover (PC uses the tile footer)', () => {
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      cardElement.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
 
-    it('exposes a printing-cycle handler while a card is hovered', () => {
+    it('opens after a touch long-press', () => {
+      vi.useFakeTimers();
+      try {
+        initCardInteractions(container, tooltipElement);
+        startTouch(cardElement);
+
+        expect(tooltip.showTooltip).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(500);
+        expect(tooltip.showTooltip).toHaveBeenCalledWith(
+          expect.anything(),
+          cardElement.cardData,
+          tooltipElement
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('exposes a printing-cycle handler when a touch begins', () => {
       initCardInteractions(container, tooltipElement);
-      cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      startTouch(cardElement);
 
       expect(typeof tooltipElement.onCycle).toBe('function');
+      // Cancel the pending long-press timer.
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
     it('omits the printing-cycle handler in view-only mode', () => {
       appState.isViewOnlyMode = true;
       initCardInteractions(container, tooltipElement);
-      cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+      startTouch(cardElement);
 
       expect(tooltipElement.onCycle).toBeNull();
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
       appState.isViewOnlyMode = false;
     });
 
-    it('should hide tooltip on mouseout', () => {
+    it('still suppresses the browser menu on right-click', () => {
       initCardInteractions(container, tooltipElement);
-      cardElement.dispatchEvent(
-        new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })
-      );
-      expect(tooltip.hideTooltip).toHaveBeenCalledWith(tooltipElement);
-      expect(cardElement.hasAttribute('aria-describedby')).toBe(false);
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      cardElement.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
 
-    it('ignores the mouse events a tap synthesizes (so taps still toggle)', () => {
-      const nowSpy = vi.spyOn(Date, 'now');
-      let now = 1_000_000;
-      nowSpy.mockImplementation(() => now);
+    it('cycles the printing on right-click without opening the tooltip', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
 
-      try {
-        initCardInteractions(container, tooltipElement);
-
-        const touchStart = new Event('touchstart', { bubbles: true });
-        touchStart.touches = [{ clientX: 10, clientY: 10 }];
-        cardElement.dispatchEvent(touchStart);
-        cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
-
-        // Synthetic mouseover right after the touch: ignored.
-        cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-        expect(tooltip.showTooltip).not.toHaveBeenCalled();
-
-        // Long after the touch: a real hover still works.
-        now += 1000;
-        cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-        expect(tooltip.showTooltip).toHaveBeenCalled();
-      } finally {
-        nowSpy.mockRestore();
-      }
-    });
-
-    it('should not hide tooltip when moving between child elements', () => {
       initCardInteractions(container, tooltipElement);
-      const childLink = cardElement.querySelector('.edhrec-link');
-      cardElement.dispatchEvent(
-        new MouseEvent('mouseout', { bubbles: true, relatedTarget: childLink })
-      );
-      expect(tooltip.hideTooltip).not.toHaveBeenCalled();
-    });
+      cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
-    it('should position tooltip on mousemove if visible', () => {
-      tooltipElement.style.display = 'block';
-      initCardInteractions(container, tooltipElement);
-      container.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
-      expect(tooltip.positionTooltip).toHaveBeenCalledWith(expect.any(Event), tooltipElement);
+      expect(cardElement.cardData.id).toBe('p2');
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
   });
 

@@ -1,7 +1,6 @@
 // tooltip.js
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
-import { getDisplayedPrice } from '../utils/prices.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 
@@ -9,10 +8,20 @@ let tooltipTimeout;
 let activeTooltip = null;
 
 const MOBILE_QUERY = '(max-width: 768px)';
+const HOVER_QUERY = '(hover: hover)';
 
 /** True on the phone layout, where the tooltip is shown full-screen. */
 function isMobileLayout() {
   return typeof window.matchMedia === 'function' && window.matchMedia(MOBILE_QUERY).matches;
+}
+
+/**
+ * True when the device has a real pointer, i.e. a right-click exists. Touch
+ * devices synthesize mouse events, so the hover media query is the reliable
+ * way to tell whether the "right-click" wording makes sense.
+ */
+function isHoverCapable() {
+  return typeof window.matchMedia === 'function' && window.matchMedia(HOVER_QUERY).matches;
 }
 
 /** Full-screen tap-catcher shown behind the mobile tooltip. */
@@ -59,39 +68,30 @@ export function showTooltip(e, card, tooltip) {
     imageContainer.innerHTML = `<div class="loading">Loading...</div>`;
     tooltip.appendChild(imageContainer);
 
-    const textContainer = document.createElement('div');
-    textContainer.className = 'tooltip-text-container';
-    tooltip.appendChild(textContainer);
+    // The card's name, set/number, price, printing count and owned state now
+    // live in the tile footer. The tooltip only carries the explicit cycle
+    // control that touch devices need (they have no right-click).
+    const { total } = cardStore.getPrintingPosition(card);
+    if (total > 1 && typeof tooltip.onCycle === 'function') {
+      const textContainer = document.createElement('div');
+      textContainer.className = 'tooltip-text-container';
 
-    const { index, total } = cardStore.getPrintingPosition(card);
-    if (total > 1) {
-      const indicator = document.createElement('span');
-      indicator.className = 'printing-indicator';
-      indicator.textContent = `Version ${index} of ${total}`;
-      textContainer.appendChild(indicator);
-
-      // Touch devices have no right-click, so offer an explicit control. The
-      // host (card grid or statistics) supplies the cycle behaviour.
-      if (typeof tooltip.onCycle === 'function') {
-        const cycleBtn = document.createElement('button');
-        cycleBtn.type = 'button';
-        cycleBtn.className = 'printing-cycle';
-        cycleBtn.textContent = 'Next printing';
-        cycleBtn.title = 'Show the next printing (right-click also works)';
-        cycleBtn.addEventListener('click', (clickEvent) => {
-          clickEvent.stopPropagation();
-          tooltip.onCycle(clickEvent);
-        });
-        textContainer.appendChild(cycleBtn);
-      }
+      const cycleBtn = document.createElement('button');
+      cycleBtn.type = 'button';
+      cycleBtn.className = 'printing-cycle';
+      // Hosts can override the label (e.g. the PC statistics modal asks for
+      // "Right-click for next printing"), but on touch devices right-click does
+      // not exist, so always fall back to the plain wording there.
+      const showRightClickLabel = !mobile && isHoverCapable();
+      cycleBtn.textContent = (showRightClickLabel && tooltip.cycleLabel) || 'Next printing';
+      cycleBtn.title = 'Show the next printing (right-click also works)';
+      cycleBtn.addEventListener('click', (clickEvent) => {
+        clickEvent.stopPropagation();
+        tooltip.onCycle(clickEvent);
+      });
+      textContainer.appendChild(cycleBtn);
+      tooltip.appendChild(textContainer);
     }
-
-    const price = getDisplayedPrice(card);
-
-    const descriptor = document.createElement('div');
-    descriptor.className = 'card-descriptor';
-    descriptor.textContent = `${card.set_name} #${card.collector_number} · €${price !== null ? price.toFixed(2) : 'N/A'}`;
-    textContainer.appendChild(descriptor);
 
     tooltip.style.display = 'flex';
 

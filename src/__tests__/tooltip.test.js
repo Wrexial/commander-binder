@@ -77,7 +77,8 @@ describe('tooltip', () => {
 
       expect(tooltip.style.display).toBe('flex');
       expect(getCardImages).toHaveBeenCalledWith(card);
-      expect(tooltip.querySelector('.card-descriptor').textContent).toContain('Dominaria #1');
+      // The descriptor moved to the tile footer; the tooltip is images only.
+      expect(tooltip.querySelector('.card-descriptor')).toBeNull();
       expect(tooltip.querySelectorAll('img').length).toBe(1);
       expect(tooltip.classList.contains('mdfc')).toBe(false);
     });
@@ -103,13 +104,50 @@ describe('tooltip', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
-      expect(tooltip.querySelector('.printing-indicator').textContent).toBe('Version 2 of 5');
+      // The printing count now lives in the tile footer, so the tooltip only
+      // shows the cycle control on touch-capable hosts.
+      expect(tooltip.querySelector('.printing-indicator')).toBeNull();
 
       const button = tooltip.querySelector('.printing-cycle');
       expect(button).not.toBeNull();
+      expect(button.textContent).toBe('Next printing');
 
       button.click();
       expect(tooltip.onCycle).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses a host-provided cycle label on hover-capable devices', () => {
+      vi.stubGlobal('matchMedia', (query) => ({
+        matches: query.includes('hover'),
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
+      tooltip.onCycle = vi.fn();
+      tooltip.cycleLabel = 'Right-click for next printing';
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.printing-cycle').textContent).toBe(
+        'Right-click for next printing'
+      );
+    });
+
+    it('falls back to touch wording when the device cannot hover', () => {
+      vi.stubGlobal('matchMedia', () => ({
+        matches: false,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
+      tooltip.onCycle = vi.fn();
+      tooltip.cycleLabel = 'Right-click for next printing';
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.printing-cycle').textContent).toBe('Next printing');
     });
 
     it('omits the button when the host provides no cycle handler', () => {
