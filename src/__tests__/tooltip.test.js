@@ -122,6 +122,46 @@ describe('tooltip', () => {
     });
   });
 
+  describe('mobile full-screen mode', () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn(() => ({ matches: true, addEventListener() {}, removeEventListener() {} })),
+      );
+    });
+
+    it('centres the tooltip and shows a blocking backdrop', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.classList.contains('mobile')).toBe(true);
+      const backdropEl = document.querySelector('.tooltip-backdrop');
+      expect(backdropEl).not.toBeNull();
+      expect(backdropEl.classList.contains('visible')).toBe(true);
+      expect(document.body.classList.contains('tooltip-open')).toBe(true);
+    });
+
+    it('does not chase the pointer', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      positionTooltip({ clientX: 5, clientY: 5 }, tooltip);
+      expect(tooltip.style.left).toBe('');
+      expect(tooltip.style.top).toBe('');
+    });
+
+    it('closes when the backdrop edge is tapped', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      document.querySelector('.tooltip-backdrop').click();
+
+      expect(tooltip.style.display).toBe('none');
+      expect(tooltip.classList.contains('mobile')).toBe(false);
+      expect(document.body.classList.contains('tooltip-open')).toBe(false);
+    });
+  });
+
   describe('hideTooltip', () => {
     it('should hide and clear the tooltip', () => {
       showTooltip(event, card, tooltip);

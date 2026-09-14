@@ -7,6 +7,28 @@ import { cardStore } from '../state/cardStore.js';
 let tooltipTimeout;
 let activeTooltip = null;
 
+const MOBILE_QUERY = '(max-width: 768px)';
+
+/** True on the phone layout, where the tooltip is shown full-screen. */
+function isMobileLayout() {
+  return typeof window.matchMedia === 'function' && window.matchMedia(MOBILE_QUERY).matches;
+}
+
+/** Full-screen tap-catcher shown behind the mobile tooltip. */
+let backdrop = null;
+function getBackdrop() {
+  if (backdrop && !backdrop.isConnected) backdrop = null;
+  if (backdrop) return backdrop;
+
+  backdrop = document.createElement('div');
+  backdrop.className = 'tooltip-backdrop';
+  backdrop.addEventListener('click', () => {
+    if (activeTooltip) hideTooltip(activeTooltip);
+  });
+  document.body.appendChild(backdrop);
+  return backdrop;
+}
+
 // ---------------- Show Tooltip ----------------
 export function showTooltip(e, card, tooltip) {
   if(!cardSettings.showTooltip){
@@ -15,6 +37,18 @@ export function showTooltip(e, card, tooltip) {
 
   hideTooltip(tooltip);
   activeTooltip = tooltip;
+
+  // Choose the layout up front. On phones the tooltip becomes a fixed,
+  // centred full-screen dialog, and the class must be set before the long-press
+  // gesture ends so its trailing tap cannot toggle ownership.
+  const mobile = isMobileLayout();
+  tooltip.classList.toggle('mobile', mobile);
+  if (mobile) {
+    tooltip.style.left = '';
+    tooltip.style.top = '';
+    getBackdrop().classList.add('visible');
+    document.body.classList.add('tooltip-open');
+  }
 
   tooltipTimeout = setTimeout(() => {
     tooltip.innerHTML = ''; // Clear existing content
@@ -118,10 +152,10 @@ function finishTooltip(images, tooltip, event) {
   container.style.alignItems = "center";
   container.style.justifyContent = "center";
 
-  const isMobile = window.innerWidth <= 768;
-  const maxTooltipHeight = window.innerHeight * (isMobile ? 0.7 : 0.6);
-  const maxTooltipWidth = window.innerWidth * (isMobile ? 0.9 : 0.8);
-  const imgWidth = Math.min(maxTooltipWidth / images.length, 300);
+  const isMobile = isMobileLayout();
+  const maxTooltipHeight = window.innerHeight * (isMobile ? 0.8 : 0.6);
+  const maxTooltipWidth = window.innerWidth * (isMobile ? 0.92 : 0.8);
+  const imgWidth = Math.min(maxTooltipWidth / images.length, isMobile ? 340 : 300);
 
   images.forEach(el => {
     if (el.tagName === "IMG") {
@@ -150,13 +184,20 @@ function finishTooltip(images, tooltip, event) {
 export function hideTooltip(tooltip) {
   clearTimeout(tooltipTimeout);
   tooltip.classList.remove("show");
+  tooltip.classList.remove("mobile");
   tooltip.style.display = "none";
   activeTooltip = null;
   tooltip.innerHTML = "";
+
+  if (backdrop) backdrop.classList.remove("visible");
+  document.body.classList.remove("tooltip-open");
 }
 
 // ---------------- Position Tooltip ----------------
 export function positionTooltip(e, tooltip) {
+  // The mobile dialog is centred by CSS; never chase the pointer.
+  if (tooltip.classList.contains('mobile')) return;
+
   const padding = 12;
 
   const vw = window.innerWidth;

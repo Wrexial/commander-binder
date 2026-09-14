@@ -132,12 +132,16 @@ function handleTouchEnd(event) {
     }
 }
 
-async function handleContainerClick(event) {
+async function handleContainerClick(event, tooltip) {
     const cardElement = event.target.closest('.card');
     // Ignore clicks if they aren't on a card, are on the EDHREC link, or in view-only mode
     if (!cardElement || event.target.closest('.edhrec-link') || appState.isViewOnlyMode) {
         return;
     }
+
+    // The full-screen mobile tooltip is open: the tap that dismissed (or opened)
+    // it must not also mark the card owned.
+    if (tooltip && tooltip.classList.contains('mobile')) return;
     
     const card = cardElement.cardData;
     if (!card) return;
@@ -218,7 +222,7 @@ export function initCardInteractions(container, tooltip) {
     container.addEventListener("mouseover", e => handleMouseEnter(e, tooltip));
     container.addEventListener("mouseout", e => handleMouseLeave(e, tooltip));
     container.addEventListener("mousemove", e => handleMouseMove(e, tooltip));
-    container.addEventListener("click", handleContainerClick);
+    container.addEventListener("click", e => handleContainerClick(e, tooltip));
     container.addEventListener("contextmenu", e => handleContextMenu(e, tooltip));
 
     container.addEventListener("touchstart", e => handleTouchStart(e, tooltip), { passive: true });

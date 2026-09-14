@@ -873,6 +873,42 @@ body.images-mode .section {
   opacity: 1;
 }
 
+/* Mobile: a fixed, centred, full-screen dialog instead of a box that chases the
+   pointer. The dimmed backdrop blocks the page; tapping its edges closes. */
+@media (max-width: 768px) {
+  .tooltip.mobile {
+    inset: 0;
+    margin: auto;
+    width: fit-content;
+    height: fit-content;
+    max-width: 94vw;
+    max-height: 92vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    pointer-events: auto;
+  }
+}
+
+.tooltip-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-index-tooltip) - 1);
+  display: none;
+  background: rgba(6, 9, 14, 0.75);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  touch-action: none;
+}
+
+.tooltip-backdrop.visible {
+  display: block;
+}
+
+/* Stop the page scrolling behind the mobile tooltip. */
+body.tooltip-open {
+  overflow: hidden;
+}
+
 .tooltip img {
   border-radius: 10px;
   object-fit: contain;

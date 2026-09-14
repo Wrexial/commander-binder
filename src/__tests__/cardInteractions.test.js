@@ -128,6 +128,14 @@ describe('initCardInteractions', () => {
         expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
 
+    it('should not toggle ownership while the mobile tooltip is open', async () => {
+        tooltipElement.classList.add('mobile');
+        initCardInteractions(container, tooltipElement);
+        await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+    });
+
     it('should not toggle ownership when clicking on edhrec link', async () => {
         initCardInteractions(container, tooltipElement);
         const edhrecLink = cardElement.querySelector('.edhrec-link');
