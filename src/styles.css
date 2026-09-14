@@ -928,6 +928,31 @@ body.images-mode .section {
   letter-spacing: 0.02em;
 }
 
+/* Explicit cycle control for touch devices, which have no right-click. */
+.printing-cycle {
+  display: inline-block;
+  margin: 0 0 4px 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: inherit;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  pointer-events: auto; /* .tooltip disables pointer events */
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.printing-cycle:hover,
+.printing-cycle:focus-visible {
+  background: rgba(212, 175, 55, 0.28);
+  border-color: var(--accent-strong);
+  outline: none;
+}
+
 .card-descriptor {
   font-style: normal;
   color: #d7deea;

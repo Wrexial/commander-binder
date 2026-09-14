@@ -500,6 +500,7 @@ function wireTopCardTooltips(container, tooltip, topCards) {
     const handleEnter = (event) => {
         const row = event.currentTarget;
         if (!row.cardData) return;
+        tooltip.onCycle = (cycleEvent) => cycleRowPrinting(row, cycleEvent);
         preloadCardImages(row.cardData);
         row.setAttribute('aria-describedby', 'tooltip');
         showTooltip(event, row.cardData, tooltip);
@@ -512,17 +513,15 @@ function wireTopCardTooltips(container, tooltip, topCards) {
     };
 
     const handleLeave = (event) => {
+        tooltip.onCycle = null;
         event.currentTarget.removeAttribute('aria-describedby');
         hideTooltip(tooltip);
     };
 
-    // Match the main grid: right-click a hovered row to cycle printings. The
-    // tooltip's "Version X of Y" indicator stays in sync automatically because
-    // it is derived from the card currently stored on the row.
-    const handleContextMenu = (event) => {
-        const row = event.currentTarget;
-        event.preventDefault();
-        if (!row.cardData || tooltip.style.display === 'none') return;
+    // Match the main grid: advance a row to its next printing. Right-click does
+    // this on desktop; the tooltip's "Next printing" button covers touch.
+    const cycleRowPrinting = (row, event) => {
+        if (!row.cardData) return;
 
         const printings = cardStore.getPrintings(row.cardData.name);
         if (printings.length <= 1) return;
@@ -533,6 +532,12 @@ function wireTopCardTooltips(container, tooltip, topCards) {
         const nextIndex = (currentIndex + 1) % printings.length;
         row.cardData = printings[nextIndex];
         showTooltip(event, row.cardData, tooltip);
+    };
+
+    const handleContextMenu = (event) => {
+        event.preventDefault();
+        if (tooltip.style.display === 'none') return;
+        cycleRowPrinting(event.currentTarget, event);
     };
 
     rows.forEach((row) => {

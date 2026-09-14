@@ -3,6 +3,7 @@ import { showTooltip, hideTooltip, positionTooltip } from '../ui/tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
+import { cardStore } from '../state/cardStore.js';
 
 // Mock dependencies
 vi.mock('../state/cardSettings.js', () => ({
@@ -46,6 +47,7 @@ describe('tooltip', () => {
     tooltip = document.getElementById('tooltip');
     vi.clearAllMocks();
     cardSettings.showTooltip = true;
+    cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 1 });
     getCardImages.mockReturnValue([{ url: card.image_uris.normal, key: 'front' }]);
     getImage.mockImplementation(() => {
       const el = document.createElement('div');
@@ -89,6 +91,34 @@ describe('tooltip', () => {
 
       expect(tooltip.querySelectorAll('.mock-image').length).toBe(2);
       expect(tooltip.classList.contains('mdfc')).toBe(true);
+    });
+  });
+
+  describe('printing cycle control', () => {
+    it('renders a Next printing button that calls the host handler', () => {
+      cardStore.getPrintingPosition.mockReturnValue({ index: 2, total: 5 });
+      tooltip.onCycle = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.printing-indicator').textContent).toBe('Version 2 of 5');
+
+      const button = tooltip.querySelector('.printing-cycle');
+      expect(button).not.toBeNull();
+
+      button.click();
+      expect(tooltip.onCycle).toHaveBeenCalledTimes(1);
+    });
+
+    it('omits the button when the host provides no cycle handler', () => {
+      cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
+      tooltip.onCycle = undefined;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.printing-cycle')).toBeNull();
     });
   });
 

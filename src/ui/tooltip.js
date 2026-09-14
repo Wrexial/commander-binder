@@ -32,8 +32,23 @@ export function showTooltip(e, card, tooltip) {
     if (total > 1) {
         const indicator = document.createElement('span');
         indicator.className = 'printing-indicator';
-        indicator.textContent = `Version ${index} of ${total} (Right-click to cycle)`;
+        indicator.textContent = `Version ${index} of ${total}`;
         textContainer.appendChild(indicator);
+
+        // Touch devices have no right-click, so offer an explicit control. The
+        // host (card grid or statistics) supplies the cycle behaviour.
+        if (typeof tooltip.onCycle === 'function') {
+            const cycleBtn = document.createElement('button');
+            cycleBtn.type = 'button';
+            cycleBtn.className = 'printing-cycle';
+            cycleBtn.textContent = 'Next printing';
+            cycleBtn.title = 'Show the next printing (right-click also works)';
+            cycleBtn.addEventListener('click', (clickEvent) => {
+                clickEvent.stopPropagation();
+                tooltip.onCycle(clickEvent);
+            });
+            textContainer.appendChild(cycleBtn);
+        }
     }
 
     const prices = [card.prices.eur, card.prices.eur_foil].filter(p => p).map(p => parseFloat(p));

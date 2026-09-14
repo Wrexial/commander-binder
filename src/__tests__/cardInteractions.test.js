@@ -64,6 +64,22 @@ describe('initCardInteractions', () => {
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
 
+    it('exposes a printing-cycle handler while a card is hovered', () => {
+      initCardInteractions(container, tooltipElement);
+      cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+
+      expect(typeof tooltipElement.onCycle).toBe('function');
+    });
+
+    it('omits the printing-cycle handler in view-only mode', () => {
+      appState.isViewOnlyMode = true;
+      initCardInteractions(container, tooltipElement);
+      cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+
+      expect(tooltipElement.onCycle).toBeNull();
+      appState.isViewOnlyMode = false;
+    });
+
     it('should hide tooltip on mouseout', () => {
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));

@@ -52,6 +52,12 @@ function handleMouseEnter(event, tooltip) {
     if (cardElement) {
         schedulePreload(cardElement);
         cardElement.setAttribute('aria-describedby', 'tooltip');
+        // Touch devices have no right-click, so the tooltip's "Next printing"
+        // button drives the cycle through this handler. View-only shares cannot
+        // cycle, so leave the button off there.
+        tooltip.onCycle = appState.isViewOnlyMode
+            ? null
+            : (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
         showTooltip(event, cardElement.cardData, tooltip);
     }
 }
@@ -64,6 +70,7 @@ function handleMouseLeave(event, tooltip) {
         cancelPreload(cardElement);
         hideTooltip(tooltip);
         cardElement.removeAttribute('aria-describedby');
+        tooltip.onCycle = null;
     }
 }
 
@@ -84,6 +91,11 @@ function handleTouchStart(event, tooltip) {
 
     const state = getState(cardElement);
     state.isLongPress = false;
+
+    // The open tooltip owns the cycle action on touch (no right-click).
+    tooltip.onCycle = appState.isViewOnlyMode
+        ? null
+        : (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
 
     // Touch has no hover phase; start the image early since the tooltip shows
     // only after a 500ms long-press.
@@ -162,20 +174,15 @@ async function handleContainerClick(event) {
     });
 }
 
-function handleContextMenu(event, tooltip) {
-    const cardElement = event.target.closest('.card');
-    if (!cardElement) return;
+/**
+ * Advance a tile to its next printing and refresh both the tile and the open
+ * tooltip. Shared by desktop right-click and the tooltip's "Next printing"
+ * button (the only route on touch devices).
+ */
+function cycleCardPrinting(cardElement, event, tooltip) {
+    if (!cardElement || !cardElement.cardData || appState.isViewOnlyMode) return;
 
-    event.preventDefault();
-
-    if (tooltip.style.display === 'none') return;
-    
-    if (appState.isViewOnlyMode) return;
-
-    event.preventDefault();
-
-    const cardName = cardElement.cardData.name;
-    const printings = cardStore.getPrintings(cardName);
+    const printings = cardStore.getPrintings(cardElement.cardData.name);
     if (printings.length <= 1) return;
 
     const state = getState(cardElement);
@@ -184,14 +191,24 @@ function handleContextMenu(event, tooltip) {
     state.printingIndex = nextIndex;
 
     const nextPrinting = printings[nextIndex];
-    cardElement.cardData = nextPrinting; 
+    cardElement.cardData = nextPrinting;
 
     // Keep the tile in sync with the printing the tooltip now shows (matters in
     // image mode, where the artwork differs per printing).
     refreshCardElement(cardElement);
 
-    // Re-show the tooltip with the new card data
     showTooltip(event, nextPrinting, tooltip);
+}
+
+function handleContextMenu(event, tooltip) {
+    const cardElement = event.target.closest('.card');
+    if (!cardElement) return;
+
+    event.preventDefault();
+
+    if (tooltip.style.display === 'none') return;
+
+    cycleCardPrinting(cardElement, event, tooltip);
 }
 
 
