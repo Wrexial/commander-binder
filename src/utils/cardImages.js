@@ -1,7 +1,7 @@
 // src/utils/cardImages.js
-import { getImage } from "./imageCache.js";
+import { getImage } from './imageCache.js';
 
-const MULTI_FACE_LAYOUTS = ["modal_dfc", "transform", "double_faced_token"];
+const MULTI_FACE_LAYOUTS = ['modal_dfc', 'transform', 'double_faced_token'];
 
 /**
  * Pick the best display URL from a Scryfall `image_uris` object.
@@ -57,20 +57,14 @@ export function getCardImageUrls(card) {
 export function getCardImages(card) {
   if (!card) return [];
 
-  if (
-    card.card_faces &&
-    MULTI_FACE_LAYOUTS.includes(card.layout) &&
-    card.card_faces.length === 2
-  ) {
+  if (card.card_faces && MULTI_FACE_LAYOUTS.includes(card.layout) && card.card_faces.length === 2) {
     return card.card_faces.flatMap((face, index) => {
       const url = faceDisplayUrl(face);
       return url ? [{ url, key: `${card.id}-${index}` }] : [];
     });
   }
 
-  const url =
-    faceDisplayUrl(card) ||
-    faceDisplayUrl(card.card_faces?.[0]);
+  const url = faceDisplayUrl(card) || faceDisplayUrl(card.card_faces?.[0]);
 
   return url ? [{ url, key: card.id }] : [];
 }

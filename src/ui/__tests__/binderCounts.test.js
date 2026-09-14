@@ -5,17 +5,12 @@ vi.mock('../../state/cardState.js', () => ({
   isCardOwned: vi.fn(() => false),
 }));
 
-import {
-  updateBinderCounts,
-  adjustBinderOwnedCount,
-  recountBinder,
-} from '../layout.js';
+import { updateBinderCounts, adjustBinderOwnedCount, recountBinder } from '../layout.js';
 
 function makeBinder(owned, total) {
   const binder = document.createElement('div');
   binder.className = 'binder';
-  binder.innerHTML =
-    '<div class="binder-header"><span class="binder-owned"></span></div>';
+  binder.innerHTML = '<div class="binder-header"><span class="binder-owned"></span></div>';
   binder.ownedCards = owned;
   binder.totalCards = total;
   return binder;

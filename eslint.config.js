@@ -1,21 +1,15 @@
 // eslint.config.js
-import js from "@eslint/js";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import js from '@eslint/js';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: [
-      "dist/**",
-      "coverage-helper/**",
-      "migrations/**",
-      ".netlify/**",
-      "node_modules/**",
-    ],
+    ignores: ['dist/**', 'coverage-helper/**', 'migrations/**', '.netlify/**', 'node_modules/**'],
   },
   js.configs.recommended,
   {
-    files: ["**/*.js", "**/*.mjs"],
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -23,12 +17,12 @@ export default tseslint.config(
       },
     },
     rules: {
-      "no-undef": "error",
+      'no-undef': 'error',
     },
   },
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.ts"],
+    files: ['**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -36,9 +30,9 @@ export default tseslint.config(
     },
     rules: {
       // Allow intentionally-unused args (e.g. Netlify's `event` when unused).
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
   }

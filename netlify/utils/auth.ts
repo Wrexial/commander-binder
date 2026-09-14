@@ -25,3 +25,11 @@ export async function getUserId(event: { headers?: Record<string, string | undef
   const user = await verifyToken(token);
   return typeof user?.sub === 'string' ? user.sub : null;
 }
+
+/** Standard response for a caller that is not authenticated. */
+export function unauthorized() {
+  return {
+    statusCode: 401,
+    body: JSON.stringify({ message: 'Unauthorized' }),
+  };
+}

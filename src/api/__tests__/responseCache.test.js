@@ -1,12 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  readCache,
-  writeCache,
-  removeCache,
-  clearCache,
-  isFresh,
-  CACHE_TTL_MS,
-} from '../responseCache.js';
+import { readCache, writeCache, clearCache, isFresh, CACHE_TTL_MS } from '../responseCache.js';
 
 describe('responseCache', () => {
   beforeEach(async () => {
@@ -40,12 +33,6 @@ describe('responseCache', () => {
     expect(isFresh({ ts: now - CACHE_TTL_MS }, now)).toBe(false);
     expect(isFresh({ ts: now - CACHE_TTL_MS - 5000 }, now)).toBe(false);
     expect(isFresh(null, now)).toBe(false);
-  });
-
-  it('removeCache drops a single entry', async () => {
-    await writeCache('https://example.com/b', { a: 1 });
-    await removeCache('https://example.com/b');
-    expect(await readCache('https://example.com/b')).toBeNull();
   });
 
   it('clearCache empties the store', async () => {

@@ -35,8 +35,8 @@ export function getImage(url) {
   }
 
   const img = new Image();
-  img.decoding = "async";
-  img.loading = "eager";
+  img.decoding = 'async';
+  img.loading = 'eager';
   img.src = url;
   cache.set(url, img);
 
@@ -46,25 +46,6 @@ export function getImage(url) {
   }
 
   return img;
-}
-
-/**
- * Resolve once the image for `url` has loaded (or null if it failed).
- * @param {string} url
- * @returns {Promise<HTMLImageElement|null>}
- */
-export function loadImage(url) {
-  const img = getImage(url);
-  if (!img) return Promise.resolve(null);
-
-  if (img.complete) {
-    return Promise.resolve(img.naturalWidth > 0 ? img : null);
-  }
-
-  return new Promise((resolve) => {
-    img.addEventListener("load", () => resolve(img), { once: true });
-    img.addEventListener("error", () => resolve(null), { once: true });
-  });
 }
 
 /** Number of cached images (mainly for tests). */

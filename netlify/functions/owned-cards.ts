@@ -1,10 +1,11 @@
-import { eq } from "drizzle-orm";
-import { db } from "../../db";
-import { ownedCards, shareLinks } from "../../db/schema";
-import { getUserId } from "../utils/auth";
+import type { HandlerEvent } from '@netlify/functions';
+import { eq } from 'drizzle-orm';
+import { db } from '../../db';
+import { ownedCards, shareLinks } from '../../db/schema';
+import { getUserId, unauthorized } from '../utils/auth';
 
-export async function handler(event) {
-  const { shareToken } = JSON.parse(event.body || "{}");
+export async function handler(event: HandlerEvent) {
+  const { shareToken } = JSON.parse(event.body || '{}');
 
   let userId;
 
@@ -24,10 +25,7 @@ export async function handler(event) {
   }
 
   if (!userId) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "Unauthorized" }),
-    };
+    return unauthorized();
   }
 
   const rows = await db

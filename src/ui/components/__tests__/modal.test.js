@@ -1,41 +1,46 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { showListModal } from '../modal.js';
+import { describe, it, expect, afterEach } from 'vitest';
+import { createModal } from '../modal.js';
 
-vi.useFakeTimers();
+describe('createModal', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
 
-describe('modal', () => {
-    afterEach(() => {
-        document.body.innerHTML = '';
-    });
+  it('creates a backdrop holding a labelled dialog in the body', () => {
+    const { modal } = createModal({ className: 'bulk-modal', ariaLabel: 'Test' });
 
-    it('should show a modal with a title and list', () => {
-        showListModal('Test Title', ['Test Item 1', 'Test Item 2']);
-        const modal = document.querySelector('.list-modal');
-        expect(modal).not.toBeNull();
-        expect(modal.querySelector('h2').textContent).toBe('Test Title');
-        expect(modal.querySelector('.modal-content-area').textContent).toBe('Test Item 1\nTest Item 2');
-    });
+    const backdrop = document.querySelector('.list-modal-backdrop');
+    expect(backdrop).not.toBeNull();
+    expect(backdrop.contains(modal)).toBe(true);
+    expect(modal.classList.contains('list-modal')).toBe(true);
+    expect(modal.classList.contains('bulk-modal')).toBe(true);
+    expect(modal.getAttribute('aria-label')).toBe('Test');
+  });
 
-    it('should close the modal when the close button is clicked', async () => {
-        showListModal('Test Title', ['Test Item 1', 'Test Item 2']);
-        const closeButton = document.querySelector('[data-testid="close-button"]');
-        closeButton.click();
-        
-        const modal = document.querySelector('.list-modal-backdrop');
-        expect(modal).toBeNull();
-    });
+  it('closes on close() and runs the onClose callback exactly once', () => {
+    let closes = 0;
+    const { close } = createModal({ onClose: () => closes++ });
 
-    it('should copy the list to the clipboard when the copy button is clicked', () => {
-        Object.defineProperty(navigator, 'clipboard', {
-            value: {
-                writeText: vi.fn().mockResolvedValue(undefined),
-            },
-            configurable: true,
-        });
+    close();
+    close();
 
-        showListModal('Test Title', ['Test Item 1', 'Test Item 2']);
-        const copyButton = document.querySelector('[data-testid="copy-button"]');
-        copyButton.click();
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Test Item 1\nTest Item 2');
-    });
+    expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+    expect(closes).toBe(1);
+  });
+
+  it('closes on Escape', () => {
+    createModal({});
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
+
+  it('closes on a backdrop click but not a content click', () => {
+    const { modal } = createModal({});
+
+    modal.click();
+    expect(document.querySelector('.list-modal-backdrop')).not.toBeNull();
+
+    document.querySelector('.list-modal-backdrop').click();
+    expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
 });

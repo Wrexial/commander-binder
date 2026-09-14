@@ -1,6 +1,12 @@
 // src/__tests__/cards.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createCardElement, updateCardState, applyDisplayMode, refreshCardElement, updateCardVersionCounts } from '../ui/cards.js';
+import {
+  createCardElement,
+  updateCardState,
+  applyDisplayMode,
+  refreshCardElement,
+  updateCardVersionCounts,
+} from '../ui/cards.js';
 import { appState } from '../state/appState.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
@@ -119,16 +125,13 @@ describe('displayed printing price', () => {
     cardState.isCardOwned.mockReturnValue(false);
   });
 
-  it('shows the displayed printing\'s own price, not a cheaper reprint', () => {
+  it("shows the displayed printing's own price, not a cheaper reprint", () => {
     const element = createCardElement(pricedCard(), 0);
     expect(element.querySelector('.card-price').textContent).toBe('€12.50');
   });
 
   it('falls back to the foil price when there is no non-foil price', () => {
-    const element = createCardElement(
-      pricedCard({ prices: { eur: null, eur_foil: '7.25' } }),
-      0
-    );
+    const element = createCardElement(pricedCard({ prices: { eur: null, eur_foil: '7.25' } }), 0);
     expect(element.querySelector('.card-price').textContent).toBe('€7.25');
   });
 
@@ -332,19 +335,19 @@ describe('applyDisplayMode', () => {
 });
 
 describe('updateCardState', () => {
-    const card = {
-        id: 'card1',
-        name: 'Serra Angel',
-        related_uris: {
-        edhrec: 'http://edhrec.com/serra-angel',
-        },
-        color_identity: ['W'],
-    };
+  const card = {
+    id: 'card1',
+    name: 'Serra Angel',
+    related_uris: {
+      edhrec: 'http://edhrec.com/serra-angel',
+    },
+    color_identity: ['W'],
+  };
 
-    it('should remove the loading class', () => {
-        const element = createCardElement(card, 0);
-        expect(element.classList.contains('loading')).toBe(true);
-        updateCardState(element);
-        expect(element.classList.contains('loading')).toBe(false);
-    });
+  it('should remove the loading class', () => {
+    const element = createCardElement(card, 0);
+    expect(element.classList.contains('loading')).toBe(true);
+    updateCardState(element);
+    expect(element.classList.contains('loading')).toBe(false);
+  });
 });

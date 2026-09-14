@@ -66,9 +66,13 @@ describe('bulkData', () => {
 
   it('detects legendary creatures the same way the search filter does', () => {
     expect(isLegendaryCreature(makeCard({ type_line: 'Legendary Creature — Human' }))).toBe(true);
-    expect(isLegendaryCreature(makeCard({ type_line: 'Legendary Artifact Creature — Golem' }))).toBe(true);
+    expect(
+      isLegendaryCreature(makeCard({ type_line: 'Legendary Artifact Creature — Golem' }))
+    ).toBe(true);
     expect(isLegendaryCreature(makeCard({ type_line: 'Creature — Elf' }))).toBe(false);
-    expect(isLegendaryCreature(makeCard({ type_line: 'Legendary Planeswalker — Ajani' }))).toBe(false);
+    expect(isLegendaryCreature(makeCard({ type_line: 'Legendary Planeswalker — Ajani' }))).toBe(
+      false
+    );
     expect(isLegendaryCreature(null)).toBe(false);
   });
 
@@ -175,9 +179,7 @@ describe('bulkData', () => {
 
     // The TTL fast path means the second call makes no network requests at all
     // (not even the bulk index).
-    const indexCalls = global.fetch.mock.calls.filter(([u]) =>
-      String(u).includes('/bulk-data')
-    );
+    const indexCalls = global.fetch.mock.calls.filter(([u]) => String(u).includes('/bulk-data'));
     expect(indexCalls).toHaveLength(1);
   });
 
@@ -247,9 +249,7 @@ describe('bulkData', () => {
       nowSpy.mockRestore();
     }
 
-    const indexCalls = global.fetch.mock.calls.filter(([u]) =>
-      String(u).includes('/bulk-data')
-    );
+    const indexCalls = global.fetch.mock.calls.filter(([u]) => String(u).includes('/bulk-data'));
     const downloadCalls = global.fetch.mock.calls.filter(([u]) =>
       String(u).includes('cards.jsonl.gz')
     );

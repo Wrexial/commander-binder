@@ -1,4 +1,4 @@
-// state.js
+// src/state/appState.js
 export const appState = {
   isViewOnlyMode: false,
   nextPageUrl: null,
@@ -16,5 +16,5 @@ export const appState = {
   // Coverage sample captured from the first API page, used to sanity-check the
   // bulk-data subset before trusting it.
   apiTotalCards: null,
-  apiSampleIds: null
+  apiSampleIds: null,
 };

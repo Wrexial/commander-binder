@@ -3,64 +3,69 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = (() => {
-    let store = {};
-    return {
-        getItem: vi.fn((key) => store[key] || null),
-        setItem: vi.fn((key, value) => {
-            store[key] = value.toString();
-        }),
-        clear: vi.fn(() => {
-            store = {};
-        }),
-    };
+  let store = {};
+  return {
+    getItem: vi.fn((key) => store[key] || null),
+    setItem: vi.fn((key, value) => {
+      store[key] = value.toString();
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+  };
 })();
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock });
 
-
 describe('cardSettings', () => {
-    beforeEach(() => {
-        localStorageMock.clear();
-        vi.resetModules(); // Reset modules to reload cardSettings with fresh localStorage
-    });
+  beforeEach(() => {
+    localStorageMock.clear();
+    vi.resetModules(); // Reset modules to reload cardSettings with fresh localStorage
+  });
 
-    it('should load default settings when localStorage is empty', async () => {
-        const { cardSettings } = await import('../state/cardSettings.js');
-        expect(cardSettings.showTooltip).toBe(true);
-        expect(cardSettings.persistentReveal).toBe(false);
-        expect(cardSettings.displayMode).toBe('text');
-    });
+  it('should load default settings when localStorage is empty', async () => {
+    const { cardSettings } = await import('../state/cardSettings.js');
+    expect(cardSettings.showTooltip).toBe(true);
+    expect(cardSettings.persistentReveal).toBe(false);
+    expect(cardSettings.displayMode).toBe('text');
+  });
 
-    it('should load settings from localStorage if they exist', async () => {
-        localStorageMock.setItem('cardSettings', JSON.stringify({
-            showTooltip: false,
-            persistentReveal: true,
-        }));
-        
-        const { cardSettings } = await import('../state/cardSettings.js');
-        expect(cardSettings.showTooltip).toBe(false);
-        expect(cardSettings.persistentReveal).toBe(true);
-    });
+  it('should load settings from localStorage if they exist', async () => {
+    localStorageMock.setItem(
+      'cardSettings',
+      JSON.stringify({
+        showTooltip: false,
+        persistentReveal: true,
+      })
+    );
 
-    it('should merge stored settings with defaults', async () => {
-        localStorageMock.setItem('cardSettings', JSON.stringify({
-            persistentReveal: true,
-        }));
-        const { cardSettings } = await import('../state/cardSettings.js');
-        expect(cardSettings.showTooltip).toBe(true); // From default
-        expect(cardSettings.persistentReveal).toBe(true); // From localStorage
-    });
+    const { cardSettings } = await import('../state/cardSettings.js');
+    expect(cardSettings.showTooltip).toBe(false);
+    expect(cardSettings.persistentReveal).toBe(true);
+  });
 
-    it('saveSettings should store the current settings in localStorage', async () => {
-        const { cardSettings, saveSettings } = await import('../state/cardSettings.js');
-        
-        // Modify settings
-        cardSettings.showTooltip = false;
-        
-        saveSettings();
-        
-        expect(localStorageMock.setItem).toHaveBeenCalledWith(
-            'cardSettings',
-            JSON.stringify({ showTooltip: false, persistentReveal: false, displayMode: 'text' })
-        );
-    });
+  it('should merge stored settings with defaults', async () => {
+    localStorageMock.setItem(
+      'cardSettings',
+      JSON.stringify({
+        persistentReveal: true,
+      })
+    );
+    const { cardSettings } = await import('../state/cardSettings.js');
+    expect(cardSettings.showTooltip).toBe(true); // From default
+    expect(cardSettings.persistentReveal).toBe(true); // From localStorage
+  });
+
+  it('saveSettings should store the current settings in localStorage', async () => {
+    const { cardSettings, saveSettings } = await import('../state/cardSettings.js');
+
+    // Modify settings
+    cardSettings.showTooltip = false;
+
+    saveSettings();
+
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      'cardSettings',
+      JSON.stringify({ showTooltip: false, persistentReveal: false, displayMode: 'text' })
+    );
+  });
 });

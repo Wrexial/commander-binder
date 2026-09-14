@@ -16,6 +16,8 @@
  * in-memory cache, mirroring `responseCache.js`.
  */
 
+import { createStore } from '../utils/idb.js';
+
 const BULK_INDEX_URL = 'https://api.scryfall.com/bulk-data';
 
 /** Scryfall asks clients to identify themselves; browsers drop this header. */
@@ -36,10 +38,6 @@ const INDEX_TTL_MS = 60 * 60 * 1000;
  */
 export const SUBSET_TTL_MS = 6 * 60 * 60 * 1000;
 
-const DB_NAME = 'scryfall-bulk';
-const STORE_NAME = 'subsets';
-const DB_VERSION = 1;
-
 /**
  * `default_cards` = every English printing (matches the app's current
  * `unique=prints` data). Use `oracle_cards` for a much smaller download that
@@ -53,63 +51,20 @@ const LEGENDARY_CREATURES_KEY = 'legendary-creatures';
 let indexCache = null;
 /** @type {Map<string, object>} */
 const memorySubsets = new Map();
-/** @type {Promise<IDBDatabase|null>|null} */
-let dbPromise = null;
 
-function getIndexedDB() {
-  return typeof indexedDB !== 'undefined' && indexedDB ? indexedDB : null;
-}
-
-function openDb() {
-  if (dbPromise) return dbPromise;
-
-  const idb = getIndexedDB();
-  if (!idb) {
-    dbPromise = Promise.resolve(null);
-    return dbPromise;
-  }
-
-  dbPromise = new Promise((resolve) => {
-    let request;
-    try {
-      request = idb.open(DB_NAME, DB_VERSION);
-    } catch {
-      resolve(null);
-      return;
-    }
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'key' });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
-    request.onblocked = () => resolve(null);
-  });
-
-  return dbPromise;
-}
+const store = createStore({
+  dbName: 'scryfall-bulk',
+  storeName: 'subsets',
+  keyPath: 'key',
+});
 
 async function readSubset(key) {
   if (memorySubsets.has(key)) return memorySubsets.get(key);
 
-  const db = await openDb();
-  if (!db) return null;
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(key);
-      req.onsuccess = () => {
-        const value = req.result?.value ?? null;
-        if (value) memorySubsets.set(key, value);
-        resolve(value);
-      };
-      req.onerror = () => resolve(null);
-    } catch {
-      resolve(null);
-    }
-  });
+  const record = await store.get(key);
+  const value = record?.value ?? null;
+  if (value) memorySubsets.set(key, value);
+  return value;
 }
 
 async function writeSubset(key, value) {
@@ -118,27 +73,9 @@ async function writeSubset(key, value) {
   // Best-effort: ask the browser not to evict this origin's storage.
   requestPersistentStorage();
 
-  const db = await openDb();
-  if (!db) return false;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put({ key, value });
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => {
-        console.warn('Failed to persist Scryfall bulk data:', tx.error);
-        resolve(false);
-      };
-      tx.onabort = () => {
-        console.warn('Scryfall bulk data write aborted:', tx.error);
-        resolve(false);
-      };
-    } catch (err) {
-      console.warn('Failed to persist Scryfall bulk data:', err);
-      resolve(false);
-    }
-  });
+  const persisted = await store.put({ key, value });
+  if (!persisted) console.warn('Failed to persist Scryfall bulk data in IndexedDB.');
+  return persisted;
 }
 
 let persistenceRequested = false;
@@ -402,11 +339,9 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
     return refreshed;
   }
 
-  const { updatedAt, cards } = await downloadFilteredBulkCards(
-    type,
-    isPlayableLegendaryCreature,
-    { entry }
-  );
+  const { updatedAt, cards } = await downloadFilteredBulkCards(type, isPlayableLegendaryCreature, {
+    entry,
+  });
   cards.sort((a, b) => String(a.released_at || '').localeCompare(String(b.released_at || '')));
 
   const subset = { updatedAt, type, fetchedAt: Date.now(), cards };
@@ -418,18 +353,5 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
 export async function clearBulkCache() {
   indexCache = null;
   memorySubsets.clear();
-
-  const db = await openDb();
-  if (!db) return;
-  await new Promise((resolve) => {
-    try {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-      tx.onabort = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  await store.clear();
 }

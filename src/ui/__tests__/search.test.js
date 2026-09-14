@@ -1,4 +1,4 @@
-// src/utils/__tests__/search.test.js
+// src/ui/__tests__/search.test.js
 import { describe, it, expect, vi } from 'vitest';
 import { parseQuery, evaluateCondition } from '../../ui/search.js';
 import * as cardState from '../../state/cardState.js';
@@ -60,40 +60,40 @@ describe('parseQuery', () => {
     const query = '!t:creature';
     const result = parseQuery(query);
     expect(result).toEqual([{ type: 'filter', value: '!t:creature' }]);
-    });
+  });
 
-    it('should handle complex queries', () => {
-        const query = 't:creature o:"flying" (c:U or c:W) and !s:M21';
-        const result = parseQuery(query);
-        expect(result).toEqual([
-            {
-                "type": "filter",
-                "value": "t:creature"
-            },
-            {
-                "type": "filter",
-                "value": "o:\"flying\""
-            },
-            {
-                "type": "and",
-                "left": {
-                    "type": "or",
-                    "left": {
-                        "type": "filter",
-                        "value": "c:U"
-                    },
-                    "right": {
-                        "type": "filter",
-                        "value": "c:W"
-                    }
-                },
-                "right": {
-                    "type": "filter",
-                    "value": "!s:M21"
-                }
-            }
-        ]);
-    });
+  it('should handle complex queries', () => {
+    const query = 't:creature o:"flying" (c:U or c:W) and !s:M21';
+    const result = parseQuery(query);
+    expect(result).toEqual([
+      {
+        type: 'filter',
+        value: 't:creature',
+      },
+      {
+        type: 'filter',
+        value: 'o:"flying"',
+      },
+      {
+        type: 'and',
+        left: {
+          type: 'or',
+          left: {
+            type: 'filter',
+            value: 'c:U',
+          },
+          right: {
+            type: 'filter',
+            value: 'c:W',
+          },
+        },
+        right: {
+          type: 'filter',
+          value: '!s:M21',
+        },
+      },
+    ]);
+  });
 });
 
 describe('evaluateCondition', () => {
@@ -219,5 +219,26 @@ describe('evaluateCondition', () => {
     const condition = { type: 'filter', value: 'serra angel' };
     const result = evaluateCondition(card, condition);
     expect(result).toBe(true);
+  });
+});
+
+describe('price filter', () => {
+  const priced = (eur) => ({
+    cardData: {
+      name: 'Priced Card',
+      type_line: 'Creature — Angel',
+      color_identity: [],
+      prices: { eur, usd: '999.00' },
+    },
+  });
+
+  it('filters on the EUR price the UI displays', () => {
+    expect(evaluateCondition(priced('3.00'), { type: 'filter', value: 'price:1-5' })).toBe(true);
+    expect(evaluateCondition(priced('30.00'), { type: 'filter', value: 'price:1-5' })).toBe(false);
+  });
+
+  it('treats a bare value as a minimum', () => {
+    expect(evaluateCondition(priced('30.00'), { type: 'filter', value: 'price:20' })).toBe(true);
+    expect(evaluateCondition(priced('3.00'), { type: 'filter', value: 'price:20' })).toBe(false);
   });
 });

@@ -26,7 +26,7 @@ describe('loadingIndicator', () => {
   it('hideLoading should decrement activeFetches', () => {
     appState.activeFetches = 1;
     showLoading(); // activeFetches becomes 2
-    
+
     hideLoading(); // activeFetches becomes 1
 
     expect(appState.activeFetches).toBe(1);
@@ -35,7 +35,7 @@ describe('loadingIndicator', () => {
 
   it('hideLoading should hide the loader when activeFetches reaches 0', () => {
     appState.activeFetches = 1;
-    
+
     hideLoading(); // activeFetches becomes 0
 
     expect(appState.activeFetches).toBe(0);
@@ -73,7 +73,7 @@ describe('loadingIndicator', () => {
   it('should not fail if the loader element does not exist', () => {
     // Remove the element
     document.body.innerHTML = '';
-    
+
     // These calls should not throw an error
     expect(() => showLoading()).not.toThrow();
     expect(() => hideLoading()).not.toThrow();

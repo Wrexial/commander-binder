@@ -6,13 +6,13 @@ const DEFAULT_SETTINGS = {
   displayMode: 'text',
 };
 
-const STORAGE_KEY = "cardSettings";
+const STORAGE_KEY = 'cardSettings';
 
-const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 
 export const cardSettings = {
   ...DEFAULT_SETTINGS,
-  ..._stored
+  ..._stored,
 };
 
 export function getSetting(key) {

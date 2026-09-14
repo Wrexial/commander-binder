@@ -62,9 +62,7 @@ describe('hover image preloading', () => {
   it('does not preload when the cursor leaves before the delay', () => {
     const card = container.querySelector('.card');
     card.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    card.dispatchEvent(
-      new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })
-    );
+    card.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
 
     vi.advanceTimersByTime(200);
     expect(preloadCardImages).not.toHaveBeenCalled();

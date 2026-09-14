@@ -13,13 +13,13 @@ export class Clerk {
 
   get user() {
     return {
-      id: 'user_123'
+      id: 'user_123',
     };
   }
-  
+
   get session() {
     return {
-        getToken: () => Promise.resolve('test-token')
-    }
+      getToken: () => Promise.resolve('test-token'),
+    };
   }
 }

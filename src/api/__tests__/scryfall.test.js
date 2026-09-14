@@ -20,9 +20,12 @@ vi.mock('../../ui/cards.js', () => ({
   updateAllCardStates: vi.fn(),
 }));
 vi.mock('../../state/cardStore.js', () => ({
+  primaryName: (cardOrName) =>
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
   cardStore: {
     add: vi.fn(),
     getPrintings: vi.fn(() => []),
+    getOldestPrinting: vi.fn(() => undefined),
     getAll: vi.fn(() => []),
     clear: vi.fn(),
   },
@@ -34,7 +37,12 @@ vi.mock('../../ui/components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-import { fetchNextPage, setRequestThrottle, setBulkCardSource, clearBulkCardSource } from '../scryfall.js';
+import {
+  fetchNextPage,
+  setRequestThrottle,
+  setBulkCardSource,
+  clearBulkCardSource,
+} from '../scryfall.js';
 import { appState } from '../../state/appState.js';
 import { clearCache, writeCache, CACHE_TTL_MS } from '../responseCache.js';
 import * as layout from '../../ui/layout.js';
@@ -42,8 +50,10 @@ import * as cards from '../../ui/cards.js';
 import { showToast } from '../../ui/components/toast.js';
 
 const START_URL = 'https://api.scryfall.com/cards/search?page=1';
-const PAGE_2 = 'https://api.scryfall.com/cards/search?dir=asc&order=released&page=2&q=x&unique=prints';
-const PAGE_3 = 'https://api.scryfall.com/cards/search?dir=asc&order=released&page=3&q=x&unique=prints';
+const PAGE_2 =
+  'https://api.scryfall.com/cards/search?dir=asc&order=released&page=2&q=x&unique=prints';
+const PAGE_3 =
+  'https://api.scryfall.com/cards/search?dir=asc&order=released&page=3&q=x&unique=prints';
 
 function makeCards(count, prefix = 'Card') {
   return Array.from({ length: count }, (_, i) => ({
@@ -204,7 +214,9 @@ describe('fetchNextPage', () => {
     });
     global.fetch
       .mockReturnValueOnce(firstResponse)
-      .mockResolvedValueOnce(jsonResponse({ has_more: false, next_page: null, data: makeCards(20, 'B') }));
+      .mockResolvedValueOnce(
+        jsonResponse({ has_more: false, next_page: null, data: makeCards(20, 'B') })
+      );
 
     const firstRun = fetchNextPage(null, null); // starts and awaits firstResponse
     await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
@@ -225,9 +237,15 @@ describe('fetchNextPage', () => {
   it('auto-loads every page when autoLoad is enabled', async () => {
     appState.autoLoad = true;
     global.fetch
-      .mockResolvedValueOnce(jsonResponse({ has_more: true, next_page: PAGE_2, data: makeCards(175, 'A') }))
-      .mockResolvedValueOnce(jsonResponse({ has_more: true, next_page: PAGE_3, data: makeCards(175, 'B') }))
-      .mockResolvedValueOnce(jsonResponse({ has_more: false, next_page: null, data: makeCards(20, 'C') }));
+      .mockResolvedValueOnce(
+        jsonResponse({ has_more: true, next_page: PAGE_2, data: makeCards(175, 'A') })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ has_more: true, next_page: PAGE_3, data: makeCards(175, 'B') })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ has_more: false, next_page: null, data: makeCards(20, 'C') })
+      );
 
     await fetchNextPage(null, null);
     await vi.waitFor(() => expect(appState.nextPageUrl).toBeNull());

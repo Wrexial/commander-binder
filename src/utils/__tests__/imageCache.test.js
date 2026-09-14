@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  getImage,
-  loadImage,
-  clearImageCache,
-  getImageCacheSize,
-  IMAGE_CACHE_LIMIT,
-} from '../imageCache.js';
+import { getImage, clearImageCache, getImageCacheSize, IMAGE_CACHE_LIMIT } from '../imageCache.js';
 
 describe('imageCache', () => {
   beforeEach(() => {
@@ -42,23 +36,5 @@ describe('imageCache', () => {
     expect(getImageCacheSize()).toBeLessThanOrEqual(IMAGE_CACHE_LIMIT);
     // `first` was the oldest and has been evicted, so a new element is created.
     expect(getImage('https://example.com/first.jpg')).not.toBe(first);
-  });
-
-  it('resolves loadImage when the image loads', async () => {
-    const url = 'https://example.com/load.jpg';
-    const promise = loadImage(url);
-
-    getImage(url).dispatchEvent(new Event('load'));
-
-    await expect(promise).resolves.toBe(getImage(url));
-  });
-
-  it('resolves loadImage with null when the image errors', async () => {
-    const url = 'https://example.com/bad.jpg';
-    const promise = loadImage(url);
-
-    getImage(url).dispatchEvent(new Event('error'));
-
-    await expect(promise).resolves.toBeNull();
   });
 });

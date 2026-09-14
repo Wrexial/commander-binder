@@ -75,9 +75,7 @@ describe('exportModal', () => {
     const revokeObjectURL = vi.fn();
     URL.createObjectURL = createObjectURL;
     URL.revokeObjectURL = revokeObjectURL;
-    const clickSpy = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     const modal = createExportModal(['Sol Ring']);
     modal.show();

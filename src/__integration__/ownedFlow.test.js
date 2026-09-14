@@ -80,7 +80,12 @@ describe('owned markers applied on load', () => {
           ok: true,
           status: 200,
           headers: { get: () => null },
-          json: async () => ({ has_more: false, next_page: null, total_cards: 1, data: [ownedCard] }),
+          json: async () => ({
+            has_more: false,
+            next_page: null,
+            total_cards: 1,
+            data: [ownedCard],
+          }),
         };
       }
       return { ok: true, json: async () => ({}) };
@@ -123,7 +128,12 @@ describe('owned markers applied on load', () => {
           ok: true,
           status: 200,
           headers: { get: () => null },
-          json: async () => ({ has_more: false, next_page: null, total_cards: 2, data: [oldest, newest] }),
+          json: async () => ({
+            has_more: false,
+            next_page: null,
+            total_cards: 2,
+            data: [oldest, newest],
+          }),
         };
       }
       return { ok: true, json: async () => ({}) };
@@ -156,7 +166,12 @@ describe('owned markers applied on load', () => {
       if (u.includes('api.scryfall.com')) {
         const body = u.includes('page=2')
           ? { has_more: false, next_page: null, total_cards: 195, data: page2 }
-          : { has_more: true, next_page: 'https://api.scryfall.com/cards/search?page=2', total_cards: 195, data: page1 };
+          : {
+              has_more: true,
+              next_page: 'https://api.scryfall.com/cards/search?page=2',
+              total_cards: 195,
+              data: page1,
+            };
         return { ok: true, status: 200, headers: { get: () => null }, json: async () => body };
       }
       return { ok: true, json: async () => ({}) };
@@ -166,13 +181,15 @@ describe('owned markers applied on load', () => {
     document.dispatchEvent(new Event('DOMContentLoaded'));
 
     await vi.waitFor(() => {
-      const card = [...document.querySelectorAll('.card')]
-        .find(c => c.cardData?.id === 'c-owned');
+      const card = [...document.querySelectorAll('.card')].find(
+        (c) => c.cardData?.id === 'c-owned'
+      );
       expect(card).toBeTruthy();
     });
 
-    const ownedEl = [...document.querySelectorAll('.card')]
-      .find(c => c.cardData?.id === 'c-owned');
+    const ownedEl = [...document.querySelectorAll('.card')].find(
+      (c) => c.cardData?.id === 'c-owned'
+    );
     expect(ownedEl.classList.contains('owned')).toBe(true);
   });
 
@@ -190,7 +207,12 @@ describe('owned markers applied on load', () => {
           ok: true,
           status: 200,
           headers: { get: () => null },
-          json: async () => ({ has_more: false, next_page: null, total_cards: 1, data: [ownedCard] }),
+          json: async () => ({
+            has_more: false,
+            next_page: null,
+            total_cards: 1,
+            data: [ownedCard],
+          }),
         });
       }
       return Promise.resolve({ ok: true, json: async () => ({}) });

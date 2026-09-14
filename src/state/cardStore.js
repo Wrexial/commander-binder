@@ -3,25 +3,36 @@
 const cardsByName = new Map();
 const printingIdsByName = new Map();
 
+/**
+ * Cards are grouped by their front-face name, so a double-faced card
+ * ("Front // Back") is found under "Front".
+ * @param {string|object} cardOrName
+ * @returns {string}
+ */
+export function primaryName(cardOrName) {
+  const name = typeof cardOrName === 'string' ? cardOrName : cardOrName?.name;
+  return (name || '').split(' // ')[0];
+}
+
 function releaseKey(card) {
-  return card.released_at || "";
+  return card.released_at || '';
 }
 
 export const cardStore = {
   add(card) {
     if (!card || !card.name) return;
 
-    const primaryName = card.name.split(" // ")[0];
+    const name = primaryName(card);
 
-    let printings = cardsByName.get(primaryName);
+    let printings = cardsByName.get(name);
     if (!printings) {
       printings = [];
-      cardsByName.set(primaryName, printings);
-      printingIdsByName.set(primaryName, new Set());
+      cardsByName.set(name, printings);
+      printingIdsByName.set(name, new Set());
     }
 
     // O(1) dedupe instead of scanning the printings array.
-    const seenIds = printingIdsByName.get(primaryName);
+    const seenIds = printingIdsByName.get(name);
     if (seenIds.has(card.id)) return;
     seenIds.add(card.id);
 
@@ -44,9 +55,8 @@ export const cardStore = {
     printings.splice(low, 0, card);
   },
 
-  getPrintings(name) {
-    const primaryName = name.split(" // ")[0];
-    return cardsByName.get(primaryName) || [];
+  getPrintings(cardOrName) {
+    return cardsByName.get(primaryName(cardOrName)) || [];
   },
 
   getOldestPrinting(name) {
@@ -63,10 +73,10 @@ export const cardStore = {
    * @returns {{ index: number, total: number }}
    */
   getPrintingPosition(card) {
-    const primaryName = card?.name?.split(" // ")[0];
-    if (!primaryName) return { index: 0, total: 0 };
+    const name = primaryName(card);
+    if (!name) return { index: 0, total: 0 };
 
-    const printings = cardsByName.get(primaryName) || [];
+    const printings = cardsByName.get(name) || [];
     const position = printings.findIndex((printing) => printing.id === card.id);
     return { index: position >= 0 ? position + 1 : 1, total: printings.length };
   },

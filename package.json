@@ -12,6 +12,8 @@
     "db:migrate": "netlify dev:exec drizzle-kit migrate",
     "db:studio": "netlify dev:exec drizzle-kit studio",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "verify:bulk": "node scripts/verify-bulk-coverage.mjs"
@@ -38,6 +40,7 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsdoc": "^62.0.0",
     "jsdom": "^27.4.0",
+    "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0",
     "vite": "^7.3.1",

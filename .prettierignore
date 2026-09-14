@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage-helper
+migrations
+.netlify
+public
+package-lock.json

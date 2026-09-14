@@ -1,4 +1,3 @@
-
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { initCardInteractions } from '../ui/cardInteractions.js';
 import * as tooltip from '../ui/tooltip.js';
@@ -41,7 +40,7 @@ describe('initCardInteractions', () => {
     tooltipElement = document.getElementById('tooltip');
     cardElement = container.querySelector('.card');
     cardElement.cardData = { id: 'test-card-id', name: 'Test Card' };
-    
+
     // Mock initial state
     cardSettings.showTooltip = true;
     appState.isViewOnlyMode = false;
@@ -53,7 +52,11 @@ describe('initCardInteractions', () => {
     it('should show tooltip on mouseover if enabled', () => {
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-      expect(tooltip.showTooltip).toHaveBeenCalledWith(expect.any(Event), cardElement.cardData, tooltipElement);
+      expect(tooltip.showTooltip).toHaveBeenCalledWith(
+        expect.any(Event),
+        cardElement.cardData,
+        tooltipElement
+      );
       expect(cardElement.getAttribute('aria-describedby')).toBe('tooltip');
     });
 
@@ -82,7 +85,9 @@ describe('initCardInteractions', () => {
 
     it('should hide tooltip on mouseout', () => {
       initCardInteractions(container, tooltipElement);
-      cardElement.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
+      cardElement.dispatchEvent(
+        new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })
+      );
       expect(tooltip.hideTooltip).toHaveBeenCalledWith(tooltipElement);
       expect(cardElement.hasAttribute('aria-describedby')).toBe(false);
     });
@@ -114,10 +119,12 @@ describe('initCardInteractions', () => {
     });
 
     it('should not hide tooltip when moving between child elements', () => {
-        initCardInteractions(container, tooltipElement);
-        const childLink = cardElement.querySelector('.edhrec-link');
-        cardElement.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: childLink }));
-        expect(tooltip.hideTooltip).not.toHaveBeenCalled();
+      initCardInteractions(container, tooltipElement);
+      const childLink = cardElement.querySelector('.edhrec-link');
+      cardElement.dispatchEvent(
+        new MouseEvent('mouseout', { bubbles: true, relatedTarget: childLink })
+      );
+      expect(tooltip.hideTooltip).not.toHaveBeenCalled();
     });
 
     it('should position tooltip on mousemove if visible', () => {
@@ -132,7 +139,7 @@ describe('initCardInteractions', () => {
     it('should toggle card ownership on click', async () => {
       initCardInteractions(container, tooltipElement);
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      
+
       expect(cardState.toggleCardOwned).toHaveBeenCalledWith(cardElement.cardData);
       expect(cardElement.classList.contains('owned')).toBe(true);
       expect(ownedCounter.updateOwnedCounter).toHaveBeenCalled();
@@ -147,49 +154,49 @@ describe('initCardInteractions', () => {
     });
 
     it('should not toggle ownership when in view-only mode', async () => {
-        appState.isViewOnlyMode = true;
-        initCardInteractions(container, tooltipElement);
-        await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        
-        expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      appState.isViewOnlyMode = true;
+      initCardInteractions(container, tooltipElement);
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
 
     it('should not toggle ownership while the mobile tooltip is open', async () => {
-        tooltipElement.classList.add('mobile');
-        initCardInteractions(container, tooltipElement);
-        await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      tooltipElement.classList.add('mobile');
+      initCardInteractions(container, tooltipElement);
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
 
     it('should not toggle ownership when clicking on edhrec link', async () => {
-        initCardInteractions(container, tooltipElement);
-        const edhrecLink = cardElement.querySelector('.edhrec-link');
-        await edhrecLink.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      initCardInteractions(container, tooltipElement);
+      const edhrecLink = cardElement.querySelector('.edhrec-link');
+      await edhrecLink.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
-    
+
     it('should revert ownership when undo is clicked', async () => {
-        initCardInteractions(container, tooltipElement);
-        await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      initCardInteractions(container, tooltipElement);
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        // Check initial toggle
-        expect(cardElement.classList.contains('owned')).toBe(true);
+      // Check initial toggle
+      expect(cardElement.classList.contains('owned')).toBe(true);
 
-        // Get the undo callback
-        const undoCallback = toast.showUndo.mock.calls[0][1];
-        
-        // Mock the revert call
-        cardState.setCardsOwned.mockResolvedValue(undefined);
+      // Get the undo callback
+      const undoCallback = toast.showUndo.mock.calls[0][1];
 
-        // Execute undo
-        await undoCallback();
+      // Mock the revert call
+      cardState.setCardsOwned.mockResolvedValue(undefined);
 
-        // Check if state is reverted
-        expect(cardState.setCardsOwned).toHaveBeenCalledWith([cardElement.cardData], false);
-        expect(cardElement.classList.contains('owned')).toBe(false);
-        expect(ownedCounter.updateOwnedCounter).toHaveBeenCalledTimes(2); // Initial call + undo call
+      // Execute undo
+      await undoCallback();
+
+      // Check if state is reverted
+      expect(cardState.setCardsOwned).toHaveBeenCalledWith([cardElement.cardData], false);
+      expect(cardElement.classList.contains('owned')).toBe(false);
+      expect(ownedCounter.updateOwnedCounter).toHaveBeenCalledTimes(2); // Initial call + undo call
     });
   });
 });

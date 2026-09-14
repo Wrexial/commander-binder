@@ -1,22 +1,21 @@
 // main.js
 import { appState } from './state/appState.js';
 import { initLazyCards } from './ui/lazyCardLoader.js';
-import { initCardSettings } from "./ui/settingsUI.js";
-import { loadCardStates } from "./state/cardState.js";
+import { initCardSettings } from './ui/settingsUI.js';
+import { loadCardStates } from './state/cardState.js';
 import { initSearch } from './ui/search.js';
 import { initClerk, getClerk } from './auth/clerk.js';
 import { createSignInButton } from './ui/components/SignInButton.js';
 import { createGuestModeText } from './ui/components/GuestModeText.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
-import { 
-  createExportOwnedButton, 
-  createBulkAddButton, 
-  createBulkCheckButton, 
+import {
+  createExportOwnedButton,
+  createBulkAddButton,
+  createBulkCheckButton,
   updateAllBinderCounts,
 } from './ui/layout.js';
-import { createBulkAddModal } from './ui/components/bulkAddModal.js';
-import { createBulkCheckModal } from './ui/components/bulkCheckModal.js';
+import { createBulkAddModal, createBulkCheckModal } from './ui/components/bulkCardModal.js';
 import { updateAllCardStates } from './ui/cards.js';
 import { showToast } from './ui/components/toast.js';
 import { getShareToken } from './api/share.js';
@@ -56,7 +55,7 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
       url.searchParams.delete('user');
       url.searchParams.set('share', token);
       await navigator.clipboard.writeText(url.href);
-      showToast("Link copied to clipboard!");
+      showToast('Link copied to clipboard!');
     } catch (err) {
       console.error('Failed to create share link:', err);
       showToast('Could not create a share link.', 'error');
@@ -109,13 +108,13 @@ export async function setupUI() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initSidebar();
   await initClerk();
   const urlParams = new URLSearchParams(window.location.search);
   mainState.shareToken = urlParams.get('share');
-  const tooltip = document.getElementById("tooltip");
-  const results = document.getElementById("results");
+  const tooltip = document.getElementById('tooltip');
+  const results = document.getElementById('results');
 
   await setupUI();
 
@@ -128,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateAllBinderCounts();
       updateOwnedCounter();
     })
-    .catch((err) => console.error("Failed to load card states:", err));
+    .catch((err) => console.error('Failed to load card states:', err));
 
   initLazyCards(results, tooltip);
   updateAllBinderCounts();

@@ -1,9 +1,9 @@
-import { appState } from "../../state/appState.js";
-import { isCardOwned, getOwnedCardIds } from "../../state/cardState.js";
+import { appState } from '../../state/appState.js';
+import { isCardOwned, getOwnedCardIds } from '../../state/cardState.js';
 
 export function updateOwnedCounter() {
-  const ownedCounter = document.getElementById("owned-counter");
-  const searchInput = document.getElementById("search-input");
+  const ownedCounter = document.getElementById('owned-counter');
+  const searchInput = document.getElementById('search-input');
   if (!ownedCounter || !searchInput) return;
 
   const totalOwnedCount = getOwnedCardIds().size;
@@ -18,8 +18,8 @@ export function updateOwnedCounter() {
 
   let visibleCount = 0;
   let ownedVisibleCount = 0;
-  document.querySelectorAll(".card").forEach((card) => {
-    if (card.style.display === "none") return;
+  document.querySelectorAll('.card').forEach((card) => {
+    if (card.style.display === 'none') return;
     visibleCount++;
     if (isCardOwned(card.cardData)) ownedVisibleCount++;
   });

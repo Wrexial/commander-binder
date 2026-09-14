@@ -1,5 +1,5 @@
 import { describe, beforeEach, afterEach, it, expect } from 'vitest';
-import { createBulkAddModal } from '../bulkAddModal.js';
+import { createBulkAddModal } from '../bulkCardModal.js';
 
 describe('bulkAddModal', () => {
   let modal;

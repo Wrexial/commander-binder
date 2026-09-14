@@ -17,11 +17,7 @@ vi.mock('../tooltip.js', () => ({
   positionTooltip: vi.fn(),
 }));
 
-import {
-  calculateStatistics,
-  createStatisticsHTML,
-  showStatisticsModal,
-} from '../statistics.js';
+import { calculateStatistics, createStatisticsHTML, showStatisticsModal } from '../statistics.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { showTooltip } from '../tooltip.js';
@@ -120,7 +116,7 @@ describe('calculateStatistics', () => {
             { prices: { eur: '10.00', eur_foil: '20.00' } },
             { prices: { eur: '5.00', eur_foil: null } },
           ]
-        : [],
+        : []
     );
 
     const stats = calculateStatistics([
@@ -138,9 +134,7 @@ describe('calculateStatistics', () => {
   it('computes price distribution buckets and the median', () => {
     cardStore.getPrintings.mockImplementation((name) => {
       const prices = { Cheap: '0.50', Mid: '3.00', Pricey: '30.00', Grail: '120.00' };
-      return prices[name]
-        ? [{ prices: { eur: prices[name], eur_foil: null } }]
-        : [];
+      return prices[name] ? [{ prices: { eur: prices[name], eur_foil: null } }] : [];
     });
 
     const stats = calculateStatistics([
@@ -161,9 +155,7 @@ describe('calculateStatistics', () => {
   });
 
   it('sorts the top cards by price and caps the list at five', () => {
-    const cards = Array.from({ length: 7 }, (_, i) =>
-      makeCard({ name: `Card ${i}` }),
-    );
+    const cards = Array.from({ length: 7 }, (_, i) => makeCard({ name: `Card ${i}` }));
     cardStore.getPrintings.mockImplementation((name) => {
       const index = Number(name.replace('Card ', ''));
       return [{ prices: { eur: `${index}.00`, eur_foil: null } }];
@@ -188,7 +180,7 @@ describe('createStatisticsHTML', () => {
   it('renders every section with the summary values', () => {
     const stats = calculateStatistics(
       [makeCard({ name: 'A', colors: ['U'], color_identity: ['U'], rarity: 'rare' })],
-      4,
+      4
     );
 
     const html = createStatisticsHTML(stats);
@@ -224,15 +216,11 @@ describe('createStatisticsHTML', () => {
   });
 
   it('renders combination mana symbols in canonical WUBRG order', () => {
-    const stats = calculateStatistics([
-      makeCard({ name: 'A', colors: ['W', 'B'] }),
-    ]);
+    const stats = calculateStatistics([makeCard({ name: 'A', colors: ['W', 'B'] })]);
     const html = createStatisticsHTML(stats);
     const combos = html.slice(html.indexOf('Color Combinations'));
 
-    expect(combos.indexOf('card-symbols/W.svg')).toBeLessThan(
-      combos.indexOf('card-symbols/B.svg'),
-    );
+    expect(combos.indexOf('card-symbols/W.svg')).toBeLessThan(combos.indexOf('card-symbols/B.svg'));
   });
 });
 
@@ -257,17 +245,13 @@ describe('showStatisticsModal', () => {
     const row = document.querySelector('.stats-top-card');
     expect(row).toBeTruthy();
 
-    row.dispatchEvent(
-      new MouseEvent('mouseenter', { clientX: 10, clientY: 10 }),
-    );
+    row.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 }));
 
     expect(showTooltip).toHaveBeenCalledTimes(1);
     expect(showTooltip.mock.calls[0][1]).toMatchObject({ name: 'Grail' });
 
     // Right-click cycles to the next printing, like the main card grid.
-    row.dispatchEvent(
-      new MouseEvent('contextmenu', { clientX: 10, clientY: 10 }),
-    );
+    row.dispatchEvent(new MouseEvent('contextmenu', { clientX: 10, clientY: 10 }));
     expect(showTooltip).toHaveBeenCalledTimes(2);
     expect(row.cardData.id).toBe('printing-2');
 

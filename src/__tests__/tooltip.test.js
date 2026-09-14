@@ -50,9 +50,10 @@ describe('tooltip', () => {
     cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 1 });
     getCardImages.mockReturnValue([{ url: card.image_uris.normal, key: 'front' }]);
     getImage.mockImplementation(() => {
-      const el = document.createElement('div');
-      el.className = 'mock-image';
-      return el;
+      const img = document.createElement('img');
+      Object.defineProperty(img, 'complete', { value: true, configurable: true });
+      Object.defineProperty(img, 'naturalWidth', { value: 100, configurable: true });
+      return img;
     });
   });
 
@@ -77,7 +78,7 @@ describe('tooltip', () => {
       expect(tooltip.style.display).toBe('flex');
       expect(getCardImages).toHaveBeenCalledWith(card);
       expect(tooltip.querySelector('.card-descriptor').textContent).toContain('Dominaria #1');
-      expect(tooltip.querySelectorAll('.mock-image').length).toBe(1);
+      expect(tooltip.querySelectorAll('img').length).toBe(1);
       expect(tooltip.classList.contains('mdfc')).toBe(false);
     });
 
@@ -89,7 +90,7 @@ describe('tooltip', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
-      expect(tooltip.querySelectorAll('.mock-image').length).toBe(2);
+      expect(tooltip.querySelectorAll('img').length).toBe(2);
       expect(tooltip.classList.contains('mdfc')).toBe(true);
     });
   });
@@ -126,7 +127,7 @@ describe('tooltip', () => {
     beforeEach(() => {
       vi.stubGlobal(
         'matchMedia',
-        vi.fn(() => ({ matches: true, addEventListener() {}, removeEventListener() {} })),
+        vi.fn(() => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
       );
     });
 
@@ -177,7 +178,17 @@ describe('tooltip', () => {
 
   describe('positionTooltip', () => {
     beforeEach(() => {
-      tooltip.getBoundingClientRect = () => ({ width: 200, height: 300, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => {} });
+      tooltip.getBoundingClientRect = () => ({
+        width: 200,
+        height: 300,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      });
       vi.stubGlobal('innerWidth', 1000);
       vi.stubGlobal('innerHeight', 800);
     });

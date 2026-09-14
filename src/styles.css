@@ -57,7 +57,7 @@
 
   --colorless: #aaaaaa;
   --colorless-bg: #f4f4f4;
-  --multicolor-border: #FFD700;
+  --multicolor-border: #ffd700;
 
   /* Binder colors (index-based) */
   --binder-color-0: #c84c4c;
@@ -127,7 +127,7 @@ body::before {
   background-color: var(--surface-0);
   background-image:
     radial-gradient(900px 520px at 12% -10%, rgba(76, 140, 200, 0.16), transparent 62%),
-    radial-gradient(820px 520px at 100% 0%, rgba(212, 175, 55, 0.10), transparent 58%),
+    radial-gradient(820px 520px at 100% 0%, rgba(212, 175, 55, 0.1), transparent 58%),
     linear-gradient(180deg, #121826 0%, #0c1018 100%);
   background-repeat: no-repeat;
 }
@@ -153,8 +153,7 @@ body.sidebar-open {
   width: 100%;
   flex-wrap: nowrap; /* Force horizontal */
   padding: 1.25rem 1.5rem;
-  background:
-    linear-gradient(135deg, rgba(38, 48, 67, 0.92), rgba(22, 28, 40, 0.86));
+  background: linear-gradient(135deg, rgba(38, 48, 67, 0.92), rgba(22, 28, 40, 0.86));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -181,7 +180,9 @@ body.sidebar-open {
   padding: 6px;
   background: radial-gradient(circle at 30% 25%, rgba(212, 175, 55, 0.22), rgba(15, 19, 28, 0.6));
   border: 1px solid var(--border-strong);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18), var(--shadow-sm);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.18),
+    var(--shadow-sm);
 }
 
 .header-text {
@@ -288,7 +289,10 @@ body.sidebar-open {
   font-weight: 600;
   font-size: 0.85rem;
   letter-spacing: 0.01em;
-  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.12s ease;
 }
 
 #share-button:hover,
@@ -363,9 +367,11 @@ body.sidebar-open {
   border-top: 3px solid var(--binder-accent, var(--accent));
   border-radius: var(--radius-lg);
   background-color: var(--surface-1);
-  background-image: linear-gradient(180deg,
-      color-mix(in srgb, var(--binder-accent, var(--accent)) 12%, transparent),
-      transparent 140px);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--binder-accent, var(--accent)) 12%, transparent),
+    transparent 140px
+  );
   box-shadow: var(--shadow-md);
 }
 
@@ -397,7 +403,9 @@ body.sidebar-open {
   color: var(--button-text);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .export-missing-button:hover {
@@ -499,12 +507,20 @@ body.images-mode .section {
   border: 1px solid var(--card-border, var(--card-border-default));
   border-radius: 12px;
   min-height: 2.2em;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.16);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 6px 16px rgba(0, 0, 0, 0.16);
   min-width: 0;
   line-height: 1.1em;
   word-wrap: break-word;
   background: var(--card-bg, var(--card-bg-default));
-  transition: transform 0.16s ease, box-shadow 0.2s ease, background 0.16s ease, padding 0.12s ease, border-color 0.16s ease, filter 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.2s ease,
+    background 0.16s ease,
+    padding 0.12s ease,
+    border-color 0.16s ease,
+    filter 0.16s ease;
   color: var(--card-text, var(--text));
   overflow: hidden;
 
@@ -639,18 +655,18 @@ body.images-mode .section {
 }
 
 .card-price {
-    position: absolute;
-    bottom: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(9, 12, 18, 0.82);
-    color: var(--accent-strong);
-    padding: 2px 7px;
-    border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    border: 1px solid rgba(212, 175, 55, 0.3);
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(9, 12, 18, 0.82);
+  color: var(--accent-strong);
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 /* Version count (only rendered when a card has multiple printings). Sits under
@@ -696,7 +712,9 @@ body.images-mode .section {
 
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(212, 175, 55, 0.35);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(212, 175, 55, 0.35);
   z-index: 2;
 }
 
@@ -758,7 +776,9 @@ body.images-mode .section {
 
   z-index: 2;
   pointer-events: none; /* avoid accidental taps when hidden */
-  transition: opacity 0.12s ease, background 0.12s ease;
+  transition:
+    opacity 0.12s ease,
+    background 0.12s ease;
 }
 
 @media (max-width: 768px) {
@@ -803,13 +823,15 @@ body.images-mode .section {
   left: 8px;
   bottom: -36px;
   padding: 6px 10px;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   color: #fff;
   font-size: 0.78rem;
   border-radius: 8px;
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
   pointer-events: none;
   z-index: 20;
 }
@@ -820,10 +842,15 @@ body.images-mode .section {
 }
 
 @media (min-width: 700px) {
-  .reveal-hint { display: none; }
+  .reveal-hint {
+    display: none;
+  }
 }
 .card.reveal-links .edhrec-link {
-  transition: transform 0.15s ease, opacity 0.12s ease, background 0.12s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.12s ease,
+    background 0.12s ease;
   background: var(--edhrec-hover);
   border-radius: 4px;
   opacity: 1;
@@ -832,9 +859,15 @@ body.images-mode .section {
 
 /* subtle pulse animation for reveal (stronger) */
 @keyframes reveal-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(76, 140, 200, 0.08); }
-  50% { box-shadow: 0 0 0 10px rgba(76, 140, 200, 0.08); }
-  100% { box-shadow: 0 0 0 0 rgba(76, 140, 200, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 140, 200, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(76, 140, 200, 0.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 140, 200, 0);
+  }
 }
 
 /* Mobile: subtle scale for reveal */
@@ -865,7 +898,9 @@ body.images-mode .section {
   /* Animation */
   transform: scale(0.95);
   opacity: 0;
-  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+  transition:
+    transform 0.15s ease-out,
+    opacity 0.15s ease-out;
 }
 
 .tooltip.show {
@@ -946,11 +981,12 @@ body.tooltip-open {
   text-align: center;
 }
 
-.printing-indicator, .card-descriptor {
-    color: var(--muted);
-    text-align: center;
-    font-size: 0.78em;
-    padding: 2px 0;
+.printing-indicator,
+.card-descriptor {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.78em;
+  padding: 2px 0;
 }
 
 .printing-indicator {
@@ -979,7 +1015,9 @@ body.tooltip-open {
   letter-spacing: 0.02em;
   cursor: pointer;
   pointer-events: auto; /* .tooltip disables pointer events */
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .printing-cycle:hover,
@@ -1033,7 +1071,9 @@ body.tooltip-open {
   z-index: var(--z-index-toast);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .toast.show {
@@ -1055,7 +1095,6 @@ body.tooltip-open {
 .toast .toast-action:hover {
   background: rgba(212, 175, 55, 0.24);
 }
-
 
 .set-tooltip {
   position: fixed;
@@ -1105,9 +1144,9 @@ body.tooltip-open {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     display: grid;
-    grid-template-areas: 
-      "search search"
-      "counter export";
+    grid-template-areas:
+      'search search'
+      'counter export';
     grid-template-columns: 1fr auto;
     align-items: center;
     border-bottom: 1px solid var(--card-border-default);
@@ -1147,12 +1186,12 @@ body.tooltip-open {
 }
 
 #search-tooltip h4 {
-    margin-top: 0;
+  margin-top: 0;
 }
 
 #search-tooltip ul {
-    margin: 0;
-    padding-left: 20px;
+  margin: 0;
+  padding-left: 20px;
 }
 
 #search-input {
@@ -1161,7 +1200,10 @@ body.tooltip-open {
   padding: 10px 40px;
   border-radius: 999px;
   border: 1px solid var(--border-strong);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
   background-color: var(--surface-2);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239aa7bd' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
   background-repeat: no-repeat;
@@ -1210,7 +1252,9 @@ body.tooltip-open {
   cursor: pointer;
   font-size: 0.95rem;
   color: var(--muted);
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 #clear-search:hover {
@@ -1260,7 +1304,10 @@ body.tooltip-open {
   line-height: 1;
   border-radius: 50%;
   color: #1a202c;
-  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.08s ease;
   z-index: 3; /* keep toggle above card content */
 }
 
@@ -1276,7 +1323,8 @@ body.tooltip-open {
   content: '';
   width: 11px;
   height: 11px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 8.5l3.5 3.5 7.5-8' fill='none' stroke='%230b4227' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 8.5l3.5 3.5 7.5-8' fill='none' stroke='%230b4227' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 
 @media (max-width: 768px) {
@@ -1304,7 +1352,9 @@ body.tooltip-open {
 
 .card.owned {
   border: 2px solid var(--success);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(70, 201, 138, 0.35) inset;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(70, 201, 138, 0.35) inset;
 }
 
 .card.owned::before {
@@ -1325,7 +1375,6 @@ body.tooltip-open {
 .card:not(.owned):hover::before {
   background-color: rgba(255, 255, 255, 0.16);
 }
-
 
 .card.owned .card-toggle {
   background: rgba(255, 255, 255, 0.92);
@@ -1374,24 +1423,22 @@ body.tooltip-open {
   border: 1px solid var(--border-strong);
 }
 
-
-
 .binder-header {
-    position: sticky;
-    top: 72px;
-    background-color: var(--surface-glass);
-    backdrop-filter: blur(14px) saturate(1.2);
-    -webkit-backdrop-filter: blur(14px) saturate(1.2);
-    z-index: 9;
-    padding-block: 0.5rem;
-    padding-inline: 0.5rem;
-    margin-inline: -0.5rem;
-    /* margin-block: -0.5rem;  <-- Removed negative margin to fix gap/overlap issues */
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
+  position: sticky;
+  top: 72px;
+  background-color: var(--surface-glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  z-index: 9;
+  padding-block: 0.5rem;
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
+  /* margin-block: -0.5rem;  <-- Removed negative margin to fix gap/overlap issues */
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
 }
 
 .binder-header-content {
@@ -1433,9 +1480,9 @@ body.tooltip-open {
     -webkit-backdrop-filter: none;
     font-size: 0.9rem;
     display: grid;
-    grid-template-areas: 
-      "title owned"
-      "dates export";
+    grid-template-areas:
+      'title owned'
+      'dates export';
     grid-template-columns: 1fr auto;
     gap: 2px 10px;
     align-items: center;
@@ -1468,11 +1515,11 @@ body.tooltip-open {
   }
 
   .binder-header .export-missing-button {
-      grid-area: export;
-      margin: 0;
-      justify-self: end;
-      font-size: 0.75rem;
-      padding: 4px 8px;
+    grid-area: export;
+    margin: 0;
+    justify-self: end;
+    font-size: 0.75rem;
+    padding: 4px 8px;
   }
 }
 
@@ -1490,9 +1537,9 @@ body.tooltip-open {
 }
 
 .mana-symbol {
-    width: 1em;
-    height: 1em;
-    vertical-align: -0.125em;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
 }
 
 .suggestion-item {
@@ -1522,7 +1569,7 @@ body.tooltip-open {
 
 .binder-title::before,
 .page-header::before {
-  content: "−";
+  content: '−';
   position: absolute;
   left: 4px;
   top: 50%;
@@ -1539,7 +1586,7 @@ body.tooltip-open {
     transform: none;
     width: auto;
   }
-  
+
   .binder-title {
     grid-area: title;
     font-weight: bold;
@@ -1576,7 +1623,9 @@ body.tooltip-open {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: var(--z-index-modal-backdrop);
-  transition: width 0.5s ease, left 0.5s ease;
+  transition:
+    width 0.5s ease,
+    left 0.5s ease;
 }
 
 .list-modal {
@@ -1653,7 +1702,10 @@ body.tooltip-open {
   padding: 9px 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
 }
 
 .list-modal button:hover {
@@ -1738,7 +1790,7 @@ footer a:focus-visible {
 
 .binder.collapsed .binder-title::before,
 .section.collapsed > .page-header::before {
-  content: "+";
+  content: '+';
 }
 
 /* Modal-specific layouts. Kept after the base .list-modal / .modal-content-area
@@ -1752,9 +1804,8 @@ footer a:focus-visible {
   padding: 0;
   overflow: hidden;
   background:
-    radial-gradient(120% 100% at 100% 0%, rgba(212, 175, 55, 0.10), transparent 55%),
-    radial-gradient(120% 100% at 0% 0%, rgba(76, 140, 200, 0.12), transparent 55%),
-    var(--surface-1);
+    radial-gradient(120% 100% at 100% 0%, rgba(212, 175, 55, 0.1), transparent 55%),
+    radial-gradient(120% 100% at 0% 0%, rgba(76, 140, 200, 0.12), transparent 55%), var(--surface-1);
 }
 
 /* The generic modal body uses white-space: pre for the plain-text bulk
@@ -1990,13 +2041,15 @@ footer a:focus-visible {
   height: 100%;
   border-radius: 999px;
   background-color: var(--bar-color, var(--accent));
-  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0) 70%);
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%);
   box-shadow: 0 0 10px -2px var(--bar-color, var(--accent));
   animation: stats-bar-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes stats-bar-grow {
-  from { width: 0; }
+  from {
+    width: 0;
+  }
 }
 
 .stats-bar-count {
@@ -2051,7 +2104,9 @@ footer a:focus-visible {
 }
 
 @keyframes stats-bar-grow-y {
-  from { height: 0; }
+  from {
+    height: 0;
+  }
 }
 
 .stats-curve-label {
@@ -2062,19 +2117,43 @@ footer a:focus-visible {
 
 /* Color coding for the value bars. Black is lightened so it stays legible
    against the dark surface. */
-.stat-color-W { --bar-color: var(--mtg-W); }
-.stat-color-U { --bar-color: var(--mtg-U); }
-.stat-color-B { --bar-color: #8b93a7; }
-.stat-color-R { --bar-color: var(--mtg-R); }
-.stat-color-G { --bar-color: var(--mtg-G); }
-.stat-color-C { --bar-color: var(--colorless); }
+.stat-color-W {
+  --bar-color: var(--mtg-W);
+}
+.stat-color-U {
+  --bar-color: var(--mtg-U);
+}
+.stat-color-B {
+  --bar-color: #8b93a7;
+}
+.stat-color-R {
+  --bar-color: var(--mtg-R);
+}
+.stat-color-G {
+  --bar-color: var(--mtg-G);
+}
+.stat-color-C {
+  --bar-color: var(--colorless);
+}
 
-.stat-rarity-common { --bar-color: #a8b0bf; }
-.stat-rarity-uncommon { --bar-color: #8fb7d6; }
-.stat-rarity-rare { --bar-color: var(--accent); }
-.stat-rarity-mythic { --bar-color: #e0623b; }
-.stat-rarity-special { --bar-color: #a97fd6; }
-.stat-rarity-bonus { --bar-color: #e0a84c; }
+.stat-rarity-common {
+  --bar-color: #a8b0bf;
+}
+.stat-rarity-uncommon {
+  --bar-color: #8fb7d6;
+}
+.stat-rarity-rare {
+  --bar-color: var(--accent);
+}
+.stat-rarity-mythic {
+  --bar-color: #e0623b;
+}
+.stat-rarity-special {
+  --bar-color: #a97fd6;
+}
+.stat-rarity-bonus {
+  --bar-color: #e0a84c;
+}
 
 .stats-combos {
   display: flex;
@@ -2091,7 +2170,9 @@ footer a:focus-visible {
   border: 1px solid var(--border-strong);
   background: linear-gradient(160deg, var(--surface-3), var(--surface-2));
   font-size: 0.85rem;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .stats-combo:hover {
@@ -2127,7 +2208,9 @@ footer a:focus-visible {
   background: linear-gradient(90deg, var(--surface-2), var(--surface-1));
   font-size: 0.9rem;
   cursor: help;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .stats-top-card:hover {
@@ -2284,9 +2367,15 @@ footer a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
-.bulk-chip-owned strong { color: var(--success); }
-.bulk-chip-missing strong { color: var(--accent-strong); }
-.bulk-chip-unknown strong { color: var(--danger); }
+.bulk-chip-owned strong {
+  color: var(--success);
+}
+.bulk-chip-missing strong {
+  color: var(--accent-strong);
+}
+.bulk-chip-unknown strong {
+  color: var(--danger);
+}
 
 .bulk-groups {
   display: flex;
@@ -2336,8 +2425,12 @@ footer a:focus-visible {
   color: var(--text);
 }
 
-.bulk-row-owned { border-left-color: var(--success); }
-.bulk-row-missing { border-left-color: var(--accent); }
+.bulk-row-owned {
+  border-left-color: var(--success);
+}
+.bulk-row-missing {
+  border-left-color: var(--accent);
+}
 
 .bulk-row-unknown {
   border-left-color: var(--danger);

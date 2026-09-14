@@ -2,32 +2,12 @@ import { appState } from '../state/appState.js';
 import { debounce } from '../utils/debounce.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned } from '../state/cardState.js';
-import { cardStore } from '../state/cardStore.js';
-
-export async function searchCards(query, filterUnowned = true) {
-    const allCards = cardStore.getAll();
-    if (!allCards) return { data: [] };
-
-    const conditions = parseQuery(query);
-    let filteredCards = allCards;
-    if (conditions.length > 0) {
-        filteredCards = allCards.filter(card => {
-            return conditions.every(condition => evaluateCondition({ cardData: card }, condition));
-        });
-    }
-
-    if (filterUnowned) {
-        filteredCards = filteredCards.filter(card => isCardOwned(card));
-    }
-
-    return { data: filteredCards };
-}
 
 export function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
   const raw_tokens = query.match(/!?\w+:(".*?"|'.*?')|\(|\)|or|and|!?[^\s()]+/g) || [];
 
-  const tokens = raw_tokens.flatMap(token => {
+  const tokens = raw_tokens.flatMap((token) => {
     if (token.includes(':') && !token.includes('"') && !token.includes("'")) {
       const isNegated = token.startsWith('!');
       const tokenContent = isNegated ? token.substring(1) : token;
@@ -36,13 +16,13 @@ export function parseQuery(query) {
 
       const separators = [
         { char: ',', op: isNegated ? 'and' : 'or' }, // De Morgan's Law: !(A or B) <=> !A and !B
-        { char: '&', op: isNegated ? 'or' : 'and' },  // De Morgan's Law: !(A and B) <=> !A or !B
+        { char: '&', op: isNegated ? 'or' : 'and' }, // De Morgan's Law: !(A and B) <=> !A or !B
       ];
 
       for (const sep of separators) {
         if (value.includes(sep.char)) {
           const values = value.split(sep.char);
-          const expansion = values.map(v => `${isNegated ? '!' : ''}${key}:${v.trim()}`);
+          const expansion = values.map((v) => `${isNegated ? '!' : ''}${key}:${v.trim()}`);
           const result = expansion.flatMap((term, i) => (i > 0 ? [sep.op, term] : [term]));
           return ['(', ...result, ')'];
         }
@@ -97,7 +77,10 @@ export function parseQuery(query) {
 
 function getFilterValue(filter, prefix = '') {
   let value = prefix ? filter.substring(prefix.length) : filter;
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
     return value.slice(1, -1);
   }
   return value;
@@ -136,7 +119,7 @@ function cardMatchesFilter(card, filter) {
   } else if (filter.startsWith('c<')) {
     const queryColors = filter.substring(2).toUpperCase().split('');
     const cardColors = card.cardData.color_identity || [];
-    match = cardColors.length > 0 && cardColors.every(color => queryColors.includes(color));
+    match = cardColors.length > 0 && cardColors.every((color) => queryColors.includes(color));
   } else if (filter.startsWith('c=') || filter.startsWith('c:')) {
     const queryColors = filter.substring(2).toUpperCase().split('').sort();
     const cardColors = (card.cardData.color_identity || []).sort();
@@ -144,7 +127,7 @@ function cardMatchesFilter(card, filter) {
   } else if (filter.startsWith('c>')) {
     const queryColors = filter.substring(2).toUpperCase().split('');
     const cardColors = card.cardData.color_identity || [];
-    match = queryColors.every(color => cardColors.includes(color));
+    match = queryColors.every((color) => cardColors.includes(color));
   } else if (filter.startsWith('s:')) {
     const setTerm = getFilterValue(filter, 's:');
     const setCode = card.cardData.set?.toLowerCase() || '';
@@ -159,7 +142,7 @@ function cardMatchesFilter(card, filter) {
     const releaseDate = card.cardData.released_at || '';
     const releaseYear = parseInt(releaseDate.substring(0, 4), 10);
     if (dateTerm.includes('-')) {
-      const [startYear, endYear] = dateTerm.split('-').map(y => parseInt(y, 10));
+      const [startYear, endYear] = dateTerm.split('-').map((y) => parseInt(y, 10));
       match = releaseYear >= startYear && releaseYear <= endYear;
     } else {
       const year = parseInt(dateTerm, 10);
@@ -176,11 +159,11 @@ function cardMatchesFilter(card, filter) {
     }
   } else if (filter.startsWith('price:')) {
     const priceTerm = getFilterValue(filter, 'price:').replace(',', '.');
-    const price = parseFloat(card.cardData.prices.usd);
+    const price = parseFloat(card.cardData.prices?.eur);
     if (isNaN(price)) {
       match = false;
     } else if (priceTerm.includes('-')) {
-      const [minPrice, maxPrice] = priceTerm.split('-').map(p => parseFloat(p));
+      const [minPrice, maxPrice] = priceTerm.split('-').map((p) => parseFloat(p));
       match = price >= minPrice && price <= maxPrice;
     } else {
       match = price >= parseFloat(priceTerm);
@@ -224,16 +207,15 @@ export function initSearch() {
     let visibleCardCount = 0;
     const hasConditions = conditions.length > 0;
 
-    document.querySelectorAll('.binder').forEach(binder => {
+    document.querySelectorAll('.binder').forEach((binder) => {
       let visibleCardsInBinder = 0;
 
-      binder.querySelectorAll('.section').forEach(section => {
+      binder.querySelectorAll('.section').forEach((section) => {
         let visibleCardsInSection = 0;
 
-        section.querySelectorAll('.card').forEach(card => {
+        section.querySelectorAll('.card').forEach((card) => {
           const isVisible =
-            !hasConditions ||
-            conditions.every(condition => evaluateCondition(card, condition));
+            !hasConditions || conditions.every((condition) => evaluateCondition(card, condition));
 
           card.style.display = isVisible ? '' : 'none';
           if (isVisible) visibleCardsInSection++;

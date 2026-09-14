@@ -45,7 +45,9 @@ describe('initLazyCards', () => {
     // Check for initial setup
     expect(results.innerHTML).toContain('id="infinite-scroll-sentinel"');
     expect(layout.startNewBinder).toHaveBeenCalledWith(results);
-    expect(appState.nextPageUrl).toBe('https://api.scryfall.com/cards/search?q=type:legendary type:creature&unique=prints&order=released&dir=asc');
+    expect(appState.nextPageUrl).toBe(
+      'https://api.scryfall.com/cards/search?q=type:legendary type:creature&unique=prints&order=released&dir=asc'
+    );
 
     // Check that initial fetch is called
     expect(fetcher.fetchNextPage).toHaveBeenCalledWith(results, 'tooltip');

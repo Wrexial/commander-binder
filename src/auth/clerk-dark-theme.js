@@ -24,17 +24,17 @@ export const clerkDarkTheme = {
       backgroundColor: '#2d3748',
     },
     userButtonPopoverFooter: {
-        backgroundColor: '#2d3748',
+      backgroundColor: '#2d3748',
     },
     userProfileCard: {
-        backgroundColor: '#2d3748',
-        borderColor: '#4a5568',
+      backgroundColor: '#2d3748',
+      borderColor: '#4a5568',
     },
     userProfileMain: {
-        backgroundColor: '#2d3748',
+      backgroundColor: '#2d3748',
     },
     userProfile: {
-        colorText: '#f7fafc',
-    }
-  }
+      colorText: '#f7fafc',
+    },
+  },
 };

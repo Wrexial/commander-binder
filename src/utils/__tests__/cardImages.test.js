@@ -19,9 +19,7 @@ const modalDfc = {
 
 describe('getCardImages', () => {
   it('returns the normal image for a single-faced card', () => {
-    expect(getCardImages(singleFace)).toEqual([
-      { url: 'https://img.example/1.jpg', key: 'c1' },
-    ]);
+    expect(getCardImages(singleFace)).toEqual([{ url: 'https://img.example/1.jpg', key: 'c1' }]);
   });
 
   it('returns both faces for a multi-face layout', () => {
@@ -55,9 +53,7 @@ describe('getCardImages', () => {
         normal: 'https://img.example/5-normal.jpg',
       },
     };
-    expect(getCardImages(card)).toEqual([
-      { url: 'https://img.example/5-grid.webp', key: 'c5' },
-    ]);
+    expect(getCardImages(card)).toEqual([{ url: 'https://img.example/5-grid.webp', key: 'c5' }]);
   });
 });
 

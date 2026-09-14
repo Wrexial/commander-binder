@@ -20,6 +20,8 @@ npm run dev            # Frontend only: Vite dev server (port 5173, strict)
 npm run dev:netlify    # Full stack: Netlify Dev + Functions (port 8080)
 npm run build          # Production build (sourcemaps enabled)
 npm run lint           # ESLint (JS/TS across the repo)
+npm run format         # Prettier (write)
+npm run format:check   # Prettier (check only)
 npm test               # Vitest (jsdom), single run
 npm run test:coverage  # Vitest with v8 coverage
 npm run verify:bulk    # Scryfall bulk-data coverage check (network; see scripts/)
@@ -56,17 +58,20 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
   `cardSettings`). State is plain exported objects, not a framework store.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`, `tooltip`,
-  `cardInteractions`), including `components/` (modals such as `bulkAddModal`,
-  `bulkCardModal`, `bulkCheckModal`, `exportModal`, plus `flipCard`, `sidebar`,
-  `toast`, `ownedCounter`, `SignInButton`, `GuestModeText`) and their colocated CSS.
+  `cardInteractions`), including `components/` (the shared modal shell `modal.js`,
+  the bulk/export modals, `sidebar`, `toast`, `ownedCounter`, `SignInButton`,
+  `GuestModeText`) and their colocated CSS.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
-  `html`).
+  `html`, `idb`, `prices`, `printings`). `idb.js` is the shared IndexedDB wrapper
+  used by `responseCache.js` and `bulkData.js`.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
   `batch-toggle-cards`, `share-link`).
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
-  (`verifyToken`, `getUserId`).
+  (`verifyToken`, `getUserId`, `unauthorized`).
+- `netlify/utils/ownedCards.ts` — shared add/remove DB logic for the toggle
+  handlers.
 - `scripts/verify-bulk-coverage.mjs` — checks that Scryfall's bulk file covers the
   app's legendary-creature search (used by `npm run verify:bulk`).
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
@@ -97,8 +102,8 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
   request body.
 - Never edit generated Drizzle migrations by hand. Change `db/schema.ts`, then
   run `npm run db:generate` and `npm run db:migrate`.
-- Add or update Vitest tests for behavior changes. Run `npm run lint` and
-  `npm test` before finishing.
+- Add or update Vitest tests for behavior changes. Run `npm run lint`,
+  `npm run format`, and `npm test` before finishing.
 
 ## Known Caveats
 

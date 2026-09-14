@@ -13,8 +13,7 @@ vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 
-import { createBulkAddModal } from '../bulkAddModal.js';
-import { createBulkCheckModal } from '../bulkCheckModal.js';
+import { createBulkAddModal, createBulkCheckModal } from '../bulkCardModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { showToast } from '../toast.js';
@@ -50,19 +49,13 @@ afterEach(() => {
 
 describe('bulk add modal', () => {
   it('categorizes input and only enables adding unowned cards', async () => {
-    cardStore.getAll.mockReturnValue([
-      makeCard('Sol Ring'),
-      makeCard('Arcane Signet'),
-    ]);
+    cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
     isCardOwned.mockImplementation((card) => card.name === 'Sol Ring');
 
     const modal = await createBulkAddModal();
     modal.show();
 
-    typeList(
-      document.querySelector('.bulk-modal textarea'),
-      'Sol Ring\nArcane Signet\nFake Card',
-    );
+    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet\nFake Card');
 
     expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet', 'Fake Card']);
     expect(document.querySelector('.bulk-row-owned').textContent).toBe('Sol Ring');
@@ -79,10 +72,7 @@ describe('bulk add modal', () => {
 
     const modal = await createBulkAddModal();
     modal.show();
-    typeList(
-      document.querySelector('.bulk-modal textarea'),
-      'Sol Ring\nsol ring\nSOL RING',
-    );
+    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nsol ring\nSOL RING');
 
     expect(document.querySelectorAll('.bulk-row')).toHaveLength(1);
   });
@@ -100,7 +90,7 @@ describe('bulk add modal', () => {
 
     expect(setCardsOwned).toHaveBeenCalledWith(
       [expect.objectContaining({ name: 'Arcane Signet' })],
-      true,
+      true
     );
     expect(showToast).toHaveBeenCalledWith('Added 1 card.', 'success');
   });
@@ -117,29 +107,21 @@ describe('bulk add modal', () => {
 
 describe('bulk check modal', () => {
   it('reports owned, missing and unknown cards', async () => {
-    cardStore.getAll.mockReturnValue([
-      makeCard('Sol Ring'),
-      makeCard('Arcane Signet'),
-    ]);
+    cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
     isCardOwned.mockImplementation((card) => card.name === 'Sol Ring');
 
     const modal = await createBulkCheckModal();
     modal.show();
 
-    typeList(
-      document.querySelector('.bulk-modal textarea'),
-      'Sol Ring\nArcane Signet\nFake Card',
-    );
+    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet\nFake Card');
 
     expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet', 'Fake Card']);
 
     const labels = [...document.querySelectorAll('.bulk-group')].map((group) =>
-      group.querySelector('h3').firstChild.textContent.trim(),
+      group.querySelector('h3').firstChild.textContent.trim()
     );
     expect(labels).toEqual(['Owned', 'Missing', 'Not found']);
-    expect(document.querySelector('.bulk-modal .primary').textContent).toBe(
-      'Copy 1 missing',
-    );
+    expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
   it('copies missing names to the clipboard', async () => {

@@ -3,8 +3,13 @@ import { CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
 import { appState } from '../state/appState.js';
 import { showLoading, hideLoading } from '../ui/loadingIndicator.js';
 import { startNewBinder, startNewSection, updateBinderCounts } from '../ui/layout.js';
-import { createCardElement, updateCardState, updateAllCardStates, updateCardVersionCounts } from '../ui/cards.js';
-import { cardStore } from '../state/cardStore.js';
+import {
+  createCardElement,
+  updateCardState,
+  updateAllCardStates,
+  updateCardVersionCounts,
+} from '../ui/cards.js';
+import { cardStore, primaryName } from '../state/cardStore.js';
 import { updateOwnedCounter } from '../ui/components/ownedCounter.js';
 import { showToast } from '../ui/components/toast.js';
 import { readCache, writeCache, isFresh } from './responseCache.js';
@@ -62,29 +67,29 @@ const BULK_SOURCE_SENTINEL = 'bulk:legendary-creatures';
  * @returns {boolean} whether a source was installed
  */
 export function setBulkCardSource(cards) {
-    if (!Array.isArray(cards) || cards.length === 0) return false;
+  if (!Array.isArray(cards) || cards.length === 0) return false;
 
-    let offset = 0;
-    bulkPager = async () => {
-        const data = cards.slice(offset, offset + CARDS_PER_PAGE);
-        offset += data.length;
-        const hasMore = offset < cards.length;
-        return {
-            data,
-            has_more: hasMore,
-            next_page: hasMore ? BULK_SOURCE_SENTINEL : null,
-            total_cards: cards.length,
-        };
+  let offset = 0;
+  bulkPager = async () => {
+    const data = cards.slice(offset, offset + CARDS_PER_PAGE);
+    offset += data.length;
+    const hasMore = offset < cards.length;
+    return {
+      data,
+      has_more: hasMore,
+      next_page: hasMore ? BULK_SOURCE_SENTINEL : null,
+      total_cards: cards.length,
     };
+  };
 
-    // Keep the loop alive even if the API already reached its last page.
-    if (!appState.nextPageUrl) appState.nextPageUrl = BULK_SOURCE_SENTINEL;
-    return true;
+  // Keep the loop alive even if the API already reached its last page.
+  if (!appState.nextPageUrl) appState.nextPageUrl = BULK_SOURCE_SENTINEL;
+  return true;
 }
 
 /** Drop the bulk source (falling back to the API, or in tests). */
 export function clearBulkCardSource() {
-    bulkPager = null;
+  bulkPager = null;
 }
 
 /** Current spacing between network requests; overridable for tests/tuning. */
@@ -106,21 +111,21 @@ let networkQueue = Promise.resolve();
  * @param {{spacingMs?: number, maxRequests?: number, windowMs?: number}} [config]
  */
 export function setRequestThrottle({
-    spacingMs = DEFAULT_REQUEST_SPACING_MS,
-    maxRequests = DEFAULT_MAX_REQUESTS_PER_WINDOW,
-    windowMs = RATE_LIMIT_WINDOW_MS,
+  spacingMs = DEFAULT_REQUEST_SPACING_MS,
+  maxRequests = DEFAULT_MAX_REQUESTS_PER_WINDOW,
+  windowMs = RATE_LIMIT_WINDOW_MS,
 } = {}) {
-    requestSpacingMs = Math.max(0, Number(spacingMs) || 0);
-    maxRequestsPerWindow = Math.max(0, Math.floor(Number(maxRequests) || 0));
-    rateLimitWindowMs = Math.max(1, Number(windowMs) || RATE_LIMIT_WINDOW_MS);
-    // Reconfiguring starts a fresh window so the next request fires immediately
-    // instead of inheriting the previous pacing.
-    lastNetworkRequestAt = 0;
-    recentRequestStarts.length = 0;
+  requestSpacingMs = Math.max(0, Number(spacingMs) || 0);
+  maxRequestsPerWindow = Math.max(0, Math.floor(Number(maxRequests) || 0));
+  rateLimitWindowMs = Math.max(1, Number(windowMs) || RATE_LIMIT_WINDOW_MS);
+  // Reconfiguring starts a fresh window so the next request fires immediately
+  // instead of inheriting the previous pacing.
+  lastNetworkRequestAt = 0;
+  recentRequestStarts.length = 0;
 }
 
 function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -128,30 +133,27 @@ function sleep(ms) {
  * allow another network request to start.
  */
 async function waitForRequestSlot() {
-    for (;;) {
-        const now = Date.now();
-        while (
-            recentRequestStarts.length > 0 &&
-            now - recentRequestStarts[0] >= rateLimitWindowMs
-        ) {
-            recentRequestStarts.shift();
-        }
-
-        const spacingWait = requestSpacingMs - (now - lastNetworkRequestAt);
-        if (spacingWait > 0) {
-            await sleep(spacingWait);
-            continue;
-        }
-
-        if (maxRequestsPerWindow > 0 && recentRequestStarts.length >= maxRequestsPerWindow) {
-            // Wait until the oldest request drops out of the rolling window.
-            const windowWait = rateLimitWindowMs - (now - recentRequestStarts[0]);
-            await sleep(windowWait > 0 ? windowWait : 1);
-            continue;
-        }
-
-        return;
+  for (;;) {
+    const now = Date.now();
+    while (recentRequestStarts.length > 0 && now - recentRequestStarts[0] >= rateLimitWindowMs) {
+      recentRequestStarts.shift();
     }
+
+    const spacingWait = requestSpacingMs - (now - lastNetworkRequestAt);
+    if (spacingWait > 0) {
+      await sleep(spacingWait);
+      continue;
+    }
+
+    if (maxRequestsPerWindow > 0 && recentRequestStarts.length >= maxRequestsPerWindow) {
+      // Wait until the oldest request drops out of the rolling window.
+      const windowWait = rateLimitWindowMs - (now - recentRequestStarts[0]);
+      await sleep(windowWait > 0 ? windowWait : 1);
+      continue;
+    }
+
+    return;
+  }
 }
 
 /**
@@ -164,23 +166,26 @@ async function waitForRequestSlot() {
  * @returns {Promise<T>}
  */
 function scheduleNetworkRequest(task) {
-    const run = networkQueue.then(async () => {
-        await waitForRequestSlot();
-        lastNetworkRequestAt = Date.now();
-        recentRequestStarts.push(lastNetworkRequestAt);
-        return task();
-    });
-    networkQueue = run.then(() => undefined, () => undefined);
-    return run;
+  const run = networkQueue.then(async () => {
+    await waitForRequestSlot();
+    lastNetworkRequestAt = Date.now();
+    recentRequestStarts.push(lastNetworkRequestAt);
+    return task();
+  });
+  networkQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
 }
 
 /** Parse a Retry-After header (delta-seconds or HTTP date) into milliseconds. */
 function parseRetryAfter(value) {
-    if (!value) return null;
-    const seconds = Number(value);
-    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-    const date = Date.parse(value);
-    return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const date = Date.parse(value);
+  return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
 }
 
 /**
@@ -188,83 +193,83 @@ function parseRetryAfter(value) {
  * Runs inside the throttle gate, so a backoff also pauses the rest of the queue.
  */
 async function requestFromNetwork(url, options) {
-    for (let attempt = 0; ; attempt++) {
-        const res = options ? await fetch(url, options) : await fetch(url);
-        if (res.status !== 429 || attempt >= MAX_RATE_LIMIT_RETRIES) return res;
+  for (let attempt = 0; ; attempt++) {
+    const res = options ? await fetch(url, options) : await fetch(url);
+    if (res.status !== 429 || attempt >= MAX_RATE_LIMIT_RETRIES) return res;
 
-        let retryAfter = null;
-        try {
-            retryAfter = parseRetryAfter(res.headers?.get?.('retry-after'));
-        } catch {
-            retryAfter = null;
-        }
-        await sleep(retryAfter ?? RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
+    let retryAfter = null;
+    try {
+      retryAfter = parseRetryAfter(res.headers?.get?.('retry-after'));
+    } catch {
+      retryAfter = null;
     }
+    await sleep(retryAfter ?? RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt);
+  }
 }
 
 async function fetchScryfallData(url) {
-    // Serve from cache when the record is still within Scryfall's 16h window.
-    const cached = await readCache(url);
-    if (isFresh(cached)) {
-        return cached.data;
+  // Serve from cache when the record is still within Scryfall's 16h window.
+  const cached = await readCache(url);
+  if (isFresh(cached)) {
+    return cached.data;
+  }
+
+  // Coalesce concurrent requests for the same URL.
+  const pending = inFlight.get(url);
+  if (pending) return pending;
+
+  const request = scheduleNetworkRequest(async () => {
+    // Revalidate an expired record with its ETag to avoid re-downloading ~880KB.
+    const res = cached?.etag
+      ? await requestFromNetwork(url, { headers: { 'If-None-Match': cached.etag } })
+      : await requestFromNetwork(url);
+
+    if (res.status === 304 && cached) {
+      await writeCache(url, cached.data, cached.etag);
+      return cached.data;
+    }
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
 
-    // Coalesce concurrent requests for the same URL.
-    const pending = inFlight.get(url);
-    if (pending) return pending;
-
-    const request = scheduleNetworkRequest(async () => {
-        // Revalidate an expired record with its ETag to avoid re-downloading ~880KB.
-        const res = cached?.etag
-            ? await requestFromNetwork(url, { headers: { 'If-None-Match': cached.etag } })
-            : await requestFromNetwork(url);
-
-        if (res.status === 304 && cached) {
-            await writeCache(url, cached.data, cached.etag);
-            return cached.data;
-        }
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const data = await res.json();
-        let etag = null;
-        try {
-            etag = res.headers?.get?.('etag') ?? null;
-        } catch {
-            etag = null;
-        }
-        await writeCache(url, data, etag);
-        return data;
-    });
-
-    inFlight.set(url, request);
+    const data = await res.json();
+    let etag = null;
     try {
-        return await request;
-    } finally {
-        inFlight.delete(url);
+      etag = res.headers?.get?.('etag') ?? null;
+    } catch {
+      etag = null;
     }
+    await writeCache(url, data, etag);
+    return data;
+  });
+
+  inFlight.set(url, request);
+  try {
+    return await request;
+  } finally {
+    inFlight.delete(url);
+  }
 }
 
 function processScryfallData(data) {
-    const newUniqueCards = [];
-    for (const card of data.data) {
-        if (!card.games.includes("paper")) continue;
-        
-        const primaryName = card.name.split(' // ')[0];
-        const isNewUniqueCard = !appState.seenNames.has(primaryName);
+  const newUniqueCards = [];
+  for (const card of data.data) {
+    if (!card.games.includes('paper')) continue;
 
-        cardStore.add(card);
+    const name = primaryName(card);
+    const isNewUniqueCard = !appState.seenNames.has(name);
 
-        if (isNewUniqueCard) {
-            appState.seenNames.add(primaryName);
-            // Default to the card's base (oldest) printing so the thumbnail
-            // and its price line up, whatever order the source delivered.
-            newUniqueCards.push(cardStore.getOldestPrinting?.(primaryName) || card);
-        }
-        appState.seenSetCodes.add(card.set.toLowerCase());
+    cardStore.add(card);
+
+    if (isNewUniqueCard) {
+      appState.seenNames.add(name);
+      // Default to the card's base (oldest) printing so the thumbnail
+      // and its price line up, whatever order the source delivered.
+      newUniqueCards.push(cardStore.getOldestPrinting(name) || card);
     }
-    return newUniqueCards;
+    appState.seenSetCodes.add(card.set.toLowerCase());
+  }
+  return newUniqueCards;
 }
 
 /**
@@ -277,159 +282,159 @@ function processScryfallData(data) {
  * @returns {Promise<void>} resolves when this run (or the in-flight one) finishes
  */
 export function fetchNextPage(results, tooltip) {
-    if (activeRun) {
-        appState.pendingFetch = true;
-        return activeRun;
-    }
-    if (!appState.nextPageUrl) return Promise.resolve();
-
-    activeRun = runFetch(results, tooltip).finally(() => {
-        activeRun = null;
-
-        // Keep loading everything by default (collections must be complete),
-        // or immediately when another trigger arrived mid-run.
-        const shouldContinue =
-            appState.nextPageUrl && !halted && (appState.pendingFetch || appState.autoLoad);
-        appState.pendingFetch = false;
-
-        if (shouldContinue) {
-            // Yield so the browser can paint/handle input between pages.
-            setTimeout(() => fetchNextPage(results, tooltip), 0);
-        }
-    });
-
+  if (activeRun) {
+    appState.pendingFetch = true;
     return activeRun;
+  }
+  if (!appState.nextPageUrl) return Promise.resolve();
+
+  activeRun = runFetch(results, tooltip).finally(() => {
+    activeRun = null;
+
+    // Keep loading everything by default (collections must be complete),
+    // or immediately when another trigger arrived mid-run.
+    const shouldContinue =
+      appState.nextPageUrl && !halted && (appState.pendingFetch || appState.autoLoad);
+    appState.pendingFetch = false;
+
+    if (shouldContinue) {
+      // Yield so the browser can paint/handle input between pages.
+      setTimeout(() => fetchNextPage(results, tooltip), 0);
+    }
+  });
+
+  return activeRun;
 }
 
 async function runFetch(results, tooltip) {
-    if (!appState.nextPageUrl) return;
+  if (!appState.nextPageUrl) return;
 
-    halted = false;
-    appState.isLoading = true;
-    showLoading();
+  halted = false;
+  appState.isLoading = true;
+  showLoading();
 
-    try {
-        let emptyFetches = 0;
+  try {
+    let emptyFetches = 0;
 
-        while (appState.nextPageUrl) {
-            const data = bulkPager
-                ? await bulkPager()
-                : await fetchScryfallData(appState.nextPageUrl);
+    while (appState.nextPageUrl) {
+      const data = bulkPager ? await bulkPager() : await fetchScryfallData(appState.nextPageUrl);
 
-            // Remember the API's claimed total and a sample of ids from the
-            // first page so the bulk subset can be sanity-checked against them.
-            if (!bulkPager) {
-                if (appState.apiTotalCards == null && data.total_cards != null) {
-                    appState.apiTotalCards = Number(data.total_cards) || null;
-                }
-                if (appState.apiSampleIds == null && Array.isArray(data.data)) {
-                    appState.apiSampleIds = data.data.map((c) => c.id);
-                }
-            }
-
-            const newCards = processScryfallData(data);
-            appState.pageCards.push(...newCards);
-
-            let renderedSections = 0;
-            while (appState.pageCards.length >= CARDS_PER_PAGE) {
-                renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
-                renderedSections++;
-            }
-
-            appState.nextPageUrl = data.has_more ? data.next_page : null;
-
-            if (!appState.nextPageUrl && appState.pageCards.length > 0) {
-                renderPage(results, tooltip, [...appState.pageCards]);
-                appState.pageCards = [];
-            }
-
-            // Rendered visible content; return to the caller/observer.
-            if (renderedSections > 0) break;
-
-            // Page was all duplicates; keep topping up, but bounded.
-            if (++emptyFetches >= MAX_EMPTY_FETCHES_PER_CALL) {
-                appState.pendingFetch = true;
-                break;
-            }
+      // Remember the API's claimed total and a sample of ids from the
+      // first page so the bulk subset can be sanity-checked against them.
+      if (!bulkPager) {
+        if (appState.apiTotalCards == null && data.total_cards != null) {
+          appState.apiTotalCards = Number(data.total_cards) || null;
         }
-
-        // Every printing is now loaded, so re-evaluate saved marks: a card may
-        // have been marked on a printing other than the one first rendered.
-        if (!appState.nextPageUrl) {
-            updateAllCardStates();
-            updateCardVersionCounts();
+        if (appState.apiSampleIds == null && Array.isArray(data.data)) {
+          appState.apiSampleIds = data.data.map((c) => c.id);
         }
-    } catch (err) {
-        console.error("Scryfall fetch failed:", err);
-        showToast("Failed to fetch cards from Scryfall. Please try again later.", "error");
-        halted = true;
-        appState.pendingFetch = false;
-    } finally {
-        appState.isLoading = false;
-        hideLoading();
+      }
+
+      const newCards = processScryfallData(data);
+      appState.pageCards.push(...newCards);
+
+      let renderedSections = 0;
+      while (appState.pageCards.length >= CARDS_PER_PAGE) {
+        renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
+        renderedSections++;
+      }
+
+      appState.nextPageUrl = data.has_more ? data.next_page : null;
+
+      if (!appState.nextPageUrl && appState.pageCards.length > 0) {
+        renderPage(results, tooltip, [...appState.pageCards]);
+        appState.pageCards = [];
+      }
+
+      // Rendered visible content; return to the caller/observer.
+      if (renderedSections > 0) break;
+
+      // Page was all duplicates; keep topping up, but bounded.
+      if (++emptyFetches >= MAX_EMPTY_FETCHES_PER_CALL) {
+        appState.pendingFetch = true;
+        break;
+      }
     }
+
+    // Every printing is now loaded, so re-evaluate saved marks: a card may
+    // have been marked on a printing other than the one first rendered.
+    if (!appState.nextPageUrl) {
+      updateAllCardStates();
+      updateCardVersionCounts();
+    }
+  } catch (err) {
+    console.error('Scryfall fetch failed:', err);
+    showToast('Failed to fetch cards from Scryfall. Please try again later.', 'error');
+    halted = true;
+    appState.pendingFetch = false;
+  } finally {
+    appState.isLoading = false;
+    hideLoading();
+  }
 }
 
 function renderPage(results, tooltip, pageCards) {
-    const pageSets = new Map();
-    pageCards.forEach(c => pageSets.set(c.set, {
-        name: c.set_name,
-        date: c.released_at
-    }));
+  const pageSets = new Map();
+  pageCards.forEach((c) =>
+    pageSets.set(c.set, {
+      name: c.set_name,
+      date: c.released_at,
+    })
+  );
 
-    startNewSection(pageSets);
-    // Build the page off-document, then attach it in a single mutation: one
-    // reflow per page instead of one per card.
-    const fragment = document.createDocumentFragment();
-    pageCards.forEach((c, i) => {
-        const cardIndex = appState.count + i;
-        const el = createCardElement(c, cardIndex);
-        el.dataset.cardIndex = cardIndex;
-        updateCardState(el);
-        appState.binder.totalCards++;
-        if (el.classList.contains('owned')) appState.binder.ownedCards++;
-        fragment.appendChild(el);
-    });
-    appState.grid.appendChild(fragment);
-    updateBinderCounts(appState.binder);
+  startNewSection(pageSets);
+  // Build the page off-document, then attach it in a single mutation: one
+  // reflow per page instead of one per card.
+  const fragment = document.createDocumentFragment();
+  pageCards.forEach((c, i) => {
+    const cardIndex = appState.count + i;
+    const el = createCardElement(c, cardIndex);
+    el.dataset.cardIndex = cardIndex;
+    updateCardState(el);
+    appState.binder.totalCards++;
+    if (el.classList.contains('owned')) appState.binder.ownedCards++;
+    fragment.appendChild(el);
+  });
+  appState.grid.appendChild(fragment);
+  updateBinderCounts(appState.binder);
 
-    const dates = Array.from(pageSets.values()).map(set => set.date);
-    const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
-    const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
+  const dates = Array.from(pageSets.values()).map((set) => set.date);
+  const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
+  const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
 
-    if (!appState.binder.startDate || minDate < appState.binder.startDate) {
-        appState.binder.startDate = minDate;
-    }
-    if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
-        appState.binder.endDate = maxDate;
-    }
+  if (!appState.binder.startDate || minDate < appState.binder.startDate) {
+    appState.binder.startDate = minDate;
+  }
+  if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
+    appState.binder.endDate = maxDate;
+  }
 
-    updateBinderHeader();
+  updateBinderHeader();
 
-    appState.count += pageCards.length;
-    updateOwnedCounter();
+  appState.count += pageCards.length;
+  updateOwnedCounter();
 
-    if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
-        startNewBinder(results);
-    }
+  if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
+    startNewBinder(results);
+  }
 }
 
 function updateBinderHeader() {
-    const header = appState.binder.querySelector(".binder-header");
-    if (!header) return;
+  const header = appState.binder.querySelector('.binder-header');
+  if (!header) return;
 
-    const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
-    const titleEl = header.querySelector('.binder-title');
-    if (titleEl) {
-        titleEl.textContent = `Binder ${binderNumber}`;
-    }
+  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+  const titleEl = header.querySelector('.binder-title');
+  if (titleEl) {
+    titleEl.textContent = `Binder ${binderNumber}`;
+  }
 
-    if (appState.binder.startDate && appState.binder.endDate) {
-        const startYear = new Date(appState.binder.startDate).getFullYear();
-        const endYear = new Date(appState.binder.endDate).getFullYear();
-        const datesEl = header.querySelector('.binder-dates');
-        if (datesEl) {
-            datesEl.textContent = `(${startYear} - ${endYear})`;
-        }
+  if (appState.binder.startDate && appState.binder.endDate) {
+    const startYear = new Date(appState.binder.startDate).getFullYear();
+    const endYear = new Date(appState.binder.endDate).getFullYear();
+    const datesEl = header.querySelector('.binder-dates');
+    if (datesEl) {
+      datesEl.textContent = `(${startYear} - ${endYear})`;
     }
+  }
 }

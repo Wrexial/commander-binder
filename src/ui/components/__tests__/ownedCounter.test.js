@@ -47,11 +47,11 @@ describe('updateOwnedCounter', () => {
     };
 
     // Create some card elements for testing
-    createCard('card1', true, true);   // Owned, Visible
-    createCard('card2', false, true);  // Not Owned, Visible
-    createCard('card3', true, false);  // Owned, Hidden
+    createCard('card1', true, true); // Owned, Visible
+    createCard('card2', false, true); // Not Owned, Visible
+    createCard('card3', true, false); // Owned, Hidden
     createCard('card4', false, false); // Not Owned, Hidden
-    createCard('card5', true, true);   // Owned, Visible
+    createCard('card5', true, true); // Owned, Visible
   });
 
   it('should display total owned count when search input is empty', () => {

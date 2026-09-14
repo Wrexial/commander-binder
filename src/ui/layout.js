@@ -7,6 +7,26 @@ import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
 import { createExportModal } from './components/exportModal.js';
 
+/**
+ * Fire `handler` after a 500ms touch long-press, cancelling on movement or
+ * release. Also suppresses the context menu so a long-press can't open it.
+ * @param {HTMLElement} element
+ * @param {() => void} handler
+ */
+function attachLongPress(element, handler) {
+  let timer;
+  element.addEventListener(
+    'touchstart',
+    () => {
+      timer = setTimeout(handler, 500);
+    },
+    { passive: true }
+  );
+  element.addEventListener('touchend', () => clearTimeout(timer));
+  element.addEventListener('touchmove', () => clearTimeout(timer));
+  element.addEventListener('contextmenu', (event) => event.preventDefault());
+}
+
 export function createBulkAddButton(onClick) {
   addButtonToSidebar('➕ Bulk Add', onClick);
 }
@@ -33,28 +53,28 @@ export function createExportOwnedButton() {
 export function startNewBinder(results) {
   const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
 
-  const newBinder = document.createElement("div");
-  newBinder.className = "binder";
+  const newBinder = document.createElement('div');
+  newBinder.className = 'binder';
 
   // Prefer binder colors defined in CSS variables, fallback to config
-  const cssColor = getComputedStyle(document.documentElement).getPropertyValue(
-    `--binder-color-${(binderNumber - 1) % 6}`
-  ).trim();
+  const cssColor = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--binder-color-${(binderNumber - 1) % 6}`)
+    .trim();
   const fallback = binderColors[(binderNumber - 1) % binderColors.length];
   const color = cssColor || fallback;
 
   newBinder.style.borderColor = color;
   newBinder.style.setProperty('--binder-accent', color);
 
-  const header = document.createElement("h2");
-  header.className = "binder-header";
+  const header = document.createElement('h2');
+  header.className = 'binder-header';
   header.style.color = color;
 
   const content = document.createElement('div');
   content.className = 'binder-header-content';
 
-  const title = document.createElement("span");
-  title.className = "binder-title";
+  const title = document.createElement('span');
+  title.className = 'binder-title';
   title.textContent = `Binder ${binderNumber}`;
   content.appendChild(title);
 
@@ -62,19 +82,17 @@ export function startNewBinder(results) {
   dates.className = 'binder-dates';
   content.appendChild(dates);
 
-  const ownedCount = document.createElement("span");
-  ownedCount.className = "binder-owned";
+  const ownedCount = document.createElement('span');
+  ownedCount.className = 'binder-owned';
   content.appendChild(ownedCount);
 
   header.appendChild(content);
-
-  let longPressTimer;
 
   function handleInteraction(event) {
     if (event.shiftKey) {
       toggleAllSections(newBinder);
     } else {
-      newBinder.classList.toggle("collapsed");
+      newBinder.classList.toggle('collapsed');
     }
   }
 
@@ -83,36 +101,19 @@ export function startNewBinder(results) {
     if (sections.length === 0) return;
 
     const isBinderOpen = !binder.classList.contains('collapsed');
-    const anySectionOpen = Array.from(sections).some(s => !s.classList.contains('collapsed'));
+    const anySectionOpen = Array.from(sections).some((s) => !s.classList.contains('collapsed'));
 
     const shouldCollapseAll = isBinderOpen && anySectionOpen;
 
-    sections.forEach(section => {
+    sections.forEach((section) => {
       section.classList.toggle('collapsed', shouldCollapseAll);
     });
-    
+
     binder.classList.toggle('collapsed', shouldCollapseAll);
   }
 
-  header.addEventListener("click", handleInteraction);
-
-  header.addEventListener('touchstart', () => {
-    longPressTimer = setTimeout(() => {
-      toggleAllSections(newBinder);
-    }, 500);
-  });
-
-  header.addEventListener('touchend', () => {
-    clearTimeout(longPressTimer);
-  });
-
-  header.addEventListener('touchmove', () => {
-    clearTimeout(longPressTimer);
-  });
-
-  header.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-  });
+  header.addEventListener('click', handleInteraction);
+  attachLongPress(header, () => toggleAllSections(newBinder));
 
   newBinder.appendChild(header);
   results.appendChild(newBinder);
@@ -134,54 +135,36 @@ export function startNewSection(pageSets = new Map()) {
   appState.binder.sectionCount = (appState.binder.sectionCount || 0) + 1;
   const pageNumberInBinder = appState.binder.sectionCount;
 
-  const section = document.createElement("div");
-  section.className = "section";
+  const section = document.createElement('div');
+  section.className = 'section';
   appState.section = section;
 
-  const header = document.createElement("h3");
-  header.className = "page-header";
+  const header = document.createElement('h3');
+  header.className = 'page-header';
   header.textContent = `Page ${pageNumberInBinder} — `;
 
-  header.addEventListener("click", () => {
-    section.classList.toggle("collapsed");
+  header.addEventListener('click', () => {
+    section.classList.toggle('collapsed');
   });
+  attachLongPress(header, () => section.classList.toggle('collapsed'));
 
-  let longPressTimer;
-  header.addEventListener('touchstart', () => {
-    longPressTimer = setTimeout(() => {
-        section.classList.toggle("collapsed");
-    }, 500);
-  }, { passive: true });
-
-  header.addEventListener('touchend', () => {
-      clearTimeout(longPressTimer);
-  });
-
-  header.addEventListener('touchmove', () => {
-      clearTimeout(longPressTimer);
-  });
-
-  header.addEventListener('contextmenu', (event) => {
-      event.preventDefault();
-  });
-
-  const setTooltip = document.getElementById("set-tooltip");
+  const setTooltip = document.getElementById('set-tooltip');
 
   const setCodes = Array.from(pageSets.entries()).map(([setCode, setObj]) => {
-    const span = document.createElement("span");
+    const span = document.createElement('span');
     span.textContent = setCode.toUpperCase();
-    span.style.cursor = "help";
+    span.style.cursor = 'help';
 
     // Custom tooltip events
-    span.addEventListener("mouseenter", e => {
-        setTooltip.textContent = setObj.name;
-        setTooltip.style.display = "block";
-        positionTooltip(e, setTooltip);
+    span.addEventListener('mouseenter', (e) => {
+      setTooltip.textContent = setObj.name;
+      setTooltip.style.display = 'block';
+      positionTooltip(e, setTooltip);
     });
-    span.addEventListener("mousemove", e => positionTooltip(e, setTooltip));
-    span.addEventListener("mouseleave", () => {
-        setTooltip.textContent = "";
-        setTooltip.style.display = "none";
+    span.addEventListener('mousemove', (e) => positionTooltip(e, setTooltip));
+    span.addEventListener('mouseleave', () => {
+      setTooltip.textContent = '';
+      setTooltip.style.display = 'none';
     });
 
     return span;
@@ -190,12 +173,12 @@ export function startNewSection(pageSets = new Map()) {
   setCodes.forEach((span, index) => {
     header.appendChild(span);
     if (index < setCodes.length - 1) {
-      header.appendChild(document.createTextNode(", "));
+      header.appendChild(document.createTextNode(', '));
     }
   });
 
-  appState.grid = document.createElement("div");
-  appState.grid.className = "grid";
+  appState.grid = document.createElement('div');
+  appState.grid.className = 'grid';
 
   appState.section.appendChild(header);
   appState.section.appendChild(appState.grid);
@@ -203,29 +186,28 @@ export function startNewSection(pageSets = new Map()) {
 }
 
 export function updateBinderCounts(binder) {
-    if (!binder) return;
-    const binderOwnedEl = binder.querySelector('.binder-owned');
-    if (binderOwnedEl) {
-        binderOwnedEl.textContent = `Owned: ${binder.ownedCards || 0}/${binder.totalCards || 0}`;
-    }
+  if (!binder) return;
+  const binderOwnedEl = binder.querySelector('.binder-owned');
+  if (binderOwnedEl) {
+    binderOwnedEl.textContent = `Owned: ${binder.ownedCards || 0}/${binder.totalCards || 0}`;
+  }
 }
 
 // Adjust an owned-card counter without rescanning the binder. Used by toggles.
 export function adjustBinderOwnedCount(binder, delta) {
-    if (!binder) return;
-    binder.ownedCards = Math.max(0, (binder.ownedCards || 0) + delta);
-    updateBinderCounts(binder);
+  if (!binder) return;
+  binder.ownedCards = Math.max(0, (binder.ownedCards || 0) + delta);
+  updateBinderCounts(binder);
 }
 
 // Recompute a binder's counters from the DOM. Only needed for bulk operations.
 export function recountBinder(binder) {
-    if (!binder) return;
-    binder.totalCards = binder.querySelectorAll('.card').length;
-    binder.ownedCards = binder.querySelectorAll('.card.owned').length;
-    updateBinderCounts(binder);
+  if (!binder) return;
+  binder.totalCards = binder.querySelectorAll('.card').length;
+  binder.ownedCards = binder.querySelectorAll('.card.owned').length;
+  updateBinderCounts(binder);
 }
 
 export function updateAllBinderCounts() {
-    document.querySelectorAll('.binder').forEach(recountBinder);
+  document.querySelectorAll('.binder').forEach(recountBinder);
 }
-

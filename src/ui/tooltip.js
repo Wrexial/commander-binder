@@ -1,6 +1,7 @@
 // tooltip.js
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
+import { getDisplayedPrice } from '../utils/prices.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 
@@ -31,7 +32,7 @@ function getBackdrop() {
 
 // ---------------- Show Tooltip ----------------
 export function showTooltip(e, card, tooltip) {
-  if(!cardSettings.showTooltip){
+  if (!cardSettings.showTooltip) {
     return;
   }
 
@@ -61,81 +62,70 @@ export function showTooltip(e, card, tooltip) {
     const textContainer = document.createElement('div');
     textContainer.className = 'tooltip-text-container';
     tooltip.appendChild(textContainer);
-    
+
     const { index, total } = cardStore.getPrintingPosition(card);
     if (total > 1) {
-        const indicator = document.createElement('span');
-        indicator.className = 'printing-indicator';
-        indicator.textContent = `Version ${index} of ${total}`;
-        textContainer.appendChild(indicator);
+      const indicator = document.createElement('span');
+      indicator.className = 'printing-indicator';
+      indicator.textContent = `Version ${index} of ${total}`;
+      textContainer.appendChild(indicator);
 
-        // Touch devices have no right-click, so offer an explicit control. The
-        // host (card grid or statistics) supplies the cycle behaviour.
-        if (typeof tooltip.onCycle === 'function') {
-            const cycleBtn = document.createElement('button');
-            cycleBtn.type = 'button';
-            cycleBtn.className = 'printing-cycle';
-            cycleBtn.textContent = 'Next printing';
-            cycleBtn.title = 'Show the next printing (right-click also works)';
-            cycleBtn.addEventListener('click', (clickEvent) => {
-                clickEvent.stopPropagation();
-                tooltip.onCycle(clickEvent);
-            });
-            textContainer.appendChild(cycleBtn);
-        }
+      // Touch devices have no right-click, so offer an explicit control. The
+      // host (card grid or statistics) supplies the cycle behaviour.
+      if (typeof tooltip.onCycle === 'function') {
+        const cycleBtn = document.createElement('button');
+        cycleBtn.type = 'button';
+        cycleBtn.className = 'printing-cycle';
+        cycleBtn.textContent = 'Next printing';
+        cycleBtn.title = 'Show the next printing (right-click also works)';
+        cycleBtn.addEventListener('click', (clickEvent) => {
+          clickEvent.stopPropagation();
+          tooltip.onCycle(clickEvent);
+        });
+        textContainer.appendChild(cycleBtn);
+      }
     }
 
-    const prices = [card.prices.eur, card.prices.eur_foil].filter(p => p).map(p => parseFloat(p));
-    const price = prices.length > 0 ? Math.min(...prices) : null;
+    const price = getDisplayedPrice(card);
 
     const descriptor = document.createElement('div');
     descriptor.className = 'card-descriptor';
     descriptor.textContent = `${card.set_name} #${card.collector_number} · €${price !== null ? price.toFixed(2) : 'N/A'}`;
     textContainer.appendChild(descriptor);
 
-    tooltip.style.display = "flex";
+    tooltip.style.display = 'flex';
 
-    const images = [];
+    const images = getCardImages(card)
+      .map(({ url, key }) => {
+        const img = getImage(url);
+        if (img) img.alt = card.name || key;
+        return img;
+      })
+      .filter(Boolean);
 
-    function addImage(url, key) {
-      const img = getImage(url);
-      if (!img) return;
-      img.alt = key;
-      images.push(img);
-    }
-
-    // ---------------- Handle card images ----------------
-    getCardImages(card).forEach(({ url, key }) => addImage(url, key));
-
-    // ---------------- Wait for all images / flip cards to load ----------------
+    // Wait for every image so the tooltip can size itself correctly. Images
+    // already decoded won't fire `load`, so handle that case directly.
     let loaded = 0;
-    images.forEach(el => {
-      if (el.tagName === "IMG") {
-        // If the image is already loaded (from cache/clone), the load event won't fire — handle that
-        if (el.complete && el.naturalWidth > 0) {
-          loaded++;
-          if (loaded === images.length) finishTooltip(images, tooltip, e);
-        } else {
-          el.onload = el.onerror = () => {
-            loaded++;
-            if (loaded === images.length) finishTooltip(images, tooltip, e);
-          };
-        }
+    const onImageSettled = () => {
+      loaded++;
+      if (loaded === images.length) finishTooltip(images, tooltip, e);
+    };
+
+    images.forEach((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        onImageSettled();
       } else {
-        // Flip card container is already ready
-        loaded++;
-        if (loaded === images.length) finishTooltip(images, tooltip, e);
+        img.addEventListener('load', onImageSettled, { once: true });
+        img.addEventListener('error', onImageSettled, { once: true });
       }
     });
 
     positionTooltip(e, tooltip);
-    
-    tooltip.style.display = "flex";
+
     requestAnimationFrame(() => {
-      tooltip.classList.add("show");
+      tooltip.classList.add('show');
       positionTooltip(e, tooltip);
     });
-
   }, 200);
 }
 
@@ -144,38 +134,32 @@ function finishTooltip(images, tooltip, event) {
   const imageContainer = tooltip.querySelector('.tooltip-image-container');
   if (!imageContainer) return;
 
-  imageContainer.innerHTML = "";
+  imageContainer.innerHTML = '';
 
-  const container = document.createElement("div");
-  container.style.display = "flex";
-  container.style.gap = "8px";
-  container.style.alignItems = "center";
-  container.style.justifyContent = "center";
+  const container = document.createElement('div');
+  container.style.display = 'flex';
+  container.style.gap = '8px';
+  container.style.alignItems = 'center';
+  container.style.justifyContent = 'center';
 
   const isMobile = isMobileLayout();
   const maxTooltipHeight = window.innerHeight * (isMobile ? 0.8 : 0.6);
   const maxTooltipWidth = window.innerWidth * (isMobile ? 0.92 : 0.8);
   const imgWidth = Math.min(maxTooltipWidth / images.length, isMobile ? 340 : 300);
 
-  images.forEach(el => {
-    if (el.tagName === "IMG") {
-      el.style.maxWidth = `${imgWidth}px`;
-      el.style.maxHeight = `${maxTooltipHeight}px`;
-      el.style.borderRadius = "10px";
-    } else {
-      // Flip card container
-      el.style.width = `${imgWidth}px`;
-      el.style.maxHeight = `${maxTooltipHeight}px`;
-    }
-    container.appendChild(el);
+  images.forEach((img) => {
+    img.style.maxWidth = `${imgWidth}px`;
+    img.style.maxHeight = `${maxTooltipHeight}px`;
+    img.style.borderRadius = '10px';
+    container.appendChild(img);
   });
 
   imageContainer.appendChild(container);
 
-  tooltip.classList.add("show"); // trigger scale/fade animation
+  tooltip.classList.add('show'); // trigger scale/fade animation
 
   // After adding images to tooltip
-  tooltip.classList.toggle("mdfc", images.length > 1);
+  tooltip.classList.toggle('mdfc', images.length > 1);
 
   positionTooltip(event, tooltip);
 }
@@ -183,14 +167,14 @@ function finishTooltip(images, tooltip, event) {
 // ---------------- Hide Tooltip ----------------
 export function hideTooltip(tooltip) {
   clearTimeout(tooltipTimeout);
-  tooltip.classList.remove("show");
-  tooltip.classList.remove("mobile");
-  tooltip.style.display = "none";
+  tooltip.classList.remove('show');
+  tooltip.classList.remove('mobile');
+  tooltip.style.display = 'none';
   activeTooltip = null;
-  tooltip.innerHTML = "";
+  tooltip.innerHTML = '';
 
-  if (backdrop) backdrop.classList.remove("visible");
-  document.body.classList.remove("tooltip-open");
+  if (backdrop) backdrop.classList.remove('visible');
+  document.body.classList.remove('tooltip-open');
 }
 
 // ---------------- Position Tooltip ----------------
@@ -238,7 +222,7 @@ export function positionTooltip(e, tooltip) {
 }
 
 window.addEventListener(
-  "scroll",
+  'scroll',
   () => {
     if (activeTooltip) {
       hideTooltip(activeTooltip);
@@ -248,7 +232,7 @@ window.addEventListener(
 );
 
 window.addEventListener(
-  "touchstart",
+  'touchstart',
   (e) => {
     if (activeTooltip && !activeTooltip.contains(e.target)) {
       hideTooltip(activeTooltip);
@@ -257,7 +241,7 @@ window.addEventListener(
   { passive: true }
 );
 
-window.addEventListener("orientationchange", () => {
+window.addEventListener('orientationchange', () => {
   if (activeTooltip) {
     hideTooltip(activeTooltip);
   }

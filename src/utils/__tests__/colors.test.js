@@ -1,6 +1,6 @@
 // src/utils/__tests__/colors.test.js
 import { describe, it, expect, vi } from 'vitest';
-import { getCardBorderStyle, getCardBackground, lightenColor, clearCssVarCache } from '../colors';
+import { getCardBorderStyle, getCardBackground, clearCssVarCache } from '../colors';
 
 // Mock getComputedStyle
 globalThis.getComputedStyle = vi.fn(() => ({
@@ -51,7 +51,9 @@ describe('getCardBackground', () => {
   it('should return the correct background for a multi-color card', () => {
     const card = { color_identity: ['W', 'U'] };
     const background = getCardBackground(card);
-    expect(background).toBe('linear-gradient(to right, #fdf8ec 0%, #fdf8ec 50%, #e3f0fa 50%, #e3f0fa 100%)');
+    expect(background).toBe(
+      'linear-gradient(to right, #fdf8ec 0%, #fdf8ec 50%, #e3f0fa 50%, #e3f0fa 100%)'
+    );
   });
 });
 
@@ -66,25 +68,5 @@ describe('CSS variable caching', () => {
 
     getCardBorderStyle({ color_identity: ['W'] });
     expect(globalThis.getComputedStyle.mock.calls.length).toBe(afterFirst);
-  });
-});
-
-describe('lightenColor', () => {
-  it('should lighten a 6-digit hex color by the specified factor', () => {
-    const color = '#333333';
-    const lighterColor = lightenColor(color, 0.5);
-    expect(lighterColor).toBe('rgb(153, 153, 153)');
-  });
-
-  it('should lighten a 3-digit hex color by the specified factor', () => {
-    const color = '#333';
-    const lighterColor = lightenColor(color, 0.5);
-    expect(lighterColor).toBe('rgb(153, 153, 153)');
-  });
-
-  it('should return the original color if it is not a hex color', () => {
-    const color = 'rgb(51, 51, 51)';
-    const lighterColor = lightenColor(color, 0.5);
-    expect(lighterColor).toBe('rgb(51, 51, 51)');
   });
 });

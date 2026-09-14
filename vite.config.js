@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
@@ -9,6 +9,6 @@ export default defineConfig({
     logLevel: 'info', // 'error', 'warn', 'info', 'silent'
     port: 5173,
     strictPort: true,
-    host: true       // exposes to network
-  }
-})
+    host: true, // exposes to network
+  },
+});

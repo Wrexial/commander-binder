@@ -1,27 +1,12 @@
 // cards.js
-import { cardSettings } from "../state/cardSettings.js";
-import { appState } from "../state/appState.js";
-import { isCardOwned } from "../state/cardState.js";
+import { cardSettings } from '../state/cardSettings.js';
+import { appState } from '../state/appState.js';
+import { isCardOwned } from '../state/cardState.js';
 import { getCardBorderStyle, getCardBackground } from '../utils/colors.js';
 import { getCardImageUrls } from '../utils/cardImages.js';
+import { getDisplayedPrice } from '../utils/prices.js';
 import { CARDS_PER_PAGE } from '../config/constants.js';
 import { cardStore } from '../state/cardStore.js';
-
-/**
- * Price of the printing actually shown (cheapest of its non-foil and foil EUR
- * prices). This mirrors the tooltip so the badge matches the artwork, rather
- * than quoting the cheapest reprint of the card.
- * @param {object} card
- * @returns {number|null}
- */
-function getDisplayedPrice(card) {
-  const prices = [card?.prices?.eur, card?.prices?.eur_foil]
-    .filter((p) => p != null)
-    .map((p) => parseFloat(p))
-    .filter((p) => Number.isFinite(p));
-
-  return prices.length > 0 ? Math.min(...prices) : null;
-}
 
 /**
  * Which version of a card is currently shown, and how many exist. Delegates to
@@ -118,14 +103,14 @@ function populateCard(div, card, cardIndex) {
   div.appendChild(mediaEl);
 
   if (card.related_uris?.edhrec) {
-    const edhrecBtn = document.createElement("a");
-    edhrecBtn.className = "edhrec-link";
+    const edhrecBtn = document.createElement('a');
+    edhrecBtn.className = 'edhrec-link';
     edhrecBtn.href = card.related_uris.edhrec;
-    edhrecBtn.target = "_blank";
-    edhrecBtn.rel = "noopener noreferrer";
+    edhrecBtn.target = '_blank';
+    edhrecBtn.rel = 'noopener noreferrer';
     // The icon is drawn by CSS (::after) instead of an <img>, removing one
     // image element per card from the DOM.
-    edhrecBtn.setAttribute("aria-label", "View on EDHREC");
+    edhrecBtn.setAttribute('aria-label', 'View on EDHREC');
 
     div.appendChild(edhrecBtn);
 
@@ -143,10 +128,10 @@ function populateCard(div, card, cardIndex) {
   const price = getDisplayedPrice(card);
 
   if (price) {
-      const priceEl = document.createElement('span');
-      priceEl.className = 'card-price';
-      priceEl.textContent = `€${price.toFixed(2)}`;
-      div.appendChild(priceEl);
+    const priceEl = document.createElement('span');
+    priceEl.className = 'card-price';
+    priceEl.textContent = `€${price.toFixed(2)}`;
+    div.appendChild(priceEl);
   }
 
   // Version badge: only shown when a card has more than one printing.
@@ -164,32 +149,32 @@ function populateCard(div, card, cardIndex) {
   }
 
   const owned = isCardOwned(card);
-  const toggleBtn = document.createElement("button");
-  toggleBtn.className = "card-toggle";
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'card-toggle';
   // Toggle indicates whether you own the card (checkmark when owned)
-    toggleBtn.title = owned ? "Mark as missing" : "Mark as owned";
-    toggleBtn.setAttribute('aria-label', owned ? 'Mark as missing' : 'Mark as owned');
-    toggleBtn.setAttribute('aria-pressed', owned.toString());
-    // The visible +/tick is drawn by CSS on .card-toggle::after.
-    toggleBtn.textContent = "";
+  toggleBtn.title = owned ? 'Mark as missing' : 'Mark as owned';
+  toggleBtn.setAttribute('aria-label', owned ? 'Mark as missing' : 'Mark as owned');
+  toggleBtn.setAttribute('aria-pressed', owned.toString());
+  // The visible +/tick is drawn by CSS on .card-toggle::after.
+  toggleBtn.textContent = '';
 
-    div.appendChild(toggleBtn);
+  div.appendChild(toggleBtn);
 
-    // Owned badge (hidden by default, shown when .owned class present)
-    const ownedBadge = document.createElement('span');
-    ownedBadge.className = 'owned-badge';
-    ownedBadge.textContent = 'Owned';
-    div.appendChild(ownedBadge);
+  // Owned badge (hidden by default, shown when .owned class present)
+  const ownedBadge = document.createElement('span');
+  ownedBadge.className = 'owned-badge';
+  ownedBadge.textContent = 'Owned';
+  div.appendChild(ownedBadge);
 
-    // Reserve space / keep layout stable when toggles exist
-    div.classList.add('has-toggle');
+  // Reserve space / keep layout stable when toggles exist
+  div.classList.add('has-toggle');
 
   return div;
 }
 
 export function createCardElement(card, cardIndex) {
-  const div = document.createElement("div");
-  div.className = "card loading";
+  const div = document.createElement('div');
+  div.className = 'card loading';
   div.cardData = card;
   populateCard(div, card, cardIndex);
   return div;
@@ -210,14 +195,14 @@ export function applyDisplayMode() {
 }
 
 export function updateCardState(cardElement) {
-    cardElement.classList.remove('loading');
-    if (isCardOwned(cardElement.cardData)) {
-        cardElement.classList.add('owned');
-    }
+  cardElement.classList.remove('loading');
+  if (isCardOwned(cardElement.cardData)) {
+    cardElement.classList.add('owned');
+  }
 }
 
 export function updateCardStyles() {
-  document.querySelectorAll('.card').forEach(div => {
+  document.querySelectorAll('.card').forEach((div) => {
     const card = div.cardData;
     if (!card) return;
 
@@ -232,7 +217,7 @@ export function updateCardStyles() {
 }
 
 export function updateAllCardStates() {
-  document.querySelectorAll('.card').forEach(cardElement => {
+  document.querySelectorAll('.card').forEach((cardElement) => {
     updateCardState(cardElement);
   });
 }
@@ -258,8 +243,7 @@ export function updateCardVersionCounts() {
 
     badge.querySelector('.card-versions-full').textContent =
       `${version.index}/${version.total} printings`;
-    badge.querySelector('.card-versions-short').textContent =
-      `${version.index}/${version.total}`;
+    badge.querySelector('.card-versions-short').textContent = `${version.index}/${version.total}`;
     badge.title = `${version.total} printings`;
     badge.setAttribute('aria-label', `${version.index} of ${version.total} printings`);
   });

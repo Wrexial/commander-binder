@@ -1,4 +1,4 @@
-// src/utils/__tests__/cardState.test.js
+// src/state/__tests__/cardState.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   loadCardStates,

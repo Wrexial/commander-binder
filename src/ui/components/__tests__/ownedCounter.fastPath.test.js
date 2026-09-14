@@ -46,8 +46,6 @@ describe('updateOwnedCounter', () => {
 
     updateOwnedCounter();
 
-    expect(document.getElementById('owned-counter').textContent).toBe(
-      'Owned: 1/1 shown (2 total)'
-    );
+    expect(document.getElementById('owned-counter').textContent).toBe('Owned: 1/1 shown (2 total)');
   });
 });

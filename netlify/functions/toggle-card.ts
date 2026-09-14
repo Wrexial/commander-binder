@@ -1,33 +1,18 @@
-import { db } from "../../db";
-import { ownedCards } from "../../db/schema";
-import { and, eq } from "drizzle-orm";
-import { getUserId } from "../utils/auth";
+import type { HandlerEvent } from '@netlify/functions';
+import { getUserId, unauthorized } from '../utils/auth';
+import { setOwned } from '../utils/ownedCards';
 
-export async function handler(event) {
+export async function handler(event: HandlerEvent) {
   const userId = await getUserId(event);
-  if (!userId) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "Unauthorized" }),
-    };
-  }
+  if (!userId) return unauthorized();
 
-  const { cardId, isOwned } = JSON.parse(event.body || "{}");
+  const { cardId, isOwned } = JSON.parse(event.body || '{}');
 
   if (!cardId) {
     return { statusCode: 400 };
   }
 
-  if (isOwned) {
-    await db
-      .insert(ownedCards)
-      .values({ userId, cardId })
-      .onConflictDoNothing();
-  } else {
-    await db
-      .delete(ownedCards)
-      .where(and(eq(ownedCards.userId, userId), eq(ownedCards.cardId, cardId)));
-  }
+  await setOwned(userId, [cardId], isOwned);
 
   return {
     statusCode: 200,
