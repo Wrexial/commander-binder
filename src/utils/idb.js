@@ -124,5 +124,5 @@ export function createStore({ dbName, storeName, keyPath = 'key', version = 1 })
     });
   }
 
-  return { open, get, put, remove, getAll, clear };
+  return { get, put, remove, getAll, clear };
 }

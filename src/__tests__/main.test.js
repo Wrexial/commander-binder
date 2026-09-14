@@ -29,7 +29,6 @@ describe('setupUI', () => {
     vi.clearAllMocks();
     mainState.shareToken = undefined;
     mainState.loggedInUserId = undefined;
-    mainState.isLoggedIn = false;
     appState.isViewOnlyMode = false;
 
     // Provide default mock implementations
@@ -79,7 +78,6 @@ describe('setupUI', () => {
     const userButton = document.getElementById('user-button');
     expect(userButton).not.toBeNull();
     expect(mockClerk.mountUserButton).toHaveBeenCalledWith(userButton);
-    expect(mainState.isLoggedIn).toBe(true);
     expect(mainState.loggedInUserId).toBe('user-456');
 
     // Verify other paths not taken

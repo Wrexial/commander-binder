@@ -13,7 +13,7 @@
  * given day's cards are only downloaded once.
  *
  * Environments without IndexedDB (jsdom, SSR, private mode) degrade to an
- * in-memory cache, mirroring `responseCache.js`.
+ * in-memory cache via the shared `src/utils/idb.js` store wrapper.
  */
 
 import { createStore } from '../utils/idb.js';

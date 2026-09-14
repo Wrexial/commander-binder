@@ -23,15 +23,8 @@ import { showStatisticsModal } from './ui/statistics.js';
 import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
 import { mainState } from './state/mainState.js';
 
-async function showBulkAddModal() {
-  const modal = await createBulkAddModal();
-  if (modal) {
-    modal.show();
-  }
-}
-
-async function showBulkCheckModal() {
-  const modal = await createBulkCheckModal();
+async function showModal(createModal) {
+  const modal = await createModal();
   if (modal) {
     modal.show();
   }
@@ -39,7 +32,6 @@ async function showBulkCheckModal() {
 
 function setupAuthenticatedUser(userButtonDiv, clerk) {
   clerk.mountUserButton(userButtonDiv);
-  mainState.isLoggedIn = true;
   mainState.loggedInUserId = clerk.user.id;
   updateOwnedCounter();
 
@@ -69,7 +61,7 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
 
   addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
 
-  createBulkAddButton(showBulkAddModal);
+  createBulkAddButton(() => showModal(createBulkAddModal));
 }
 
 export async function setupUI() {
@@ -126,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initLazyCards(results, tooltip);
   updateAllBinderCounts();
-  createBulkCheckButton(showBulkCheckModal);
+  createBulkCheckButton(() => showModal(createBulkCheckModal));
   createExportOwnedButton();
 
   initCardSettings();

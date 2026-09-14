@@ -61,7 +61,7 @@ export async function writeCache(url, data, etag = null, ts = Date.now()) {
   const record = { url, data, etag: etag || null, ts };
   memory.set(url, record);
   await store.put(record);
-  trimIdb();
+  void trimIdb();
   return record;
 }
 

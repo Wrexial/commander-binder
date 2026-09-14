@@ -27,23 +27,24 @@ const MAX_RATE_LIMIT_RETRIES = 3;
 const RATE_LIMIT_BASE_DELAY_MS = 1000;
 
 /**
- * In-flight GETs keyed by URL. Deduplicates repeated triggers (a scroll event
- * racing the auto-load continuation) so a page is never downloaded twice.
+ * In-flight GETs keyed by URL, so two callers asking for the same page share a
+ * single network request.
  * @type {Map<string, Promise<object>>}
  */
 const inFlight = new Map();
 
 /**
- * Optional non-API page source. When set, the render loop pulls chunks from a
+ * Optional non-API page source. When set, callers pull chunks from a
  * pre-filtered Scryfall bulk subset instead of calling the rate-limited search
- * API. `next_page` is a sentinel so the existing loop/observer keep working.
+ * API. `next_page` is a sentinel so the pagination loop keeps advancing.
  */
 let bulkPager = null;
 export const BULK_SOURCE_SENTINEL = 'bulk:legendary-creatures';
 
 /**
  * Serve pages from an already-filtered bulk subset instead of the API. Cards
- * are returned in `CARDS_PER_PAGE` chunks so the render pipeline is unchanged.
+ * are returned in `CARDS_PER_PAGE` chunks, so callers can treat a chunk like an
+ * API page.
  * @param {object[]} cards
  * @returns {boolean} whether a source was installed
  */

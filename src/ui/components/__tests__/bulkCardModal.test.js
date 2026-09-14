@@ -141,3 +141,29 @@ describe('bulk check modal', () => {
     expect(writeText).toHaveBeenCalledWith('Arcane Signet');
   });
 });
+
+describe('bulk modal wrappers', () => {
+  it('shows the modal and removes it when its close button is clicked', async () => {
+    const modal = await createBulkAddModal();
+    modal.show();
+
+    expect(document.querySelector('.list-modal-backdrop').style.display).toBe('block');
+
+    const closeButton = [...document.querySelectorAll('.modal-button-container button')].find(
+      (button) => button.textContent === 'Close'
+    );
+    closeButton.click();
+
+    expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
+
+  it('does not stack a second modal while one is already open', async () => {
+    const first = await createBulkAddModal();
+    first.show();
+
+    const second = await createBulkCheckModal();
+    second.show();
+
+    expect(document.querySelectorAll('.list-modal-backdrop')).toHaveLength(1);
+  });
+});

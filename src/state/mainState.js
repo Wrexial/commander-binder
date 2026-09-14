@@ -6,6 +6,5 @@
  */
 export const mainState = {
   loggedInUserId: undefined,
-  isLoggedIn: false,
   shareToken: undefined,
 };

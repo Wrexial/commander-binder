@@ -7,7 +7,7 @@
  * wires it to a button).
  *
  * @param {{className?: string, ariaLabel?: string, onClose?: () => void}} [options]
- * @returns {{backdrop: HTMLElement, modal: HTMLElement, show: () => void, close: () => void, destroy: () => void}}
+ * @returns {{modal: HTMLElement, show: () => void, close: () => void}}
  */
 export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
   const backdrop = document.createElement('div');
@@ -42,10 +42,8 @@ export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
   document.body.appendChild(backdrop);
 
   return {
-    backdrop,
     modal,
     close,
-    destroy: close,
     show: () => {
       backdrop.style.display = 'block';
     },
