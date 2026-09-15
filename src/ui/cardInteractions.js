@@ -9,7 +9,7 @@ import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { nextPrinting } from '../utils/printings.js';
-import { refreshCardElement } from './cards.js';
+import { refreshCardElement, syncCardOwnedUi } from './cards.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -111,13 +111,7 @@ async function handleContainerClick(event, tooltip) {
     return;
   }
 
-  cardElement.classList.toggle('owned', isOwned);
-
-  const toggleBtn = cardElement.querySelector('.card-toggle');
-  if (toggleBtn) {
-    toggleBtn.setAttribute('aria-pressed', isOwned.toString());
-    toggleBtn.setAttribute('aria-label', isOwned ? 'Mark as missing' : 'Mark as owned');
-  }
+  syncCardOwnedUi(cardElement, isOwned);
 
   updateOwnedCounter(); // Update global counter
   adjustBinderOwnedCount(cardElement.closest('.binder'), isOwned ? 1 : -1);
@@ -131,11 +125,7 @@ async function handleContainerClick(event, tooltip) {
       showToast('Could not undo the change.', 'error');
       return;
     }
-    cardElement.classList.toggle('owned', !wasMissing);
-    if (toggleBtn) {
-      toggleBtn.setAttribute('aria-pressed', (!wasMissing).toString());
-      toggleBtn.setAttribute('aria-label', wasMissing ? 'Mark as owned' : 'Mark as missing');
-    }
+    syncCardOwnedUi(cardElement, !wasMissing);
     updateOwnedCounter();
     adjustBinderOwnedCount(cardElement.closest('.binder'), wasMissing ? -1 : 1);
   });

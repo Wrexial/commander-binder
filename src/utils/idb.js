@@ -48,80 +48,82 @@ export function createStore({ dbName, storeName, keyPath = 'key', version = 1 })
     return dbPromise;
   }
 
+  /**
+   * Resolve `fallback` when the database is unavailable (no IndexedDB, blocked
+   * upgrade, private mode) or the store itself throws.
+   *
+   * @param {string} mode 'readonly' | 'readwrite'
+   * @param {(store: IDBObjectStore) => IDBRequest} run
+   * @param {unknown} fallback value used when the database cannot be reached
+   * @returns {Promise<unknown>}
+   */
+  function request(mode, run, fallback) {
+    return open().then((db) => {
+      if (!db) return fallback;
+
+      return new Promise((resolve) => {
+        let result;
+        try {
+          result = run(db.transaction(storeName, mode).objectStore(storeName));
+        } catch {
+          resolve(fallback);
+          return;
+        }
+
+        result.onsuccess = () => resolve(result.result ?? fallback);
+        result.onerror = () => resolve(fallback);
+      });
+    });
+  }
+
+  /**
+   * Run a write and settle when its transaction completes, not when the request
+   * does — a `put` that fails its constraint check still completes silently.
+   *
+   * @param {(store: IDBObjectStore) => void} run
+   * @param {unknown} ok value resolved on success
+   * @param {unknown} failed value resolved on failure
+   * @returns {Promise<unknown>}
+   */
+  function write(run, ok, failed) {
+    return open().then((db) => {
+      if (!db) return failed;
+
+      return new Promise((resolve) => {
+        let transaction;
+        try {
+          transaction = db.transaction(storeName, 'readwrite');
+          run(transaction.objectStore(storeName));
+        } catch {
+          resolve(failed);
+          return;
+        }
+
+        transaction.oncomplete = () => resolve(ok);
+        transaction.onerror = () => resolve(failed);
+        transaction.onabort = () => resolve(failed);
+      });
+    });
+  }
+
   async function get(key) {
-    const db = await open();
-    if (!db) return null;
-    return new Promise((resolve) => {
-      try {
-        const request = db.transaction(storeName, 'readonly').objectStore(storeName).get(key);
-        request.onsuccess = () => resolve(request.result ?? null);
-        request.onerror = () => resolve(null);
-      } catch {
-        resolve(null);
-      }
-    });
-  }
-
-  async function put(value) {
-    const db = await open();
-    if (!db) return false;
-    return new Promise((resolve) => {
-      try {
-        const transaction = db.transaction(storeName, 'readwrite');
-        transaction.objectStore(storeName).put(value);
-        transaction.oncomplete = () => resolve(true);
-        transaction.onerror = () => resolve(false);
-        transaction.onabort = () => resolve(false);
-      } catch {
-        resolve(false);
-      }
-    });
-  }
-
-  async function remove(key) {
-    const db = await open();
-    if (!db) return false;
-    return new Promise((resolve) => {
-      try {
-        const transaction = db.transaction(storeName, 'readwrite');
-        transaction.objectStore(storeName).delete(key);
-        transaction.oncomplete = () => resolve(true);
-        transaction.onerror = () => resolve(false);
-        transaction.onabort = () => resolve(false);
-      } catch {
-        resolve(false);
-      }
-    });
+    return request('readonly', (store) => store.get(key), null);
   }
 
   async function getAll() {
-    const db = await open();
-    if (!db) return [];
-    return new Promise((resolve) => {
-      try {
-        const request = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
-        request.onsuccess = () => resolve(request.result ?? []);
-        request.onerror = () => resolve([]);
-      } catch {
-        resolve([]);
-      }
-    });
+    return request('readonly', (store) => store.getAll(), []);
+  }
+
+  async function put(value) {
+    return write((store) => store.put(value), true, false);
+  }
+
+  async function remove(key) {
+    return write((store) => store.delete(key), true, false);
   }
 
   async function clear() {
-    const db = await open();
-    if (!db) return;
-    await new Promise((resolve) => {
-      try {
-        const transaction = db.transaction(storeName, 'readwrite');
-        transaction.objectStore(storeName).clear();
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = () => resolve();
-        transaction.onabort = () => resolve();
-      } catch {
-        resolve();
-      }
-    });
+    return write((store) => store.clear(), undefined, undefined);
   }
 
   return { get, put, remove, getAll, clear };

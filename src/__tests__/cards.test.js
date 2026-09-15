@@ -412,4 +412,20 @@ describe('updateCardState', () => {
     updateCardState(element);
     expect(element.classList.contains('loading')).toBe(false);
   });
+
+  it('marks the tile owned and updates the toggle when the state resolves late', () => {
+    cardState.isCardOwned.mockReturnValue(false);
+    const element = createCardElement(card, 0);
+    const toggle = element.querySelector('.card-toggle');
+    expect(toggle.getAttribute('aria-label')).toBe('Mark as owned');
+
+    // The owned set arrives after the cards were rendered.
+    cardState.isCardOwned.mockReturnValue(true);
+    updateCardState(element);
+
+    expect(element.classList.contains('owned')).toBe(true);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle.getAttribute('aria-label')).toBe('Mark as missing');
+    expect(toggle.title).toBe('Mark as missing');
+  });
 });

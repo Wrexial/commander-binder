@@ -20,7 +20,6 @@ label,
 
 :root {
   /* Palette */
-  --bg: #0f131c;
   --text: #e8edf5;
   --muted: #9aa7bd;
 
@@ -37,7 +36,6 @@ label,
   --accent-soft: rgba(212, 175, 55, 0.14);
   --success: #46c98a;
   --danger: #e06060;
-  --warning: #e0a84c;
 
   /* Shape & depth */
   --radius-xs: 6px;
@@ -111,7 +109,6 @@ label,
   --z-index-sidebar: 1010;
   --z-index-hamburger: 1020;
   --z-index-modal-backdrop: 1030;
-  --z-index-modal: 1040;
   --z-index-loading-indicator: 1050;
   --z-index-toast: 2100;
   --z-index-tooltip: 2200;
@@ -246,13 +243,6 @@ body.sidebar-open {
   font-size: 0.95rem;
 }
 
-#toggles-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
 .user-actions {
   display: flex;
   flex-direction: row;
@@ -292,10 +282,7 @@ body.sidebar-open {
     min-width: 80px;
     min-height: 32px;
   }
-  #share-button,
-  .sign-in-button,
-  .global-export-button,
-  .guest-mode-text {
+  .sign-in-button {
     padding: 4px 6px;
     font-size: 0.7rem;
   }
@@ -316,10 +303,7 @@ body.sidebar-open {
   }
 }
 
-#share-button,
 .sign-in-button,
-.global-export-button,
-.stats-button,
 .exit-guest-button {
   padding: 9px 16px;
   background-color: var(--button-bg);
@@ -337,34 +321,23 @@ body.sidebar-open {
     transform 0.12s ease;
 }
 
-#share-button:hover,
 .sign-in-button:hover,
-.global-export-button:hover,
-.stats-button:hover,
 .exit-guest-button:hover {
   background-color: var(--button-bg-hover);
   border-color: var(--accent);
   transform: translateY(-1px);
 }
 
-#share-button:active,
 .sign-in-button:active,
-.global-export-button:active,
-.stats-button:active,
 .exit-guest-button:active {
   background-color: var(--button-bg-active);
   transform: translateY(0);
 }
 
-#share-button:focus-visible,
 .sign-in-button:focus-visible,
 .exit-guest-button:focus-visible {
   outline: none;
   box-shadow: var(--focus-shadow);
-}
-
-#share-button.hidden {
-  display: none;
 }
 
 .guest-mode-container {
@@ -432,37 +405,6 @@ body.sidebar-open {
   font-weight: 700;
   letter-spacing: 0.02em;
   align-items: center;
-}
-
-.export-missing-button {
-  margin-left: auto; /* Pushes it to the right */
-  margin-right: 1rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 7px 14px;
-  cursor: pointer;
-  background-color: var(--button-bg);
-  color: var(--button-text);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.export-missing-button:hover {
-  background-color: var(--button-bg-hover);
-  border-color: var(--accent);
-}
-
-@media (max-width: 768px) {
-  .export-missing-button {
-    font-size: 0.75rem;
-    padding: 4px 8px;
-    margin-right: 0;
-    margin-left: 0.5rem;
-    white-space: nowrap;
-  }
 }
 
 .section {
@@ -902,36 +844,6 @@ body.images-mode .section {
   border-color: var(--focus);
 }
 
-.edhrec-rank {
-  position: absolute;
-  bottom: 6px;
-  right: 28px;
-
-  font-size: 0.65rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 3px 7px;
-
-  background: rgba(9, 12, 18, 0.85);
-  color: var(--accent-strong);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 999px;
-  opacity: 0;
-
-  pointer-events: none;
-  /* don’t interfere with hover */
-}
-
-@media (max-width: 768px) {
-  .edhrec-rank {
-    display: none;
-  }
-}
-
-.card:hover .edhrec-rank {
-  opacity: 1;
-}
-
 .edhrec-link {
   position: absolute;
   bottom: 2px;
@@ -965,10 +877,6 @@ body.images-mode .section {
     opacity: 0.7; /* Make it visible but subtle on mobile */
     pointer-events: auto; /* allow clicking on mobile if needed */
   }
-  .edhrec-link::after {
-    width: 8px;
-    height: 8px;
-  }
 }
 
 /* Icon drawn in CSS so each card doesn't carry an extra <img> element. */
@@ -977,6 +885,14 @@ body.images-mode .section {
   width: 14px;
   height: 14px;
   background: url('/edhrec-icon.ico') center / contain no-repeat;
+}
+
+@media (max-width: 768px) {
+  /* Must follow the base rule above: same specificity, so source order decides. */
+  .edhrec-link::after {
+    width: 8px;
+    height: 8px;
+  }
 }
 
 .card:hover .edhrec-link,
@@ -1526,12 +1442,8 @@ body.tooltip-open {
 
 #search-help:hover,
 #search-help[aria-expanded='true'] {
-  color: var(--text);
-  border-color: var(--accent);
-}
-
-#search-help[aria-expanded='true'] {
   color: var(--accent-strong);
+  border-color: var(--accent);
 }
 
 @media (max-width: 768px) {
@@ -1790,14 +1702,6 @@ body.tooltip-open {
     margin: 0;
     font-size: 0.75rem;
   }
-
-  .binder-header .export-missing-button {
-    grid-area: export;
-    margin: 0;
-    justify-self: end;
-    font-size: 0.75rem;
-    padding: 4px 8px;
-  }
 }
 
 .suggestions-container {
@@ -1961,17 +1865,6 @@ body.tooltip-open {
   box-shadow: var(--focus-shadow);
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.pagination-container p {
-  margin: 0 1rem;
-}
-
 .list-modal button {
   background-color: var(--button-bg);
   color: var(--button-text);
@@ -2016,23 +1909,6 @@ body.tooltip-open {
   background-color: var(--card-bg-default);
   border-color: var(--card-border-default);
   box-shadow: none;
-}
-
-#toggles-container {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-@media (max-width: 768px) {
-  #toggles-container {
-    gap: 1rem;
-    font-size: 0.8rem;
-    flex-wrap: wrap;
-  }
 }
 
 footer {
@@ -2745,10 +2621,6 @@ footer a:focus-visible {
 
   .card:not(.owned):hover::before {
     background-color: rgba(255, 255, 255, 0.4);
-  }
-
-  .card:hover .edhrec-rank {
-    opacity: 0;
   }
 
   .card:hover .edhrec-link {

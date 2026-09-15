@@ -137,6 +137,40 @@ function createOwnedBadge() {
 }
 
 /**
+ * Accessible name for the ownership toggle. Shared by every code path so the
+ * class, the aria state and the tooltip can never disagree.
+ * @param {boolean} owned
+ */
+function ownedToggleLabel(owned) {
+  return owned ? 'Mark as missing' : 'Mark as owned';
+}
+
+/**
+ * Point a tile's toggle button at the current ownership state.
+ * @param {HTMLElement} cardElement
+ * @param {boolean} owned
+ */
+function syncOwnedToggle(cardElement, owned) {
+  const toggle = cardElement.querySelector('.card-toggle');
+  if (!toggle) return;
+
+  toggle.setAttribute('aria-pressed', String(owned));
+  toggle.setAttribute('aria-label', ownedToggleLabel(owned));
+  toggle.title = ownedToggleLabel(owned);
+}
+
+/**
+ * Reflect ownership on a tile: the `owned` class (which paints the tick) plus
+ * the toggle's accessible state.
+ * @param {HTMLElement} cardElement
+ * @param {boolean} owned
+ */
+export function syncCardOwnedUi(cardElement, owned) {
+  cardElement.classList.toggle('owned', owned);
+  syncOwnedToggle(cardElement, owned);
+}
+
+/**
  * Ownership toggle. The visible +/tick is drawn by CSS on
  * `.card-toggle::after`/`.card.owned .card-toggle::after`.
  * @param {boolean} owned
@@ -145,8 +179,8 @@ function createOwnedBadge() {
 function createOwnedToggle(owned) {
   const toggle = document.createElement('button');
   toggle.className = 'card-toggle';
-  toggle.title = owned ? 'Mark as missing' : 'Mark as owned';
-  toggle.setAttribute('aria-label', owned ? 'Mark as missing' : 'Mark as owned');
+  toggle.title = ownedToggleLabel(owned);
+  toggle.setAttribute('aria-label', ownedToggleLabel(owned));
   toggle.setAttribute('aria-pressed', owned.toString());
   toggle.textContent = '';
   return toggle;
@@ -300,9 +334,12 @@ export function applyDisplayMode() {
 
 export function updateCardState(cardElement) {
   cardElement.classList.remove('loading');
-  if (isCardOwned(cardElement.cardData)) {
-    cardElement.classList.add('owned');
-  }
+
+  const owned = isCardOwned(cardElement.cardData);
+  // Additive on purpose: owned cards may be toggled while the saved state is
+  // still loading, and this pass must not undo that.
+  if (owned) cardElement.classList.add('owned');
+  syncOwnedToggle(cardElement, owned);
 }
 
 export function updateCardStyles() {
