@@ -219,6 +219,58 @@ describe('tooltip', () => {
       expect(tooltip.classList.contains('mobile')).toBe(false);
       expect(document.body.classList.contains('tooltip-open')).toBe(false);
     });
+
+    describe('swipe to dismiss', () => {
+      // jsdom has no TouchEvent, so build a plain event carrying `touches`.
+      function touch(type, clientY, { cancelable = true } = {}) {
+        const touchEvent = new Event(type, { bubbles: true, cancelable });
+        touchEvent.touches = [{ clientX: 100, clientY }];
+        return touchEvent;
+      }
+
+      it('dismisses the dialog after a long downward drag', () => {
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        tooltip.dispatchEvent(touch('touchstart', 200));
+        tooltip.dispatchEvent(touch('touchmove', 320));
+
+        expect(tooltip.classList.contains('dragging')).toBe(true);
+        expect(tooltip.style.transform).toBe('translateY(120px)');
+
+        tooltip.dispatchEvent(touch('touchend', 320));
+
+        expect(tooltip.style.display).toBe('none');
+        expect(tooltip.style.transform).toBe('');
+        expect(document.body.classList.contains('tooltip-open')).toBe(false);
+      });
+
+      it('snaps back when the drag is too short', () => {
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        tooltip.dispatchEvent(touch('touchstart', 200));
+        tooltip.dispatchEvent(touch('touchmove', 240));
+        tooltip.dispatchEvent(touch('touchend', 240));
+
+        expect(tooltip.style.display).toBe('flex');
+        expect(tooltip.style.transform).toBe('');
+        expect(tooltip.style.opacity).toBe('');
+        expect(tooltip.classList.contains('dragging')).toBe(false);
+      });
+
+      it('treats an upward drag as a scroll, not a dismissal', () => {
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        tooltip.dispatchEvent(touch('touchstart', 300));
+        tooltip.dispatchEvent(touch('touchmove', 100));
+        tooltip.dispatchEvent(touch('touchend', 100));
+
+        expect(tooltip.style.display).toBe('flex');
+        expect(tooltip.classList.contains('dragging')).toBe(false);
+      });
+    });
   });
 
   describe('hideTooltip', () => {

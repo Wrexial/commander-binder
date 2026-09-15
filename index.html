@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the CSS use env(safe-area-inset-*) so the
+         hamburger, sidebar and toast clear notches/home indicators. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Legendary Creature Collector</title>
 
     <!-- SEO Meta Tags -->
@@ -60,7 +62,13 @@
   <body>
     <div id="sidebar-backdrop"></div>
     <div id="sidebar" class="sidebar"></div>
-    <button id="openbtn">
+    <button
+      id="openbtn"
+      type="button"
+      aria-label="Toggle navigation menu"
+      aria-controls="sidebar"
+      aria-expanded="false"
+    >
       <span></span>
       <span></span>
       <span></span>
@@ -82,6 +90,15 @@
           <div id="search-wrapper">
             <input type="search" id="search-input" placeholder="Search cards..." />
             <button id="clear-search">&times;</button>
+            <button
+              id="search-help"
+              type="button"
+              aria-label="Search syntax help"
+              aria-controls="search-tooltip"
+              aria-expanded="false"
+            >
+              ?
+            </button>
             <div id="search-tooltip" style="display: none">
               <h4>Search Syntax</h4>
               <ul>

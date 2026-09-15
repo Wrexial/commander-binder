@@ -21,6 +21,7 @@ import { showToast } from './ui/components/toast.js';
 import { getShareToken } from './api/share.js';
 import { showStatisticsModal } from './ui/statistics.js';
 import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
+import { initViewportMetrics } from './utils/viewport.js';
 import { mainState } from './state/mainState.js';
 
 async function showModal(createModal) {
@@ -134,6 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   createExportOwnedButton();
 
   initCardSettings();
+  initViewportMetrics();
   initSearch();
   initCardInteractions(results, tooltip);
 });

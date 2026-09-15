@@ -2,6 +2,17 @@
   box-sizing: border-box;
 }
 
+/* The default grey flash Android/iOS paint over tapped links, buttons and cards
+   looks especially bad on top of card art; the custom styles already carry
+   their own feedback. */
+a,
+button,
+input,
+label,
+.card {
+  -webkit-tap-highlight-color: transparent;
+}
+
 ::selection {
   background: rgba(212, 175, 55, 0.3);
   color: #fff;
@@ -87,6 +98,14 @@
   --openbtn-size: 42px;
   --openbtn-offset: 10px;
 
+  /* Safe-area insets (notch, rounded corners, home indicator). Non-zero only
+     when the viewport meta opts in with `viewport-fit=cover`; the fallback
+     keeps calc() valid on browsers without env() support. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
   /* Z-indexes */
   --z-index-sidebar-backdrop: 1000;
   --z-index-sidebar: 1010;
@@ -100,6 +119,9 @@
 
 html {
   background-color: var(--surface-0);
+  /* Stops iOS Safari inflating text when a phone is rotated to landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -112,6 +134,7 @@ body {
      repaints the whole gradient on every scroll frame. */
   background-color: transparent;
   min-height: 100vh;
+  min-height: 100dvh; /* tracks the mobile URL bar as it collapses */
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -143,7 +166,9 @@ body.sidebar-open {
 
 @media (max-width: 768px) {
   body {
-    padding: 0.25rem;
+    /* Keep the content clear of notches and the home indicator. */
+    padding: calc(0.25rem + var(--safe-top)) calc(0.25rem + var(--safe-right))
+      calc(0.25rem + var(--safe-bottom)) calc(0.25rem + var(--safe-left));
   }
 
   /* Keep the sidebar (and its close button) on-screen on very narrow phones. */
@@ -976,6 +1001,7 @@ body.images-mode .section {
   overflow: visible;
   object-fit: contain;
   max-height: 90vh;
+  max-height: 90dvh; /* the URL bar does not clip the card art */
   max-width: 95vw;
 
   /* Animation */
@@ -1001,10 +1027,20 @@ body.images-mode .section {
     height: fit-content;
     max-width: 94vw;
     max-height: 92vh;
+    max-height: 92dvh;
+    /* Clear the notch and home indicator when a phone is held sideways. */
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
     overflow: auto;
+    overscroll-behavior: contain; /* don't scroll the grid behind the dialog */
     -webkit-overflow-scrolling: touch;
     pointer-events: auto;
   }
+}
+
+/* Swipe-to-dismiss turns off the show/hide transition while the finger is
+   down, so the dialog tracks the gesture instead of lagging behind it. */
+.tooltip.mobile.dragging {
+  transition: none;
 }
 
 .tooltip-backdrop {
@@ -1025,6 +1061,7 @@ body.images-mode .section {
 /* Stop the page scrolling behind the mobile tooltip. */
 body.tooltip-open {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .tooltip img {
@@ -1032,6 +1069,7 @@ body.tooltip-open {
   object-fit: contain;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   max-height: 80vh;
+  max-height: 80dvh;
   width: auto;
   display: block;
   transition: transform 0.15s ease-out;
@@ -1205,7 +1243,7 @@ body.tooltip-open {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 86px;
+  bottom: calc(86px + var(--safe-bottom) + var(--kb-inset, 0px));
   background: var(--surface-glass);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -1337,6 +1375,49 @@ body.tooltip-open {
   box-shadow: var(--shadow-md);
   max-width: min(420px, 90vw);
   font-size: 0.85rem;
+  /* The syntax list is long; never let it run off a short window. */
+  max-height: 70vh;
+  max-height: 70dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 768px) {
+  /* A list this tall cannot hang under a sticky, one-line search bar on a
+     phone, so it becomes a scrollable bottom sheet that also clears the
+     on-screen keyboard (--kb-inset, published by utils/viewport.js). */
+  #search-tooltip {
+    position: fixed;
+    left: 0.5rem;
+    right: 0.5rem;
+    top: auto;
+    bottom: calc(0.5rem + var(--safe-bottom) + var(--kb-inset, 0px));
+    max-width: none;
+    max-height: 60vh;
+    max-height: 60dvh;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-lg);
+    -webkit-overflow-scrolling: touch;
+    z-index: var(--z-index-tooltip);
+  }
+
+  /* Keep the grid from scrolling behind the sheet... */
+  body.search-help-open {
+    overflow: hidden;
+  }
+
+  /* ...and stop a stray tap from toggling a card the sheet is covering. The
+     ::after box is hit-tested, so the tap lands on <body> instead of the tile. */
+  body.search-help-open::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-index-tooltip) - 1);
+    background: rgba(6, 9, 14, 0.6);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
 }
 
 #search-tooltip h4 {
@@ -1351,7 +1432,8 @@ body.tooltip-open {
 #search-input {
   width: 100%;
   max-width: 440px;
-  padding: 10px 40px;
+  /* Right padding clears both the clear (12px) and help (40px) buttons. */
+  padding: 10px 64px 10px 40px;
   border-radius: 999px;
   border: 1px solid var(--border-strong);
   transition:
@@ -1372,7 +1454,7 @@ body.tooltip-open {
 
 @media (max-width: 768px) {
   #search-input {
-    padding: 9px 38px;
+    padding: 9px 58px 9px 38px;
     font-size: 0.9rem;
     border-radius: 999px;
   }
@@ -1416,9 +1498,48 @@ body.tooltip-open {
   border-color: var(--accent);
 }
 
-#clear-search:hover {
+/* Touch devices have no hover, so the syntax list needs an explicit toggle
+   (the input's mouseenter preview below is desktop-only). */
+#search-help {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--muted);
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+#search-help:hover,
+#search-help[aria-expanded='true'] {
   color: var(--text);
   border-color: var(--accent);
+}
+
+#search-help[aria-expanded='true'] {
+  color: var(--accent-strong);
+}
+
+@media (max-width: 768px) {
+  #search-help {
+    right: 38px;
+    width: 20px;
+    height: 20px;
+  }
 }
 
 #owned-counter {
@@ -1579,7 +1700,9 @@ body.tooltip-open {
 
 .binder-header {
   position: sticky;
-  top: 72px;
+  /* Measured toolbar height (utils/viewport.js); the fallback covers the first
+     paint before the module runs. */
+  top: var(--card-settings-height, 72px);
   background-color: var(--surface-glass);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -1627,7 +1750,7 @@ body.tooltip-open {
 
 @media (max-width: 768px) {
   .binder-header {
-    top: 104px; /* Clear the taller mobile settings bar */
+    top: var(--card-settings-height, 104px); /* Clear the taller mobile settings bar */
     padding: 0.5rem; /* Removed left padding */
     background: var(--surface-1);
     backdrop-filter: none;
@@ -1797,6 +1920,7 @@ body.tooltip-open {
   width: 80%;
   max-width: 540px;
   height: 80vh;
+  height: 80dvh; /* keeps the footer of the modal reachable above the URL bar */
   display: flex;
   flex-direction: column;
 }
@@ -2439,6 +2563,7 @@ footer a:focus-visible {
 .list-modal.bulk-modal {
   max-width: 640px;
   height: 86vh;
+  height: 86dvh;
 }
 
 .bulk-modal-header {
@@ -2600,4 +2725,46 @@ footer a:focus-visible {
 .bulk-modal .primary:hover:not(:disabled) {
   background: linear-gradient(160deg, var(--accent-strong), var(--accent));
   border-color: var(--accent-strong);
+}
+
+/* Touch devices latch :hover on the last-tapped element, so hover-only feedback
+   outlives the tap: a card stays lifted and its "missing" veil stays lightened
+   until something else is tapped. Neutralise just those rules. */
+@media (hover: none) {
+  .card:hover {
+    transform: none;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 6px 16px rgba(0, 0, 0, 0.16);
+    z-index: auto;
+  }
+
+  .card:hover .card-toggle {
+    transform: none;
+  }
+
+  .card:not(.owned):hover::before {
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .card:hover .edhrec-rank {
+    opacity: 0;
+  }
+
+  .card:hover .edhrec-link {
+    opacity: 0.7;
+  }
+}
+
+/* Honour the OS "reduce motion" setting: keep state changes instant rather than
+   animating the sidebar, tooltip and card lifts. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

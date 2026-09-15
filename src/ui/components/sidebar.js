@@ -2,14 +2,18 @@ export function initSidebar() {
   const toggleBtn = document.getElementById('openbtn');
   const backdrop = document.getElementById('sidebar-backdrop');
 
+  function setOpen(isOpen) {
+    document.body.classList.toggle('sidebar-open', isOpen);
+    toggleBtn.classList.toggle('is-active', isOpen);
+    toggleBtn.setAttribute('aria-expanded', String(isOpen));
+  }
+
   function closeSidebar() {
-    document.body.classList.remove('sidebar-open');
-    toggleBtn.classList.remove('is-active');
+    setOpen(false);
   }
 
   toggleBtn.addEventListener('click', () => {
-    const isOpen = document.body.classList.toggle('sidebar-open');
-    toggleBtn.classList.toggle('is-active', isOpen);
+    setOpen(!document.body.classList.contains('sidebar-open'));
   });
 
   if (backdrop) {

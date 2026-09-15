@@ -182,17 +182,57 @@ export function initSearch() {
   if (!searchInput) return;
 
   const searchTooltip = document.getElementById('search-tooltip');
+  const searchHelp = document.getElementById('search-help');
   let tooltipTimeout;
+  let openedByHover = false;
+
+  const isHelpOpen = () => searchTooltip?.style.display === 'block';
+
+  function setHelpOpen(open) {
+    if (!searchTooltip) return;
+    searchTooltip.style.display = open ? 'block' : 'none';
+    searchHelp?.setAttribute('aria-expanded', String(open));
+    // Mobile turns the list into a bottom sheet with a tap-eating backdrop.
+    document.body.classList.toggle('search-help-open', open);
+  }
 
   searchInput.addEventListener('mouseenter', () => {
     tooltipTimeout = setTimeout(() => {
-      searchTooltip.style.display = 'block';
+      openedByHover = true;
+      setHelpOpen(true);
     }, 1500);
   });
 
   searchInput.addEventListener('mouseleave', () => {
     clearTimeout(tooltipTimeout);
-    searchTooltip.style.display = 'none';
+    // Retract only the hover preview; a sheet opened via the help button stays
+    // put until it is dismissed explicitly.
+    if (openedByHover) {
+      openedByHover = false;
+      setHelpOpen(false);
+    }
+  });
+
+  searchHelp?.addEventListener('click', (event) => {
+    event.stopPropagation(); // keep the document handler below out of this click
+    clearTimeout(tooltipTimeout);
+    openedByHover = false;
+    setHelpOpen(!isHelpOpen());
+  });
+
+  // Tapping or clicking anywhere else dismisses the sheet.
+  document.addEventListener('click', (event) => {
+    if (isHelpOpen() && !event.target.closest('#search-wrapper')) {
+      openedByHover = false;
+      setHelpOpen(false);
+    }
+  });
+
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && isHelpOpen()) {
+      openedByHover = false;
+      setHelpOpen(false);
+    }
   });
 
   const clearSearchButton = document.getElementById('clear-search');
@@ -244,7 +284,15 @@ export function initSearch() {
     }
   }, 250);
 
-  searchInput.addEventListener('input', debouncedFilter);
+  searchInput.addEventListener('input', () => {
+    // Typing means the user has the syntax figured out; get the sheet out of
+    // the way of the results on a phone.
+    if (isHelpOpen()) {
+      openedByHover = false;
+      setHelpOpen(false);
+    }
+    debouncedFilter();
+  });
 
   clearSearchButton.addEventListener('click', () => {
     searchInput.value = '';

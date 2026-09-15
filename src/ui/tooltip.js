@@ -9,6 +9,9 @@ import { isCardOwned } from '../state/cardState.js';
 let tooltipTimeout;
 let activeTooltip = null;
 
+// Drag further than this (in CSS px) to dismiss the mobile dialog.
+const SWIPE_DISMISS_DISTANCE = 90;
+
 const MOBILE_QUERY = '(max-width: 768px)';
 const HOVER_QUERY = '(hover: hover)';
 
@@ -111,6 +114,63 @@ function createTooltipDetails(card, version) {
   return details;
 }
 
+// ---------------- Swipe to dismiss (mobile) ----------------
+// The full-screen dialog is dismissed by swiping it down; the fade follows the
+// finger so the gesture is discoverable rather than an invisible trap door.
+const swipeBound = new WeakSet();
+let swipe = null;
+
+function resetSwipe() {
+  if (!swipe) return;
+  swipe.tooltip.classList.remove('dragging');
+  swipe.tooltip.style.transform = '';
+  swipe.tooltip.style.opacity = '';
+  swipe = null;
+}
+
+function onSwipeStart(event) {
+  const tooltip = event.currentTarget;
+  const touch = event.touches[0];
+  if (!touch || !tooltip.classList.contains('mobile')) return;
+  swipe = { tooltip, startY: touch.clientY, dy: 0 };
+}
+
+function onSwipeMove(event) {
+  if (!swipe) return;
+  const touch = event.touches[0];
+  if (!touch) return;
+
+  const dy = touch.clientY - swipe.startY;
+  // Upward drags (and drags while the content is scrolled) are scrolling.
+  if (dy <= 0 || swipe.tooltip.scrollTop > 0) {
+    resetSwipe();
+    return;
+  }
+
+  if (event.cancelable) event.preventDefault();
+  swipe.dy = dy;
+  swipe.tooltip.classList.add('dragging');
+  swipe.tooltip.style.transform = `translateY(${dy}px)`;
+  swipe.tooltip.style.opacity = String(Math.max(0.3, 1 - dy / 320));
+}
+
+function onSwipeEnd() {
+  if (!swipe) return;
+  const { tooltip, dy } = swipe;
+  resetSwipe();
+  if (dy > SWIPE_DISMISS_DISTANCE) hideTooltip(tooltip);
+}
+
+function bindSwipeToDismiss(tooltip) {
+  if (swipeBound.has(tooltip)) return;
+  swipeBound.add(tooltip);
+  tooltip.addEventListener('touchstart', onSwipeStart, { passive: true });
+  // Not passive: a downward drag must not also scroll the dialog.
+  tooltip.addEventListener('touchmove', onSwipeMove, { passive: false });
+  tooltip.addEventListener('touchend', onSwipeEnd);
+  tooltip.addEventListener('touchcancel', onSwipeEnd);
+}
+
 // ---------------- Show Tooltip ----------------
 export function showTooltip(e, card, tooltip) {
   if (!cardSettings.showTooltip) {
@@ -128,6 +188,7 @@ export function showTooltip(e, card, tooltip) {
   if (mobile) {
     tooltip.style.left = '';
     tooltip.style.top = '';
+    bindSwipeToDismiss(tooltip);
     getBackdrop().classList.add('visible');
     document.body.classList.add('tooltip-open');
   }
@@ -245,6 +306,7 @@ function finishTooltip(images, tooltip, event) {
 // ---------------- Hide Tooltip ----------------
 export function hideTooltip(tooltip) {
   clearTimeout(tooltipTimeout);
+  if (swipe && swipe.tooltip === tooltip) resetSwipe();
   tooltip.classList.remove('show');
   tooltip.classList.remove('mobile');
   tooltip.style.display = 'none';

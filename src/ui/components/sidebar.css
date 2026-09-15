@@ -11,8 +11,11 @@
   overflow-x: hidden;
   overflow-y: auto;
   transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-  padding: 84px 0 24px;
+  /* Keep the top links below the status bar and the last item above the home
+     indicator (both insets are 0px without `viewport-fit=cover`). */
+  padding: calc(84px + var(--safe-top)) 0 calc(24px + var(--safe-bottom));
   transform: translateX(-100%);
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   scrollbar-width: thin;
@@ -93,8 +96,8 @@ body.sidebar-open .sidebar {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   position: fixed;
-  top: var(--openbtn-offset);
-  left: var(--openbtn-offset);
+  top: calc(var(--openbtn-offset) + var(--safe-top));
+  left: calc(var(--openbtn-offset) + var(--safe-left));
   z-index: var(--z-index-hamburger);
   transition:
     transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
@@ -223,4 +226,13 @@ body.sidebar-open #sidebar-backdrop {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* Touch screens latch :hover on the last-tapped item, which leaves sidebar
+   links stuck in their shifted state. */
+@media (hover: none) {
+  .sidebar a:hover,
+  .sidebar button:hover {
+    transform: none;
+  }
 }
