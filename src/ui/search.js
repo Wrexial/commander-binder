@@ -1,6 +1,7 @@
 import { appState } from '../state/appState.js';
 import { debounce } from '../utils/debounce.js';
 import { isHoverCapable } from '../utils/pointer.js';
+import { renderSearchHelp } from './searchHelp.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned } from '../state/cardState.js';
 
@@ -184,6 +185,7 @@ export function initSearch() {
 
   const searchTooltip = document.getElementById('search-tooltip');
   const searchHelp = document.getElementById('search-help');
+  if (searchTooltip) renderSearchHelp(searchTooltip);
   let tooltipTimeout;
   let openedByHover = false;
 
@@ -197,19 +199,22 @@ export function initSearch() {
     document.body.classList.toggle('search-help-open', open);
   }
 
-  // Desktop convenience: hovering the field reveals the syntax list. Touch has
-  // no hover phase — the `?` button is the explicit path there — so these
-  // listeners are not bound at all on touch, which also stops the sheet from
-  // popping up on its own after a tap on the field.
+  // Desktop convenience: hovering the search field (or the panel itself, which
+  // lives in the same wrapper) reveals the syntax list, so it can be scrolled
+  // without the pointer leaving it. Touch has no hover phase — the `?` button is
+  // the explicit path there — so these listeners are not bound at all on touch,
+  // which also stops the sheet from popping up on its own after a tap.
+  const hoverArea = document.getElementById('search-wrapper') ?? searchInput;
+
   if (isHoverCapable()) {
-    searchInput.addEventListener('mouseenter', () => {
+    hoverArea.addEventListener('mouseenter', () => {
       tooltipTimeout = setTimeout(() => {
         openedByHover = true;
         setHelpOpen(true);
       }, 1500);
     });
 
-    searchInput.addEventListener('mouseleave', () => {
+    hoverArea.addEventListener('mouseleave', () => {
       clearTimeout(tooltipTimeout);
       // Retract only the hover preview; a sheet opened via the help button stays
       // put until it is dismissed explicitly.

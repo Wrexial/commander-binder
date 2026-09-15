@@ -1313,14 +1313,14 @@ body.tooltip-open {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
+  width: min(460px, 92vw);
+  padding: 14px 16px;
   background-color: var(--surface-2);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
   z-index: 1001;
   color: var(--text);
-  box-shadow: var(--shadow-md);
-  max-width: min(420px, 90vw);
   font-size: 0.85rem;
   /* The syntax list is long; never let it run off a short window. */
   max-height: 70vh;
@@ -1338,6 +1338,7 @@ body.tooltip-open {
     left: 0.5rem;
     right: 0.5rem;
     top: auto;
+    width: auto;
     bottom: calc(0.5rem + var(--safe-bottom) + var(--kb-inset, 0px));
     max-width: none;
     max-height: 60vh;
@@ -1347,6 +1348,25 @@ body.tooltip-open {
     box-shadow: var(--shadow-lg);
     -webkit-overflow-scrolling: touch;
     z-index: var(--z-index-tooltip);
+  }
+
+  #search-tooltip .search-help-group-title {
+    /* Keep the group name in view while the sheet scrolls. The negative offset
+       cancels the sheet's top padding so it pins flush to the edge. */
+    position: sticky;
+    top: -14px;
+    margin: 0 0 6px;
+    padding: 8px 0 4px;
+    background: var(--surface-2);
+  }
+
+  #search-tooltip .search-help-row {
+    gap: 8px;
+    padding: 2px 0;
+  }
+
+  #search-tooltip .search-help-footer {
+    display: block;
   }
 
   /* Keep the grid from scrolling behind the sheet... */
@@ -1375,13 +1395,105 @@ body.tooltip-open {
   }
 }
 
-#search-tooltip h4 {
-  margin-top: 0;
+/* --- Search help contents --- */
+
+.search-help-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
 }
 
-#search-tooltip ul {
+.search-help-title {
   margin: 0;
-  padding-left: 20px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-strong);
+}
+
+.search-help-hint {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.search-help-group + .search-help-group {
+  margin-top: 12px;
+}
+
+.search-help-group-title {
+  margin: 0 0 6px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.search-help-rows {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.search-help-row {
+  display: grid;
+  /* Fixed first column so every key lines up down the sheet. */
+  grid-template-columns: 4.5rem 1fr;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.search-help-key,
+.search-help-example,
+.search-help-inline {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.search-help-key {
+  justify-self: start;
+  padding: 1px 6px;
+  font-size: 0.78rem;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+}
+
+.search-help-label {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.search-help-example {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+}
+
+.search-help-inline {
+  padding: 0 4px;
+  font-size: 0.76rem;
+  color: var(--text);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+}
+
+.search-help-footer {
+  display: none;
+  margin: 14px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 #search-input {

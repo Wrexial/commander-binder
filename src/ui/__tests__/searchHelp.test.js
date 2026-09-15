@@ -1,6 +1,11 @@
 // src/ui/__tests__/searchHelp.test.js
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initSearch } from '../search.js';
+import { initSearch, parseQuery } from '../search.js';
+import {
+  renderSearchHelp,
+  SEARCH_SYNTAX_GROUPS,
+  SUPPORTED_FILTER_PREFIXES,
+} from '../searchHelp.js';
 
 vi.mock('../../state/appState.js', () => ({
   appState: { seenSetCodes: new Set() },
@@ -46,6 +51,7 @@ describe('search syntax help', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
     document.body.innerHTML = '';
   });
 
@@ -96,5 +102,92 @@ describe('search syntax help', () => {
     input.dispatchEvent(new Event('input', { bubbles: true }));
 
     expect(tooltip.style.display).toBe('none');
+  });
+
+  it('renders the syntax reference into the sheet', () => {
+    expect(tooltip.querySelectorAll('.search-help-group').length).toBe(SEARCH_SYNTAX_GROUPS.length);
+    expect(tooltip.textContent).toContain('Search syntax');
+    expect(tooltip.textContent).toContain('is:owned');
+  });
+
+  it('previews the reference on hover and retracts it on leave', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {} }));
+    initSearch();
+
+    const wrapper = document.getElementById('search-wrapper');
+    wrapper.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(tooltip.style.display).not.toBe('block');
+
+    vi.advanceTimersByTime(1600);
+    expect(tooltip.style.display).toBe('block');
+
+    wrapper.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+    expect(tooltip.style.display).toBe('none');
+  });
+});
+
+describe('search help content', () => {
+  function leavesOf(condition) {
+    if (condition.type === 'and' || condition.type === 'or') {
+      return [...leavesOf(condition.left), ...leavesOf(condition.right)];
+    }
+    return [condition.value];
+  }
+
+  it('documents every filter the parser understands', () => {
+    const documented = SEARCH_SYNTAX_GROUPS.flatMap((group) => group.entries).map(
+      (entry) => entry.key
+    );
+
+    for (const key of ['t:', 'o:', 'c:', 'c>', 'c<', 's:', 'd:', 'r:', 'is:', 'price:']) {
+      expect(documented, `${key} is undocumented`).toContain(key);
+    }
+    for (const operator of ['!', 'and', 'or', '( )']) {
+      expect(documented, `${operator} is undocumented`).toContain(operator);
+    }
+  });
+
+  it('documents nothing the parser rejects', () => {
+    const operators = ['!', 'and', 'or', '( )'];
+
+    for (const group of SEARCH_SYNTAX_GROUPS) {
+      for (const entry of group.entries) {
+        const known =
+          operators.includes(entry.key) || SUPPORTED_FILTER_PREFIXES.includes(entry.key);
+        expect(known, `unknown syntax key “${entry.key}”`).toBe(true);
+      }
+    }
+  });
+
+  it('only shows examples the parser can turn into filters', () => {
+    for (const group of SEARCH_SYNTAX_GROUPS) {
+      for (const entry of group.entries) {
+        const conditions = parseQuery(entry.example);
+        expect(conditions.length, `“${entry.example}” parsed to nothing`).toBeGreaterThan(0);
+
+        for (const value of conditions.flatMap(leavesOf)) {
+          const bare = value.replace(/^!/, '');
+          const prefix = bare.includes(':') ? `${bare.split(':')[0]}:` : null;
+          expect(
+            prefix === null || SUPPORTED_FILTER_PREFIXES.includes(prefix),
+            `“${entry.example}” uses unsupported ${prefix}`
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('gives every row a key, a label and an example', () => {
+    const container = document.createElement('div');
+    renderSearchHelp(container);
+
+    const rows = container.querySelectorAll('.search-help-row');
+    const expected = SEARCH_SYNTAX_GROUPS.flatMap((group) => group.entries).length;
+    expect(rows.length).toBe(expected);
+
+    for (const row of rows) {
+      expect(row.querySelector('.search-help-key').textContent).not.toBe('');
+      expect(row.querySelector('.search-help-label').textContent.trim()).not.toBe('');
+    }
   });
 });

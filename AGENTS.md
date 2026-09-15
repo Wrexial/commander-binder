@@ -61,11 +61,13 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
   store. `mainState.js` holds session state so `cardState.js` can read it without
   importing `main.js` (avoids a cycle).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
-  `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`, `tooltip`,
-  `cardInteractions`), including `components/` (the shared modal shell `modal.js`,
-  the bulk/export modals, `sidebar`, `toast`, `ownedCounter`, `SignInButton`,
-  `GuestModeText`) and their colocated CSS. `cardFeed.js` owns the
-  fetch→render pagination loop and is the only place that drives rendering.
+  `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
+  `tooltip`, `cardInteractions`), including `components/` (the shared modal shell
+  `modal.js`, the bulk/export modals, `sidebar`, `toast`, `ownedCounter`,
+  `SignInButton`, `GuestModeText`) and their colocated CSS. `searchHelp.js` owns
+  the syntax reference as data (rendered into `#search-tooltip`), so the docs and
+  `parseQuery` cannot drift apart. `cardFeed.js` owns the fetch→render pagination
+  loop and is the only place that drives rendering.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`). `idb.js` is the
   shared IndexedDB wrapper used by `responseCache.js` and `bulkData.js`;
