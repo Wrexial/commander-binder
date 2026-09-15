@@ -1334,6 +1334,14 @@ body.tooltip-open {
     -webkit-backdrop-filter: blur(2px);
     backdrop-filter: blur(2px);
   }
+
+  /* The sheet is nested inside the sticky toolbar, whose `z-index: 10` makes a
+     stacking context of its own. Without lifting the toolbar, the backdrop
+     above would paint over the whole bar — dimming and blurring the help text
+     instead of just the page behind it. */
+  body.search-help-open #card-settings {
+    z-index: var(--z-index-tooltip);
+  }
 }
 
 #search-tooltip h4 {
