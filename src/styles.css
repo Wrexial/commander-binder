@@ -955,8 +955,39 @@ body.images-mode .section {
 
 /* Swipe-to-dismiss turns off the show/hide transition while the finger is
    down, so the dialog tracks the gesture instead of lagging behind it. */
+/* Swipe-to-dismiss turns off the show/hide transition while the finger is
+   down, so the dialog tracks the gesture instead of lagging behind it. */
 .tooltip.mobile.dragging {
   transition: none;
+}
+
+/* Explicit close control for the full-screen dialog. The dimmed edge around a
+   centred dialog is a thin target on a phone, so the dialog carries its own. */
+.tooltip.mobile .tooltip-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--text);
+  background: var(--surface-glass);
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+
+.tooltip.mobile .tooltip-close:active {
+  background: var(--surface-3);
+  border-color: var(--accent);
 }
 
 .tooltip-backdrop {
@@ -2633,6 +2664,13 @@ footer a:focus-visible {
 
   .card:hover .edhrec-link {
     opacity: 0.7;
+  }
+
+  /* A tapped set-name bubble accepts the tap itself, so dismissing it cannot
+     press the header or card it covers. Pointer devices keep it
+     click-through, so the pointer is free to leave the chip. */
+  .set-tooltip {
+    pointer-events: auto;
   }
 }
 

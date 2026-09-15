@@ -1,5 +1,10 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { showTooltip, hideTooltip, positionTooltip } from '../ui/tooltip.js';
+import {
+  showTooltip,
+  hideTooltip,
+  positionTooltip,
+  isTooltipGestureActive,
+} from '../ui/tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
@@ -220,6 +225,37 @@ describe('tooltip', () => {
       expect(document.body.classList.contains('tooltip-open')).toBe(false);
     });
 
+    it('offers an explicit close button', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      const closeButton = tooltip.querySelector('.tooltip-close');
+      expect(closeButton).not.toBeNull();
+      expect(closeButton.getAttribute('aria-label')).toBe('Close card preview');
+
+      closeButton.click();
+
+      expect(tooltip.style.display).toBe('none');
+      expect(document.body.classList.contains('tooltip-open')).toBe(false);
+    });
+
+    it('keeps a one-tap-away grid click from becoming a card tap', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      // Open: the tap belongs to the dialog.
+      expect(isTooltipGestureActive()).toBe(true);
+
+      hideTooltip(tooltip);
+
+      // Dismissed by this same gesture: the trailing click is still the
+      // dialog's, not the tile's.
+      expect(isTooltipGestureActive()).toBe(true);
+
+      vi.advanceTimersByTime(500);
+      expect(isTooltipGestureActive()).toBe(false);
+    });
+
     describe('swipe to dismiss', () => {
       // jsdom has no TouchEvent, so build a plain event carrying `touches`.
       function touch(type, clientY, { cancelable = true } = {}) {
@@ -270,6 +306,31 @@ describe('tooltip', () => {
         expect(tooltip.style.display).toBe('flex');
         expect(tooltip.classList.contains('dragging')).toBe(false);
       });
+    });
+  });
+
+  describe('dismissing a desktop-style tooltip on touch', () => {
+    it('hides on a tap outside and swallows the trailing click', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      // Wide touch screens get the floating tooltip, not the full-screen dialog.
+      expect(tooltip.classList.contains('mobile')).toBe(false);
+      expect(tooltip.style.display).toBe('flex');
+
+      document.body.dispatchEvent(new Event('touchstart', { bubbles: true }));
+
+      expect(tooltip.style.display).toBe('none');
+      expect(isTooltipGestureActive()).toBe(true);
+    });
+
+    it('ignores a tap that lands on the tooltip itself', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      tooltip.dispatchEvent(new Event('touchstart', { bubbles: true }));
+
+      expect(tooltip.style.display).toBe('flex');
     });
   });
 

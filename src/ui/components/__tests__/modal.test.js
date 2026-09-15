@@ -43,4 +43,24 @@ describe('createModal', () => {
     document.querySelector('.list-modal-backdrop').click();
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();
   });
+
+  it('ignores the backdrop click produced by a drag that began inside the dialog', () => {
+    const { modal } = createModal({});
+
+    // Press inside the dialog (scrolling its content), release on the backdrop.
+    modal.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    document.querySelector('.list-modal-backdrop').click();
+
+    expect(document.querySelector('.list-modal-backdrop')).not.toBeNull();
+  });
+
+  it('closes on the next backdrop tap once the drag-click has been swallowed', () => {
+    const { modal } = createModal({});
+
+    modal.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    document.querySelector('.list-modal-backdrop').click();
+    document.querySelector('.list-modal-backdrop').click();
+
+    expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
 });

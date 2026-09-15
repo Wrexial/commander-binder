@@ -1,5 +1,5 @@
 // src/ui/cardInteractions.js
-import { showTooltip } from './tooltip.js';
+import { showTooltip, isTooltipGestureActive } from './tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
@@ -29,10 +29,15 @@ function getState(el) {
 
 let touchTimer;
 let touchStartX, touchStartY;
+// True between touchstart and touchend: some browsers fire `contextmenu` partway
+// through a long press, and that must not also cycle the printing.
+let touchSequenceActive = false;
+
 function handleTouchStart(event, tooltip) {
   const cardElement = event.target.closest('.card');
   if (!cardElement) return;
 
+  touchSequenceActive = true;
   touchStartX = event.touches[0].clientX;
   touchStartY = event.touches[0].clientY;
 
@@ -70,6 +75,8 @@ function handleTouchMove(event) {
 
 function handleTouchEnd(event) {
   clearTimeout(touchTimer);
+  touchSequenceActive = false;
+
   const cardElement = event.target.closest('.card');
   if (!cardElement) return;
 
@@ -81,16 +88,16 @@ function handleTouchEnd(event) {
   }
 }
 
-async function handleContainerClick(event, tooltip) {
+async function handleContainerClick(event) {
   const cardElement = event.target.closest('.card');
   // Ignore clicks if they aren't on a card, are on the EDHREC link, or in view-only mode
   if (!cardElement || event.target.closest('.edhrec-link') || appState.isViewOnlyMode) {
     return;
   }
 
-  // The full-screen mobile tooltip is open: the tap that dismissed (or opened)
-  // it must not also mark the card owned.
-  if (tooltip && tooltip.classList.contains('mobile')) return;
+  // A tap that opened or dismissed the full-screen preview must not also mark
+  // the card owned — one tap, one action.
+  if (isTooltipGestureActive()) return;
 
   const card = cardElement.cardData;
   if (!card) return;
@@ -163,16 +170,25 @@ function handleContextMenu(event, tooltip) {
   if (!cardElement) return;
 
   event.preventDefault();
+
+  // A long press already belongs to the preview: on touch, the browser's
+  // contextmenu fires mid-press, and on a phone the dialog is either opening or
+  // already open. One gesture, one action.
+  if (touchSequenceActive || isTooltipGestureActive()) return;
+
   cycleCardPrinting(cardElement, event, tooltip);
 }
 
 // --- Main Initialization ---
 
 export function initCardInteractions(container, tooltip) {
-  container.addEventListener('click', (e) => handleContainerClick(e, tooltip));
+  container.addEventListener('click', handleContainerClick);
   container.addEventListener('contextmenu', (e) => handleContextMenu(e, tooltip));
 
   container.addEventListener('touchstart', (e) => handleTouchStart(e, tooltip), { passive: true });
   container.addEventListener('touchmove', handleTouchMove, { passive: true });
   container.addEventListener('touchend', handleTouchEnd);
+  // A cancelled touch (system gesture, incoming call) must still clear the flag
+  // above and drop the pending long-press.
+  container.addEventListener('touchcancel', handleTouchEnd);
 }

@@ -1,30 +1,121 @@
 import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
 import { appState } from '../state/appState.js';
 import { positionTooltip } from './tooltip.js';
+import { isHoverCapable } from '../utils/pointer.js';
 import { isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
 import { createExportModal } from './components/exportModal.js';
 
+/** Long-press duration that distinguishes it from a tap. */
+const LONG_PRESS_MS = 500;
+
+/** How long the tapped set-name bubble stays up before fading out. */
+const SET_TOOLTIP_TIMEOUT_MS = 2500;
+
 /**
- * Fire `handler` after a 500ms touch long-press, cancelling on movement or
- * release. Also suppresses the context menu so a long-press can't open it.
+ * Wire the tap and long-press actions of a collapsible header. Exactly one of
+ * them runs per gesture: a long press swallows the click that follows it, which
+ * would otherwise toggle the header straight back.
+ *
  * @param {HTMLElement} element
- * @param {() => void} handler
+ * @param {(event: Event) => void} onTap
+ * @param {() => void} onLongPress
  */
-function attachLongPress(element, handler) {
+function attachTapAndLongPress(element, onTap, onLongPress) {
   let timer;
+  let longPressed = false;
+
+  const cancel = () => clearTimeout(timer);
+
   element.addEventListener(
     'touchstart',
     () => {
-      timer = setTimeout(handler, 500);
+      longPressed = false;
+      timer = setTimeout(() => {
+        longPressed = true;
+        onLongPress();
+      }, LONG_PRESS_MS);
     },
     { passive: true }
   );
-  element.addEventListener('touchend', () => clearTimeout(timer));
-  element.addEventListener('touchmove', () => clearTimeout(timer));
+  element.addEventListener('touchend', cancel);
+  element.addEventListener('touchmove', cancel);
+  // A long press must not also open the native context menu.
   element.addEventListener('contextmenu', (event) => event.preventDefault());
+
+  element.addEventListener('click', (event) => {
+    if (longPressed) {
+      longPressed = false;
+      event.stopPropagation();
+      event.preventDefault();
+      return;
+    }
+    onTap(event);
+  });
+}
+
+let setTooltipTimer;
+let setTooltipDismissalBound = false;
+
+/** Hide the set-name bubble (and cancel its auto-hide). */
+function hideSetTooltip() {
+  clearTimeout(setTooltipTimer);
+  const setTooltip = document.getElementById('set-tooltip');
+  if (!setTooltip) return;
+  setTooltip.textContent = '';
+  setTooltip.style.display = 'none';
+}
+
+/**
+ * Show the set's full name next to a tapped/hovered set code.
+ *
+ * @param {HTMLElement} chip
+ * @param {string} name
+ * @param {boolean} autoHide used for taps, which have no matching "leave"
+ */
+function showSetTooltip(chip, name, autoHide) {
+  const setTooltip = document.getElementById('set-tooltip');
+  if (!setTooltip) return;
+
+  clearTimeout(setTooltipTimer);
+  setTooltip.textContent = name;
+  setTooltip.style.display = 'block';
+
+  // Anchor to the chip rather than the pointer, so a tap lands where the finger
+  // already is instead of where the synthesized mouse event points.
+  const rect = chip.getBoundingClientRect();
+  positionTooltip({ clientX: rect.left + rect.width / 2, clientY: rect.top }, setTooltip);
+
+  if (autoHide) setTooltipTimer = setTimeout(hideSetTooltip, SET_TOOLTIP_TIMEOUT_MS);
+}
+
+/** Dismiss a tapped bubble on the next tap or scroll (bound once). */
+function bindSetTooltipDismissal() {
+  if (setTooltipDismissalBound) return;
+  setTooltipDismissalBound = true;
+
+  document.addEventListener(
+    'touchstart',
+    (event) => {
+      // Tap on the bubble: let the click below close it, so the press is not
+      // also seen as a press on whatever the bubble is covering.
+      if (event.target.closest?.('#set-tooltip')) return;
+      hideSetTooltip();
+    },
+    { passive: true }
+  );
+
+  // On touch the bubble accepts the tap (see the stylesheet), and it is not a
+  // descendant of the header or card behind it, so this is the whole action.
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest?.('#set-tooltip')) return;
+    event.stopPropagation();
+    hideSetTooltip();
+  });
+
+  window.addEventListener('scroll', hideSetTooltip, { passive: true });
 }
 
 export function createBulkAddButton(onClick) {
@@ -112,8 +203,7 @@ export function startNewBinder(results) {
     binder.classList.toggle('collapsed', shouldCollapseAll);
   }
 
-  header.addEventListener('click', handleInteraction);
-  attachLongPress(header, () => toggleAllSections(newBinder));
+  attachTapAndLongPress(header, handleInteraction, () => toggleAllSections(newBinder));
 
   newBinder.appendChild(header);
   results.appendChild(newBinder);
@@ -143,28 +233,39 @@ export function startNewSection(pageSets = new Map()) {
   header.className = 'page-header';
   header.textContent = `Page ${pageNumberInBinder} — `;
 
-  header.addEventListener('click', () => {
-    section.classList.toggle('collapsed');
-  });
-  attachLongPress(header, () => section.classList.toggle('collapsed'));
+  const toggleSection = () => section.classList.toggle('collapsed');
+  attachTapAndLongPress(header, toggleSection, toggleSection);
 
-  const setTooltip = document.getElementById('set-tooltip');
+  bindSetTooltipDismissal();
 
   const setCodes = Array.from(pageSets.entries()).map(([setCode, setObj]) => {
     const span = document.createElement('span');
     span.textContent = setCode.toUpperCase();
     span.style.cursor = 'help';
 
-    // Custom tooltip events
-    span.addEventListener('mouseenter', (e) => {
-      setTooltip.textContent = setObj.name;
-      setTooltip.style.display = 'block';
-      positionTooltip(e, setTooltip);
+    // Pointer devices get a hover preview; touch gets the same bubble from a
+    // single tap, which is swallowed so the section does not also collapse.
+    span.addEventListener('mouseenter', (event) => {
+      if (!isHoverCapable()) return;
+      showSetTooltip(span, setObj.name, false);
+      const setTooltip = document.getElementById('set-tooltip');
+      if (setTooltip) positionTooltip(event, setTooltip);
     });
-    span.addEventListener('mousemove', (e) => positionTooltip(e, setTooltip));
+    span.addEventListener('mousemove', (event) => {
+      if (!isHoverCapable()) return;
+      const setTooltip = document.getElementById('set-tooltip');
+      if (setTooltip?.style.display === 'block') positionTooltip(event, setTooltip);
+    });
     span.addEventListener('mouseleave', () => {
-      setTooltip.textContent = '';
-      setTooltip.style.display = 'none';
+      if (!isHoverCapable()) return;
+      hideSetTooltip();
+    });
+
+    span.addEventListener('click', (event) => {
+      if (isHoverCapable()) return;
+      event.stopPropagation();
+      event.preventDefault();
+      showSetTooltip(span, setObj.name, true);
     });
 
     return span;

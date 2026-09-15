@@ -1,5 +1,6 @@
 import { appState } from '../state/appState.js';
 import { debounce } from '../utils/debounce.js';
+import { isHoverCapable } from '../utils/pointer.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned } from '../state/cardState.js';
 
@@ -196,22 +197,28 @@ export function initSearch() {
     document.body.classList.toggle('search-help-open', open);
   }
 
-  searchInput.addEventListener('mouseenter', () => {
-    tooltipTimeout = setTimeout(() => {
-      openedByHover = true;
-      setHelpOpen(true);
-    }, 1500);
-  });
+  // Desktop convenience: hovering the field reveals the syntax list. Touch has
+  // no hover phase — the `?` button is the explicit path there — so these
+  // listeners are not bound at all on touch, which also stops the sheet from
+  // popping up on its own after a tap on the field.
+  if (isHoverCapable()) {
+    searchInput.addEventListener('mouseenter', () => {
+      tooltipTimeout = setTimeout(() => {
+        openedByHover = true;
+        setHelpOpen(true);
+      }, 1500);
+    });
 
-  searchInput.addEventListener('mouseleave', () => {
-    clearTimeout(tooltipTimeout);
-    // Retract only the hover preview; a sheet opened via the help button stays
-    // put until it is dismissed explicitly.
-    if (openedByHover) {
-      openedByHover = false;
-      setHelpOpen(false);
-    }
-  });
+    searchInput.addEventListener('mouseleave', () => {
+      clearTimeout(tooltipTimeout);
+      // Retract only the hover preview; a sheet opened via the help button stays
+      // put until it is dismissed explicitly.
+      if (openedByHover) {
+        openedByHover = false;
+        setHelpOpen(false);
+      }
+    });
+  }
 
   searchHelp?.addEventListener('click', (event) => {
     event.stopPropagation(); // keep the document handler below out of this click

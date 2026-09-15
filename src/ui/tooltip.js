@@ -2,6 +2,7 @@
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
 import { getDisplayedPrice } from '../utils/prices.js';
+import { isHoverCapable } from '../utils/pointer.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 import { isCardOwned } from '../state/cardState.js';
@@ -12,8 +13,12 @@ let activeTooltip = null;
 // Drag further than this (in CSS px) to dismiss the mobile dialog.
 const SWIPE_DISMISS_DISTANCE = 90;
 
+// How long a dismissing tap keeps the grid from treating the trailing
+// synthesized click as a card tap of its own.
+const DISMISS_CLICK_GRACE_MS = 400;
+let lastDismissAt = 0;
+
 const MOBILE_QUERY = '(max-width: 768px)';
-const HOVER_QUERY = '(hover: hover)';
 
 /** True on the phone layout, where the tooltip is shown full-screen. */
 function isMobileLayout() {
@@ -21,12 +26,14 @@ function isMobileLayout() {
 }
 
 /**
- * True when the device has a real pointer, i.e. a right-click exists. Touch
- * devices synthesize mouse events, so the hover media query is the reliable
- * way to tell whether the "right-click" wording makes sense.
+ * True while a tap belongs to the preview rather than the grid: the dialog is
+ * open, or it was dismissed by the gesture that is still finishing. Callers use
+ * it to swallow the trailing click, so one tap never does two things.
+ *
+ * @returns {boolean}
  */
-function isHoverCapable() {
-  return typeof window.matchMedia === 'function' && window.matchMedia(HOVER_QUERY).matches;
+export function isTooltipGestureActive() {
+  return activeTooltip !== null || Date.now() - lastDismissAt < DISMISS_CLICK_GRACE_MS;
 }
 
 /** Full-screen tap-catcher shown behind the mobile tooltip. */
@@ -114,6 +121,25 @@ function createTooltipDetails(card, version) {
   return details;
 }
 
+/**
+ * Explicit close control for the full-screen dialog: the dimmed edge around a
+ * centred dialog is a thin, unreliable target on a phone.
+ * @param {HTMLElement} tooltip
+ * @returns {HTMLButtonElement}
+ */
+function createCloseButton(tooltip) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'tooltip-close';
+  button.setAttribute('aria-label', 'Close card preview');
+  button.innerHTML = '&times;';
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    hideTooltip(tooltip);
+  });
+  return button;
+}
+
 // ---------------- Swipe to dismiss (mobile) ----------------
 // The full-screen dialog is dismissed by swiping it down; the fade follows the
 // finger so the gesture is discoverable rather than an invisible trap door.
@@ -195,6 +221,8 @@ export function showTooltip(e, card, tooltip) {
 
   tooltipTimeout = setTimeout(() => {
     tooltip.innerHTML = ''; // Clear existing content
+
+    if (mobile) tooltip.appendChild(createCloseButton(tooltip));
 
     const imageContainer = document.createElement('div');
     imageContainer.className = 'tooltip-image-container';
@@ -307,6 +335,9 @@ function finishTooltip(images, tooltip, event) {
 export function hideTooltip(tooltip) {
   clearTimeout(tooltipTimeout);
   if (swipe && swipe.tooltip === tooltip) resetSwipe();
+  // Arm the click guard before the class below disappears, so the tap that
+  // dismissed the dialog cannot fall through to the card underneath.
+  if (tooltip.classList.contains('mobile')) lastDismissAt = Date.now();
   tooltip.classList.remove('show');
   tooltip.classList.remove('mobile');
   tooltip.style.display = 'none';
@@ -371,12 +402,18 @@ window.addEventListener(
   { passive: true }
 );
 
+// The full-screen dialog dismisses itself through its backdrop and close button.
+// A desktop-style tooltip — which is what wide touch screens get — has neither,
+// so it is dismissed by the next tap outside it. The guard keeps that same tap
+// from also toggling the card underneath.
 window.addEventListener(
   'touchstart',
   (e) => {
-    if (activeTooltip && !activeTooltip.contains(e.target)) {
-      hideTooltip(activeTooltip);
-    }
+    if (!activeTooltip || activeTooltip.classList.contains('mobile')) return;
+    if (activeTooltip.contains(e.target)) return;
+
+    lastDismissAt = Date.now();
+    hideTooltip(activeTooltip);
   },
   { passive: true }
 );

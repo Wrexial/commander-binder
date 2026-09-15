@@ -61,6 +61,18 @@ describe('sidebar', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it('closes the menu when an action is chosen', () => {
+    initSidebar();
+    document.getElementById('openbtn').click();
+    expect(document.body.classList.contains('sidebar-open')).toBe(true);
+
+    addButtonToSidebar('Show Statistics', vi.fn());
+    document.querySelector('#sidebar button').click();
+
+    expect(document.body.classList.contains('sidebar-open')).toBe(false);
+    expect(document.getElementById('openbtn').getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('does nothing when the sidebar is missing', () => {
     document.getElementById('sidebar').remove();
 

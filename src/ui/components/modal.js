@@ -20,6 +20,9 @@ export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
   if (ariaLabel) modal.setAttribute('aria-label', ariaLabel);
 
   let closed = false;
+  // A drag that starts inside the dialog and ends on the backdrop produces a
+  // click on the backdrop; that is a scroll, not a dismissal.
+  let pressStartedInside = false;
 
   function close() {
     if (closed) return;
@@ -33,8 +36,17 @@ export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
     if (event.key === 'Escape') close();
   }
 
+  modal.addEventListener('pointerdown', () => {
+    pressStartedInside = true;
+  });
+
   backdrop.addEventListener('click', (event) => {
-    if (event.target === backdrop) close();
+    if (event.target !== backdrop) return;
+    if (pressStartedInside) {
+      pressStartedInside = false;
+      return;
+    }
+    close();
   });
   document.addEventListener('keydown', handleKeyDown);
 

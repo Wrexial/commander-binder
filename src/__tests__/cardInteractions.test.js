@@ -54,6 +54,7 @@ describe('initCardInteractions', () => {
     cardState.toggleCardOwned.mockResolvedValue(true); // Assume it becomes owned
     cardState.isCardOwned.mockReturnValue(false); // Assume it was not owned before click
     cardStore.getPrintings.mockReturnValue([]);
+    tooltip.isTooltipGestureActive.mockReturnValue(false);
   });
 
   describe('Card tooltip (touch only)', () => {
@@ -117,6 +118,40 @@ describe('initCardInteractions', () => {
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
 
+    it('does not cycle the printing when a long press fires contextmenu', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      initCardInteractions(container, tooltipElement);
+      startTouch(cardElement);
+
+      // Browsers fire this partway through a long press, before touchend.
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      cardElement.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(cardElement.cardData.id).toBe('p1');
+
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
+    it('cycles again once the touch sequence has finished', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      initCardInteractions(container, tooltipElement);
+      startTouch(cardElement);
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+
+      cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+      expect(cardElement.cardData.id).toBe('p2');
+    });
+
     it('cycles the printing on right-click without opening the tooltip', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
@@ -157,12 +192,20 @@ describe('initCardInteractions', () => {
       expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
 
-    it('should not toggle ownership while the mobile tooltip is open', async () => {
-      tooltipElement.classList.add('mobile');
+    it('should not toggle ownership while a tooltip gesture is active', async () => {
+      tooltip.isTooltipGestureActive.mockReturnValue(true);
       initCardInteractions(container, tooltipElement);
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+    });
+
+    it('should toggle ownership once the tooltip gesture has settled', async () => {
+      tooltip.isTooltipGestureActive.mockReturnValue(false);
+      initCardInteractions(container, tooltipElement);
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(cardState.toggleCardOwned).toHaveBeenCalledTimes(1);
     });
 
     it('should not toggle ownership when clicking on edhrec link', async () => {

@@ -67,8 +67,10 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
   `GuestModeText`) and their colocated CSS. `cardFeed.js` owns the
   fetch→render pagination loop and is the only place that drives rendering.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
-  `html`, `idb`, `prices`, `printings`). `idb.js` is the shared IndexedDB wrapper
-  used by `responseCache.js` and `bulkData.js`.
+  `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`). `idb.js` is the
+  shared IndexedDB wrapper used by `responseCache.js` and `bulkData.js`;
+  `pointer.js` answers "can this device hover?" and `viewport.js` publishes live
+  toolbar height / keyboard inset as CSS variables.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
@@ -91,6 +93,9 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
 ## Conventions
 
 - ES modules throughout (`"type": "module"`); use `import`/`export`.
+- One gesture, one action: a tap must never trigger two things. Gate hover-only
+  affordances behind `isHoverCapable()` (`src/utils/pointer.js`), and make sure a
+  long-press swallows the click the browser still fires on release.
 - Vanilla JS/DOM for the frontend — no React/Vue. Prefer existing component
   factory patterns (e.g. `createXModal()` returning `{ show }`).
 - Escape untrusted strings with `escapeHtml` from `src/utils/html.js` before
