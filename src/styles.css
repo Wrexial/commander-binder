@@ -1519,9 +1519,29 @@ body.tooltip-open {
   color: var(--muted);
 }
 
+/* `type="search"` earns the field a "Search" key on phone keyboards, but
+   WebKit/Blink/old-Edge also paint their own clear and decoration buttons next
+   to `#clear-search`. Hide the native ones so there is only one ×. */
+#search-input::-webkit-search-cancel-button,
+#search-input::-webkit-search-decoration,
+#search-input::-webkit-search-results-button,
+#search-input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+#search-input::-ms-clear,
+#search-input::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 @media (max-width: 768px) {
   #search-input {
-    padding: 9px 58px 9px 38px;
+    /* Right padding clears the ? and × buttons at their narrow-phone widths. */
+    padding: 9px 62px 9px 38px;
     font-size: 0.9rem;
     border-radius: 999px;
   }
@@ -1540,7 +1560,9 @@ body.tooltip-open {
 
 #clear-search {
   position: absolute;
-  right: 12px;
+  /* × sits inboard of the ? button, so the pair reads left → right in DOM
+     order (clear, then help) and the tab order matches. */
+  right: 40px;
   top: 50%;
   transform: translateY(-50%);
   width: 22px;
@@ -1569,7 +1591,7 @@ body.tooltip-open {
    (the input's mouseenter preview below is desktop-only). */
 #search-help {
   position: absolute;
-  right: 40px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   width: 22px;
@@ -1598,10 +1620,18 @@ body.tooltip-open {
 }
 
 @media (max-width: 768px) {
-  #search-help {
-    right: 38px;
+  #search-help,
+  #clear-search {
     width: 20px;
     height: 20px;
+  }
+
+  #search-help {
+    right: 10px;
+  }
+
+  #clear-search {
+    right: 36px;
   }
 }
 
