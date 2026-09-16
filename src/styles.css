@@ -2896,13 +2896,15 @@ footer a:focus-visible {
   text-align: right;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: var(--surface-glass);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  /* Solid, not `backdrop-filter`: this element moves with the thumb, and a
+     moving backdrop blur re-samples the page behind it every frame — the same
+     reason the sticky bars drop their blur on mobile. */
+  background: var(--surface-2);
   box-shadow: var(--shadow-md);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
+  will-change: transform;
 }
 
 .year-scrubber.is-active .year-scrubber-label {

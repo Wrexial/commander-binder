@@ -23,6 +23,9 @@ const FAST_SCROLL_VIEWPORTS = 0.6;
 /** Above this many year marks the tick marks become noise. */
 const MAX_TICKS = 60;
 
+/** How often the (expensive) document height is re-measured during scrolling. */
+const OVERFLOW_REMEASURE_MS = 250;
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -44,17 +47,19 @@ export function buildYearMarks(root = document) {
   const marks = [];
   let lastYear = null;
 
+  // Reading `dataset` is free; reading geometry is not. Only the first section
+  // of each year is measured, which keeps this to ~35 layout reads instead of
+  // one per page (there are hundreds, all `content-visibility: auto`).
   for (const section of root.querySelectorAll('.section')) {
     const year = Number(section.dataset.year);
     if (!year || year === lastYear) continue;
 
     lastYear = year;
-    marks.push({
-      year,
-      sets: section.dataset.sets || '',
-      top: Math.round(section.getBoundingClientRect().top + window.scrollY),
-      section,
-    });
+    marks.push({ year, sets: section.dataset.sets || '', section });
+  }
+
+  for (const mark of marks) {
+    mark.top = Math.round(mark.section.getBoundingClientRect().top + window.scrollY);
   }
 
   return marks;
@@ -146,6 +151,13 @@ export function initYearScrubber() {
   let burstDistance = 0;
   let lastScrollY = window.scrollY;
   let lastScrollAt = 0;
+  // Change guards: scrolling must not write to the DOM every frame for nothing.
+  let lastThumbY = -1;
+  let lastVisible = null;
+  let lastLabelKey = '';
+  let lastAriaKey = '';
+  let lastTickKey = '';
+  let lastMeasureAt = 0;
 
   // --- rendering -----------------------------------------------------------
 
@@ -156,21 +168,30 @@ export function initYearScrubber() {
   }
 
   function renderTicks() {
+    const key = `${state.marks.length}:${Math.round(state.max)}`;
+    if (key === lastTickKey) return;
+    lastTickKey = key;
+
     if (state.marks.length < 2 || state.marks.length > MAX_TICKS || state.max <= 0) {
       ticks.textContent = '';
       return;
     }
 
     ticks.textContent = '';
+    const documentHeight = state.max + window.innerHeight;
     for (const mark of state.marks) {
       const notch = document.createElement('i');
-      notch.style.top = `${clamp(mark.top / (state.max + window.innerHeight), 0, 1) * 100}%`;
+      notch.style.top = `${clamp(mark.top / documentHeight, 0, 1) * 100}%`;
       ticks.append(notch);
     }
   }
 
   function renderLabel(offset) {
     const mark = markAtOffset(state.marks, offset);
+    const key = mark ? `${mark.year}|${mark.sets}` : '';
+    if (key === lastLabelKey) return;
+    lastLabelKey = key;
+
     yearEl.textContent = mark ? String(mark.year) : '';
     setsEl.textContent = mark ? mark.sets : '';
     setsEl.hidden = !mark?.sets;
@@ -180,6 +201,10 @@ export function initYearScrubber() {
     if (state.marks.length === 0) return;
 
     const current = markAtOffset(state.marks, window.scrollY);
+    const key = `${state.marks[0].year}|${state.marks[state.marks.length - 1].year}|${current?.year ?? ''}`;
+    if (key === lastAriaKey) return;
+    lastAriaKey = key;
+
     rail.setAttribute('aria-valuemin', String(state.marks[0].year));
     rail.setAttribute('aria-valuemax', String(state.marks[state.marks.length - 1].year));
     if (current) {
@@ -190,17 +215,34 @@ export function initYearScrubber() {
 
   function update() {
     frame = 0;
-    state.max = maxScrollTop();
+
+    // `scrollHeight` forces a layout flush, and the collection keeps growing
+    // while you scroll, so re-measure a few times a second rather than per frame.
+    const now = performance.now();
+    if (now - lastMeasureAt >= OVERFLOW_REMEASURE_MS) {
+      lastMeasureAt = now;
+      state.max = maxScrollTop();
+    }
 
     const ratio = state.max > 0 ? clamp(window.scrollY / state.max, 0, 1) : 0;
     const y = Math.round(ratio * state.travel);
 
-    thumb.style.transform = `translateY(${y}px)`;
-    // Percentages in a translate resolve against the element's own size, so
-    // this centres the (taller) label on the thumb.
-    label.style.transform = `translateY(calc(${y}px - 50%))`;
+    if (y !== lastThumbY) {
+      lastThumbY = y;
+      thumb.style.transform = `translateY(${y}px)`;
+      // Percentages in a translate resolve against the element's own size, so
+      // this centres the (taller) label on the thumb.
+      label.style.transform = `translateY(calc(${y}px - 50%))`;
+    }
 
-    rail.classList.toggle('is-visible', state.max > 0 && state.marks.length > 0);
+    const visible = state.max > 0 && state.marks.length > 0;
+    if (visible !== lastVisible) {
+      lastVisible = visible;
+      rail.classList.toggle('is-visible', visible);
+    }
+
+    // Both of these bail out unless the year actually changed, so the per-frame
+    // cost is a binary search, not a DOM write.
     renderLabel(window.scrollY);
     syncAria();
   }
@@ -265,7 +307,7 @@ export function initYearScrubber() {
   }
 
   function scrollToRatio(ratio) {
-    state.max = maxScrollTop();
+    // Content is static during a drag; the cached overflow is good enough.
     window.scrollTo({ top: Math.round(ratio * state.max) });
     update();
   }
@@ -368,7 +410,14 @@ export function initYearScrubber() {
     noteScrollSpeed();
     schedule();
   };
-  const onResize = () => refresh();
+
+  // Dragging a window edge fires resize dozens of times; re-measuring the
+  // timeline on each of those is what makes it feel sticky.
+  let resizeTimer = 0;
+  const onResize = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(refresh, 150);
+  };
 
   rail.addEventListener('pointerdown', onPointerDown);
   rail.addEventListener('pointermove', onPointerMove);
@@ -382,8 +431,22 @@ export function initYearScrubber() {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
 
-  // The collection streams in; re-read the timeline when sections land.
+  // The collection streams in; re-read the timeline when sections land. Watch
+  // only the grid, not the whole body: every card append would otherwise wake
+  // this up (including the rail's own DOM updates).
+  //
+  // Refreshes are coalesced but never postponed: a queued refresh always runs,
+  // so a long load can't leave the timeline stuck on the first few years.
   let refreshTimer = 0;
+  const scheduleRefresh = () => {
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(() => {
+      refreshTimer = 0;
+      refresh();
+    }, 400);
+  };
+
+  const observedRoot = document.getElementById('results') || document.body;
   const observer =
     typeof MutationObserver === 'function'
       ? new MutationObserver((records) => {
@@ -394,19 +457,17 @@ export function initYearScrubber() {
                 (node.classList?.contains('section') || node.querySelector?.('.section'))
             )
           );
-          if (!addedSection) return;
-
-          clearTimeout(refreshTimer);
-          refreshTimer = setTimeout(refresh, 400);
+          if (addedSection) scheduleRefresh();
         })
       : null;
-  observer?.observe(document.body, { childList: true, subtree: true });
+  observer?.observe(observedRoot, { childList: true, subtree: true });
 
   refresh();
 
   return () => {
     observer?.disconnect();
     clearTimeout(refreshTimer);
+    clearTimeout(resizeTimer);
     clearTimeout(hideTimer);
     if (frame) cancelAnimationFrame(frame);
     window.removeEventListener('scroll', onScroll);

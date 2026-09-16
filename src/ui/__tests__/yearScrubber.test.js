@@ -22,7 +22,15 @@ function seedSections(sections) {
 
 /** jsdom reports a zero-height document; fake a scrollable one. */
 function stubScrollMetrics({ scrollHeight = 20000, innerHeight = 800, scrollY = 0 } = {}) {
-  const scrolling = { scrollHeight, scrollTop: scrollY };
+  const counter = { reads: 0 };
+  const scrolling = {
+    scrollTop: scrollY,
+    // Reading this forces a layout flush in a real engine, so count the reads.
+    get scrollHeight() {
+      counter.reads++;
+      return scrollHeight;
+    },
+  };
   Object.defineProperty(document, 'scrollingElement', { value: scrolling, configurable: true });
   vi.stubGlobal('innerHeight', innerHeight);
   vi.stubGlobal('scrollY', scrollY);
@@ -35,7 +43,12 @@ function stubScrollMetrics({ scrollHeight = 20000, innerHeight = 800, scrollY = 
     }
   });
   window.scrollTo = scrollTo;
-  return { scrolling, scrollTo, setScrollY: (y) => vi.stubGlobal('scrollY', y) };
+  return {
+    scrolling,
+    scrollTo,
+    setScrollY: (y) => vi.stubGlobal('scrollY', y),
+    overflowReads: () => counter.reads,
+  };
 }
 
 describe('year scrubber', () => {
@@ -75,6 +88,27 @@ describe('year scrubber', () => {
       ]);
 
       expect(buildYearMarks().map((mark) => mark.year)).toEqual([2000]);
+    });
+
+    it('measures only the first section of each year', () => {
+      // Reading geometry is the expensive part: there are hundreds of pages but
+      // only a handful of year starts.
+      const seeded = seedSections([
+        { year: 1994, top: 0 },
+        { year: 1994, top: 400 },
+        { year: 1994, top: 800 },
+        { year: 1995, top: 1200 },
+        { year: 1995, top: 1600 },
+        { year: 1996, top: 2000 },
+      ]);
+      const spies = [...seeded.querySelectorAll('.section')].map((section) =>
+        vi.spyOn(section, 'getBoundingClientRect')
+      );
+
+      buildYearMarks();
+
+      const measured = spies.filter((spy) => spy.mock.calls.length > 0);
+      expect(measured).toHaveLength(3);
     });
 
     it('returns nothing when no sections are rendered yet', () => {
@@ -149,13 +183,17 @@ describe('year scrubber', () => {
     });
 
     it('stays hidden until there is something to scroll', () => {
+      vi.useFakeTimers();
       const rail = document.getElementById('year-scrubber');
       expect(rail.classList.contains('is-visible')).toBe(true);
 
+      // The rail re-measures on a trailing debounce, not on every resize event.
       stubScrollMetrics({ scrollHeight: 400, innerHeight: 800 });
       window.dispatchEvent(new Event('resize'));
+      vi.advanceTimersByTime(200);
 
       expect(rail.classList.contains('is-visible')).toBe(false);
+      vi.useRealTimers();
     });
 
     it('reports the year under the thumb through aria', () => {
@@ -259,6 +297,18 @@ describe('year scrubber', () => {
       expect(rail.classList.contains('is-active')).toBe(false);
       nowSpy.mockRestore();
       vi.useRealTimers();
+    });
+
+    it('does not re-measure the document height on every scroll frame', async () => {
+      const before = metrics.overflowReads();
+
+      for (let i = 0; i < 10; i++) {
+        metrics.setScrollY(i * 100);
+        window.dispatchEvent(new Event('scroll'));
+      }
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      expect(metrics.overflowReads() - before).toBeLessThanOrEqual(1);
     });
 
     it('removes itself on teardown', () => {
