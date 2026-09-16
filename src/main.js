@@ -22,6 +22,7 @@ import { getShareToken } from './api/share.js';
 import { showStatisticsModal } from './ui/statistics.js';
 import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
 import { initViewportMetrics } from './utils/viewport.js';
+import { initYearScrubber } from './ui/yearScrubber.js';
 import { mainState } from './state/mainState.js';
 
 async function showModal(createModal) {
@@ -130,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     .catch((err) => console.error('Failed to load card states:', err));
 
   initLazyCards(results, tooltip);
+  initYearScrubber();
   updateAllBinderCounts();
   createBulkCheckButton(() => showModal(createBulkCheckModal));
   createExportOwnedButton();

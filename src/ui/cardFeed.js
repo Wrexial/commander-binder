@@ -185,6 +185,16 @@ function renderPage(results, tooltip, pageCards) {
   const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
   const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
 
+  // Timeline metadata for the year scrubber (src/ui/yearScrubber.js): the page's
+  // release year and the sets it holds. `startNewSection` has just published the
+  // section it created.
+  if (appState.section) {
+    appState.section.dataset.year = String(new Date(minDate).getFullYear());
+    appState.section.dataset.sets = Array.from(pageSets.keys())
+      .map((code) => code.toUpperCase())
+      .join(', ');
+  }
+
   if (!appState.binder.startDate || minDate < appState.binder.startDate) {
     appState.binder.startDate = minDate;
   }

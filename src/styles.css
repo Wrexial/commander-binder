@@ -2784,6 +2784,139 @@ footer a:focus-visible {
   border-color: var(--accent-strong);
 }
 
+/* --- Year scrubber (src/ui/yearScrubber.js) ------------------------------ */
+
+/* A draggable timeline rail. It sits inside the native scrollbar and below the
+   sticky bars, so its thumb is never hidden behind them. */
+.year-scrubber {
+  position: fixed;
+  top: calc(var(--card-settings-height, 104px) + 68px);
+  right: 14px;
+  bottom: calc(20px + var(--safe-bottom));
+  width: 14px;
+  z-index: 6; /* above the grid, below the sticky bars (9/10) and modals */
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none; /* dragging the rail must not pan the page */
+  transition: opacity 0.2s ease;
+}
+
+.year-scrubber.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.year-scrubber-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.16));
+}
+
+.year-scrubber:focus-visible {
+  outline: none;
+}
+
+.year-scrubber:focus-visible .year-scrubber-track {
+  box-shadow: var(--focus-shadow);
+}
+
+.year-scrubber-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* One notch per release year. */
+.year-scrubber-ticks i {
+  position: absolute;
+  left: 0;
+  width: 5px;
+  height: 1px;
+  background: var(--border-strong);
+  transform: translateY(-50%);
+}
+
+.year-scrubber-thumb {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 6px;
+  height: clamp(36px, 12vh, 72px);
+  margin-left: -3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+  will-change: transform;
+}
+
+.year-scrubber.is-active .year-scrubber-thumb,
+.year-scrubber:hover .year-scrubber-thumb {
+  background: linear-gradient(180deg, #ffe9a8, var(--accent-strong));
+}
+
+.year-scrubber.is-dragging .year-scrubber-thumb {
+  cursor: grabbing;
+}
+
+/* The set/year readout that follows the thumb. */
+.year-scrubber-label {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 10px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 5px 9px;
+  white-space: nowrap;
+  text-align: right;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.year-scrubber.is-active .year-scrubber-label {
+  opacity: 1;
+}
+
+.year-scrubber-year {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--accent-strong);
+}
+
+.year-scrubber-sets {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: var(--muted);
+}
+
+@media (max-width: 768px), (hover: none) {
+  .year-scrubber {
+    top: calc(var(--card-settings-height, 104px) + 58px);
+    right: 3px;
+    width: 12px;
+  }
+
+  .year-scrubber-label {
+    padding: 4px 8px;
+  }
+}
+
 /* Touch devices latch :hover on the last-tapped element, so hover-only feedback
    outlives the tap: a card stays lifted and its "missing" veil stays lightened
    until something else is tapped. Neutralise just those rules. */

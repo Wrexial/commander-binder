@@ -136,6 +136,23 @@ describe('fetchNextPage', () => {
     expect(appendSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('stamps each section with its release year and sets for the year scrubber', async () => {
+    global.fetch.mockResolvedValue(
+      jsonResponse({ has_more: false, next_page: null, data: makeCards(20) })
+    );
+
+    const section = document.createElement('div');
+    layout.startNewSection.mockImplementation(() => {
+      appState.section = section;
+    });
+
+    await fetchNextPage(null, null);
+
+    expect(section.dataset.year).toBe('2024');
+    expect(section.dataset.sets).toBe('TST');
+    layout.startNewSection.mockImplementation(() => {});
+  });
+
   it('keeps fetching while pages yield too few new cards, then stops', async () => {
     global.fetch
       .mockResolvedValueOnce(

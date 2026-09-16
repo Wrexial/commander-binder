@@ -62,12 +62,15 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
   importing `main.js` (avoids a cycle).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
-  `tooltip`, `cardInteractions`), including `components/` (the shared modal shell
-  `modal.js`, the bulk/export modals, `sidebar`, `toast`, `ownedCounter`,
-  `SignInButton`, `GuestModeText`) and their colocated CSS. `searchHelp.js` owns
-  the syntax reference as data (rendered into `#search-tooltip`), so the docs and
-  `parseQuery` cannot drift apart. `cardFeed.js` owns the fetch→render pagination
-  loop and is the only place that drives rendering.
+  `tooltip`, `cardInteractions`, `yearScrubber`), including `components/` (the
+  shared modal shell `modal.js`, the bulk/export modals, `sidebar`, `toast`,
+  `ownedCounter`, `SignInButton`, `GuestModeText`) and their colocated CSS.
+  `searchHelp.js` owns the syntax reference as data (rendered into
+  `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
+  `yearScrubber.js` builds the draggable release-year rail from the
+  `data-year`/`data-sets` that `cardFeed.js` stamps on every section. `cardFeed.js`
+  owns the fetch→render pagination loop and is the only place that drives
+  rendering.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`). `idb.js` is the
   shared IndexedDB wrapper used by `responseCache.js` and `bulkData.js`;
