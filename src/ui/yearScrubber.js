@@ -14,6 +14,12 @@ const STICKY_HEADER_ALLOWANCE = 56;
 /** Idle time before the year label hides itself again. */
 const LABEL_HIDE_DELAY_MS = 900;
 
+/** A pause longer than this ends the current scroll burst. */
+const SCROLL_BURST_GAP_MS = 250;
+
+/** Distance (in viewports) within one burst that counts as scrolling fast. */
+const FAST_SCROLL_VIEWPORTS = 0.6;
+
 /** Above this many year marks the tick marks become noise. */
 const MAX_TICKS = 60;
 
@@ -136,6 +142,10 @@ export function initYearScrubber() {
   let grabOffset = 0;
   let frame = 0;
   let hideTimer = 0;
+  // Speed sampling for "skimmed past a year" feedback while scrolling normally.
+  let burstDistance = 0;
+  let lastScrollY = window.scrollY;
+  let lastScrollAt = 0;
 
   // --- rendering -----------------------------------------------------------
 
@@ -210,6 +220,9 @@ export function initYearScrubber() {
 
   function showLabel() {
     clearTimeout(hideTimer);
+    // Read the position now: the label can appear from a scroll event, before
+    // the next animation frame would have refreshed it.
+    renderLabel(window.scrollY);
     rail.classList.add('is-active');
   }
 
@@ -217,6 +230,29 @@ export function initYearScrubber() {
     clearTimeout(hideTimer);
     if (dragging) return;
     hideTimer = setTimeout(() => rail.classList.remove('is-active'), LABEL_HIDE_DELAY_MS);
+  }
+
+  /**
+   * Reveal the readout when the reader is skimming rather than nudging. Speed is
+   * measured as distance covered inside one continuous scroll burst, because a
+   * slow wheel notch and a fast flick send identical-looking single events.
+   */
+  function noteScrollSpeed() {
+    const now = performance.now();
+    const y = window.scrollY;
+    const paused = now - lastScrollAt > SCROLL_BURST_GAP_MS;
+
+    burstDistance = paused ? 0 : burstDistance + Math.abs(y - lastScrollY);
+    lastScrollY = y;
+    lastScrollAt = now;
+
+    if (burstDistance >= Math.max(320, window.innerHeight * FAST_SCROLL_VIEWPORTS)) {
+      burstDistance = 0;
+      showLabel();
+    }
+
+    // Keep the readout up for as long as the reader keeps moving.
+    if (rail.classList.contains('is-active')) hideLabelSoon();
   }
 
   // --- scrolling -----------------------------------------------------------
@@ -328,7 +364,10 @@ export function initYearScrubber() {
     showLabel();
   };
   const onBlur = () => rail.classList.remove('is-active');
-  const onScroll = () => schedule();
+  const onScroll = () => {
+    noteScrollSpeed();
+    schedule();
+  };
   const onResize = () => refresh();
 
   rail.addEventListener('pointerdown', onPointerDown);

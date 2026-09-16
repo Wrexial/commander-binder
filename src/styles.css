@@ -119,6 +119,23 @@ html {
   /* Stops iOS Safari inflating text when a phone is rotated to landscape. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* The year scrubber is the scrollbar (src/ui/yearScrubber.js); a second native
+     one sitting next to it would just be noise. Set on both elements so it holds
+     whichever one ends up driving the viewport in a given engine. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 body {
@@ -2791,9 +2808,10 @@ footer a:focus-visible {
 .year-scrubber {
   position: fixed;
   top: calc(var(--card-settings-height, 104px) + 68px);
-  right: 14px;
+  /* No native scrollbar to sit inside any more, so this can hug the edge. */
+  right: 5px;
   bottom: calc(20px + var(--safe-bottom));
-  width: 14px;
+  width: 16px;
   z-index: 6; /* above the grid, below the sticky bars (9/10) and modals */
   opacity: 0;
   pointer-events: none;
@@ -2833,7 +2851,7 @@ footer a:focus-visible {
 .year-scrubber-ticks i {
   position: absolute;
   left: 0;
-  width: 5px;
+  width: 6px;
   height: 1px;
   background: var(--border-strong);
   transform: translateY(-50%);
@@ -2843,9 +2861,9 @@ footer a:focus-visible {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 6px;
+  width: 8px;
   height: clamp(36px, 12vh, 72px);
-  margin-left: -3px;
+  margin-left: -4px;
   border-radius: 999px;
   background: linear-gradient(180deg, var(--accent-strong), var(--accent));
   box-shadow:
@@ -2910,6 +2928,15 @@ footer a:focus-visible {
     top: calc(var(--card-settings-height, 104px) + 58px);
     right: 3px;
     width: 12px;
+  }
+
+  .year-scrubber-thumb {
+    width: 6px;
+    margin-left: -3px;
+  }
+
+  .year-scrubber-ticks i {
+    width: 4px;
   }
 
   .year-scrubber-label {

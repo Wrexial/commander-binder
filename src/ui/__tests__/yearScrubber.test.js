@@ -214,6 +214,53 @@ describe('year scrubber', () => {
       expect(metrics.scrollTo).toHaveBeenLastCalledWith({ top: 2944, behavior: 'smooth' });
     });
 
+    it('reveals the readout while scrolling fast, not while nudging', () => {
+      vi.useFakeTimers();
+      const rail = document.getElementById('year-scrubber');
+      const clock = { now: 1000 };
+      const nowSpy = vi.spyOn(performance, 'now').mockImplementation(() => clock.now);
+
+      // One small step: not a skim.
+      metrics.setScrollY(120);
+      window.dispatchEvent(new Event('scroll'));
+      expect(rail.classList.contains('is-active')).toBe(false);
+
+      // A flick: several big steps with no pause between them.
+      for (let i = 0; i < 4; i++) {
+        clock.now += 30;
+        metrics.setScrollY(window.scrollY + 900);
+        window.dispatchEvent(new Event('scroll'));
+      }
+      expect(rail.classList.contains('is-active')).toBe(true);
+      expect(rail.querySelector('.year-scrubber-year').textContent).toBe('2000');
+      expect(rail.querySelector('.year-scrubber-sets').textContent).toBe('INV');
+
+      // The readout fades out once the scrolling stops.
+      vi.advanceTimersByTime(1000);
+      expect(rail.classList.contains('is-active')).toBe(false);
+
+      nowSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it('treats a pause as the end of a fast-scroll burst', () => {
+      vi.useFakeTimers();
+      const rail = document.getElementById('year-scrubber');
+      const clock = { now: 1000 };
+      const nowSpy = vi.spyOn(performance, 'now').mockImplementation(() => clock.now);
+
+      // Three slow, spaced-out steps never add up to a burst.
+      for (let i = 0; i < 3; i++) {
+        clock.now += 400;
+        metrics.setScrollY(window.scrollY + 300);
+        window.dispatchEvent(new Event('scroll'));
+      }
+
+      expect(rail.classList.contains('is-active')).toBe(false);
+      nowSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
     it('removes itself on teardown', () => {
       teardown();
       teardown = null;
