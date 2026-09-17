@@ -271,6 +271,8 @@ function populateCard(div, card, cardIndex) {
   const borderStyle = getCardBorderStyle(card);
   div.style.setProperty('--card-border', borderStyle.borderColor);
   div.style.setProperty('--card-bg', getCardBackground(card));
+  // Near-black text on the (always light) card backgrounds: >= 14.9:1 across
+  // every --mtg-bg-* / --colorless-bg value, so comfortably AA.
   div.style.setProperty('--card-text', '#111111');
 
   const price = getDisplayedPrice(card);
