@@ -2809,8 +2809,9 @@ footer a:focus-visible {
 
 /* --- Year scrubber (src/ui/yearScrubber.js) ------------------------------ */
 
-/* A draggable timeline rail. It sits inside the native scrollbar and below the
-   sticky bars, so its thumb is never hidden behind them. */
+/* A draggable timeline rail. It is only shown once the sticky toolbar reaches
+   the top of the viewport (see yearScrubber.js), so it always sits below that
+   bar rather than behind the header/toolbar. */
 .year-scrubber {
   position: fixed;
   top: calc(var(--card-settings-height, 104px) + 68px);

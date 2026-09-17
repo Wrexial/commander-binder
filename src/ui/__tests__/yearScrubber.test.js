@@ -318,4 +318,50 @@ describe('year scrubber', () => {
       expect(document.getElementById('year-scrubber')).toBeNull();
     });
   });
+
+  describe('visibility gating', () => {
+    let metrics;
+    let localTeardown;
+
+    beforeEach(() => {
+      document.body.innerHTML = '';
+      seedSections([
+        { year: 1994, top: 0, sets: 'LEG' },
+        { year: 1995, top: 900, sets: 'ICE' },
+      ]);
+      const settings = document.createElement('div');
+      settings.id = 'card-settings';
+      document.body.appendChild(settings);
+      metrics = stubScrollMetrics();
+      // jsdom has no layout, so give the toolbar and rail their boxes.
+      Element.prototype.getBoundingClientRect = function () {
+        if (this.id === 'card-settings') return { top: 150, height: 72 };
+        if (this.classList?.contains('year-scrubber-track')) return { top: 0, height: 600 };
+        if (this.classList?.contains('year-scrubber-thumb')) return { top: 0, height: 60 };
+        return { top: 0, height: 0 };
+      };
+      localTeardown = initYearScrubber();
+    });
+
+    afterEach(() => {
+      localTeardown?.();
+      localTeardown = null;
+      delete Element.prototype.getBoundingClientRect;
+    });
+
+    it('hides the rail while the toolbar is still under the header', () => {
+      const rail = document.getElementById('year-scrubber');
+      expect(rail.classList.contains('is-visible')).toBe(false);
+    });
+
+    it('shows the rail once the toolbar has scrolled to the top', async () => {
+      const rail = document.getElementById('year-scrubber');
+
+      metrics.setScrollY(200);
+      window.dispatchEvent(new Event('scroll'));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      expect(rail.classList.contains('is-visible')).toBe(true);
+    });
+  });
 });

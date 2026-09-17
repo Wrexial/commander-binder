@@ -141,6 +141,23 @@ export function initYearScrubber() {
   rail.append(track);
   document.body.append(rail);
 
+  // The rail is pinned just below where the toolbar *sticks*, so it must not
+  // appear while the toolbar is still in flow under the page header — there it
+  // would overlap the header/toolbar and be hidden behind them. `stickAt` is the
+  // document offset at which the toolbar reaches the top of the viewport; the
+  // rail only shows from there down. When there is no toolbar to measure, it
+  // falls back to always-visible (the previous behaviour).
+  const settingsEl = document.getElementById('card-settings');
+  let stickAt = 0;
+
+  function measureStickAt() {
+    if (!settingsEl) return;
+    const rect = settingsEl.getBoundingClientRect();
+    // Once stuck, `rect.top + scrollY` grows with the page; only trust a
+    // measurement taken while the bar is still in normal flow.
+    if (rect.top > 1) stickAt = Math.round(rect.top + window.scrollY);
+  }
+
   /** @type {{marks: ReturnType<typeof buildYearMarks>, travel: number, max: number}} */
   const state = { marks: [], travel: 1, max: 0 };
   let dragging = false;
@@ -235,7 +252,7 @@ export function initYearScrubber() {
       label.style.transform = `translateY(calc(${y}px - 50%))`;
     }
 
-    const visible = state.max > 0 && state.marks.length > 0;
+    const visible = state.max > 0 && state.marks.length > 0 && window.scrollY >= stickAt - 2;
     if (visible !== lastVisible) {
       lastVisible = visible;
       rail.classList.toggle('is-visible', visible);
@@ -256,6 +273,7 @@ export function initYearScrubber() {
     state.marks = buildYearMarks();
     state.travel = thumbTravel();
     state.max = maxScrollTop();
+    measureStickAt();
     renderTicks();
     update();
   }
