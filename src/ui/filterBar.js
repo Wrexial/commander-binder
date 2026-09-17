@@ -19,6 +19,7 @@ const PRICE_DEBOUNCE_MS = 300;
 const COLOR_MODE_OPTIONS = [
   { id: 'any', label: 'Any' },
   { id: 'all', label: 'All' },
+  { id: 'exact', label: 'Exact' },
 ];
 
 let groupSeq = 0;
@@ -99,7 +100,7 @@ function group(label, ...controls) {
   return wrapper;
 }
 
-/** Fill the set `<select>` from the loaded collection, keeping `current`. */
+/** Fill the set `<select>` from the loaded collection, newest set first. */
 function populateSetOptions(select, current) {
   select.textContent = '';
 
@@ -108,23 +109,36 @@ function populateSetOptions(select, current) {
   any.textContent = 'Any set';
   select.appendChild(any);
 
+  // A set's release date is the same on every card in it; keep the newest seen
+  // in case a set spans multiple dates.
   const sets = new Map();
   for (const card of cardStore.getAll()) {
-    if (card.set && !sets.has(card.set)) sets.set(card.set, card.set_name || card.set);
+    if (!card.set) continue;
+    const date = card.released_at || '';
+    const existing = sets.get(card.set);
+    if (existing) {
+      if (date && date > existing.date) existing.date = date;
+    } else {
+      sets.set(card.set, { date, name: card.set_name || card.set });
+    }
   }
 
-  for (const [code, name] of [...sets.entries()].sort((a, b) => a[1].localeCompare(b[1]))) {
-    const option = document.createElement('option');
-    option.value = code;
-    option.textContent = `${code.toUpperCase()} — ${name}`;
-    select.appendChild(option);
-  }
-
-  // A restored set may not be loaded yet; keep it selectable instead of losing it.
+  // A restored set that hasn't loaded yet stays selectable, right after "Any".
   if (current && !sets.has(current)) {
     const option = document.createElement('option');
     option.value = current;
     option.textContent = current.toUpperCase();
+    select.appendChild(option);
+  }
+
+  const ordered = [...sets.entries()].sort(
+    (a, b) => b[1].date.localeCompare(a[1].date) || a[1].name.localeCompare(b[1].name)
+  );
+
+  for (const [code, info] of ordered) {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = `${code.toUpperCase()} — ${info.name}`;
     select.appendChild(option);
   }
 

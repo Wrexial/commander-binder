@@ -61,6 +61,9 @@ function cloneFilters(source) {
 export const filters = cloneFilters(DEFAULT_FILTERS);
 
 function toPrice(value) {
+  // `null`/`''` mean "no bound"; without this guard Number(null) === 0 and a
+  // restored filter would silently become a 0–0 range that hides everything.
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 ? number : null;
 }
@@ -71,7 +74,9 @@ export function normalizeFilters(raw) {
   if (!raw || typeof raw !== 'object') return next;
 
   if (OWNED_IDS.has(raw.owned)) next.owned = raw.owned;
-  if (raw.colorMode === 'any' || raw.colorMode === 'all') next.colorMode = raw.colorMode;
+  if (raw.colorMode === 'any' || raw.colorMode === 'all' || raw.colorMode === 'exact') {
+    next.colorMode = raw.colorMode;
+  }
   if (Array.isArray(raw.colors)) {
     next.colors = [...new Set(raw.colors)].filter((color) => COLOR_IDS.has(color));
   }
@@ -111,6 +116,12 @@ function matchesColors(card) {
   const wantsColorless = filters.colors.includes('C');
   const wanted = filters.colors.filter((color) => color !== 'C');
   const isColorless = identity.size === 0;
+
+  if (filters.colorMode === 'exact') {
+    // The identity must be exactly the selected colours (colourless = empty).
+    if (wantsColorless) return isColorless && wanted.length === 0;
+    return identity.size === wanted.length && wanted.every((color) => identity.has(color));
+  }
 
   if (filters.colorMode === 'all') {
     // Colourless plus any real colour can never match, which is acceptable.

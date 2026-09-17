@@ -54,6 +54,15 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard({ color_identity: ['W'] }))).toBe(false);
   });
 
+  it('matches exactly the selected colours in "exact" mode', () => {
+    applyFilters({ ...DEFAULT_FILTERS, colors: ['W', 'U'], colorMode: 'exact' });
+
+    expect(cardMatchesFilters(makeCard({ color_identity: ['U', 'W'] }))).toBe(true);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W'] }))).toBe(false);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W', 'U', 'G'] }))).toBe(false);
+    expect(cardMatchesFilters(makeCard({ color_identity: [] }))).toBe(false);
+  });
+
   it('treats the colourless pip as an empty identity', () => {
     applyFilters({ ...DEFAULT_FILTERS, colors: ['C'] });
 
@@ -118,5 +127,20 @@ describe('normalizeFilters', () => {
 
   it('returns defaults for junk input', () => {
     expect(normalizeFilters(null)).toEqual(DEFAULT_FILTERS);
+  });
+
+  it('keeps empty price bounds empty instead of coercing them to zero', () => {
+    expect(normalizeFilters({ priceMin: null, priceMax: null })).toMatchObject({
+      priceMin: null,
+      priceMax: null,
+    });
+    expect(normalizeFilters({ priceMin: '', priceMax: undefined })).toMatchObject({
+      priceMin: null,
+      priceMax: null,
+    });
+  });
+
+  it('accepts the exact colour mode', () => {
+    expect(normalizeFilters({ colorMode: 'exact' }).colorMode).toBe('exact');
   });
 });

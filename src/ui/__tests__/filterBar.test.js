@@ -84,6 +84,8 @@ describe('initFilterBar', () => {
       .querySelectorAll('.filter-segment');
     modes[1].click(); // All
     expect(filters.colorMode).toBe('all');
+    modes[2].click(); // Exact
+    expect(filters.colorMode).toBe('exact');
     expect(onChange).toHaveBeenCalled();
   });
 
@@ -97,6 +99,19 @@ describe('initFilterBar', () => {
     select.dispatchEvent(new Event('change'));
 
     expect(filters.set).toBe('ice');
+  });
+
+  it('lists sets newest first, right after "Any set"', () => {
+    cardStore.getAll.mockReturnValue([
+      { name: 'Old', set: 'old', set_name: 'Old Set', released_at: '1993-01-01' },
+      { name: 'New', set: 'new', set_name: 'New Set', released_at: '2023-01-01' },
+      { name: 'Mid', set: 'mid', set_name: 'Mid Set', released_at: '2005-01-01' },
+    ]);
+
+    initFilterBar({ onChange: vi.fn() });
+
+    const codes = [...document.querySelectorAll('.filter-set option')].map((o) => o.value);
+    expect(codes).toEqual(['', 'new', 'mid', 'old']);
   });
 
   it('changes the sort through the dedicated callback', () => {

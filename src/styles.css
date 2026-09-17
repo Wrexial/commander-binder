@@ -1432,6 +1432,8 @@ body.tooltip-open {
 .filter-panel {
   flex-basis: 100%;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -1451,6 +1453,7 @@ body.tooltip-open {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .filter-group-label {
@@ -1465,10 +1468,13 @@ body.tooltip-open {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .filter-segmented {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   overflow: hidden;
@@ -1564,11 +1570,12 @@ body.tooltip-open {
 }
 
 .filter-select {
-  max-width: 220px;
+  max-width: min(220px, 100%);
 }
 
 .filter-price {
   width: 92px;
+  max-width: 100%;
 }
 
 .filter-reset {
@@ -1632,6 +1639,12 @@ body.tooltip-open {
 
   #filter-panel {
     grid-area: filters;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .filter-select {
+    max-width: 100%;
   }
   /* Clear the fixed hamburger when this bar sticks to the top of the viewport. */
   .has-hamburger #card-settings {
