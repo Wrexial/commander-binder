@@ -38,7 +38,8 @@ there.
 ### Environment
 
 Environment values live in `.env` (gitignored, never commit it). `.env.example`
-is the one env file allowed by `.gitignore`, so add new keys there too.
+is the one env file `.gitignore` whitelists, so document any new key there too
+(the file is not checked in yet).
 
 - `VITE_CLERK_PUBLISHABLE_KEY` — frontend Clerk initialization.
 - `VITE_CLERK_ISSUER_URL` — function-side JWT verification (`netlify/utils/auth.ts`).
@@ -46,8 +47,10 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
 
 ## Architecture
 
-- Frontend code is plain JavaScript (ES modules); only `netlify/**/*.ts` and
-  `db/*.ts` are TypeScript (run through Netlify's/esbuild's transpilation).
+- Frontend code is plain JavaScript (ES modules). TypeScript is limited to
+  `netlify/**/*.ts`, `db/*.ts`, and `drizzle.config.ts` (the function/db files
+  run through Netlify's/esbuild transpilation; `drizzle.config.ts` is loaded by
+  drizzle-kit).
 - `src/main.js` — app entry point; wires up all UI modules.
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
@@ -69,8 +72,9 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
   `yearScrubber.js` builds the draggable release-year rail from the
   `data-year`/`data-sets` that `cardFeed.js` stamps on every section. `cardFeed.js`
-  owns the fetch→render pagination loop and is the only place that drives
-  rendering.
+  owns the fetch→render pagination loop and renders each page;
+  `lazyCardLoader.js` bootstraps the default view and drives it through
+  `fetchNextPage`.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`). `idb.js` is the
   shared IndexedDB wrapper used by `responseCache.js` and `bulkData.js`;
@@ -81,7 +85,7 @@ is the one env file allowed by `.gitignore`, so add new keys there too.
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
   `batch-toggle-cards`, `share-link`).
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
-  (`verifyToken`, `getUserId`, `unauthorized`).
+  (exports `getUserId` and `unauthorized`; `verifyToken` is internal).
 - `netlify/utils/ownedCards.ts` — shared add/remove DB logic for the toggle
   handlers.
 - `scripts/verify-bulk-coverage.mjs` — checks that Scryfall's bulk file covers the
