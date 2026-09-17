@@ -4,6 +4,7 @@ import { isHoverCapable } from '../utils/pointer.js';
 import { renderSearchHelp } from './searchHelp.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned } from '../state/cardState.js';
+import { getSavedSearch, saveSearch } from '../state/viewState.js';
 
 export function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
@@ -179,6 +180,71 @@ function cardMatchesFilter(card, filter) {
   return not ? !match : match;
 }
 
+/** Active, normalized query; keeps `reapplySearchFilter` cheap when empty. */
+let activeQuery = '';
+
+/**
+ * Hide cards that don't match the query and roll section/binder visibility up
+ * in a single pass, instead of re-querying and re-allocating arrays per binder.
+ * Reads the live input value, so it serves as both the initial and re-applied
+ * filter.
+ */
+function filterCards() {
+  const searchInput = document.getElementById('search-input');
+  const clearSearchButton = document.getElementById('clear-search');
+  const noResultsMessage = document.getElementById('no-results-message');
+  if (!searchInput) return;
+
+  const searchTerm = searchInput.value.toLowerCase().trim();
+  activeQuery = searchTerm;
+  saveSearch(searchTerm);
+
+  const conditions = parseQuery(searchTerm);
+  let visibleCardCount = 0;
+  const hasConditions = conditions.length > 0;
+
+  document.querySelectorAll('.binder').forEach((binder) => {
+    let visibleCardsInBinder = 0;
+
+    binder.querySelectorAll('.section').forEach((section) => {
+      let visibleCardsInSection = 0;
+
+      section.querySelectorAll('.card').forEach((card) => {
+        const isVisible =
+          !hasConditions || conditions.every((condition) => evaluateCondition(card, condition));
+
+        card.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCardsInSection++;
+      });
+
+      section.style.display = visibleCardsInSection === 0 ? 'none' : '';
+      if (visibleCardsInSection > 0) visibleCardsInBinder++;
+      visibleCardCount += visibleCardsInSection;
+    });
+
+    binder.style.display = visibleCardsInBinder === 0 ? 'none' : '';
+  });
+
+  updateOwnedCounter();
+
+  if (noResultsMessage) {
+    noResultsMessage.style.display = visibleCardCount === 0 && searchTerm ? 'block' : 'none';
+  }
+  if (clearSearchButton) {
+    clearSearchButton.style.display = searchInput.value ? 'block' : 'none';
+  }
+}
+
+const debouncedFilter = debounce(filterCards, 250);
+
+/**
+ * Re-apply the active query after new pages render, so cards loaded after a
+ * search don't slip through unfiltered. No-op when nothing is typed.
+ */
+export function reapplySearchFilter() {
+  if (activeQuery) filterCards();
+}
+
 export function initSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
@@ -248,53 +314,6 @@ export function initSearch() {
   });
 
   const clearSearchButton = document.getElementById('clear-search');
-  const noResultsMessage = document.getElementById('no-results-message');
-
-  const debouncedFilter = debounce(() => {
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const conditions = parseQuery(searchTerm);
-
-    // Single pass: evaluate each card once and roll section/binder visibility
-    // up as we go, instead of re-querying and re-allocating arrays per binder.
-    let visibleCardCount = 0;
-    const hasConditions = conditions.length > 0;
-
-    document.querySelectorAll('.binder').forEach((binder) => {
-      let visibleCardsInBinder = 0;
-
-      binder.querySelectorAll('.section').forEach((section) => {
-        let visibleCardsInSection = 0;
-
-        section.querySelectorAll('.card').forEach((card) => {
-          const isVisible =
-            !hasConditions || conditions.every((condition) => evaluateCondition(card, condition));
-
-          card.style.display = isVisible ? '' : 'none';
-          if (isVisible) visibleCardsInSection++;
-        });
-
-        section.style.display = visibleCardsInSection === 0 ? 'none' : '';
-        if (visibleCardsInSection > 0) visibleCardsInBinder++;
-        visibleCardCount += visibleCardsInSection;
-      });
-
-      binder.style.display = visibleCardsInBinder === 0 ? 'none' : '';
-    });
-
-    updateOwnedCounter();
-
-    if (visibleCardCount === 0 && searchTerm) {
-      noResultsMessage.style.display = 'block';
-    } else {
-      noResultsMessage.style.display = 'none';
-    }
-
-    if (searchInput.value) {
-      clearSearchButton.style.display = 'block';
-    } else {
-      clearSearchButton.style.display = 'none';
-    }
-  }, 250);
 
   searchInput.addEventListener('input', () => {
     // Typing means the user has the syntax figured out; get the sheet out of
@@ -308,7 +327,14 @@ export function initSearch() {
 
   clearSearchButton.addEventListener('click', () => {
     searchInput.value = '';
-    debouncedFilter();
-    updateOwnedCounter();
+    filterCards();
   });
+
+  // Restore the query from earlier in this tab and apply it to whatever has
+  // already rendered (later pages are covered by `reapplySearchFilter`).
+  const savedQuery = getSavedSearch();
+  if (savedQuery) {
+    searchInput.value = savedQuery;
+    filterCards();
+  }
 }

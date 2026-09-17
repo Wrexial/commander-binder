@@ -19,6 +19,7 @@ import {
 } from './cards.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { showToast } from './components/toast.js';
+import { reapplySearchFilter } from './search.js';
 
 /**
  * When a page yields too few new unique cards to render a section, we keep
@@ -205,6 +206,7 @@ function renderPage(results, tooltip, pageCards) {
   updateBinderHeader();
 
   appState.count += pageCards.length;
+  reapplySearchFilter();
   updateOwnedCounter();
 
   if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {

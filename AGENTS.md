@@ -61,21 +61,27 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
-  `cardStore`, `cardSettings`). State is plain exported objects, not a framework
-  store. `mainState.js` holds session state so `cardState.js` can read it without
-  importing `main.js` (avoids a cycle).
+  `cardStore`, `cardSettings`, `viewState`). State is plain exported objects, not a
+  framework store. `mainState.js` holds session state so `cardState.js` can read it
+  without importing `main.js` (avoids a cycle). `viewState.js` persists the active
+  search and last scroll offset in `sessionStorage` (per-tab, best-effort).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
-  `tooltip`, `cardInteractions`, `yearScrubber`), including `components/` (the
-  shared modal shell `modal.js`, the bulk/export modals, `sidebar`, `toast`,
-  `ownedCounter`, `SignInButton`, `GuestModeText`) and their colocated CSS.
+  `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`), including
+  `components/` (the shared modal shell `modal.js`, the bulk/export modals,
+  `sidebar`, `toast`, `ownedCounter`, `SignInButton`, `GuestModeText`) and their
+  colocated CSS. `statistics.js` and the bulk/export modals are loaded with dynamic
+  `import()` from `main.js`, so they ship as separate chunks.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
   `yearScrubber.js` builds the draggable release-year rail from the
   `data-year`/`data-sets` that `cardFeed.js` stamps on every section. `cardFeed.js`
   owns the fetch→render pagination loop and renders each page;
   `lazyCardLoader.js` bootstraps the default view and drives it through
-  `fetchNextPage`.
+  `fetchNextPage`. `scrollPosition.js` waits for the async grid to grow tall
+  enough before restoring the saved offset, and `search.js` re-applies the active
+  query via `reapplySearchFilter()` (called by `cardFeed.js` after each page) so
+  later pages stay filtered.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`). `idb.js` is the
   shared IndexedDB wrapper used by `responseCache.js` and `bulkData.js`;

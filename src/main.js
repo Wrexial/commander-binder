@@ -15,18 +15,32 @@ import {
   createBulkCheckButton,
   updateAllBinderCounts,
 } from './ui/layout.js';
-import { createBulkAddModal, createBulkCheckModal } from './ui/components/bulkCardModal.js';
 import { updateAllCardStates } from './ui/cards.js';
 import { showToast } from './ui/components/toast.js';
 import { getShareToken } from './api/share.js';
-import { showStatisticsModal } from './ui/statistics.js';
 import { initSidebar, addButtonToSidebar } from './ui/components/sidebar.js';
 import { initViewportMetrics } from './utils/viewport.js';
+import { initScrollPosition } from './ui/scrollPosition.js';
 import { initYearScrubber } from './ui/yearScrubber.js';
 import { mainState } from './state/mainState.js';
 
-async function showModal(createModal) {
-  const modal = await createModal();
+/**
+ * The bulk and statistics dialogs are the heaviest UI modules (hundreds of
+ * lines each), so they are pulled in on demand rather than shipping in the
+ * first bundle. Vite emits them as separate chunks.
+ */
+const loadBulkAddModal = async () =>
+  (await import('./ui/components/bulkCardModal.js')).createBulkAddModal();
+const loadBulkCheckModal = async () =>
+  (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
+
+async function showStatistics() {
+  const { showStatisticsModal } = await import('./ui/statistics.js');
+  await showStatisticsModal();
+}
+
+async function showModal(loadModal) {
+  const modal = await loadModal();
   if (modal) {
     modal.show();
   }
@@ -61,9 +75,9 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
     }
   });
 
-  addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
+  addButtonToSidebar('📊 Show Statistics', showStatistics);
 
-  createBulkAddButton(() => showModal(createBulkAddModal));
+  createBulkAddButton(() => showModal(loadBulkAddModal));
 }
 
 /**
@@ -91,7 +105,7 @@ export async function setupUI() {
   if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
-    addButtonToSidebar('📊 Show Statistics', showStatisticsModal);
+    addButtonToSidebar('📊 Show Statistics', showStatistics);
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
   } else if (clerk.user) {
@@ -118,6 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const results = document.getElementById('results');
 
   await setupUI();
+  initScrollPosition();
 
   // Load saved marks in parallel with the card grid so Clerk/Netlify/DB
   // latency does not delay the first cards. Marks are re-applied here once
@@ -133,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initLazyCards(results, tooltip);
   initYearScrubber();
   updateAllBinderCounts();
-  createBulkCheckButton(() => showModal(createBulkCheckModal));
+  createBulkCheckButton(() => showModal(loadBulkCheckModal));
   createExportOwnedButton();
 
   initCardSettings();
