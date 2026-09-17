@@ -7,6 +7,8 @@ import { initSearch } from './ui/search.js';
 import { initClerk, getClerk } from './auth/clerk.js';
 import { createSignInButton } from './ui/components/SignInButton.js';
 import { createGuestModeText } from './ui/components/GuestModeText.js';
+import { createGuestWelcome } from './ui/components/GuestWelcome.js';
+import { isGuestWelcomeDismissed } from './state/onboarding.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import {
@@ -97,10 +99,12 @@ export async function setupUI() {
   const userActionsContainer = document.getElementById('user-actions');
   const openBtn = document.getElementById('openbtn');
   const sidebar = document.getElementById('sidebar');
+  const welcomeMount = document.getElementById('guest-welcome');
 
   // Clear previous state
   userActionsContainer.innerHTML = '';
   sidebar.innerHTML = '';
+  welcomeMount?.replaceChildren();
 
   if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
@@ -120,7 +124,25 @@ export async function setupUI() {
     mainState.loggedInUserId = undefined;
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, false);
+    renderGuestWelcome(clerk, welcomeMount);
   }
+}
+
+/**
+ * First-run prompt for signed-out visitors, shown once until dismissed or they
+ * sign in. Share-token guests get the separate "Guest Mode" indicator instead.
+ * @param {object} clerk
+ * @param {HTMLElement|null} mount
+ */
+function renderGuestWelcome(clerk, mount) {
+  if (!mount || isGuestWelcomeDismissed()) return;
+
+  mount.appendChild(
+    createGuestWelcome({
+      onSignIn: () => clerk.openSignIn(),
+      onDismiss: () => mount.replaceChildren(),
+    })
+  );
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

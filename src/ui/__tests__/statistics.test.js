@@ -174,6 +174,33 @@ describe('calculateStatistics', () => {
 
     expect(stats.completion).toEqual({ owned: 2, total: 8, percent: 25 });
   });
+
+  it('computes per-set completion against the full collection', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'C', set: 'm21', set_name: 'Core Set 2021' }),
+    ];
+
+    const stats = calculateStatistics([all[0], all[2]], all.length, all);
+
+    // Highest completion first; sets with no owned cards are omitted.
+    expect(stats.sets).toEqual([
+      { code: 'm21', name: 'Core Set 2021', total: 1, owned: 1, percent: 100 },
+      { code: 'lea', name: 'Limited Edition Alpha', total: 2, owned: 1, percent: 50 },
+    ]);
+  });
+
+  it('omits sets the collection has no cards in', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'ice', set_name: 'Ice Age' }),
+    ];
+
+    const stats = calculateStatistics([all[0]], 2, all);
+
+    expect(stats.sets.map((set) => set.code)).toEqual(['lea']);
+  });
 });
 
 describe('createStatisticsHTML', () => {
@@ -196,6 +223,7 @@ describe('createStatisticsHTML', () => {
       'Mana Value Curve',
       'Rarities',
       'Creature Types',
+      'Set Completion',
       'Price Distribution',
       'Top 5 Most Valuable Cards',
     ]) {
@@ -221,6 +249,31 @@ describe('createStatisticsHTML', () => {
     const combos = html.slice(html.indexOf('Color Combinations'));
 
     expect(combos.indexOf('card-symbols/W.svg')).toBeLessThan(combos.indexOf('card-symbols/B.svg'));
+  });
+
+  it('renders the per-set completion bars with owned/total counts', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
+    ];
+    const stats = calculateStatistics([all[0]], 2, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).toContain('Set Completion');
+    expect(html).toContain('Limited Edition Alpha');
+    expect(html).toContain('LEA');
+    expect(html).toContain('1/2');
+  });
+
+  it('escapes set names in the completion list', () => {
+    const all = [makeCard({ name: 'A', set: 'x', set_name: '<img src=x onerror=alert(1)>' })];
+    const stats = calculateStatistics(all, 1, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).not.toContain('<img src=x');
+    expect(html).toContain('&lt;img src=x');
   });
 });
 

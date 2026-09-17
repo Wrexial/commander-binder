@@ -42,6 +42,9 @@ const PRICE_BUCKETS = [
 /** How many creature types to list before the breakdown gets noisy. */
 const MAX_TYPES_SHOWN = 12;
 
+/** How many sets to list in the per-set completion breakdown. */
+const MAX_SETS_SHOWN = 12;
+
 /**
  * Resolve the colors of a card, falling back to its faces for modal DFCs.
  * Returns a de-duplicated array of color letters (empty for colorless cards).
@@ -110,6 +113,8 @@ function median(values) {
  * @param {object[]} cards Owned cards to analyze.
  * @param {number} [totalAvailable] Total unique legendary creatures known to
  *   the app, used as the denominator for the completion percentage.
+ * @param {object[]} [allCards] Full collection (one entry per creature). Used to
+ *   compute per-set completion; defaults to `cards`.
  * @returns {{
  *   totalCards: number,
  *   totalValue: number,
@@ -126,9 +131,10 @@ function median(values) {
  *   medianManaValue: number|null,
  *   priceBuckets: { label: string, count: number }[],
  *   top5ValuableCards: { name: string, price: number, card: object }[],
+ *   sets: { code: string, name: string, owned: number, total: number, percent: number }[],
  * }}
  */
-export function calculateStatistics(cards, totalAvailable = cards.length) {
+export function calculateStatistics(cards, totalAvailable = cards.length, allCards = cards) {
   const totalCards = cards.length;
   let totalValue = 0;
   const colors = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
@@ -199,6 +205,35 @@ export function calculateStatistics(cards, totalAvailable = cards.length) {
 
   const manaSum = manaValues.reduce((sum, value) => sum + value, 0);
 
+  // Per-set completion: of the legendary creatures a set introduced (each
+  // `allCards` entry is a creature's default printing), how many are owned.
+  // Only sets the collector has at least one card in are listed, so the long
+  // tail of untouched sets does not bury the useful rows.
+  const setTotals = new Map();
+  for (const card of allCards) {
+    const code = card.set;
+    if (!code) continue;
+    const entry = setTotals.get(code) || { code, name: card.set_name || code, total: 0 };
+    entry.total += 1;
+    if (!entry.name && card.set_name) entry.name = card.set_name;
+    setTotals.set(code, entry);
+  }
+
+  const setOwned = new Map();
+  for (const card of cards) {
+    const code = card.set;
+    if (!code) continue;
+    setOwned.set(code, (setOwned.get(code) || 0) + 1);
+  }
+
+  const sets = Array.from(setTotals.values())
+    .map((entry) => {
+      const owned = setOwned.get(entry.code) || 0;
+      return { ...entry, owned, percent: entry.total > 0 ? (owned / entry.total) * 100 : 0 };
+    })
+    .filter((entry) => entry.owned > 0)
+    .sort((a, b) => b.percent - a.percent || b.owned - a.owned || a.name.localeCompare(b.name));
+
   return {
     totalCards,
     totalValue,
@@ -219,6 +254,7 @@ export function calculateStatistics(cards, totalAvailable = cards.length) {
     medianManaValue: median(manaValues),
     priceBuckets,
     top5ValuableCards,
+    sets,
   };
 }
 
@@ -405,6 +441,30 @@ function renderCreatureTypes(types) {
   );
 }
 
+function renderSetCompletion(sets) {
+  if (sets.length === 0) {
+    return section('Set Completion', '<p class="stats-empty">No owned cards yet.</p>');
+  }
+
+  const rows = sets
+    .slice(0, MAX_SETS_SHOWN)
+    .map(
+      (set) => `
+        <div class="stats-bar-row">
+            <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
+            <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${Math.max(set.percent, 3)}%"></span></span>
+            <span class="stats-bar-count">${set.owned}/${set.total}</span>
+        </div>`
+    )
+    .join('');
+
+  return section(
+    'Set Completion',
+    `<div class="stats-bars">${rows}</div>`,
+    `${sets.length} set${sets.length === 1 ? '' : 's'}`
+  );
+}
+
 function renderPriceDistribution(priceBuckets, medianValue) {
   const total = priceBuckets.reduce((sum, bucket) => sum + bucket.count, 0);
   if (total === 0) {
@@ -542,6 +602,7 @@ export function createStatisticsHTML(stats) {
             ${renderManaCurve(stats)}
             ${renderRarities(stats.rarities)}
             ${renderCreatureTypes(stats.types)}
+            ${renderSetCompletion(stats.sets)}
             ${renderPriceDistribution(stats.priceBuckets, stats.medianCardValue)}
         </div>
         ${renderTopCards(stats.top5ValuableCards)}
@@ -565,7 +626,7 @@ export function showStatisticsModal() {
 
   // Completion is measured against unique card names, which is what the
   // collection UI tracks (the search's apiTotalCards counts printings).
-  const stats = calculateStatistics(ownedCards, allCards.length);
+  const stats = calculateStatistics(ownedCards, allCards.length, allCards);
   const tooltip = document.getElementById('tooltip');
   let cleanupTopCardTooltips = () => {};
 

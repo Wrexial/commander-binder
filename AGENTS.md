@@ -61,16 +61,18 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
-  `cardStore`, `cardSettings`, `viewState`). State is plain exported objects, not a
-  framework store. `mainState.js` holds session state so `cardState.js` can read it
-  without importing `main.js` (avoids a cycle). `viewState.js` persists the active
-  search and last scroll offset in `sessionStorage` (per-tab, best-effort).
+  `cardStore`, `cardSettings`, `viewState`, `onboarding`). State is plain exported
+  objects, not a framework store. `mainState.js` holds session state so
+  `cardState.js` can read it without importing `main.js` (avoids a cycle).
+  `viewState.js` persists the active search and last scroll offset in
+  `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps first-run flags
+  such as the dismissed guest welcome in `localStorage`.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`), including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the bulk/export modals, `sidebar`, `toast`, `ownedCounter`,
-  `SignInButton`, `GuestModeText`) and their colocated CSS. `statistics.js` and the
+  `SignInButton`, `GuestModeText`, `GuestWelcome`) and their colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks.
   `searchHelp.js` owns the syntax reference as data (rendered into

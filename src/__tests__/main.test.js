@@ -22,11 +22,13 @@ describe('setupUI', () => {
     document.body.innerHTML = `
       <div id="user-actions"></div>
       <div id="sidebar"></div>
+      <div id="guest-welcome"></div>
       <button id="openbtn"></button>
     `;
 
     // Reset mocks and module state before each test
     vi.clearAllMocks();
+    localStorage.clear();
     document.body.classList.remove('has-hamburger');
     mainState.shareToken = undefined;
     mainState.loggedInUserId = undefined;
@@ -53,6 +55,8 @@ describe('setupUI', () => {
     expect(document.querySelector('#user-actions').children.length).toBe(1);
     // The top bars reserve room for the fixed hamburger.
     expect(document.body.classList.contains('has-hamburger')).toBe(true);
+    // Share-token guests get the Guest Mode indicator, not the sign-in welcome.
+    expect(document.querySelector('.guest-welcome')).toBeNull();
   });
 
   it('should setup for a logged-out user if no user and no share token', async () => {
@@ -68,6 +72,8 @@ describe('setupUI', () => {
     const signIn = document.querySelector('#user-actions').querySelector('button');
     expect(signIn).not.toBeNull();
     expect(document.body.classList.contains('has-hamburger')).toBe(false);
+    // Signed-out visitors get the first-run welcome prompting sign-in.
+    expect(document.querySelector('.guest-welcome')).not.toBeNull();
   });
 
   it('should setup for an authenticated user if clerk.user exists', async () => {
@@ -88,5 +94,6 @@ describe('setupUI', () => {
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
     expect(document.body.classList.contains('has-hamburger')).toBe(true);
+    expect(document.querySelector('.guest-welcome')).toBeNull();
   });
 });

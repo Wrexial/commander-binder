@@ -277,6 +277,81 @@ body.sidebar-open {
   justify-content: flex-end;
 }
 
+/* First-run welcome for signed-out visitors (src/ui/components/GuestWelcome.js). */
+.guest-welcome {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1.15rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.guest-welcome-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.guest-welcome h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.guest-welcome p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.guest-welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.guest-welcome-dismiss {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.guest-welcome-dismiss:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.guest-welcome-dismiss:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+
+@media (max-width: 768px) {
+  .guest-welcome {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .guest-welcome-actions {
+    justify-content: flex-end;
+  }
+}
+
 @media (max-width: 768px) {
   /* The fixed hamburger sits at the top-left; reserve room for it so it does
      not cover the logo. Only applies while the button is actually shown. */
@@ -2409,6 +2484,13 @@ footer a:focus-visible {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Set code next to a set name in the per-set completion bars. */
+.stats-set-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 .stats-bar-track {
