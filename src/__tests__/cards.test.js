@@ -184,7 +184,9 @@ describe('version badge', () => {
     expect(badge).not.toBeNull();
     expect(badge.querySelector('.card-versions-full').textContent).toBe('1/3 printings');
     expect(badge.querySelector('.card-versions-short').textContent).toBe('1/3');
-    expect(badge.getAttribute('aria-label')).toBe('1 of 3 printings');
+    expect(badge.tagName).toBe('BUTTON');
+    expect(badge.type).toBe('button');
+    expect(badge.getAttribute('aria-label')).toBe('Show next printing (1/3 printings)');
   });
 
   it('reflects the index of the printing being displayed', () => {

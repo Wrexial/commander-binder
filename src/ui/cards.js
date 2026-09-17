@@ -42,16 +42,18 @@ function getVersionInfo(card) {
 }
 
 /**
- * Small badge reading "2/5 printings" (desktop) or "2/5" (mobile; the long
- * label is hidden by CSS).
+ * Printing-count control reading "2/5 printings" (desktop) or "2/5" (mobile;
+ * the long label is hidden by CSS). It is a button so keyboard users have a
+ * reachable way to cycle printings (the pointer paths are right-click / touch).
  * @param {{index: number, total: number}} version
- * @returns {HTMLElement}
+ * @returns {HTMLButtonElement}
  */
 function createVersionBadge({ index, total }) {
-  const el = document.createElement('span');
+  const el = document.createElement('button');
+  el.type = 'button';
   el.className = 'card-versions';
   el.title = `${total} printings — ${NEXT_PRINTING_HINT.toLowerCase()}`;
-  el.setAttribute('aria-label', `${index} of ${total} printings`);
+  el.setAttribute('aria-label', `Show next printing (${index}/${total} printings)`);
 
   const full = document.createElement('span');
   full.className = 'card-versions-full';
@@ -397,6 +399,9 @@ export function updateCardVersionCounts() {
       `${version.index}/${version.total} printings`;
     badge.querySelector('.card-versions-short').textContent = `${version.index}/${version.total}`;
     badge.title = `${version.total} printings — ${NEXT_PRINTING_HINT.toLowerCase()}`;
-    badge.setAttribute('aria-label', `${version.index} of ${version.total} printings`);
+    badge.setAttribute(
+      'aria-label',
+      `Show next printing (${version.index}/${version.total} printings)`
+    );
   });
 }

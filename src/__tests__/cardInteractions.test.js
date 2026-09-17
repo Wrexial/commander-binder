@@ -99,12 +99,28 @@ describe('initCardInteractions', () => {
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
-    it('omits the printing-cycle handler in view-only mode', () => {
+    it('exposes the printing-cycle handler in view-only (guest) mode', () => {
       appState.isViewOnlyMode = true;
       initCardInteractions(container, tooltipElement);
       startTouch(cardElement);
 
-      expect(tooltipElement.onCycle).toBeNull();
+      expect(typeof tooltipElement.onCycle).toBe('function');
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+      appState.isViewOnlyMode = false;
+    });
+
+    it('cycles the printing from the tooltip in view-only (guest) mode', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+      appState.isViewOnlyMode = true;
+
+      initCardInteractions(container, tooltipElement);
+      startTouch(cardElement);
+      tooltipElement.onCycle(new Event('click'));
+
+      expect(cardElement.cardData.id).toBe('p2');
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
       appState.isViewOnlyMode = false;
     });
@@ -163,6 +179,23 @@ describe('initCardInteractions', () => {
 
       expect(cardElement.cardData.id).toBe('p2');
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
+    });
+
+    it('cycles the printing when the version badge is activated, without toggling ownership', async () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      const badge = document.createElement('button');
+      badge.className = 'card-versions';
+      cardElement.appendChild(badge);
+
+      initCardInteractions(container, tooltipElement);
+      badge.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(cardElement.cardData.id).toBe('p2');
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
   });
 

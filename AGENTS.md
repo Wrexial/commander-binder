@@ -68,10 +68,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`), including
-  `components/` (the shared modal shell `modal.js`, the bulk/export modals,
-  `sidebar`, `toast`, `ownedCounter`, `SignInButton`, `GuestModeText`) and their
-  colocated CSS. `statistics.js` and the bulk/export modals are loaded with dynamic
-  `import()` from `main.js`, so they ship as separate chunks.
+  `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
+  and focus restore — the bulk/export modals, `sidebar`, `toast`, `ownedCounter`,
+  `SignInButton`, `GuestModeText`) and their colocated CSS. `statistics.js` and the
+  bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
+  ship as separate chunks.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
   `yearScrubber.js` builds the draggable release-year rail from the
@@ -104,7 +105,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   app's legendary-creature search (used by `npm run verify:bulk`).
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
-  user's Clerk id is never exposed in the URL.
+  user's Clerk id is never exposed in the URL. View-only/guest mode blocks
+  ownership edits but still allows view actions such as cycling printings.
 - Tests are colocated under `__tests__/` folders (`src/__tests__/`,
   `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,
   `src/ui/components/__tests__/`, `src/utils/__tests__/`, `netlify/utils/__tests__/`).
@@ -118,6 +120,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - One gesture, one action: a tap must never trigger two things. Gate hover-only
   affordances behind `isHoverCapable()` (`src/utils/pointer.js`), and make sure a
   long-press swallows the click the browser still fires on release.
+- Card actions must be keyboard-reachable: ownership is the `.card-toggle` button
+  and the printing cycle is the `.card-versions` button (pointer paths are
+  right-click and touch). Keep new card controls real `<button>`s so they land in
+  the tab order.
 - Vanilla JS/DOM for the frontend — no React/Vue. Prefer existing component
   factory patterns (e.g. `createXModal()` returning `{ show }`).
 - Escape untrusted strings with `escapeHtml` from `src/utils/html.js` before

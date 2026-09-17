@@ -44,11 +44,10 @@ function handleTouchStart(event, tooltip) {
   const state = getState(cardElement);
   state.isLongPress = false;
 
-  // The tooltip owns the cycle action on touch (no right-click), so use the
-  // default touch wording rather than any label left by the statistics modal.
-  tooltip.onCycle = appState.isViewOnlyMode
-    ? null
-    : (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
+  // The tooltip owns the cycle action on touch (no right-click). This stays
+  // available in view-only/guest mode too: looking at another printing is a
+  // view action, not an edit.
+  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
   tooltip.cycleLabel = null;
 
   // Touch has no hover phase; start the image early since the tooltip shows
@@ -88,10 +87,21 @@ function handleTouchEnd(event) {
   }
 }
 
-async function handleContainerClick(event) {
+async function handleContainerClick(event, tooltip) {
   const cardElement = event.target.closest('.card');
-  // Ignore clicks if they aren't on a card, are on the EDHREC link, or in view-only mode
-  if (!cardElement || event.target.closest('.edhrec-link') || appState.isViewOnlyMode) {
+  if (!cardElement) return;
+
+  // The printing-count badge is its own control: it cycles the printing (the
+  // keyboard path is Enter/Space on the button) and must never fall through to
+  // the ownership toggle below.
+  if (event.target.closest('.card-versions')) {
+    event.stopPropagation();
+    cycleCardPrinting(cardElement, event, tooltip);
+    return;
+  }
+
+  // Ignore clicks on the EDHREC link, and on cards at all in view-only mode.
+  if (event.target.closest('.edhrec-link') || appState.isViewOnlyMode) {
     return;
   }
 
@@ -143,7 +153,7 @@ async function handleContainerClick(event) {
  * the tooltip's "Next printing" button (touch) both route through here.
  */
 function cycleCardPrinting(cardElement, event, tooltip) {
-  if (!cardElement || !cardElement.cardData || appState.isViewOnlyMode) return;
+  if (!cardElement || !cardElement.cardData) return;
 
   const next = nextPrinting(
     cardStore.getPrintings(cardElement.cardData.name),
@@ -151,11 +161,16 @@ function cycleCardPrinting(cardElement, event, tooltip) {
   );
   if (!next) return;
 
+  // Cycling rebuilds the tile, which would drop focus on the (replaced) version
+  // button; put it back so keyboard users stay on the control they activated.
+  const restoreFocus = document.activeElement?.classList.contains('card-versions');
+
   cardElement.cardData = next;
 
   // Keep the tile in sync with the newly displayed printing (matters in image
   // mode, where the artwork, price and version badge differ per printing).
   refreshCardElement(cardElement);
+  if (restoreFocus) cardElement.querySelector('.card-versions')?.focus();
 
   // Only refresh the tooltip when it is actually open (touch long-press).
   // `showTooltip` sets display to 'flex'; it starts empty and 'none' when
@@ -182,7 +197,7 @@ function handleContextMenu(event, tooltip) {
 // --- Main Initialization ---
 
 export function initCardInteractions(container, tooltip) {
-  container.addEventListener('click', handleContainerClick);
+  container.addEventListener('click', (event) => handleContainerClick(event, tooltip));
   container.addEventListener('contextmenu', (e) => handleContextMenu(e, tooltip));
 
   container.addEventListener('touchstart', (e) => handleTouchStart(e, tooltip), { passive: true });
