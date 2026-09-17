@@ -220,6 +220,12 @@ body.sidebar-open {
   pointer-events: none;
 }
 
+/* The <picture> wrapper exists only to offer the WebP source; let its <img>
+   participate in the header flex row directly so `.logo` sizing/shrink applies. */
+.main-header picture {
+  display: contents;
+}
+
 .logo {
   width: 84px;
   height: 84px;

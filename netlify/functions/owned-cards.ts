@@ -3,13 +3,21 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { ownedCards, shareLinks } from '../../db/schema';
 import { getUserId, unauthorized } from '../utils/auth';
+import { badRequest, parseJsonBody } from '../utils/request';
 
 export async function handler(event: HandlerEvent) {
-  const { shareToken } = JSON.parse(event.body || '{}');
+  const parsed = parseJsonBody(event);
+  if (!parsed.ok) return parsed.response;
+
+  const { shareToken } = parsed.value;
 
   let userId;
 
   if (shareToken) {
+    if (typeof shareToken !== 'string') {
+      return badRequest("'shareToken' must be a string.");
+    }
+
     // A share token is an explicit capability: honour it even when the caller
     // also has a session, so opening someone's share link shows *their*
     // collection and a rotated token stops resolving immediately.

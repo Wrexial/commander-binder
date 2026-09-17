@@ -20,6 +20,7 @@ npm run dev            # Frontend only: Vite dev server (port 5173, strict)
 npm run dev:netlify    # Full stack: Netlify Dev + Functions (port 8080)
 npm run build          # Production build (sourcemaps enabled)
 npm run lint           # ESLint (JS/TS across the repo)
+npm run typecheck      # tsc --noEmit (netlify/**/*.ts, db/*.ts, drizzle.config.ts)
 npm run format         # Prettier (write)
 npm run format:check   # Prettier (check only)
 npm test               # Vitest (jsdom), single run
@@ -50,7 +51,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - Frontend code is plain JavaScript (ES modules). TypeScript is limited to
   `netlify/**/*.ts`, `db/*.ts`, and `drizzle.config.ts` (the function/db files
   run through Netlify's/esbuild transpilation; `drizzle.config.ts` is loaded by
-  drizzle-kit).
+  drizzle-kit). Typecheck with `npm run typecheck` (see `tsconfig.json`).
 - `src/main.js` — app entry point; wires up all UI modules.
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
@@ -88,6 +89,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   (exports `getUserId` and `unauthorized`; `verifyToken` is internal).
 - `netlify/utils/ownedCards.ts` — shared add/remove DB logic for the toggle
   handlers.
+- `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
+  a thrown 500) and `badRequest`, plus the `MAX_BATCH_SIZE` cap used by the batch
+  toggle.
+- `public/_headers` — Netlify security headers (report-only CSP; see the file for
+  how to promote it to enforcing) and immutable caching for `/assets/*`.
 - `scripts/verify-bulk-coverage.mjs` — checks that Scryfall's bulk file covers the
   app's legendary-creature search (used by `npm run verify:bulk`).
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
@@ -95,7 +101,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   user's Clerk id is never exposed in the URL.
 - Tests are colocated under `__tests__/` folders (`src/__tests__/`,
   `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,
-  `src/ui/components/__tests__/`, `src/utils/__tests__/`). Cross-module flows live
+  `src/ui/components/__tests__/`, `src/utils/__tests__/`, `netlify/utils/__tests__/`).
+  Cross-module flows live
   in `src/__integration__/ownedFlow.test.js`. Mock Clerk lives in
   `src/__mocks__/@clerk/clerk-js.js`.
 

@@ -26,7 +26,13 @@
       property="og:description"
       content="Browse and track your MTG legendary creatures by their first appearance."
     />
-    <meta property="og:image" content="https://commanders-binders.netlify.app/logo.png" />
+    <meta property="og:image" content="https://commanders-binders.netlify.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="The Legendary Creature Collector logo above the site title."
+    />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
@@ -36,7 +42,11 @@
       property="twitter:description"
       content="Browse and track your MTG legendary creatures by their first appearance."
     />
-    <meta property="twitter:image" content="https://commanders-binders.netlify.app/logo.png" />
+    <meta property="twitter:image" content="https://commanders-binders.netlify.app/og-image.png" />
+    <meta
+      property="twitter:image:alt"
+      content="The Legendary Creature Collector logo above the site title."
+    />
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#0f131c" />
@@ -73,7 +83,10 @@
     <div id="main">
       <main class="container">
         <header class="main-header">
-          <img src="logo.png" alt="Logo" class="logo" />
+          <picture>
+            <source srcset="logo.webp" type="image/webp" />
+            <img src="logo.png" alt="Logo" class="logo" width="84" height="84" />
+          </picture>
           <div class="header-text">
             <h1>Legendary Creature Collector</h1>
             <p class="description">

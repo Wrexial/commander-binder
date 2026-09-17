@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { shareLinks } from '../../db/schema';
 import { getUserId, unauthorized } from '../utils/auth';
+import { parseJsonBody } from '../utils/request';
 
 /**
  * Returns the caller's share token, creating one on first use. Passing
@@ -16,7 +17,10 @@ export async function handler(event: HandlerEvent) {
     return unauthorized();
   }
 
-  const { regenerate } = JSON.parse(event.body || '{}');
+  const parsed = parseJsonBody(event);
+  if (!parsed.ok) return parsed.response;
+
+  const { regenerate } = parsed.value;
 
   if (!regenerate) {
     const [existing] = await db
