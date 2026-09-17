@@ -1184,27 +1184,44 @@ body.tooltip-open {
 
 .tooltip-card-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: center;
-  gap: 4px;
+  gap: 3px 5px;
   min-width: 0;
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 0.8rem;
   color: #d7deea;
+}
+
+/* The price as its own pill, mirroring the tile's price badge. Keeping it out of
+   the set/number line means a long set name can never hide it. */
+.tooltip-card-price {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(9, 12, 18, 0.82);
+  color: var(--accent-strong);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
-/* The set name is the only part allowed to truncate, so the number, price and
-   printing count always stay on the single meta line. */
+/* The set name is the only part allowed to truncate, so the number and printing
+   count always stay on the line. */
 .tooltip-card-set {
   flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tooltip-card-meta-rest {
   flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .tooltip-card-status {
@@ -1434,6 +1451,7 @@ body.tooltip-open {
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  overflow-x: clip;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -1627,9 +1645,14 @@ body.tooltip-open {
       'search search'
       'counter toggle'
       'filters filters';
-    grid-template-columns: 1fr auto;
+    /* minmax(0, 1fr) lets the first column shrink below its content, so a wide
+       filter control can't stretch the bar (and the page) past the viewport. */
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     border-bottom: 1px solid var(--card-border-default);
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   #filter-toggle {
@@ -1653,10 +1676,12 @@ body.tooltip-open {
   #search-wrapper {
     grid-area: search;
     width: 100%;
+    min-width: 0;
     margin-bottom: 4px;
   }
   #owned-counter {
     grid-area: counter;
+    min-width: 0;
     font-size: 0.85rem;
     margin: 0;
     text-align: left;

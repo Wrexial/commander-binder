@@ -204,12 +204,11 @@ describe('tooltip', () => {
       const details = tooltip.querySelector('.tooltip-card-details');
       expect(details).not.toBeNull();
       expect(details.querySelector('.tooltip-card-name').textContent).toBe('Serra Angel');
-      // The set is its own (truncatable) span; everything else stays together so
-      // the meta line never wraps.
       expect(details.querySelector('.tooltip-card-set').textContent).toBe('Dominaria');
+      // The price is its own pill so a long set name can't hide it.
+      expect(details.querySelector('.tooltip-card-price').textContent).toBe('€1.00');
       const rest = details.querySelector('.tooltip-card-meta-rest').textContent;
       expect(rest).toContain('#1');
-      expect(rest).toContain('€1.00');
       expect(rest).toContain('2/5 printings');
       expect(details.querySelector('.tooltip-owned-status')).not.toBeNull();
     });

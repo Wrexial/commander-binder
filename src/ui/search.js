@@ -248,6 +248,15 @@ export function reapplySearchFilter() {
   if (activeQuery || activeFilterCount() > 0) filterCards();
 }
 
+/**
+ * Re-run the filter unconditionally. The filter bar uses this because clearing
+ * the last active filter would otherwise be skipped by the guard above,
+ * leaving the previously hidden cards hidden.
+ */
+export function refreshCardFilter() {
+  filterCards();
+}
+
 export function initSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;

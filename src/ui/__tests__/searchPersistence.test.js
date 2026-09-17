@@ -74,4 +74,26 @@ describe('search persistence', () => {
 
     expect(late.style.display).toBe('');
   });
+
+  it('re-shows every card once the last filter is removed', async () => {
+    const { filters, resetFilters } = await import('../../state/filters.js');
+    search.initSearch();
+
+    // Hide every card with a rarity none of them satisfy.
+    filters.rarities = ['mythic'];
+    search.reapplySearchFilter();
+    expect(
+      [...document.querySelectorAll('.card')].every((card) => card.style.display === 'none')
+    ).toBe(true);
+
+    // Clearing the last filter must still re-run the filter; the guarded
+    // `reapplySearchFilter` would skip it and leave the grid hidden.
+    filters.rarities = [];
+    search.refreshCardFilter();
+    resetFilters();
+
+    expect([...document.querySelectorAll('.card')].every((card) => card.style.display === '')).toBe(
+      true
+    );
+  });
 });

@@ -69,17 +69,24 @@ function createTooltipDetails(card, version) {
   name.textContent = card.name;
   details.appendChild(name);
 
-  // Keep the meta on a single line: the set name is the only part allowed to
-  // truncate, so the number/price/printing count always stay visible.
+  // Keep the meta on a single line where it fits: the set name is the only
+  // part allowed to truncate, so the number/printing count always stay visible.
+  // The price is its own pill so a long set name can never push it out.
   const price = getDisplayedPrice(card);
   const restParts = [];
   if (card.collector_number) restParts.push(`#${card.collector_number}`);
-  if (price !== null) restParts.push(`€${price.toFixed(2)}`);
   if (version.total > 1) restParts.push(`${version.index}/${version.total} printings`);
 
-  if (card.set_name || restParts.length > 0) {
+  if (price !== null || card.set_name || restParts.length > 0) {
     const meta = document.createElement('div');
     meta.className = 'tooltip-card-meta';
+
+    if (price !== null) {
+      const priceEl = document.createElement('span');
+      priceEl.className = 'tooltip-card-price';
+      priceEl.textContent = `€${price.toFixed(2)}`;
+      meta.appendChild(priceEl);
+    }
 
     if (card.set_name) {
       const setEl = document.createElement('span');
