@@ -75,7 +75,7 @@ describe('updateOwnedCounter', () => {
     // Visible cards: card1, card2, card5 (length 3)
     // Owned and visible: card1, card5 (length 2)
     // Total owned: 3
-    expect(ownedCounterEl.textContent).toBe('Owned: 2/3 shown (3 total)');
+    expect(ownedCounterEl.textContent).toBe('Owned: 2/3');
   });
 
   it('should not throw an error if the counter or search input element is missing', () => {
@@ -88,6 +88,6 @@ describe('updateOwnedCounter', () => {
     searchInputEl.value = 'search with no results';
     updateOwnedCounter();
 
-    expect(ownedCounterEl.textContent).toBe('Owned: 0/0 shown (3 total)');
+    expect(ownedCounterEl.textContent).toBe('Owned: 0/0');
   });
 });

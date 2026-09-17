@@ -25,5 +25,7 @@ export function updateOwnedCounter() {
     if (isCardOwned(card.cardData)) ownedVisibleCount++;
   });
 
-  ownedCounter.textContent = `Owned: ${ownedVisibleCount}/${visibleCount} shown (${totalOwnedCount} total)`;
+  // Keep it short: the pill sits beside the filter button on mobile, where the
+  // "shown (N total)" suffix overflowed the toolbar.
+  ownedCounter.textContent = `Owned: ${ownedVisibleCount}/${visibleCount}`;
 }
