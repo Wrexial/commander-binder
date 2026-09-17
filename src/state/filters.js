@@ -42,6 +42,7 @@ export const DEFAULT_FILTERS = {
   set: '', // lowercase set code; '' = any
   priceMin: null,
   priceMax: null,
+  sort: 'release-asc', // see utils/sortCards.js; default = oldest first
 };
 
 const COLOR_IDS = new Set(COLOR_OPTIONS.map((option) => option.id));
@@ -78,6 +79,7 @@ export function normalizeFilters(raw) {
     next.rarities = [...new Set(raw.rarities)].filter((rarity) => RARITY_IDS.has(rarity));
   }
   if (typeof raw.set === 'string') next.set = raw.set.toLowerCase();
+  if (typeof raw.sort === 'string') next.sort = raw.sort;
   next.priceMin = toPrice(raw.priceMin);
   next.priceMax = toPrice(raw.priceMax);
 

@@ -231,7 +231,7 @@ export function startNewBinder(results) {
   appState.binder.endDate = null;
 }
 
-export function startNewSection(pageSets = new Map()) {
+export function startNewSection(pageSets = new Map(), { showSets = true } = {}) {
   appState.binder.sectionCount = (appState.binder.sectionCount || 0) + 1;
   const pageNumberInBinder = appState.binder.sectionCount;
 
@@ -241,52 +241,55 @@ export function startNewSection(pageSets = new Map()) {
 
   const header = document.createElement('h3');
   header.className = 'page-header';
-  header.textContent = `Page ${pageNumberInBinder} — `;
+  // Set tags are only meaningful in release order; a sorted grid mixes sets.
+  header.textContent = showSets ? `Page ${pageNumberInBinder} — ` : `Page ${pageNumberInBinder}`;
 
   const toggleSection = () => section.classList.toggle('collapsed');
   attachTapAndLongPress(header, toggleSection, toggleSection);
 
   bindSetTooltipDismissal();
 
-  const setCodes = Array.from(pageSets.entries()).map(([setCode, setObj]) => {
-    const span = document.createElement('span');
-    span.textContent = setCode.toUpperCase();
-    span.style.cursor = 'help';
+  if (showSets) {
+    const setCodes = Array.from(pageSets.entries()).map(([setCode, setObj]) => {
+      const span = document.createElement('span');
+      span.textContent = setCode.toUpperCase();
+      span.style.cursor = 'help';
 
-    // Pointer devices get a hover preview; touch gets the same bubble from a
-    // single tap, which is swallowed so the section does not also collapse.
-    span.addEventListener('mouseenter', (event) => {
-      if (!isHoverCapable()) return;
-      showSetTooltip(span, setObj.name, false);
-      const setTooltip = document.getElementById('set-tooltip');
-      if (setTooltip) positionTooltip(event, setTooltip);
-    });
-    span.addEventListener('mousemove', (event) => {
-      if (!isHoverCapable()) return;
-      const setTooltip = document.getElementById('set-tooltip');
-      if (setTooltip?.style.display === 'block') positionTooltip(event, setTooltip);
-    });
-    span.addEventListener('mouseleave', () => {
-      if (!isHoverCapable()) return;
-      hideSetTooltip();
+      // Pointer devices get a hover preview; touch gets the same bubble from a
+      // single tap, which is swallowed so the section does not also collapse.
+      span.addEventListener('mouseenter', (event) => {
+        if (!isHoverCapable()) return;
+        showSetTooltip(span, setObj.name, false);
+        const setTooltip = document.getElementById('set-tooltip');
+        if (setTooltip) positionTooltip(event, setTooltip);
+      });
+      span.addEventListener('mousemove', (event) => {
+        if (!isHoverCapable()) return;
+        const setTooltip = document.getElementById('set-tooltip');
+        if (setTooltip?.style.display === 'block') positionTooltip(event, setTooltip);
+      });
+      span.addEventListener('mouseleave', () => {
+        if (!isHoverCapable()) return;
+        hideSetTooltip();
+      });
+
+      span.addEventListener('click', (event) => {
+        if (isHoverCapable()) return;
+        event.stopPropagation();
+        event.preventDefault();
+        showSetTooltip(span, setObj.name, true);
+      });
+
+      return span;
     });
 
-    span.addEventListener('click', (event) => {
-      if (isHoverCapable()) return;
-      event.stopPropagation();
-      event.preventDefault();
-      showSetTooltip(span, setObj.name, true);
+    setCodes.forEach((span, index) => {
+      header.appendChild(span);
+      if (index < setCodes.length - 1) {
+        header.appendChild(document.createTextNode(', '));
+      }
     });
-
-    return span;
-  });
-
-  setCodes.forEach((span, index) => {
-    header.appendChild(span);
-    if (index < setCodes.length - 1) {
-      header.appendChild(document.createTextNode(', '));
-    }
-  });
+  }
 
   appState.grid = document.createElement('div');
   appState.grid.className = 'grid';

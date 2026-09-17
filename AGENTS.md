@@ -67,8 +67,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   cycle). `viewState.js` persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
-  `filters.js` holds the filter-bar state and the `cardMatchesFilters`
-  predicate.
+  `filters.js` holds the filter-bar state (including the sort option) and the
+  `cardMatchesFilters` predicate.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`),
@@ -81,9 +81,13 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   ship as separate chunks.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
-  `yearScrubber.js` builds the draggable release-year rail from the
-  `data-year`/`data-sets` that `cardFeed.js` stamps on every section. `cardFeed.js`
-  owns the fetch→render pagination loop and renders each page;
+  `yearScrubber.js` builds the draggable rail from the `data-mark`/`data-markSets`
+  that `cardFeed.js` stamps on every section: the release year (plus the page's
+  sets) in the default order, or the sort value (letter, price, rarity …) for a
+  sorted grid. `cardFeed.js` owns the fetch→render pagination loop and renders
+  each page; because only the default order can be streamed, any other sort makes
+  it drop the set tags and rebuild the whole grid once loaded (and again on each
+  sort change) via `applySort()`.
   `lazyCardLoader.js` bootstraps the default view and drives it through
   `fetchNextPage`. `scrollPosition.js` waits for the async grid to grow tall
   enough before restoring the saved offset, and `search.js` re-applies the active
@@ -91,12 +95,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   later pages stay filtered. `filterBar.js`/`filters.js` add a separate
   click-driven filter state that `search.js` ANDs with the parsed query.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
-  `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`).
+  `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
+  `sortCards`).
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
-  publishes live toolbar height / keyboard inset as CSS variables; and
+  publishes live toolbar height / keyboard inset as CSS variables;
   `collectionFormats.js` serializes/parses the CSV, Moxfield and Archidekt files
-  used by the export/import modals (parsing is header-driven and tolerant).
+  used by the export/import modals (parsing is header-driven and tolerant); and
+  `sortCards.js` defines the sort options and the pure `sortCards`/`sortMark`
+  helpers.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,

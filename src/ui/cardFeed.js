@@ -20,6 +20,8 @@ import {
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { showToast } from './components/toast.js';
 import { reapplySearchFilter } from './search.js';
+import { filters } from '../state/filters.js';
+import { isDefaultSort, sortCards, sortMark } from '../utils/sortCards.js';
 
 /**
  * When a page yields too few new unique cards to render a section, we keep
@@ -33,6 +35,16 @@ let activeRun = null;
 
 /** Set when a fetch fails so auto-loading pauses instead of retrying forever. */
 let halted = false;
+
+/**
+ * True while a non-default sort is active. Those orders can't be streamed, so
+ * the feed keeps loading into `cardStore` but stops appending to the DOM; the
+ * grid is rebuilt when loading finishes and whenever the sort changes.
+ */
+let streamRenderPaused = false;
+
+/** True while `renderCollection` rebuilds, so per-page re-filters are skipped. */
+let rebuilding = false;
 
 function processScryfallData(data) {
   const newUniqueCards = [];
@@ -118,16 +130,24 @@ async function runFetch(results, tooltip) {
       appState.pageCards.push(...newCards);
 
       let renderedSections = 0;
-      while (appState.pageCards.length >= CARDS_PER_PAGE) {
-        renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
-        renderedSections++;
-      }
-
-      appState.nextPageUrl = data.has_more ? data.next_page : null;
-
-      if (!appState.nextPageUrl && appState.pageCards.length > 0) {
-        renderPage(results, tooltip, [...appState.pageCards]);
+      if (streamRenderPaused) {
+        // A sorted order can't be streamed: collect only, yield per page so the
+        // browser stays responsive, and rebuild the grid once loading finishes.
         appState.pageCards = [];
+        appState.nextPageUrl = data.has_more ? data.next_page : null;
+        renderedSections = 1;
+      } else {
+        while (appState.pageCards.length >= CARDS_PER_PAGE) {
+          renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
+          renderedSections++;
+        }
+
+        appState.nextPageUrl = data.has_more ? data.next_page : null;
+
+        if (!appState.nextPageUrl && appState.pageCards.length > 0) {
+          renderPage(results, tooltip, [...appState.pageCards]);
+          appState.pageCards = [];
+        }
       }
 
       // Rendered visible content; return to the caller/observer.
@@ -145,6 +165,8 @@ async function runFetch(results, tooltip) {
     if (!appState.nextPageUrl) {
       updateAllCardStates();
       updateCardVersionCounts();
+      // Finish a sorted rebuild now that the whole collection is in the store.
+      if (!isDefaultSort(filters.sort)) renderCollection(results);
     }
   } catch (err) {
     console.error('Scryfall fetch failed:', err);
@@ -158,6 +180,8 @@ async function runFetch(results, tooltip) {
 }
 
 function renderPage(results, tooltip, pageCards) {
+  const chronological = isDefaultSort(filters.sort);
+
   const pageSets = new Map();
   pageCards.forEach((c) =>
     pageSets.set(c.set, {
@@ -166,7 +190,8 @@ function renderPage(results, tooltip, pageCards) {
     })
   );
 
-  startNewSection(pageSets);
+  startNewSection(pageSets, { showSets: chronological });
+
   // Build the page off-document, then attach it in a single mutation: one
   // reflow per page instead of one per card.
   const fragment = document.createDocumentFragment();
@@ -182,36 +207,86 @@ function renderPage(results, tooltip, pageCards) {
   appState.grid.appendChild(fragment);
   updateBinderCounts(appState.binder);
 
-  const dates = Array.from(pageSets.values()).map((set) => set.date);
-  const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
-  const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
+  if (chronological) {
+    const dates = Array.from(pageSets.values()).map((set) => set.date);
+    const minDate = dates.reduce((min, d) => (d < min ? d : min), dates[0]);
+    const maxDate = dates.reduce((max, d) => (d > max ? d : max), dates[0]);
 
-  // Timeline metadata for the year scrubber (src/ui/yearScrubber.js): the page's
-  // release year and the sets it holds. `startNewSection` has just published the
-  // section it created.
-  if (appState.section) {
-    appState.section.dataset.year = String(new Date(minDate).getFullYear());
-    appState.section.dataset.sets = Array.from(pageSets.keys())
-      .map((code) => code.toUpperCase())
-      .join(', ');
-  }
+    // Scrubber metadata: the page's release year and the sets it holds.
+    if (appState.section) {
+      appState.section.dataset.mark = String(new Date(minDate).getFullYear());
+      appState.section.dataset.markSets = Array.from(pageSets.keys())
+        .map((code) => code.toUpperCase())
+        .join(', ');
+    }
 
-  if (!appState.binder.startDate || minDate < appState.binder.startDate) {
-    appState.binder.startDate = minDate;
-  }
-  if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
-    appState.binder.endDate = maxDate;
+    if (!appState.binder.startDate || minDate < appState.binder.startDate) {
+      appState.binder.startDate = minDate;
+    }
+    if (!appState.binder.endDate || maxDate > appState.binder.endDate) {
+      appState.binder.endDate = maxDate;
+    }
+  } else if (appState.section) {
+    // Sorted grid: the scrubber mark follows the sort key instead of the year.
+    appState.section.dataset.mark = sortMark(pageCards[0], filters.sort);
+    appState.section.dataset.markSets = '';
   }
 
   updateBinderHeader();
 
   appState.count += pageCards.length;
-  reapplySearchFilter();
-  updateOwnedCounter();
+  if (!rebuilding) {
+    reapplySearchFilter();
+    updateOwnedCounter();
+  }
 
   if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
     startNewBinder(results);
   }
+}
+
+/**
+ * Rebuild the whole grid from the loaded collection in the active sort order.
+ * Used for every non-chronological sort, and when switching back to the
+ * default order after the feed stopped streaming.
+ */
+function renderCollection(results) {
+  const ordered = sortCards(cardStore.getAll(), filters.sort);
+
+  // Drop the old binders but keep the infinite-scroll sentinel, if present.
+  results.querySelectorAll('.binder').forEach((binder) => binder.remove());
+  appState.pageCards = [];
+  appState.count = 0;
+  appState.binder = null;
+  appState.section = null;
+
+  startNewBinder(results);
+
+  rebuilding = true;
+  try {
+    for (let i = 0; i < ordered.length; i += CARDS_PER_PAGE) {
+      renderPage(results, null, ordered.slice(i, i + CARDS_PER_PAGE));
+    }
+  } finally {
+    rebuilding = false;
+  }
+
+  reapplySearchFilter();
+  updateOwnedCounter();
+
+  // The whole order changed, so a restored scroll offset is now meaningless.
+  window.scrollTo(0, 0);
+}
+
+/**
+ * Re-render the grid in the current `filters.sort`. Called by the filter bar
+ * when the sort changes. While a non-default sort is active the streaming feed
+ * stops appending and waits for the next rebuild.
+ */
+export function applySort() {
+  streamRenderPaused = !isDefaultSort(filters.sort);
+  const results = document.getElementById('results');
+  if (results) renderCollection(results);
 }
 
 function updateBinderHeader() {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initYearScrubber, buildYearMarks, markAtOffset, maxScrollTop } from '../yearScrubber.js';
+import { initYearScrubber, buildMarks, markAtOffset, maxScrollTop } from '../yearScrubber.js';
 
 /** Build sections the way cardFeed does: release order, oldest first. */
 function seedSections(sections) {
@@ -65,8 +65,8 @@ describe('year scrubber', () => {
     document.body.innerHTML = '';
   });
 
-  describe('buildYearMarks', () => {
-    it('keeps the first section of each year, in order', () => {
+  describe('buildMarks', () => {
+    it('keeps the first section of each mark, in order', () => {
       seedSections([
         { year: 1994, top: 0, sets: 'LEG' },
         { year: 1994, top: 400, sets: 'FEM' },
@@ -74,9 +74,9 @@ describe('year scrubber', () => {
         { year: 1996, top: 1500, sets: 'ALL' },
       ]);
 
-      const marks = buildYearMarks();
+      const marks = buildMarks();
 
-      expect(marks.map((mark) => mark.year)).toEqual([1994, 1995, 1996]);
+      expect(marks.map((mark) => mark.label)).toEqual(['1994', '1995', '1996']);
       expect(marks.map((mark) => mark.sets)).toEqual(['LEG', 'ICE', 'ALL']);
       expect(marks.map((mark) => mark.top)).toEqual([0, 900, 1500]);
     });
@@ -87,12 +87,19 @@ describe('year scrubber', () => {
         { year: NaN, top: 100 },
       ]);
 
-      expect(buildYearMarks().map((mark) => mark.year)).toEqual([2000]);
+      expect(buildMarks().map((mark) => mark.label)).toEqual(['2000']);
     });
 
-    it('measures only the first section of each year', () => {
+    it('prefers an explicit data-mark over the year', () => {
+      seedSections([{ year: 1994, top: 0 }]);
+      document.querySelector('.section').dataset.mark = 'A';
+
+      expect(buildMarks().map((mark) => mark.label)).toEqual(['A']);
+    });
+
+    it('measures only the first section of each mark', () => {
       // Reading geometry is the expensive part: there are hundreds of pages but
-      // only a handful of year starts.
+      // only a handful of mark starts.
       const seeded = seedSections([
         { year: 1994, top: 0 },
         { year: 1994, top: 400 },
@@ -105,14 +112,14 @@ describe('year scrubber', () => {
         vi.spyOn(section, 'getBoundingClientRect')
       );
 
-      buildYearMarks();
+      buildMarks();
 
       const measured = spies.filter((spy) => spy.mock.calls.length > 0);
       expect(measured).toHaveLength(3);
     });
 
     it('returns nothing when no sections are rendered yet', () => {
-      expect(buildYearMarks()).toEqual([]);
+      expect(buildMarks()).toEqual([]);
     });
   });
 
@@ -196,17 +203,19 @@ describe('year scrubber', () => {
       vi.useRealTimers();
     });
 
-    it('reports the year under the thumb through aria', () => {
+    it('reports the mark under the thumb through aria', () => {
       const rail = document.getElementById('year-scrubber');
-      expect(rail.getAttribute('aria-valuemin')).toBe('1994');
-      expect(rail.getAttribute('aria-valuemax')).toBe('2000');
-      expect(rail.getAttribute('aria-valuenow')).toBe('1994');
+      expect(rail.getAttribute('aria-valuemin')).toBe('0');
+      expect(rail.getAttribute('aria-valuemax')).toBe('2');
+      expect(rail.getAttribute('aria-valuenow')).toBe('0');
+      expect(rail.getAttribute('aria-valuetext')).toContain('1994');
 
       metrics.setScrollY(3200);
       window.dispatchEvent(new Event('scroll'));
       return new Promise((resolve) =>
         requestAnimationFrame(() => {
-          expect(rail.getAttribute('aria-valuenow')).toBe('2000');
+          expect(rail.getAttribute('aria-valuenow')).toBe('2');
+          expect(rail.getAttribute('aria-valuetext')).toContain('2000');
           resolve();
         })
       );

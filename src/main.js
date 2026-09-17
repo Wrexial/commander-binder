@@ -1,6 +1,7 @@
 // main.js
 import { appState } from './state/appState.js';
 import { initLazyCards } from './ui/lazyCardLoader.js';
+import { applySort } from './ui/cardFeed.js';
 import { initCardSettings } from './ui/settingsUI.js';
 import { loadCardStates } from './state/cardState.js';
 import { initSearch, reapplySearchFilter } from './ui/search.js';
@@ -179,6 +180,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCardSettings();
   initViewportMetrics();
   initSearch();
-  initFilterBar({ onChange: reapplySearchFilter });
+  initFilterBar({ onChange: reapplySearchFilter, onSortChange: applySort });
   initCardInteractions(results, tooltip);
 });

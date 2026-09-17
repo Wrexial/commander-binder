@@ -40,7 +40,7 @@ describe('initFilterBar', () => {
     const panel = document.getElementById('filter-panel');
 
     expect(panel.hidden).toBe(true);
-    expect(panel.querySelectorAll('.filter-group')).toHaveLength(5);
+    expect(panel.querySelectorAll('.filter-group')).toHaveLength(6);
 
     toggle.click();
     expect(panel.hidden).toBe(false);
@@ -55,7 +55,7 @@ describe('initFilterBar', () => {
     initFilterBar({ onChange });
 
     const ownedSegment = document
-      .querySelectorAll('.filter-group')[0]
+      .querySelectorAll('.filter-group')[1]
       .querySelectorAll('.filter-segment')[1]; // Owned
     ownedSegment.click();
 
@@ -90,13 +90,29 @@ describe('initFilterBar', () => {
   it('selects a set from the loaded collection', () => {
     initFilterBar({ onChange: vi.fn() });
 
-    const select = document.querySelector('.filter-select');
+    const select = document.querySelector('.filter-set');
     expect(select.querySelectorAll('option')).toHaveLength(3); // Any + dom + ice
 
     select.value = 'ice';
     select.dispatchEvent(new Event('change'));
 
     expect(filters.set).toBe('ice');
+  });
+
+  it('changes the sort through the dedicated callback', () => {
+    const onChange = vi.fn();
+    const onSortChange = vi.fn();
+    initFilterBar({ onChange, onSortChange });
+
+    const select = document.querySelector('.filter-sort');
+    select.value = 'name-asc';
+    select.dispatchEvent(new Event('change'));
+
+    expect(filters.sort).toBe('name-asc');
+    expect(onSortChange).toHaveBeenCalledTimes(1);
+    // Sorting rebuilds the grid (which re-applies filters), so the plain
+    // filter callback must not run again.
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('resets every filter', () => {

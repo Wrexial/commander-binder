@@ -12,6 +12,7 @@ import {
   resetFilters,
 } from '../state/filters.js';
 import { getSavedFilters, saveFilters } from '../state/viewState.js';
+import { SORT_OPTIONS } from '../utils/sortCards.js';
 
 const PRICE_DEBOUNCE_MS = 300;
 
@@ -134,9 +135,9 @@ function populateSetOptions(select, current) {
  * Wire the filter bar. Restores persisted filters, builds the controls, and
  * calls `onChange` (which re-runs the shared card filter) on every edit.
  *
- * @param {{ onChange?: () => void }} [options]
+ * @param {{ onChange?: () => void, onSortChange?: () => void }} [options]
  */
-export function initFilterBar({ onChange } = {}) {
+export function initFilterBar({ onChange, onSortChange } = {}) {
   const toggle = document.getElementById('filter-toggle');
   const panel = document.getElementById('filter-panel');
   const badge = document.getElementById('filter-count');
@@ -178,7 +179,7 @@ export function initFilterBar({ onChange } = {}) {
   );
 
   const setSelect = document.createElement('select');
-  setSelect.className = 'filter-select';
+  setSelect.className = 'filter-select filter-set';
   setSelect.setAttribute('aria-label', 'Filter by set');
   setSelect.addEventListener('change', () => {
     filters.set = setSelect.value;
@@ -213,6 +214,23 @@ export function initFilterBar({ onChange } = {}) {
   priceRow.className = 'filter-row';
   priceRow.append(priceMin, priceMax);
 
+  const sortSelect = document.createElement('select');
+  sortSelect.className = 'filter-select filter-sort';
+  sortSelect.setAttribute('aria-label', 'Sort order');
+  for (const option of SORT_OPTIONS) {
+    const el = document.createElement('option');
+    el.value = option.id;
+    el.textContent = option.label;
+    sortSelect.appendChild(el);
+  }
+  sortSelect.addEventListener('change', () => {
+    filters.sort = sortSelect.value;
+    saveFilters(filters);
+    syncControls();
+    // A sort change rebuilds the grid (which also re-applies the filters).
+    onSortChange?.();
+  });
+
   const resetButton = document.createElement('button');
   resetButton.type = 'button';
   resetButton.className = 'filter-reset';
@@ -227,6 +245,7 @@ export function initFilterBar({ onChange } = {}) {
   colorRow.append(colors.el, colorMode.el);
 
   panel.append(
+    group('Sort by', sortSelect),
     group('Collection', owned.el),
     group('Colours', colorRow),
     group('Rarity', rarities.el),
@@ -241,6 +260,7 @@ export function initFilterBar({ onChange } = {}) {
     colorMode.sync(filters.colorMode);
     rarities.sync(filters.rarities);
     setSelect.value = filters.set;
+    sortSelect.value = filters.sort;
     priceMin.value = filters.priceMin ?? '';
     priceMax.value = filters.priceMax ?? '';
 

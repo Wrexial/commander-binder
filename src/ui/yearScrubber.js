@@ -2,11 +2,13 @@
 //
 // A draggable timeline rail pinned to the right edge of the viewport. The thumb
 // tracks the scroll position, dragging it scrubs the collection, and a floating
-// label names the release year (plus the sets on that page) the thumb is over.
+// label names the mark the thumb is over: the release year (plus the sets on
+// that page) in the default order, or the sort value (letter / price / rarity …)
+// for a sorted grid.
 //
-// Cards are rendered in release order (see `cardFeed.js`), so the section
-// elements *are* the timeline; `cardFeed` stamps each one with `data-year` and
-// `data-sets` for us to read.
+// Cards are rendered in order (see `cardFeed.js`), so the section elements *are*
+// the timeline; `cardFeed` stamps each one with `data-mark`/`data-mark-sets` for
+// us to read.
 
 /** Space above a section when a year is jumped to (binder header + margins). */
 const STICKY_HEADER_ALLOWANCE = 56;
@@ -36,26 +38,37 @@ export function maxScrollTop() {
   return Math.max(0, doc.scrollHeight - window.innerHeight);
 }
 
+function markLabel(section) {
+  if (section.dataset.mark) return section.dataset.mark;
+  const year = Number(section.dataset.year);
+  return Number.isFinite(year) ? String(year) : '';
+}
+
 /**
- * The first section of every release year, in order. Sections are rendered
- * oldest-first, so this reads as a timeline.
+ * The first section of each distinct scrubber mark, in order. A mark is the
+ * page's `data-mark` (the release year in the default order, or the sort value
+ * for a sorted grid); `data-mark-sets` holds the sets when relevant.
  *
  * @param {ParentNode} [root]
- * @returns {{year: number, sets: string, top: number, section: Element}[]}
+ * @returns {{label: string, sets: string, top: number, section: Element}[]}
  */
-export function buildYearMarks(root = document) {
+export function buildMarks(root = document) {
   const marks = [];
-  let lastYear = null;
+  let lastLabel = null;
 
   // Reading `dataset` is free; reading geometry is not. Only the first section
-  // of each year is measured, which keeps this to ~35 layout reads instead of
+  // of each mark is measured, which keeps this to ~35 layout reads instead of
   // one per page (there are hundreds, all `content-visibility: auto`).
   for (const section of root.querySelectorAll('.section')) {
-    const year = Number(section.dataset.year);
-    if (!year || year === lastYear) continue;
+    const label = markLabel(section);
+    if (!label || label === lastLabel) continue;
 
-    lastYear = year;
-    marks.push({ year, sets: section.dataset.sets || '', section });
+    lastLabel = label;
+    marks.push({
+      label,
+      sets: section.dataset.markSets ?? section.dataset.sets ?? '',
+      section,
+    });
   }
 
   for (const mark of marks) {
@@ -66,11 +79,11 @@ export function buildYearMarks(root = document) {
 }
 
 /**
- * The last mark at or before `offset` — i.e. the year the reader is looking at.
+ * The last mark at or before `offset` — i.e. the mark the reader is looking at.
  *
- * @param {{year: number, top: number}[]} marks
+ * @param {{label: string, top: number}[]} marks
  * @param {number} offset
- * @returns {{year: number, top: number}|null}
+ * @returns {{label: string, top: number}|null}
  */
 export function markAtOffset(marks, offset) {
   if (marks.length === 0) return null;
@@ -158,7 +171,7 @@ export function initYearScrubber() {
     if (rect.top > 1) stickAt = Math.round(rect.top + window.scrollY);
   }
 
-  /** @type {{marks: ReturnType<typeof buildYearMarks>, travel: number, max: number}} */
+  /** @type {{marks: ReturnType<typeof buildMarks>, travel: number, max: number}} */
   const state = { marks: [], travel: 1, max: 0 };
   let dragging = false;
   let grabOffset = 0;
@@ -205,11 +218,11 @@ export function initYearScrubber() {
 
   function renderLabel(offset) {
     const mark = markAtOffset(state.marks, offset);
-    const key = mark ? `${mark.year}|${mark.sets}` : '';
+    const key = mark ? `${mark.label}|${mark.sets}` : '';
     if (key === lastLabelKey) return;
     lastLabelKey = key;
 
-    yearEl.textContent = mark ? String(mark.year) : '';
+    yearEl.textContent = mark ? mark.label : '';
     setsEl.textContent = mark ? mark.sets : '';
     setsEl.hidden = !mark?.sets;
   }
@@ -218,16 +231,20 @@ export function initYearScrubber() {
     if (state.marks.length === 0) return;
 
     const current = markAtOffset(state.marks, window.scrollY);
-    const key = `${state.marks[0].year}|${state.marks[state.marks.length - 1].year}|${current?.year ?? ''}`;
+    const index = current ? state.marks.indexOf(current) : 0;
+    const key = `${state.marks.length}|${index}`;
     if (key === lastAriaKey) return;
     lastAriaKey = key;
 
-    rail.setAttribute('aria-valuemin', String(state.marks[0].year));
-    rail.setAttribute('aria-valuemax', String(state.marks[state.marks.length - 1].year));
-    if (current) {
-      rail.setAttribute('aria-valuenow', String(current.year));
-      rail.setAttribute('aria-valuetext', current.sets ? `${current.year} — ${current.sets}` : '');
-    }
+    // Position is the mark index; the readable label lives in aria-valuetext,
+    // so this works for years, letters, prices, rarities, … alike.
+    rail.setAttribute('aria-valuemin', '0');
+    rail.setAttribute('aria-valuemax', String(Math.max(0, state.marks.length - 1)));
+    rail.setAttribute('aria-valuenow', String(index));
+    rail.setAttribute(
+      'aria-valuetext',
+      current ? `${current.label}${current.sets ? ` — ${current.sets}` : ''}` : ''
+    );
   }
 
   function update() {
@@ -270,7 +287,7 @@ export function initYearScrubber() {
 
   /** Re-read the timeline. Called when content may have been appended. */
   function refresh() {
-    state.marks = buildYearMarks();
+    state.marks = buildMarks();
     state.travel = thumbTravel();
     state.max = maxScrollTop();
     measureStickAt();

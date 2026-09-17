@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Isolate the fetcher from DOM-heavy UI modules so it can be tested directly.
 vi.mock('../loadingIndicator.js', () => ({
@@ -38,13 +38,15 @@ vi.mock('../components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-import { fetchNextPage } from '../cardFeed.js';
+import { fetchNextPage, applySort } from '../cardFeed.js';
 import { setRequestThrottle, setBulkCardSource, clearBulkCardSource } from '../../api/scryfall.js';
 import { appState } from '../../state/appState.js';
 import { clearCache, writeCache, CACHE_TTL_MS } from '../../api/responseCache.js';
 import * as layout from '../layout.js';
 import * as cards from '../cards.js';
 import { showToast } from '../components/toast.js';
+import { cardStore } from '../../state/cardStore.js';
+import { filters, resetFilters } from '../../state/filters.js';
 
 const START_URL = 'https://api.scryfall.com/cards/search?page=1';
 const PAGE_2 =
@@ -148,8 +150,8 @@ describe('fetchNextPage', () => {
 
     await fetchNextPage(null, null);
 
-    expect(section.dataset.year).toBe('2024');
-    expect(section.dataset.sets).toBe('TST');
+    expect(section.dataset.mark).toBe('2024');
+    expect(section.dataset.markSets).toBe('TST');
     layout.startNewSection.mockImplementation(() => {});
   });
 
@@ -439,5 +441,54 @@ describe('fetchNextPage', () => {
     expect(global.fetch).toHaveBeenCalledTimes(3);
     // The 3rd request had to wait for the 1st to age out of the window.
     expect(elapsed).toBeGreaterThanOrEqual(90);
+  });
+});
+
+describe('applySort', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    document.body.innerHTML = '<div id="results"><div class="binder">old</div></div>';
+  });
+
+  afterEach(() => {
+    resetFilters();
+    document.body.innerHTML = '';
+  });
+
+  it('rebuilds the grid in the selected order', () => {
+    const results = document.getElementById('results');
+
+    // Give the mocked layout enough to satisfy the render loop.
+    layout.startNewBinder.mockImplementation(() => {
+      const binder = document.createElement('div');
+      binder.className = 'binder';
+      binder.totalCards = 0;
+      binder.ownedCards = 0;
+      appState.binder = binder;
+      results.appendChild(binder);
+    });
+    layout.startNewSection.mockImplementation(() => {
+      const section = document.createElement('div');
+      section.className = 'section';
+      appState.section = section;
+      appState.grid = document.createElement('div');
+      section.appendChild(appState.grid);
+      appState.binder.appendChild(section);
+    });
+
+    cardStore.getAll.mockReturnValue([
+      { id: 'b', name: 'Beta', released_at: '1995-01-01' },
+      { id: 'a', name: 'Alpha', released_at: '1993-01-01' },
+    ]);
+
+    filters.sort = 'name-asc';
+    applySort();
+
+    // The stale binder is gone and the cards were created in name order.
+    expect(results.querySelectorAll('.binder')).toHaveLength(1);
+    expect(cards.createCardElement.mock.calls.map(([card]) => card.name)).toEqual([
+      'Alpha',
+      'Beta',
+    ]);
   });
 });
