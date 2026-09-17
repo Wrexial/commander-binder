@@ -2799,6 +2799,69 @@ footer a:focus-visible {
   box-shadow: var(--focus-shadow);
 }
 
+/* Import/export toolbar: format picker + filter, and the import textarea. */
+.transfer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.transfer-format-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.transfer-format {
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.transfer-format:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
+.transfer-toolbar .bulk-search-input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.transfer-file {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.transfer-textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: #f7f9fc;
+  color: #10141c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.transfer-textarea:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
 .bulk-preview {
   margin-top: 14px;
   font-size: 0.85rem;

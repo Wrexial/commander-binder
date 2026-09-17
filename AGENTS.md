@@ -71,8 +71,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`), including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
-  and focus restore — the bulk/export modals, `sidebar`, `toast`, `ownedCounter`,
-  `SignInButton`, `GuestModeText`, `GuestWelcome`) and their colocated CSS. `statistics.js` and the
+  and focus restore — the bulk/export/import modals, `sidebar`, `toast`,
+  `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`) and their
+  colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks.
   `searchHelp.js` owns the syntax reference as data (rendered into
@@ -86,10 +87,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   query via `reapplySearchFilter()` (called by `cardFeed.js` after each page) so
   later pages stay filtered.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
-  `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`). `idb.js` is the
-  shared IndexedDB wrapper used by `responseCache.js` and `bulkData.js`;
-  `pointer.js` answers "can this device hover?" and `viewport.js` publishes live
-  toolbar height / keyboard inset as CSS variables.
+  `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`).
+  `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
+  `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
+  publishes live toolbar height / keyboard inset as CSS variables; and
+  `collectionFormats.js` serializes/parses the CSV, Moxfield and Archidekt files
+  used by the export/import modals (parsing is header-driven and tolerant).
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,

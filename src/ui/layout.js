@@ -6,7 +6,6 @@ import { isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
-import { createExportModal } from './components/exportModal.js';
 
 /** Long-press duration that distinguishes it from a tap. */
 const LONG_PRESS_MS = 500;
@@ -127,7 +126,7 @@ export function createBulkCheckButton(onClick) {
 }
 
 export function createExportOwnedButton() {
-  addButtonToSidebar('📄 Export All Owned', () => {
+  addButtonToSidebar('📄 Export All Owned', async () => {
     const ownedCards = cardStore.getAll().filter(isCardOwned);
 
     if (ownedCards.length === 0) {
@@ -137,7 +136,18 @@ export function createExportOwnedButton() {
 
     if (document.querySelector('.list-modal-backdrop')) return;
 
-    createExportModal(ownedCards.map((card) => card.name)).show();
+    const { createExportModal } = await import('./components/exportModal.js');
+    createExportModal(ownedCards).show();
+  });
+}
+
+/** Import is a write action, so it is only offered to signed-in collectors. */
+export function createImportButton() {
+  addButtonToSidebar('📥 Import Collection', async () => {
+    if (document.querySelector('.list-modal-backdrop')) return;
+
+    const { createImportModal } = await import('./components/importModal.js');
+    createImportModal().show();
   });
 }
 

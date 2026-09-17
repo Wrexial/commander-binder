@@ -15,6 +15,7 @@ import {
   createExportOwnedButton,
   createBulkAddButton,
   createBulkCheckButton,
+  createImportButton,
   updateAllBinderCounts,
 } from './ui/layout.js';
 import { updateAllCardStates } from './ui/cards.js';
@@ -80,6 +81,7 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   addButtonToSidebar('📊 Show Statistics', showStatistics);
 
   createBulkAddButton(() => showModal(loadBulkAddModal));
+  createImportButton();
 }
 
 /**

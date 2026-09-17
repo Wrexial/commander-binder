@@ -1,17 +1,27 @@
 import { escapeHtml } from '../../utils/html.js';
 import { createModal } from './modal.js';
 import { showToast } from './toast.js';
+import {
+  DEFAULT_TRANSFER_FORMAT,
+  TRANSFER_FORMATS,
+  serializeCollection,
+} from '../../utils/collectionFormats.js';
+
+/** "owned-cards.csv" / "owned-cards-moxfield.csv". */
+function exportFileName(format) {
+  return format === DEFAULT_TRANSFER_FORMAT ? 'owned-cards.csv' : `owned-cards-${format}.csv`;
+}
 
 /**
  * Create the "Export Owned Cards" modal, styled like the Bulk Add / Check
- * modals. Shows the owned card names (newest filterable), with actions to copy
- * them to the clipboard or download them as a .txt file.
+ * modals. Lets the collector pick an output format (our CSV, Moxfield, or
+ * Archidekt), filter the preview, then copy or download the serialized file.
  *
- * @param {string[]} names Owned card names, one per line when exported.
+ * @param {object[]} cards Owned Scryfall card objects (one per card).
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createExportModal(names) {
-  const allNames = [...names].sort((a, b) => a.localeCompare(b));
+export function createExportModal(cards) {
+  const allCards = [...cards].sort((a, b) => a.name.localeCompare(b.name));
 
   const shell = createModal({ className: 'bulk-modal', ariaLabel: 'Export Owned Cards' });
   const { modal, close } = shell;
@@ -24,12 +34,31 @@ export function createExportModal(names) {
 
   const subtitle = document.createElement('p');
   subtitle.className = 'bulk-modal-subtitle';
-  subtitle.textContent = `${allNames.length} owned card${allNames.length === 1 ? '' : 's'} — one name per line`;
+  subtitle.textContent = `${allCards.length} owned card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`;
 
   header.append(heading, subtitle);
 
   const contentArea = document.createElement('div');
   contentArea.className = 'modal-content-area bulk-content';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'transfer-toolbar';
+
+  const formatLabel = document.createElement('label');
+  formatLabel.className = 'transfer-format-label';
+  formatLabel.textContent = 'Format';
+
+  const formatSelect = document.createElement('select');
+  formatSelect.className = 'transfer-format';
+  formatSelect.setAttribute('aria-label', 'Export format');
+  for (const format of TRANSFER_FORMATS) {
+    const option = document.createElement('option');
+    option.value = format.id;
+    option.textContent = format.label;
+    formatSelect.appendChild(option);
+  }
+  formatSelect.value = DEFAULT_TRANSFER_FORMAT;
+  formatLabel.appendChild(formatSelect);
 
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
@@ -37,10 +66,12 @@ export function createExportModal(names) {
   searchInput.placeholder = 'Filter owned cards…';
   searchInput.setAttribute('aria-label', 'Filter owned cards');
 
+  toolbar.append(formatLabel, searchInput);
+
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
 
-  contentArea.append(searchInput, preview);
+  contentArea.append(toolbar, preview);
 
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'modal-button-container';
@@ -52,7 +83,7 @@ export function createExportModal(names) {
   const downloadButton = document.createElement('button');
   downloadButton.type = 'button';
   downloadButton.className = 'export-download';
-  downloadButton.textContent = 'Download .txt';
+  downloadButton.textContent = 'Download';
 
   const closeButton = document.createElement('button');
   closeButton.type = 'button';
@@ -62,39 +93,46 @@ export function createExportModal(names) {
 
   modal.append(header, contentArea, buttonContainer);
 
-  let visible = allNames;
+  let visible = allCards;
+
+  function currentFormat() {
+    return formatSelect.value || DEFAULT_TRANSFER_FORMAT;
+  }
 
   function render() {
     const query = searchInput.value.trim().toLowerCase();
-    visible = query ? allNames.filter((name) => name.toLowerCase().includes(query)) : allNames;
+    visible = query ? allCards.filter((card) => card.name.toLowerCase().includes(query)) : allCards;
 
-    if (allNames.length === 0) {
+    if (allCards.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">You don’t own any cards yet.</p>';
     } else if (visible.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No cards match that filter.</p>';
     } else {
       const rows = visible
-        .map((name) => `<li class="bulk-row bulk-row-owned">${escapeHtml(name)}</li>`)
+        .map((card) => `<li class="bulk-row bulk-row-owned">${escapeHtml(card.name)}</li>`)
         .join('');
       preview.innerHTML = `
                 <div class="bulk-summary">
                     <span class="bulk-summary-chip bulk-chip-owned">Showing <strong>${visible.length}</strong></span>
-                    <span class="bulk-summary-chip">Total <strong>${allNames.length}</strong></span>
+                    <span class="bulk-summary-chip">Total <strong>${allCards.length}</strong></span>
                 </div>
                 <ul class="bulk-list">${rows}</ul>`;
     }
 
-    copyButton.textContent = `Copy all ${allNames.length} card${allNames.length === 1 ? '' : 's'}`;
-    copyButton.disabled = allNames.length === 0;
-    downloadButton.disabled = allNames.length === 0;
+    const label = TRANSFER_FORMATS.find((format) => format.id === currentFormat())?.label ?? 'CSV';
+    copyButton.textContent = `Copy all ${allCards.length} card${allCards.length === 1 ? '' : 's'}`;
+    downloadButton.textContent = `Download ${label}`;
+    copyButton.disabled = allCards.length === 0;
+    downloadButton.disabled = allCards.length === 0;
   }
 
   async function copyAll() {
-    if (allNames.length === 0) return;
+    if (allCards.length === 0) return;
 
     try {
-      await navigator.clipboard.writeText(allNames.join('\n'));
-      showToast(`Copied ${allNames.length} card${allNames.length === 1 ? '' : 's'}.`, 'success');
+      // The full collection is exported; the filter only affects the preview.
+      await navigator.clipboard.writeText(serializeCollection(allCards, currentFormat()));
+      showToast(`Copied ${allCards.length} card${allCards.length === 1 ? '' : 's'}.`, 'success');
     } catch (err) {
       console.error('Failed to copy owned cards:', err);
       showToast('Could not copy to the clipboard.', 'error');
@@ -102,18 +140,20 @@ export function createExportModal(names) {
   }
 
   function downloadAll() {
-    if (allNames.length === 0) return;
+    if (allCards.length === 0) return;
 
-    const blob = new Blob([allNames.join('\n')], { type: 'text/plain' });
+    const blob = new Blob([serializeCollection(allCards, currentFormat())], {
+      type: 'text/csv;charset=utf-8',
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'owned-cards.txt';
+    link.download = exportFileName(currentFormat());
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    showToast(`Downloaded ${allNames.length} card${allNames.length === 1 ? '' : 's'}.`, 'success');
+    showToast(`Downloaded ${allCards.length} card${allCards.length === 1 ? '' : 's'}.`, 'success');
   }
 
   function show() {
@@ -121,6 +161,7 @@ export function createExportModal(names) {
     searchInput.focus();
   }
 
+  formatSelect.addEventListener('change', render);
   searchInput.addEventListener('input', render);
   copyButton.addEventListener('click', copyAll);
   downloadButton.addEventListener('click', downloadAll);
