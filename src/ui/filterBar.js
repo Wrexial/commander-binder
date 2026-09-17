@@ -1,0 +1,286 @@
+// src/ui/filterBar.js
+import { debounce } from '../utils/debounce.js';
+import { cardStore } from '../state/cardStore.js';
+import {
+  COLOR_OPTIONS,
+  OWNED_OPTIONS,
+  RARITY_OPTIONS,
+  activeFilterCount,
+  applyFilters,
+  filters,
+  normalizeFilters,
+  resetFilters,
+} from '../state/filters.js';
+import { getSavedFilters, saveFilters } from '../state/viewState.js';
+
+const PRICE_DEBOUNCE_MS = 300;
+
+const COLOR_MODE_OPTIONS = [
+  { id: 'any', label: 'Any' },
+  { id: 'all', label: 'All' },
+];
+
+let groupSeq = 0;
+
+function toNumber(value) {
+  const number = Number(value);
+  return value !== '' && Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+/** A single-choice pill group (All / Owned / Missing, colour mode, …). */
+function segmented(options, onSelect) {
+  const group = document.createElement('div');
+  group.className = 'filter-segmented';
+
+  const buttons = new Map();
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'filter-segment';
+    button.textContent = option.label;
+    button.addEventListener('click', () => onSelect(option.id));
+    group.appendChild(button);
+    buttons.set(option.id, button);
+  }
+
+  return {
+    el: group,
+    sync(activeId) {
+      for (const [id, button] of buttons) {
+        button.setAttribute('aria-pressed', String(id === activeId));
+      }
+    },
+  };
+}
+
+/** A multi-select pill group (colour pips, rarity chips). */
+function toggleButtons(options, className, onToggle) {
+  const row = document.createElement('div');
+  row.className = 'filter-row';
+
+  const buttons = new Map();
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = option.id ? `${className} ${className}-${option.id}` : className;
+    button.textContent = option.text ?? option.label ?? option.id;
+    button.setAttribute('aria-label', option.label ?? option.id);
+    button.title = option.label ?? option.id;
+    button.addEventListener('click', () => onToggle(option.id));
+    row.appendChild(button);
+    buttons.set(option.id, button);
+  }
+
+  return {
+    el: row,
+    sync(activeIds) {
+      for (const [id, button] of buttons) {
+        button.setAttribute('aria-pressed', String(activeIds.includes(id)));
+      }
+    },
+  };
+}
+
+function group(label, ...controls) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'filter-group';
+
+  const title = document.createElement('span');
+  title.id = `filter-group-${++groupSeq}`;
+  title.className = 'filter-group-label';
+  title.textContent = label;
+
+  // Associate the visible label so the controls read as a named group.
+  wrapper.setAttribute('role', 'group');
+  wrapper.setAttribute('aria-labelledby', title.id);
+
+  wrapper.append(title, ...controls);
+  return wrapper;
+}
+
+/** Fill the set `<select>` from the loaded collection, keeping `current`. */
+function populateSetOptions(select, current) {
+  select.textContent = '';
+
+  const any = document.createElement('option');
+  any.value = '';
+  any.textContent = 'Any set';
+  select.appendChild(any);
+
+  const sets = new Map();
+  for (const card of cardStore.getAll()) {
+    if (card.set && !sets.has(card.set)) sets.set(card.set, card.set_name || card.set);
+  }
+
+  for (const [code, name] of [...sets.entries()].sort((a, b) => a[1].localeCompare(b[1]))) {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = `${code.toUpperCase()} — ${name}`;
+    select.appendChild(option);
+  }
+
+  // A restored set may not be loaded yet; keep it selectable instead of losing it.
+  if (current && !sets.has(current)) {
+    const option = document.createElement('option');
+    option.value = current;
+    option.textContent = current.toUpperCase();
+    select.appendChild(option);
+  }
+
+  select.value = current;
+}
+
+/**
+ * Wire the filter bar. Restores persisted filters, builds the controls, and
+ * calls `onChange` (which re-runs the shared card filter) on every edit.
+ *
+ * @param {{ onChange?: () => void }} [options]
+ */
+export function initFilterBar({ onChange } = {}) {
+  const toggle = document.getElementById('filter-toggle');
+  const panel = document.getElementById('filter-panel');
+  const badge = document.getElementById('filter-count');
+  if (!toggle || !panel) return () => {};
+
+  const saved = getSavedFilters();
+  if (saved) applyFilters(normalizeFilters(saved));
+
+  const owned = segmented(OWNED_OPTIONS, (id) => {
+    filters.owned = id;
+    commit();
+  });
+
+  const colors = toggleButtons(
+    COLOR_OPTIONS.map((color) => ({ id: color.id, label: color.label, text: color.id })),
+    'filter-pip',
+    (id) => {
+      const index = filters.colors.indexOf(id);
+      if (index === -1) filters.colors.push(id);
+      else filters.colors.splice(index, 1);
+      commit();
+    }
+  );
+
+  const colorMode = segmented(COLOR_MODE_OPTIONS, (id) => {
+    filters.colorMode = id;
+    commit();
+  });
+
+  const rarities = toggleButtons(
+    RARITY_OPTIONS.map((rarity) => ({ id: rarity.id, label: rarity.label })),
+    'filter-chip',
+    (id) => {
+      const index = filters.rarities.indexOf(id);
+      if (index === -1) filters.rarities.push(id);
+      else filters.rarities.splice(index, 1);
+      commit();
+    }
+  );
+
+  const setSelect = document.createElement('select');
+  setSelect.className = 'filter-select';
+  setSelect.setAttribute('aria-label', 'Filter by set');
+  setSelect.addEventListener('change', () => {
+    filters.set = setSelect.value;
+    commit();
+  });
+
+  const priceMin = document.createElement('input');
+  priceMin.type = 'number';
+  priceMin.min = '0';
+  priceMin.step = '0.01';
+  priceMin.className = 'filter-price';
+  priceMin.placeholder = 'Min €';
+  priceMin.setAttribute('aria-label', 'Minimum price in euro');
+
+  const priceMax = document.createElement('input');
+  priceMax.type = 'number';
+  priceMax.min = '0';
+  priceMax.step = '0.01';
+  priceMax.className = 'filter-price';
+  priceMax.placeholder = 'Max €';
+  priceMax.setAttribute('aria-label', 'Maximum price in euro');
+
+  const applyPrice = debounce(() => {
+    filters.priceMin = toNumber(priceMin.value);
+    filters.priceMax = toNumber(priceMax.value);
+    commit();
+  }, PRICE_DEBOUNCE_MS);
+  priceMin.addEventListener('input', applyPrice);
+  priceMax.addEventListener('input', applyPrice);
+
+  const priceRow = document.createElement('div');
+  priceRow.className = 'filter-row';
+  priceRow.append(priceMin, priceMax);
+
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'filter-reset';
+  resetButton.textContent = 'Reset filters';
+  resetButton.addEventListener('click', () => {
+    resetFilters();
+    commit();
+  });
+
+  const colorRow = document.createElement('div');
+  colorRow.className = 'filter-row';
+  colorRow.append(colors.el, colorMode.el);
+
+  panel.append(
+    group('Collection', owned.el),
+    group('Colours', colorRow),
+    group('Rarity', rarities.el),
+    group('Set', setSelect),
+    group('Price (€)', priceRow),
+    resetButton
+  );
+
+  function syncControls() {
+    owned.sync(filters.owned);
+    colors.sync(filters.colors);
+    colorMode.sync(filters.colorMode);
+    rarities.sync(filters.rarities);
+    setSelect.value = filters.set;
+    priceMin.value = filters.priceMin ?? '';
+    priceMax.value = filters.priceMax ?? '';
+
+    const count = activeFilterCount();
+    if (badge) {
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
+    }
+    toggle.setAttribute('aria-label', count > 0 ? `Filters, ${count} active` : 'Filters');
+    toggle.classList.toggle('has-filters', count > 0);
+    resetButton.disabled = count === 0;
+  }
+
+  function commit() {
+    saveFilters(filters);
+    syncControls();
+    onChange?.();
+  }
+
+  function setOpen(open) {
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      // The collection keeps loading, so refresh the set list each time.
+      populateSetOptions(setSelect, filters.set);
+      syncControls();
+    }
+  }
+
+  toggle.addEventListener('click', () => setOpen(panel.hidden));
+  panel.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || panel.hidden) return;
+    event.stopPropagation();
+    setOpen(false);
+    toggle.focus();
+  });
+
+  populateSetOptions(setSelect, filters.set);
+  syncControls();
+
+  // Apply restored filters to anything already rendered.
+  if (saved) onChange?.();
+}

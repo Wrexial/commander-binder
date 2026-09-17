@@ -1389,6 +1389,219 @@ body.tooltip-open {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+/* Filter bar (src/ui/filterBar.js): a collapsible row inside the sticky toolbar. */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter-toggle:hover,
+.filter-toggle[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #161206;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.filter-panel {
+  flex-basis: 100%;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 22px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+/* The author `display` above would otherwise beat the UA [hidden] rule. */
+.filter-panel[hidden] {
+  display: none;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.filter-segment {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.filter-segment[aria-pressed='true'] {
+  background: var(--accent);
+  color: #161206;
+  font-weight: 700;
+}
+
+.filter-pip {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filter-pip[aria-pressed='true'] {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+}
+
+.filter-pip-W {
+  background: var(--mtg-bg-W);
+  color: #111111;
+}
+.filter-pip-U {
+  background: var(--mtg-bg-U);
+  color: #111111;
+}
+.filter-pip-B {
+  background: var(--mtg-bg-B);
+  color: #111111;
+}
+.filter-pip-R {
+  background: var(--mtg-bg-R);
+  color: #111111;
+}
+.filter-pip-G {
+  background: var(--mtg-bg-G);
+  color: #111111;
+}
+.filter-pip-C {
+  background: var(--colorless-bg);
+  color: #111111;
+}
+
+.filter-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.filter-chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.filter-select,
+.filter-price {
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.filter-select {
+  max-width: 220px;
+}
+
+.filter-price {
+  width: 92px;
+}
+
+.filter-reset {
+  margin-left: auto;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.filter-reset:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.filter-reset:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.filter-toggle:focus-visible,
+.filter-segment:focus-visible,
+.filter-pip:focus-visible,
+.filter-chip:focus-visible,
+.filter-select:focus-visible,
+.filter-price:focus-visible,
+.filter-reset:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
 }
 
 @media (max-width: 768px) {
@@ -1405,10 +1618,20 @@ body.tooltip-open {
     display: grid;
     grid-template-areas:
       'search search'
-      'counter export';
+      'counter toggle'
+      'filters filters';
     grid-template-columns: 1fr auto;
     align-items: center;
     border-bottom: 1px solid var(--card-border-default);
+  }
+
+  #filter-toggle {
+    grid-area: toggle;
+    justify-self: end;
+  }
+
+  #filter-panel {
+    grid-area: filters;
   }
   /* Clear the fixed hamburger when this bar sticks to the top of the viewport. */
   .has-hamburger #card-settings {

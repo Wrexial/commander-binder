@@ -3,7 +3,8 @@ import { appState } from './state/appState.js';
 import { initLazyCards } from './ui/lazyCardLoader.js';
 import { initCardSettings } from './ui/settingsUI.js';
 import { loadCardStates } from './state/cardState.js';
-import { initSearch } from './ui/search.js';
+import { initSearch, reapplySearchFilter } from './ui/search.js';
+import { initFilterBar } from './ui/filterBar.js';
 import { initClerk, getClerk } from './auth/clerk.js';
 import { createSignInButton } from './ui/components/SignInButton.js';
 import { createGuestModeText } from './ui/components/GuestModeText.js';
@@ -178,5 +179,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCardSettings();
   initViewportMetrics();
   initSearch();
+  initFilterBar({ onChange: reapplySearchFilter });
   initCardInteractions(results, tooltip);
 });

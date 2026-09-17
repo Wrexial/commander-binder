@@ -5,6 +5,7 @@ import { renderSearchHelp } from './searchHelp.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned } from '../state/cardState.js';
 import { getSavedSearch, saveSearch } from '../state/viewState.js';
+import { activeFilterCount, cardMatchesFilters } from '../state/filters.js';
 
 export function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
@@ -210,8 +211,9 @@ function filterCards() {
       let visibleCardsInSection = 0;
 
       section.querySelectorAll('.card').forEach((card) => {
-        const isVisible =
+        const matchesQuery =
           !hasConditions || conditions.every((condition) => evaluateCondition(card, condition));
+        const isVisible = matchesQuery && cardMatchesFilters(card.cardData);
 
         card.style.display = isVisible ? '' : 'none';
         if (isVisible) visibleCardsInSection++;
@@ -238,11 +240,12 @@ function filterCards() {
 const debouncedFilter = debounce(filterCards, 250);
 
 /**
- * Re-apply the active query after new pages render, so cards loaded after a
- * search don't slip through unfiltered. No-op when nothing is typed.
+ * Re-apply the active query and/or filter-bar state after new pages render, so
+ * cards loaded after a change don't slip through unfiltered. No-op when neither
+ * is active.
  */
 export function reapplySearchFilter() {
-  if (activeQuery) filterCards();
+  if (activeQuery || activeFilterCount() > 0) filterCards();
 }
 
 export function initSearch() {

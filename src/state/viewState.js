@@ -45,3 +45,13 @@ export function saveScroll(offset) {
   const rounded = Math.round(Number(offset));
   write({ scroll: Number.isFinite(rounded) && rounded > 0 ? rounded : 0 });
 }
+
+/** Persisted filter-bar state (validated by `filters.js#normalizeFilters`). */
+export function getSavedFilters() {
+  const value = read().filters;
+  return value && typeof value === 'object' ? value : null;
+}
+
+export function saveFilters(next) {
+  write({ filters: next });
+}

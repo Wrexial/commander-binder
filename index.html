@@ -115,6 +115,18 @@
             <div id="search-tooltip" style="display: none"></div>
           </div>
           <div id="owned-counter"></div>
+          <button
+            id="filter-toggle"
+            type="button"
+            class="filter-toggle"
+            aria-expanded="false"
+            aria-controls="filter-panel"
+          >
+            Filters
+            <span id="filter-count" class="filter-count" aria-hidden="true" hidden></span>
+          </button>
+          <!-- Filled in by initFilterBar (src/ui/filterBar.js). -->
+          <div id="filter-panel" class="filter-panel" hidden></div>
         </div>
 
         <div id="no-results-message" style="display: none">No cards found.</div>
