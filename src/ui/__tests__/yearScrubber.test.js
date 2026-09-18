@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { initYearScrubber, buildMarks, markAtOffset, maxScrollTop } from '../yearScrubber.js';
+import { filters, resetFilters } from '../../state/filters.js';
 
 /** Build sections the way cardFeed does: release order, oldest first. */
 function seedSections(sections) {
@@ -120,6 +121,71 @@ describe('year scrubber', () => {
 
     it('returns nothing when no sections are rendered yet', () => {
       expect(buildMarks()).toEqual([]);
+    });
+  });
+
+  describe('smart marks', () => {
+    function makeCard(data) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.cardData = data;
+      return card;
+    }
+
+    function seedCardSection({ top = 0, cards = [], hidden = false } = {}) {
+      let results = document.getElementById('results');
+      if (!results) {
+        results = document.createElement('div');
+        results.id = 'results';
+        document.body.appendChild(results);
+      }
+
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.getBoundingClientRect = () => ({ top: top - window.scrollY });
+      for (const data of cards) section.appendChild(makeCard(data));
+      results.appendChild(section);
+
+      if (hidden) section.style.display = 'none';
+      return section;
+    }
+
+    afterEach(() => {
+      resetFilters();
+    });
+
+    it('uses the first visible card and skips filtered-out sections', () => {
+      seedCardSection({ top: 0, cards: [{ released_at: '2020-01-01', set: 'zend' }] });
+      seedCardSection({
+        top: 500,
+        cards: [{ released_at: '1990-01-01', set: 'ice' }],
+        hidden: true,
+      });
+
+      expect(buildMarks().map((mark) => mark.label)).toEqual(['2020']);
+    });
+
+    it('skips hidden cards when picking a section mark', () => {
+      const section = seedCardSection({
+        top: 0,
+        cards: [
+          { released_at: '2020-01-01', set: 'zend' },
+          { released_at: '2015-01-01', set: 'bfz' },
+        ],
+      });
+      section.querySelectorAll('.card')[0].style.display = 'none';
+
+      expect(buildMarks()[0].label).toBe('2015');
+    });
+
+    it('labels marks by the active sort', () => {
+      filters.sort = 'color-asc';
+      seedCardSection({
+        top: 0,
+        cards: [{ released_at: '2020-01-01', set: 'zend', color_identity: ['U', 'W'] }],
+      });
+
+      expect(buildMarks()[0].label).toBe('WU');
     });
   });
 

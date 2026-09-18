@@ -53,6 +53,28 @@ describe('sortCards', () => {
     expect(sortCards(cards, 'rarity-asc').map((c) => c.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 
+  it('sorts by colour: WUBRG, then multicolour, then colourless', () => {
+    const colored = [
+      { name: 'MonoW', color_identity: ['W'] },
+      { name: 'MonoU', color_identity: ['U'] },
+      { name: 'MonoB', color_identity: ['B'] },
+      { name: 'MonoR', color_identity: ['R'] },
+      { name: 'MonoG', color_identity: ['G'] },
+      { name: 'Azorius', color_identity: ['W', 'U'] },
+      { name: 'Colorless', color_identity: [] },
+    ];
+
+    expect(sortCards(colored, 'color-asc').map((c) => c.name)).toEqual([
+      'MonoW',
+      'MonoU',
+      'MonoB',
+      'MonoR',
+      'MonoG',
+      'Azorius',
+      'Colorless',
+    ]);
+  });
+
   it('puts owned cards first (and missing first in reverse)', () => {
     isCardOwned.mockImplementation((card) => card.name === 'Gamma');
 
@@ -82,5 +104,10 @@ describe('sortMark', () => {
   it('uses the owned state for the owned sorts', () => {
     isCardOwned.mockReturnValue(true);
     expect(sortMark(cards[0], 'owned-asc')).toBe('Owned');
+  });
+
+  it('labels the colour mark', () => {
+    expect(sortMark({ color_identity: ['U', 'W'] }, 'color-asc')).toBe('WU');
+    expect(sortMark({ color_identity: [] }, 'color-asc')).toBe('Colourless');
   });
 });

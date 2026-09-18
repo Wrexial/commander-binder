@@ -14,6 +14,7 @@ export const SORT_OPTIONS = [
   { id: 'release-desc', label: 'Newest first' },
   { id: 'name-asc', label: 'Name A–Z' },
   { id: 'name-desc', label: 'Name Z–A' },
+  { id: 'color-asc', label: 'Colour' },
   { id: 'price-asc', label: 'Price: low to high' },
   { id: 'price-desc', label: 'Price: high to low' },
   { id: 'cmc-asc', label: 'Mana value: low to high' },
@@ -35,6 +36,26 @@ const RARITY_LABELS = {
   special: 'Special',
   bonus: 'Bonus',
 };
+
+/** WUBRG order, used to rank a card's colour identity. */
+const COLOR_INDEX = { W: 0, U: 1, B: 2, R: 3, G: 4 };
+/** Single-digit codes so a colour identity string sorts in WUBRG order. */
+const COLOR_DIGITS = { W: '1', U: '2', B: '3', R: '4', G: '5' };
+
+/** Mono colours first (in WUBRG order), then multicolour, then colourless. */
+function colorRank(card) {
+  const identity = card.color_identity || [];
+  if (identity.length === 0) return 6;
+  if (identity.length === 1) return COLOR_INDEX[identity[0]] ?? 5;
+  return 5;
+}
+
+function colorKey(card) {
+  return (card.color_identity || [])
+    .map((color) => COLOR_DIGITS[color] || '8')
+    .sort()
+    .join('');
+}
 
 /** True only for the streamable, chronological default order. */
 export function isDefaultSort(sortId) {
@@ -62,6 +83,8 @@ function primaryCompare(key, a, b) {
       return priceOf(a) - priceOf(b);
     case 'cmc':
       return (a.cmc ?? 0) - (b.cmc ?? 0);
+    case 'color':
+      return colorRank(a) - colorRank(b) || colorKey(a).localeCompare(colorKey(b));
     case 'rarity':
       return (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99);
     case 'owned':
@@ -128,6 +151,12 @@ export function sortMark(card, sortId) {
       return card.cmc == null ? '—' : String(card.cmc);
     case 'rarity':
       return RARITY_LABELS[card.rarity] || card.rarity || '—';
+    case 'color': {
+      const identity = (card.color_identity || [])
+        .slice()
+        .sort((a, b) => (COLOR_INDEX[a] ?? 9) - (COLOR_INDEX[b] ?? 9));
+      return identity.length === 0 ? 'Colourless' : identity.join('');
+    }
     case 'owned':
       return isCardOwned(card) ? 'Owned' : 'Missing';
     case 'release':

@@ -235,6 +235,10 @@ function filterCards() {
   if (clearSearchButton) {
     clearSearchButton.style.display = searchInput.value ? 'block' : 'none';
   }
+
+  // Filtering only toggles `display`, which the scrubber's MutationObserver
+  // can't see, so tell it to rebuild its marks from the visible sections.
+  document.dispatchEvent(new CustomEvent('cards:filtered'));
 }
 
 const debouncedFilter = debounce(filterCards, 250);

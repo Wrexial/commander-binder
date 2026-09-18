@@ -7,8 +7,12 @@
 // for a sorted grid.
 //
 // Cards are rendered in order (see `cardFeed.js`), so the section elements *are*
-// the timeline; `cardFeed` stamps each one with `data-mark`/`data-mark-sets` for
-// us to read.
+// the timeline. Marks are recomputed from the first *visible* card of each
+// section for the active sort, so they follow both sorting and filtering; a
+// section's `data-mark`/`data-mark-sets` stamps are the fallback when no cards
+// are rendered.
+import { filters } from '../state/filters.js';
+import { isDefaultSort, sortMark } from '../utils/sortCards.js';
 
 /** Space above a section when a year is jumped to (binder header + margins). */
 const STICKY_HEADER_ALLOWANCE = 56;
@@ -44,6 +48,25 @@ function markLabel(section) {
   return Number.isFinite(year) ? String(year) : '';
 }
 
+/** The first card in a section that the active filter is not hiding. */
+function firstVisibleCard(section) {
+  for (const card of section.querySelectorAll('.card')) {
+    if (card.style.display !== 'none') return card;
+  }
+  return null;
+}
+
+/** Uppercased set codes of a section's visible cards, for the release sort. */
+function visibleSetCodes(section) {
+  const codes = new Set();
+  for (const card of section.querySelectorAll('.card')) {
+    if (card.style.display === 'none') continue;
+    const code = card.cardData?.set;
+    if (code) codes.add(code.toUpperCase());
+  }
+  return [...codes].join(', ');
+}
+
 /**
  * The first section of each distinct scrubber mark, in order. A mark is the
  * page's `data-mark` (the release year in the default order, or the sort value
@@ -57,18 +80,30 @@ export function buildMarks(root = document) {
   let lastLabel = null;
 
   // Reading `dataset` is free; reading geometry is not. Only the first section
-  // of each mark is measured, which keeps this to ~35 layout reads instead of
-  // one per page (there are hundreds, all `content-visibility: auto`).
+  // of each mark is measured, which keeps the layout reads to one per mark
+  // instead of one per page (there are hundreds, all `content-visibility: auto`).
   for (const section of root.querySelectorAll('.section')) {
-    const label = markLabel(section);
-    if (!label || label === lastLabel) continue;
+    // A filtered-out section is not part of the visible timeline.
+    if (section.style.display === 'none') continue;
 
+    const firstCard = firstVisibleCard(section);
+    let label;
+    let sets;
+
+    if (firstCard?.cardData) {
+      // The first visible card drives the mark, so it tracks filtering and the
+      // active sort instead of the order the page happened to render in.
+      label = sortMark(firstCard.cardData, filters.sort);
+      sets = isDefaultSort(filters.sort) ? visibleSetCodes(section) : '';
+    } else {
+      // No rendered cards (tests, or a section mid-render): use the stamps.
+      label = markLabel(section);
+      sets = section.dataset.markSets ?? section.dataset.sets ?? '';
+    }
+
+    if (!label || label === lastLabel) continue;
     lastLabel = label;
-    marks.push({
-      label,
-      sets: section.dataset.markSets ?? section.dataset.sets ?? '',
-      section,
-    });
+    marks.push({ label, sets, section });
   }
 
   for (const mark of marks) {
@@ -497,10 +532,16 @@ export function initYearScrubber() {
       : null;
   observer?.observe(observedRoot, { childList: true, subtree: true });
 
+  // Filtering only toggles `display`, which the observer above does not see, so
+  // `search.js` pings us after each pass to rebuild the marks.
+  const onFiltered = () => scheduleRefresh();
+  document.addEventListener('cards:filtered', onFiltered);
+
   refresh();
 
   return () => {
     observer?.disconnect();
+    document.removeEventListener('cards:filtered', onFiltered);
     clearTimeout(refreshTimer);
     clearTimeout(resizeTimer);
     clearTimeout(hideTimer);
