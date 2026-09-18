@@ -10,9 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Keep this in sync with .nvmrc / the npm that generated package-lock.json.
+      # npm 10 and npm 11 disagree about optional peer deps (e.g. @noble/hashes,
+      # node-gyp-build), and `npm ci` rejects a lockfile written by the other major.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
