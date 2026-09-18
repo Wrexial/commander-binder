@@ -10,9 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Keep this in sync with .nvmrc / the npm that generated package-lock.json.
-      # npm 10 and npm 11 disagree about optional peer deps (e.g. @noble/hashes,
-      # node-gyp-build), and `npm ci` rejects a lockfile written by the other major.
+      # Keep this in sync with .nvmrc (the Node/npm that generated the
+      # lockfile). npm drops hoisted optional peer deps from the lockfile when
+      # it runs on Windows, so `bufferutil`/`utf-8-validate` are declared as
+      # devDependencies in package.json: the explicit entries survive on every
+      # platform and keep `npm ci` on Linux happy.
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
