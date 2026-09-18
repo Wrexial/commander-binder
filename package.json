@@ -20,7 +20,7 @@
     "verify:bulk": "node scripts/verify-bulk-coverage.mjs"
   },
   "author": "",
-  "license": "ISC",
+  "license": "GPL-2.0-only",
   "description": "",
   "dependencies": {
     "@clerk/clerk-js": "^5.117.0",

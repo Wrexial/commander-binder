@@ -249,7 +249,7 @@ Netlify reads `.nvmrc`, so keep it aligned with the Node/npm version that genera
 
 ## License
 
-Released under the **GNU General Public License v2.0**. See [LICENSE](LICENSE).
+Released under the **GNU General Public License v2.0** (`GPL-2.0-only`). See [LICENSE](LICENSE).
 
 Magic: The Gathering is a trademark of Wizards of the Coast. Card data and images are provided
 by [Scryfall](https://scryfall.com/).
