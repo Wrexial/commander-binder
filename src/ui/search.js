@@ -157,9 +157,23 @@ function cardMatchesFilter(card, filter) {
     const rarity = card.cardData.rarity?.toLowerCase() || '';
     match = rarity === rarityTerm;
   } else if (filter.startsWith('is:')) {
-    const term = filter.substring(3);
-    if (term === 'owned') {
-      match = isCardOwned(card.cardData);
+    const term = filter.substring(3).toLowerCase();
+    switch (term) {
+      case 'owned':
+        match = isCardOwned(card.cardData);
+        break;
+      case 'missing':
+        match = !isCardOwned(card.cardData);
+        break;
+      case 'colorless':
+        match = (card.cardData.color_identity || []).length === 0;
+        break;
+      case 'multicolor':
+        match = (card.cardData.color_identity || []).length > 1;
+        break;
+      case 'dfc':
+        match = Array.isArray(card.cardData.card_faces) && card.cardData.card_faces.length > 0;
+        break;
     }
   } else if (filter.startsWith('price:')) {
     const priceTerm = getFilterValue(filter, 'price:').replace(',', '.');

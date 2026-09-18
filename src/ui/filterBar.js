@@ -27,6 +27,13 @@ const COLOR_MODE_OPTIONS = [
 
 let groupSeq = 0;
 
+/**
+ * The active `filter:set` listener, if the bar has been initialised. Kept at
+ * module scope so re-initialising replaces the old one instead of stacking
+ * duplicate listeners.
+ */
+let externalFilterHandler = null;
+
 function toNumber(value) {
   const number = Number(value);
   return value !== '' && Number.isFinite(number) && number >= 0 ? number : null;
@@ -318,6 +325,15 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     syncControls();
     onChange?.();
   }
+
+  // Tiles emit `filter:set` when their set or colour chip is clicked; apply it
+  // through the same commit path so persistence and the badge stay in sync.
+  if (externalFilterHandler) document.removeEventListener('filter:set', externalFilterHandler);
+  externalFilterHandler = (event) => {
+    Object.assign(filters, event.detail || {});
+    commit();
+  };
+  document.addEventListener('filter:set', externalFilterHandler);
 
   function setOpen(open) {
     panel.hidden = !open;

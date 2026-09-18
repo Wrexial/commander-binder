@@ -131,7 +131,9 @@ function median(values) {
  *   medianManaValue: number|null,
  *   priceBuckets: { label: string, count: number }[],
  *   top5ValuableCards: { name: string, price: number, card: object }[],
- *   sets: { code: string, name: string, owned: number, total: number, percent: number }[],
+ *   sets: { code: string, name: string, owned: number, total: number, percent: number, missing: string[] }[],
+ *   missingCount: number,
+ *   missingNames: string[],
  * }}
  */
 export function calculateStatistics(cards, totalAvailable = cards.length, allCards = cards) {
@@ -226,10 +228,30 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     setOwned.set(code, (setOwned.get(code) || 0) + 1);
   }
 
+  // Missing cards are the entries of `allCards` that `cards` does not contain.
+  // `cards` is always the owned subset of `allCards` (same object references),
+  // so identity is both correct and cheap here.
+  const ownedSet = new Set(cards);
+  const missingBySet = new Map();
+  const missingNames = [];
+  for (const card of allCards) {
+    if (ownedSet.has(card)) continue;
+    missingNames.push(card.name);
+    if (!card.set) continue;
+    const list = missingBySet.get(card.set);
+    if (list) list.push(card.name);
+    else missingBySet.set(card.set, [card.name]);
+  }
+
   const sets = Array.from(setTotals.values())
     .map((entry) => {
       const owned = setOwned.get(entry.code) || 0;
-      return { ...entry, owned, percent: entry.total > 0 ? (owned / entry.total) * 100 : 0 };
+      return {
+        ...entry,
+        owned,
+        percent: entry.total > 0 ? (owned / entry.total) * 100 : 0,
+        missing: missingBySet.get(entry.code) || [],
+      };
     })
     .filter((entry) => entry.owned > 0)
     .sort((a, b) => b.percent - a.percent || b.owned - a.owned || a.name.localeCompare(b.name));
@@ -255,6 +277,8 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     priceBuckets,
     top5ValuableCards,
     sets,
+    missingCount: missingNames.length,
+    missingNames,
   };
 }
 
@@ -450,10 +474,15 @@ function renderSetCompletion(sets) {
     .slice(0, MAX_SETS_SHOWN)
     .map(
       (set) => `
-        <div class="stats-bar-row">
+        <div class="stats-bar-row${set.missing.length > 0 ? ' has-copy' : ''}">
             <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
             <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${Math.max(set.percent, 3)}%"></span></span>
             <span class="stats-bar-count">${set.owned}/${set.total}</span>
+            ${
+              set.missing.length > 0
+                ? `<button type="button" class="stats-set-copy" data-set="${escapeHtml(set.code)}" title="Copy ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'}" aria-label="Copy ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)}">Copy</button>`
+                : ''
+            }
         </div>`
     )
     .join('');
@@ -610,6 +639,27 @@ export function createStatisticsHTML(stats) {
 }
 
 /**
+ * Copy a list of card names to the clipboard, one per line, with a toast.
+ *
+ * @param {string[]} names
+ * @param {string} label Noun used in the toast, e.g. "missing cards".
+ */
+async function copyCardNames(names, label) {
+  if (!names || names.length === 0) {
+    showToast('Nothing to copy.', 'warning');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(names.join('\n'));
+    showToast(`Copied ${names.length} ${label}.`, 'success');
+  } catch (err) {
+    console.error('Failed to copy card names:', err);
+    showToast('Could not copy to the clipboard.', 'error');
+  }
+}
+
+/**
  * Open the collection statistics modal. Shows a toast instead when no owned
  * cards have been loaded yet.
  *
@@ -664,6 +714,14 @@ export function showStatisticsModal() {
   contentArea.className = 'modal-content-area statistics-content';
   contentArea.innerHTML = createStatisticsHTML(stats);
 
+  // Each set row's "Copy" button copies that set's missing cards.
+  const missingBySet = new Map(stats.sets.map((set) => [set.code, set.missing]));
+  contentArea.querySelectorAll('.stats-set-copy').forEach((button) => {
+    button.addEventListener('click', () => {
+      copyCardNames(missingBySet.get(button.dataset.set) || [], 'missing cards');
+    });
+  });
+
   // Hover the "most valuable cards" rows to preview the full card.
   cleanupTopCardTooltips = wireTopCardTooltips(contentArea, tooltip, stats.top5ValuableCards);
 
@@ -680,10 +738,19 @@ export function showStatisticsModal() {
   header.appendChild(headerText);
   header.appendChild(closeIcon);
 
+  const copyMissingButton = document.createElement('button');
+  copyMissingButton.type = 'button';
+  copyMissingButton.className = 'stats-copy-missing';
+  copyMissingButton.textContent = `Copy ${stats.missingCount} missing`;
+  copyMissingButton.disabled = stats.missingCount === 0;
+  copyMissingButton.addEventListener('click', () =>
+    copyCardNames(stats.missingNames, 'missing cards')
+  );
+
   const closeButton = document.createElement('button');
   closeButton.textContent = 'Close';
   closeButton.addEventListener('click', close);
-  buttonContainer.appendChild(closeButton);
+  buttonContainer.append(copyMissingButton, closeButton);
 
   modal.appendChild(header);
   modal.appendChild(contentArea);

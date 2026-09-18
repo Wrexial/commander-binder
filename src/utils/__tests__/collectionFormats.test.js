@@ -51,6 +51,20 @@ describe('serializeCollection', () => {
     expect(csv).toContain('id1');
   });
 
+  it('writes the MTG Arena list', () => {
+    expect(serializeCollection(cards, 'arena')).toBe(
+      "1 Sol Ring (CMM) 342\n1 Atraxa, Praetors' Voice (2XM) 197"
+    );
+  });
+
+  it('writes the MTGO decklist', () => {
+    expect(serializeCollection(cards, 'mtgo')).toBe("1 Sol Ring\n1 Atraxa, Praetors' Voice");
+  });
+
+  it('writes plain names one per line', () => {
+    expect(serializeCollection(cards, 'plain')).toBe("Sol Ring\nAtraxa, Praetors' Voice");
+  });
+
   it('defaults to CSV', () => {
     expect(serializeCollection(cards)).toBe(serializeCollection(cards, 'csv'));
   });
@@ -58,11 +72,17 @@ describe('serializeCollection', () => {
 
 describe('parseCollection', () => {
   it('round-trips every exported format', () => {
+    // Only the CSV-style and Arena formats carry a printing; MTGO and the bare
+    // name list round-trip the names alone.
+    const setAware = new Set(['csv', 'moxfield', 'archidekt', 'arena']);
+
     for (const { id } of TRANSFER_FORMATS) {
       const { entries } = parseCollection(serializeCollection(cards, id));
 
       expect(entries.map((entry) => entry.name)).toEqual(['Sol Ring', "Atraxa, Praetors' Voice"]);
-      expect(entries[0]).toMatchObject({ setCode: 'cmm', collectorNumber: '342' });
+      if (setAware.has(id)) {
+        expect(entries[0]).toMatchObject({ setCode: 'cmm', collectorNumber: '342' });
+      }
     }
   });
 

@@ -38,7 +38,13 @@ export const SEARCH_SYNTAX_GROUPS = [
   },
   {
     title: 'Collection',
-    entries: [{ key: 'is:', label: 'Cards you marked as owned', example: 'is:owned' }],
+    entries: [
+      { key: 'is:', label: 'Cards you marked as owned', example: 'is:owned' },
+      { key: 'is:', label: 'Cards you have not marked', example: 'is:missing' },
+      { key: 'is:', label: 'Multicoloured cards', example: 'is:multicolor' },
+      { key: 'is:', label: 'Colourless cards', example: 'is:colorless' },
+      { key: 'is:', label: 'Double-faced cards', example: 'is:dfc' },
+    ],
   },
   {
     title: 'Combining',

@@ -1,6 +1,7 @@
 const DEFAULT_SETTINGS = {
   showTooltip: true,
-  // displayMode: 'text' | 'images' — cards show their name or their artwork
+  // displayMode: 'text' | 'images' | 'list' — names, artwork, or a compact
+  // checklist row with an inline ownership toggle.
   displayMode: 'images',
 };
 

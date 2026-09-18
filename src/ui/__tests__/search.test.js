@@ -215,6 +215,34 @@ describe('evaluateCondition', () => {
     expect(result).toBe(true);
   });
 
+  it('should handle missing filters', () => {
+    vi.spyOn(cardState, 'isCardOwned').mockReturnValue(false);
+    expect(evaluateCondition(card, { type: 'filter', value: 'is:missing' })).toBe(true);
+
+    vi.spyOn(cardState, 'isCardOwned').mockReturnValue(true);
+    expect(evaluateCondition(card, { type: 'filter', value: 'is:missing' })).toBe(false);
+  });
+
+  it('should handle colourless and multicolour filters', () => {
+    const colorless = { cardData: { name: 'Karn', color_identity: [] } };
+    const mono = { cardData: { name: 'Serra Angel', color_identity: ['W'] } };
+    const multi = { cardData: { name: 'Atraxa', color_identity: ['W', 'U', 'B', 'G'] } };
+
+    expect(evaluateCondition(colorless, { type: 'filter', value: 'is:colorless' })).toBe(true);
+    expect(evaluateCondition(mono, { type: 'filter', value: 'is:colorless' })).toBe(false);
+    expect(evaluateCondition(mono, { type: 'filter', value: 'is:multicolor' })).toBe(false);
+    expect(evaluateCondition(multi, { type: 'filter', value: 'is:multicolor' })).toBe(true);
+  });
+
+  it('should handle double-faced card filters', () => {
+    const dfc = {
+      cardData: { name: 'Delver', card_faces: [{}, {}] },
+    };
+
+    expect(evaluateCondition(dfc, { type: 'filter', value: 'is:dfc' })).toBe(true);
+    expect(evaluateCondition(card, { type: 'filter', value: 'is:dfc' })).toBe(false);
+  });
+
   it('should handle name filters', () => {
     const condition = { type: 'filter', value: 'serra angel' };
     const result = evaluateCondition(card, condition);

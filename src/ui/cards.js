@@ -189,6 +189,68 @@ function createOwnedToggle(owned) {
 }
 
 /**
+ * Ask the filter bar to apply a filter, without importing it (which would
+ * create a cycle). `filterBar.js` listens for `filter:set` and re-runs the
+ * shared card filter.
+ * @param {object} patch Partial filter state, e.g. `{ set: 'dom' }`.
+ */
+function requestFilter(patch) {
+  document.dispatchEvent(new CustomEvent('filter:set', { detail: patch }));
+}
+
+/**
+ * A button that filters the grid to this card's set. Stops propagation so the
+ * tap cannot also toggle ownership.
+ * @param {object} card
+ * @param {string} label
+ * @param {string} className
+ * @returns {HTMLButtonElement|null}
+ */
+function createSetFilterButton(card, label, className) {
+  if (!label) return null;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.textContent = label;
+  button.title = card.set ? `Filter to ${card.set_name || card.set.toUpperCase()}` : label;
+  button.setAttribute('aria-label', button.title);
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (card.set) requestFilter({ set: card.set });
+  });
+  return button;
+}
+
+/**
+ * A button that filters the grid to this card's colour identity. Colourless
+ * cards filter to the colourless pip; everything else matches exactly.
+ * @param {object} card
+ * @returns {HTMLButtonElement}
+ */
+function createColorChip(card) {
+  const identity = card.color_identity || [];
+  const isColorless = identity.length === 0;
+  const label = isColorless ? 'C' : identity.join('');
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `card-color-chip card-color-${label}`;
+  button.textContent = label;
+  button.title = isColorless ? 'Filter to colourless cards' : `Filter to ${label} cards`;
+  button.setAttribute('aria-label', button.title);
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    requestFilter(
+      isColorless
+        ? { colors: ['C'], colorMode: 'any' }
+        : { colors: [...identity], colorMode: 'exact' }
+    );
+  });
+  return button;
+}
+
+/**
  * Compact (~26px) details strip pinned to the bottom of an image tile. It
  * replaces the old tooltip text footer and gathers the name, set/number and
  * price together with the printing count, EDHREC link and owned control.
@@ -213,10 +275,8 @@ function createCardFooter(card, price, version) {
   meta.className = 'card-footer-meta';
 
   if (card.set_name) {
-    const setEl = document.createElement('span');
-    setEl.className = 'card-footer-set';
-    setEl.textContent = card.set_name;
-    meta.appendChild(setEl);
+    const setEl = createSetFilterButton(card, card.set_name, 'card-footer-set');
+    if (setEl) meta.appendChild(setEl);
   }
 
   if (card.collector_number) {
@@ -225,6 +285,10 @@ function createCardFooter(card, price, version) {
     numEl.textContent = `#${card.collector_number}`;
     meta.appendChild(numEl);
   }
+
+  const colorChip = createColorChip(card);
+  if (colorChip) meta.appendChild(colorChip);
+
   if (meta.childNodes.length > 0) main.appendChild(meta);
 
   if (price !== null) main.appendChild(createPriceElement(price));
@@ -255,6 +319,66 @@ function applyCardColors(element, card) {
 }
 
 /**
+ * Build a compact list row: an inline ownership toggle, the card name, its
+ * set/number/colour chips, price, printing count and EDHREC link — all on one
+ * line, so a whole page can be marked without hunting for tiny corner controls.
+ * @param {HTMLElement} div
+ * @param {object} card
+ * @param {number} cardIndex
+ * @returns {HTMLElement}
+ */
+function populateListCard(div, card, cardIndex) {
+  div.classList.add('list-tile');
+
+  const slotNumberEl = document.createElement('span');
+  slotNumberEl.className = 'card-slot-number';
+  slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
+  div.appendChild(slotNumberEl);
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'card-name';
+  nameEl.textContent = card.name;
+  div.appendChild(nameEl);
+
+  const meta = document.createElement('span');
+  meta.className = 'card-meta';
+  const setChip = createSetFilterButton(card, card.set?.toUpperCase() || '', 'card-set-chip');
+  if (setChip) meta.appendChild(setChip);
+  if (card.collector_number) {
+    const numEl = document.createElement('span');
+    numEl.className = 'card-footer-num';
+    numEl.textContent = `#${card.collector_number}`;
+    meta.appendChild(numEl);
+  }
+  const colorChip = createColorChip(card);
+  if (colorChip) meta.appendChild(colorChip);
+  if (meta.childNodes.length > 0) div.appendChild(meta);
+
+  const price = getDisplayedPrice(card);
+  if (price !== null) div.appendChild(createPriceElement(price));
+
+  const version = getVersionInfo(card);
+  if (version.total > 1) div.appendChild(createVersionBadge(version));
+
+  const edhrec = createEdhrecLink(card);
+  if (edhrec) div.appendChild(edhrec);
+
+  if (appState.isViewOnlyMode) {
+    div.appendChild(createOwnedBadge());
+  } else {
+    // Put the toggle first so the row reads as a checklist.
+    div.insertBefore(createOwnedToggle(isCardOwned(card)), slotNumberEl.nextSibling);
+    div.classList.add('has-toggle');
+  }
+
+  applyCardColors(div, card);
+  div.style.setProperty('--card-text', '#111111');
+  applyNextPrintingHint(div, nameEl, version.total > 1);
+
+  return div;
+}
+
+/**
  * (Re)build a card element's contents in place for the current display mode.
  * State classes (`.loading`, `.owned`) are left untouched so this can be used
  * both for creation and for live re-renders (mode change, printing cycle).
@@ -264,7 +388,11 @@ function applyCardColors(element, card) {
  */
 function populateCard(div, card, cardIndex) {
   div.replaceChildren();
-  div.classList.remove('has-toggle', 'image-tile');
+  div.classList.remove('has-toggle', 'image-tile', 'list-tile');
+
+  if (cardSettings.displayMode === 'list') {
+    return populateListCard(div, card, cardIndex);
+  }
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';

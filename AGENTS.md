@@ -71,7 +71,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `cardMatchesFilters` predicate.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
-  `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`),
+  `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`,
+  `randomCard`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
@@ -99,15 +100,21 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   enough before restoring the saved offset, and `search.js` re-applies the active
   query via `reapplySearchFilter()` (called by `cardFeed.js` after each page) so
   later pages stay filtered. `filterBar.js`/`filters.js` add a separate
-  click-driven filter state that `search.js` ANDs with the parsed query.
+  click-driven filter state that `search.js` ANDs with the parsed query; tiles
+  emit a `filter:set` event when their set/colour chip is clicked, which the bar
+  applies and persists through the same commit path. `cards.js` supports three
+  tile layouts (`images`, `text`, `list` — the last is a compact checklist row
+  with an inline toggle), chosen in `settingsUI.js`; `randomCard.js` powers the
+  sidebar “Surprise me” jump-to-a-missing-card action.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
   `sortCards`).
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;
-  `collectionFormats.js` serializes/parses the CSV, Moxfield and Archidekt files
-  used by the export/import modals (parsing is header-driven and tolerant); and
+  `collectionFormats.js` serializes/parses the CSV, Moxfield, Archidekt, MTG
+  Arena, MTGO and plain-text files used by the export/import modals (parsing is
+  header-driven and tolerant); and
   `sortCards.js` defines the sort options and the pure `sortCards`/`sortMark`
   helpers, including the WUBRG colour order.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and

@@ -6,6 +6,7 @@ import { isCardOwned } from '../state/cardState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
+import { surpriseMe } from './randomCard.js';
 
 /** Long-press duration that distinguishes it from a tap. */
 const LONG_PRESS_MS = 500;
@@ -119,6 +120,11 @@ function bindSetTooltipDismissal() {
 
 export function createBulkAddButton(onClick) {
   addButtonToSidebar('➕ Bulk Add', onClick);
+}
+
+/** Jump to a random card the collector is missing. */
+export function createSurpriseButton() {
+  addButtonToSidebar('🎲 Surprise Me', surpriseMe);
 }
 
 export function createBulkCheckButton(onClick) {

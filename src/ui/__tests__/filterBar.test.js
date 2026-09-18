@@ -168,6 +168,18 @@ describe('initFilterBar', () => {
     expect(filters.set).toBe('dom');
     expect(onChange).toHaveBeenCalledTimes(1);
   });
+
+  it('applies filters pushed by tile chips', () => {
+    const onChange = vi.fn();
+    initFilterBar({ onChange });
+
+    document.dispatchEvent(new CustomEvent('filter:set', { detail: { set: 'ice' } }));
+
+    expect(filters.set).toBe('ice');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    // The bar's own control reflects the pushed filter.
+    expect(document.querySelector('.filter-set').value).toBe('ice');
+  });
 });
 
 function activeBadgeText() {

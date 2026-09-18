@@ -940,6 +940,134 @@ body.images-mode .section {
   }
 }
 
+/* --- Set / colour filter chips on tiles --- */
+.card-footer-set,
+.card-set-chip,
+.card-color-chip {
+  margin: 0;
+  font: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.card-set-chip {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(9, 12, 18, 0.5);
+  color: #e8edf5;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.card-color-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #cfd6e2;
+  color: #10151f;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.card-footer-set:hover,
+.card-set-chip:hover,
+.card-color-chip:hover,
+.card-footer-set:focus-visible,
+.card-set-chip:focus-visible,
+.card-color-chip:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* --- Compact list mode --- */
+body.list-mode .grid {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+body.list-mode .card.list-tile {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-family: system-ui, sans-serif;
+  text-align: left;
+}
+
+body.list-mode .card.list-tile .card-slot-number {
+  position: static;
+  display: block;
+  flex: 0 0 auto;
+  min-width: 2.4em;
+  text-align: right;
+  font-size: 0.68rem;
+}
+
+body.list-mode .card.list-tile .card-toggle {
+  position: static;
+  flex: 0 0 auto;
+  border-radius: 5px;
+}
+
+body.list-mode .card.list-tile .card-name {
+  flex: 1 1 auto;
+  width: auto;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+body.list-mode .card.list-tile .card-meta {
+  flex: 0 0 auto;
+}
+
+body.list-mode .card.list-tile .card-price,
+body.list-mode .card.list-tile .card-versions {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+}
+
+body.list-mode .card.list-tile .edhrec-link {
+  position: static;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.list-mode .card.list-tile .owned-badge {
+  position: static;
+}
+
+.card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@media (max-width: 768px) {
+  body.list-mode .card.list-tile {
+    gap: 6px;
+    padding: 4px 6px;
+  }
+}
+
 .card:hover {
   transform: translateY(-3px);
   box-shadow:
@@ -2780,6 +2908,33 @@ footer a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* Set-completion rows gain a fourth column for the per-set "Copy" button. */
+.stats-bar-row.has-copy {
+  grid-template-columns: minmax(84px, auto) 1fr auto auto;
+}
+
+.stats-set-copy {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.stats-set-copy:hover,
+.stats-set-copy:focus-visible {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.stats-set-copy:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Mana value curve (vertical histogram) */
 .stats-curve {
   display: flex;
@@ -3412,6 +3567,23 @@ footer a:focus-visible {
 
 /* Honour the OS "reduce motion" setting: keep state changes instant rather than
    animating the sidebar, tooltip and card lifts. */
+/* “Surprise me” target flash */
+@keyframes card-surprise-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 16px transparent;
+  }
+}
+
+.card.card-surprise {
+  animation: card-surprise-pulse 0.8s ease-out 2;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  z-index: 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

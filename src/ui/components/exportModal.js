@@ -3,13 +3,17 @@ import { showToast } from './toast.js';
 import { createCollectionModal } from './collectionModal.js';
 import {
   DEFAULT_TRANSFER_FORMAT,
+  TEXT_TRANSFER_FORMATS,
   TRANSFER_FORMATS,
   serializeCollection,
 } from '../../utils/collectionFormats.js';
 
-/** "owned-cards.csv" / "owned-cards-moxfield.csv". */
+/** "owned-cards.csv" / "owned-cards-arena.txt". */
 function exportFileName(format) {
-  return format === DEFAULT_TRANSFER_FORMAT ? 'owned-cards.csv' : `owned-cards-${format}.csv`;
+  const extension = TEXT_TRANSFER_FORMATS.has(format) ? 'txt' : 'csv';
+  return format === DEFAULT_TRANSFER_FORMAT
+    ? `owned-cards.${extension}`
+    : `owned-cards-${format}.${extension}`;
 }
 
 /**
@@ -116,7 +120,9 @@ export function createExportModal(cards) {
     if (allCards.length === 0) return;
 
     const blob = new Blob([serializeCollection(allCards, currentFormat())], {
-      type: 'text/csv;charset=utf-8',
+      type: TEXT_TRANSFER_FORMATS.has(currentFormat())
+        ? 'text/plain;charset=utf-8'
+        : 'text/csv;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

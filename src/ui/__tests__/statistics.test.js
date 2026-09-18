@@ -186,9 +186,18 @@ describe('calculateStatistics', () => {
 
     // Highest completion first; sets with no owned cards are omitted.
     expect(stats.sets).toEqual([
-      { code: 'm21', name: 'Core Set 2021', total: 1, owned: 1, percent: 100 },
-      { code: 'lea', name: 'Limited Edition Alpha', total: 2, owned: 1, percent: 50 },
+      { code: 'm21', name: 'Core Set 2021', total: 1, owned: 1, percent: 100, missing: [] },
+      {
+        code: 'lea',
+        name: 'Limited Edition Alpha',
+        total: 2,
+        owned: 1,
+        percent: 50,
+        missing: ['B'],
+      },
     ]);
+    expect(stats.missingCount).toBe(1);
+    expect(stats.missingNames).toEqual(['B']);
   });
 
   it('omits sets the collection has no cards in', () => {
@@ -275,6 +284,19 @@ describe('createStatisticsHTML', () => {
     expect(html).not.toContain('<img src=x');
     expect(html).toContain('&lt;img src=x');
   });
+
+  it('adds a copy button to sets that have missing cards', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
+    ];
+    const stats = calculateStatistics([all[0]], 2, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).toContain('stats-set-copy');
+    expect(html).toContain('data-set="lea"');
+  });
 });
 
 describe('showStatisticsModal', () => {
@@ -312,5 +334,45 @@ describe('showStatisticsModal', () => {
 
     document.querySelector('.statistics-close').click();
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
+
+  it('copies every missing card from the footer button', async () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const owned = makeCard({ id: 'owned', name: 'Owned', set: 'lea', set_name: 'Alpha' });
+    const missing = makeCard({ id: 'missing', name: 'Missing One', set: 'lea', set_name: 'Alpha' });
+    cardStore.getAll.mockReturnValue([owned, missing]);
+    cardStore.getPrintings.mockReturnValue([]);
+    isCardOwned.mockImplementation((card) => card.id === 'owned');
+
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    showStatisticsModal();
+
+    const button = document.querySelector('.stats-copy-missing');
+    expect(button.textContent).toBe('Copy 1 missing');
+    button.click();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith('Missing One');
+  });
+
+  it("copies a single set's missing cards from its row button", async () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const owned = makeCard({ id: 'o', name: 'Owned', set: 'lea', set_name: 'Alpha' });
+    const missing = makeCard({ id: 'm', name: 'Missing One', set: 'lea', set_name: 'Alpha' });
+    cardStore.getAll.mockReturnValue([owned, missing]);
+    cardStore.getPrintings.mockReturnValue([]);
+    isCardOwned.mockImplementation((card) => card.id === 'o');
+
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    showStatisticsModal();
+
+    document.querySelector('.stats-set-copy').click();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith('Missing One');
   });
 });

@@ -431,3 +431,99 @@ describe('updateCardState', () => {
     expect(toggle.title).toBe('Mark as missing');
   });
 });
+
+describe('list display mode', () => {
+  const card = {
+    id: 'list-card',
+    name: 'Serra Angel',
+    set: 'dom',
+    set_name: 'Dominaria',
+    collector_number: '42',
+    color_identity: ['W'],
+    prices: { eur: '3.50' },
+    related_uris: { edhrec: 'http://edhrec.com/serra-angel' },
+  };
+
+  beforeEach(() => {
+    cardSettings.displayMode = 'list';
+    cardState.isCardOwned.mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    cardSettings.displayMode = 'text';
+    document.body.innerHTML = '';
+  });
+
+  it('renders a checklist row with an inline toggle, set and colour chips', () => {
+    const element = createCardElement(card, 0);
+
+    expect(element.classList.contains('list-tile')).toBe(true);
+    expect(element.querySelector('.card-name').textContent).toBe('Serra Angel');
+    expect(element.querySelector('.card-toggle')).not.toBeNull();
+    expect(element.querySelector('.card-set-chip').textContent).toBe('DOM');
+    expect(element.querySelector('.card-color-chip').textContent).toBe('W');
+    expect(element.querySelector('.card-price').textContent).toBe('€3.50');
+  });
+
+  it('re-renders back to a text tile when the mode changes', () => {
+    const element = createCardElement(card, 0);
+    document.body.appendChild(element);
+    expect(element.classList.contains('list-tile')).toBe(true);
+
+    cardSettings.displayMode = 'text';
+    applyDisplayMode();
+
+    expect(element.classList.contains('list-tile')).toBe(false);
+    expect(element.querySelector('.card-name')).not.toBeNull();
+  });
+});
+
+describe('filter chips', () => {
+  const card = {
+    id: 'chip-card',
+    name: 'Serra Angel',
+    set: 'dom',
+    set_name: 'Dominaria',
+    collector_number: '42',
+    color_identity: ['W'],
+    image_uris: { thumb: 'https://images.test/thumb.webp' },
+  };
+
+  beforeEach(() => {
+    cardSettings.displayMode = 'images';
+    cardState.isCardOwned.mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    cardSettings.displayMode = 'text';
+    document.body.innerHTML = '';
+  });
+
+  /** Capture `filter:set` events for the duration of `run()`. */
+  function captureFilters(run) {
+    const received = [];
+    const listener = (event) => received.push(event.detail);
+    document.addEventListener('filter:set', listener);
+    run();
+    document.removeEventListener('filter:set', listener);
+    return received;
+  }
+
+  it('emits a set filter when the footer set badge is clicked', () => {
+    const element = createCardElement(card, 0);
+    document.body.appendChild(element);
+
+    const received = captureFilters(() => element.querySelector('.card-footer-set').click());
+
+    expect(received).toEqual([{ set: 'dom' }]);
+  });
+
+  it('emits an exact colour filter when the colour chip is clicked', () => {
+    const element = createCardElement(card, 0);
+    document.body.appendChild(element);
+
+    const received = captureFilters(() => element.querySelector('.card-color-chip').click());
+
+    expect(received).toEqual([{ colors: ['W'], colorMode: 'exact' }]);
+  });
+});

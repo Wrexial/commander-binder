@@ -19,7 +19,13 @@ export const TRANSFER_FORMATS = [
   { id: 'csv', label: 'CSV' },
   { id: 'moxfield', label: 'Moxfield' },
   { id: 'archidekt', label: 'Archidekt' },
+  { id: 'arena', label: 'MTG Arena' },
+  { id: 'mtgo', label: 'MTGO' },
+  { id: 'plain', label: 'Plain text' },
 ];
+
+/** Formats that serialize to plain text rather than CSV. */
+export const TEXT_TRANSFER_FORMATS = new Set(['arena', 'mtgo', 'plain']);
 
 export const DEFAULT_TRANSFER_FORMAT = 'csv';
 
@@ -287,6 +293,29 @@ function serializeArchidekt(cards) {
 }
 
 /**
+ * MTG Arena import format: "1 Card Name (SET) 123". A blank collector number
+ * leaves just "1 Card Name (SET)", which Arena still accepts.
+ */
+function serializeArena(cards) {
+  return cards
+    .map(
+      (card) =>
+        `1 ${card.name} (${setCode(card)})${card.collector_number ? ` ${card.collector_number}` : ''}`
+    )
+    .join('\n');
+}
+
+/** MTGO text decklist: "1 Card Name" (MTGO ignores the set). */
+function serializeMtgo(cards) {
+  return cards.map((card) => `1 ${card.name}`).join('\n');
+}
+
+/** Bare names, one per line — feeds straight into the Bulk Add / Check box. */
+function serializePlain(cards) {
+  return cards.map((card) => card.name).join('\n');
+}
+
+/**
  * Serialize owned cards in the requested format.
  *
  * @param {object[]} cards Scryfall card objects (one per owned card).
@@ -299,6 +328,12 @@ export function serializeCollection(cards, format = DEFAULT_TRANSFER_FORMAT) {
       return serializeMoxfield(cards);
     case 'archidekt':
       return serializeArchidekt(cards);
+    case 'arena':
+      return serializeArena(cards);
+    case 'mtgo':
+      return serializeMtgo(cards);
+    case 'plain':
+      return serializePlain(cards);
     case 'csv':
     default:
       return serializeCsv(cards);

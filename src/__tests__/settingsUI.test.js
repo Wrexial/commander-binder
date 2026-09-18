@@ -16,46 +16,62 @@ vi.mock('../ui/cards.js', () => ({
 
 describe('initCardSettings', () => {
   beforeEach(() => {
-    // Reset mocks
     vi.clearAllMocks();
-
+    document.body.className = '';
     // setupUI sidebars is where the settings toggles are injected
     document.body.innerHTML = '<div id="sidebar"></div>';
     getSetting.mockReturnValue(false);
   });
 
-  it('should create a toggle for each setting reflecting its stored value', () => {
-    getSetting.mockImplementation((key) => key === 'showTooltip');
+  it('creates the tooltip toggle and the display-mode picker', () => {
+    getSetting.mockImplementation((key) => (key === 'showTooltip' ? true : 'images'));
 
     initCardSettings();
 
-    const toggles = document.querySelectorAll('#sidebar input[type="checkbox"]');
-    expect(toggles.length).toBe(2);
+    const toggle = document.querySelector('[data-setting="showTooltip"]');
+    expect(toggle).not.toBeNull();
+    expect(toggle.checked).toBe(true);
+
+    const select = document.querySelector('[data-setting="displayMode"]');
+    expect(select).not.toBeNull();
+    expect(select.tagName).toBe('SELECT');
+    expect([...select.options].map((option) => option.value)).toEqual(['images', 'text', 'list']);
+    expect(select.value).toBe('images');
 
     expect(getSetting).toHaveBeenCalledWith('showTooltip');
     expect(getSetting).toHaveBeenCalledWith('displayMode');
-
-    const showTooltipToggle = document.querySelector('[data-setting="showTooltip"]');
-    const displayModeToggle = document.querySelector('[data-setting="displayMode"]');
-    expect(showTooltipToggle.checked).toBe(true);
-    expect(displayModeToggle.checked).toBe(false);
   });
 
-  it('should switch to image mode and re-render cards', () => {
+  it('switches to list mode and re-renders cards', () => {
+    getSetting.mockImplementation((key) => (key === 'displayMode' ? 'images' : false));
+
+    initCardSettings();
+
+    const select = document.querySelector('[data-setting="displayMode"]');
+    select.value = 'list';
+    select.dispatchEvent(new Event('change'));
+
+    expect(setSetting).toHaveBeenCalledWith('displayMode', 'list');
+    expect(applyDisplayMode).toHaveBeenCalled();
+    expect(document.body.classList.contains('list-mode')).toBe(true);
+    expect(document.body.classList.contains('images-mode')).toBe(false);
+  });
+
+  it('switches back to images mode', () => {
     getSetting.mockImplementation((key) => (key === 'displayMode' ? 'text' : false));
 
     initCardSettings();
 
-    const toggle = document.querySelector('[data-setting="displayMode"]');
-    toggle.checked = true;
-    toggle.dispatchEvent(new Event('change'));
+    const select = document.querySelector('[data-setting="displayMode"]');
+    select.value = 'images';
+    select.dispatchEvent(new Event('change'));
 
     expect(setSetting).toHaveBeenCalledWith('displayMode', 'images');
-    expect(applyDisplayMode).toHaveBeenCalled();
     expect(document.body.classList.contains('images-mode')).toBe(true);
+    expect(document.body.classList.contains('list-mode')).toBe(false);
   });
 
-  it('should persist checkbox changes through setSetting', () => {
+  it('persists the tooltip checkbox through setSetting', () => {
     initCardSettings();
 
     const toggle = document.querySelector('[data-setting="showTooltip"]');

@@ -18,6 +18,7 @@ import {
   createBulkAddButton,
   createBulkCheckButton,
   createImportButton,
+  createSurpriseButton,
   updateAllBinderCounts,
 } from './ui/layout.js';
 import { updateAllCardStates } from './ui/cards.js';
@@ -84,6 +85,7 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
 
   createBulkAddButton(() => showModal(loadBulkAddModal));
   createImportButton();
+  createSurpriseButton();
 }
 
 /**
@@ -114,6 +116,7 @@ export async function setupUI() {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('📊 Show Statistics', showStatistics);
+    createSurpriseButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
   } else if (clerk.user) {

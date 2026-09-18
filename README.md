@@ -23,19 +23,27 @@ unofficial Fan Content, not approved or endorsed by Wizards of the Coast.
 - **Share links** — generate a revocable `?share=<token>` URL that shows your collection in
   view-only guest mode. Rotating the token invalidates old links immediately.
 - **Powerful search** with the same syntax Scryfall users expect — `t:dragon`, `o:"draw a
-card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `!t:goblin`, `and` / `or`, and
-  parentheses. An in-app help sheet documents each filter, and tests keep the docs and parser
-  in sync.
+card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:goblin`, `and`
+  / `or`, and parentheses. An in-app help sheet documents each filter, and tests keep the docs
+  and parser in sync.
 - **Click filters and sorting** — filter by colour identity, rarity, price, set and more, and
-  sort by release order (default), name, price, rarity or colour.
+  sort by release order (default), name, price, rarity or colour. Clicking the set or colour
+  chip on any tile filters the grid to that set or identity in one tap.
 - **Year scrubber** — a draggable rail that jumps to any point in the timeline, with a readout
   that follows the page under your thumb.
-- **Statistics** — a per-set completion breakdown of your collection.
+- **Statistics** — a per-set completion breakdown of your collection, with a one-tap "Copy"
+  for each set's missing cards (and a global "Copy missing") to turn the numbers into a
+  shopping list.
 - **Binders** — virtual groupings of the feed that make a large collection easier to page
   through.
+- **Three tile layouts** — full artwork, text tiles, or a compact list with inline ownership
+  toggles, for marking a whole page quickly.
 - **Bulk add & bulk check** — add many cards at once or check which ones you already own.
-- **Import & export** — CSV, [Moxfield](https://moxfield.com/) and
-  [Archidekt](https://archidekt.com/) formats, parsed header-first and tolerant of messy files.
+- **“Surprise me”** — jump to a random card you are still missing.
+- **Import & export** — CSV, [Moxfield](https://moxfield.com/),
+  [Archidekt](https://archidekt.com/), MTG Arena, MTGO and plain-text formats, parsed
+  header-first and tolerant of messy files. The plain-text export is one card name per line, so
+  it feeds straight back into Bulk Add.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
   printings on touch, right-click on desktop, hover-only affordances gated behind
   `isHoverCapable()`.
@@ -207,6 +215,9 @@ c<wug                       only these colours
 d:2018-2020                 release-year range
 price:1.50-20               price range in €
 is:owned                    cards you own
+is:missing                  cards you have not marked
+is:colorless                colourless cards
+is:dfc                      double-faced cards
 !t:goblin                   exclude
 t:elf and c:g               both must match
 c:wu or c:bg                either may match
