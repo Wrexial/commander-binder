@@ -81,13 +81,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   ship as separate chunks.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
-  `yearScrubber.js` builds the draggable rail by reading the first _visible_ card
-  of each section and labelling it with the active sort (release year + sets in
-  the default order, or the sort value — letter, price, rarity, colour identity
-  …). `search.js` dispatches a `cards:filtered` event after each filter pass so
-  the marks follow filtering; the section `data-mark`/`data-markSets` stamps are
-  the fallback when a section has no rendered cards. `cardFeed.js` owns the
-  fetch→render pagination loop and renders
+  `yearScrubber.js` builds the draggable rail from one mark per _visible_
+  section (the section's first visible card, labelled by the active sort —
+  release year + sets in the default order, or letter/price/rarity/colour
+  identity), so the readout's sets follow the page under the thumb. Ticks and
+  keyboard steps use `labelMarks()` (one per run of the same label). `search.js`
+  dispatches a `cards:filtered` event after each filter pass so the marks follow
+  filtering; the section `data-mark`/`data-markSets` stamps are the fallback when
+  a section has no rendered cards. `cardFeed.js` owns the fetch→render pagination
+  loop and renders
   each page; because only the default order can be streamed, any other sort makes
   it drop the set tags and rebuild the whole grid once loaded (and again on each
   sort change) via `applySort()`.

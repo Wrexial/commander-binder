@@ -68,20 +68,16 @@ function visibleSetCodes(section) {
 }
 
 /**
- * The first section of each distinct scrubber mark, in order. A mark is the
- * page's `data-mark` (the release year in the default order, or the sort value
- * for a sorted grid); `data-mark-sets` holds the sets when relevant.
+ * One mark per visible section, in document order. A mark's label is the active
+ * sort's value for the section's first visible card (release year, letter,
+ * price, colour name, …); its sets are listed for the default release order.
  *
  * @param {ParentNode} [root]
  * @returns {{label: string, sets: string, top: number, section: Element}[]}
  */
 export function buildMarks(root = document) {
   const marks = [];
-  let lastLabel = null;
 
-  // Reading `dataset` is free; reading geometry is not. Only the first section
-  // of each mark is measured, which keeps the layout reads to one per mark
-  // instead of one per page (there are hundreds, all `content-visibility: auto`).
   for (const section of root.querySelectorAll('.section')) {
     // A filtered-out section is not part of the visible timeline.
     if (section.style.display === 'none') continue;
@@ -101,8 +97,7 @@ export function buildMarks(root = document) {
       sets = section.dataset.markSets ?? section.dataset.sets ?? '';
     }
 
-    if (!label || label === lastLabel) continue;
-    lastLabel = label;
+    if (!label) continue;
     marks.push({ label, sets, section });
   }
 
@@ -111,6 +106,25 @@ export function buildMarks(root = document) {
   }
 
   return marks;
+}
+
+/**
+ * Keep only the first of each run of same-labelled marks. The rail draws ticks
+ * at these and the keyboard steps between them; the label itself reads from the
+ * full per-section list, so its sets follow the section under the thumb.
+ *
+ * @param {{label: string, top: number}[]} marks
+ * @returns {{label: string, top: number}[]}
+ */
+export function labelMarks(marks) {
+  const out = [];
+  let last = null;
+  for (const mark of marks) {
+    if (mark.label === last) continue;
+    last = mark.label;
+    out.push(mark);
+  }
+  return out;
 }
 
 /**
@@ -206,8 +220,8 @@ export function initYearScrubber() {
     if (rect.top > 1) stickAt = Math.round(rect.top + window.scrollY);
   }
 
-  /** @type {{marks: ReturnType<typeof buildMarks>, travel: number, max: number}} */
-  const state = { marks: [], travel: 1, max: 0 };
+  /** @type {{sections: ReturnType<typeof buildMarks>, marks: ReturnType<typeof buildMarks>, travel: number, max: number}} */
+  const state = { sections: [], marks: [], travel: 1, max: 0 };
   let dragging = false;
   let grabOffset = 0;
   let frame = 0;
@@ -252,7 +266,7 @@ export function initYearScrubber() {
   }
 
   function renderLabel(offset) {
-    const mark = markAtOffset(state.marks, offset);
+    const mark = markAtOffset(state.sections, offset);
     const key = mark ? `${mark.label}|${mark.sets}` : '';
     if (key === lastLabelKey) return;
     lastLabelKey = key;
@@ -322,7 +336,8 @@ export function initYearScrubber() {
 
   /** Re-read the timeline. Called when content may have been appended. */
   function refresh() {
-    state.marks = buildMarks();
+    state.sections = buildMarks();
+    state.marks = labelMarks(state.sections);
     state.travel = thumbTravel();
     state.max = maxScrollTop();
     measureStickAt();

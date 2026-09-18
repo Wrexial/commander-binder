@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initYearScrubber, buildMarks, markAtOffset, maxScrollTop } from '../yearScrubber.js';
+import {
+  initYearScrubber,
+  buildMarks,
+  labelMarks,
+  markAtOffset,
+  maxScrollTop,
+} from '../yearScrubber.js';
 import { filters, resetFilters } from '../../state/filters.js';
 
 /** Build sections the way cardFeed does: release order, oldest first. */
@@ -67,7 +73,7 @@ describe('year scrubber', () => {
   });
 
   describe('buildMarks', () => {
-    it('keeps the first section of each mark, in order', () => {
+    it('returns every visible section, in order', () => {
       seedSections([
         { year: 1994, top: 0, sets: 'LEG' },
         { year: 1994, top: 400, sets: 'FEM' },
@@ -77,9 +83,9 @@ describe('year scrubber', () => {
 
       const marks = buildMarks();
 
-      expect(marks.map((mark) => mark.label)).toEqual(['1994', '1995', '1996']);
-      expect(marks.map((mark) => mark.sets)).toEqual(['LEG', 'ICE', 'ALL']);
-      expect(marks.map((mark) => mark.top)).toEqual([0, 900, 1500]);
+      expect(marks.map((mark) => mark.label)).toEqual(['1994', '1994', '1995', '1996']);
+      expect(marks.map((mark) => mark.sets)).toEqual(['LEG', 'FEM', 'ICE', 'ALL']);
+      expect(marks.map((mark) => mark.top)).toEqual([0, 400, 900, 1500]);
     });
 
     it('ignores sections without a release year', () => {
@@ -98,9 +104,7 @@ describe('year scrubber', () => {
       expect(buildMarks().map((mark) => mark.label)).toEqual(['A']);
     });
 
-    it('measures only the first section of each mark', () => {
-      // Reading geometry is the expensive part: there are hundreds of pages but
-      // only a handful of mark starts.
+    it('measures every section top', () => {
       const seeded = seedSections([
         { year: 1994, top: 0 },
         { year: 1994, top: 400 },
@@ -116,11 +120,25 @@ describe('year scrubber', () => {
       buildMarks();
 
       const measured = spies.filter((spy) => spy.mock.calls.length > 0);
-      expect(measured).toHaveLength(3);
+      expect(measured).toHaveLength(6);
     });
 
     it('returns nothing when no sections are rendered yet', () => {
       expect(buildMarks()).toEqual([]);
+    });
+  });
+
+  describe('labelMarks', () => {
+    it('keeps the first mark of each run of the same label', () => {
+      const marks = [
+        { label: '1994', top: 0 },
+        { label: '1994', top: 400 },
+        { label: '1995', top: 900 },
+        { label: '1995', top: 1200 },
+        { label: '1996', top: 1500 },
+      ];
+
+      expect(labelMarks(marks).map((mark) => mark.top)).toEqual([0, 900, 1500]);
     });
   });
 
@@ -186,6 +204,70 @@ describe('year scrubber', () => {
       });
 
       expect(buildMarks()[0].label).toBe('Azorius');
+    });
+  });
+
+  describe('rail label', () => {
+    let results;
+    let localTeardown;
+
+    function seedSection(top, cards) {
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.getBoundingClientRect = () => ({ top: top - window.scrollY, height: 0 });
+      for (const data of cards) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.cardData = data;
+        section.appendChild(card);
+      }
+      results.appendChild(section);
+      return section;
+    }
+
+    const labelText = () => document.querySelector('.year-scrubber-year').textContent;
+    const setsText = () => document.querySelector('.year-scrubber-sets').textContent;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      resetFilters();
+      document.body.innerHTML = '';
+      results = document.createElement('div');
+      results.id = 'results';
+      document.body.appendChild(results);
+    });
+
+    afterEach(() => {
+      localTeardown?.();
+      localTeardown = null;
+      resetFilters();
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      document.body.innerHTML = '';
+    });
+
+    it('labels the rail with the active sort', () => {
+      seedSection(0, [{ released_at: '1994-01-01', set: 'leg', color_identity: ['W', 'U'] }]);
+      localTeardown = initYearScrubber();
+
+      expect(labelText()).toBe('1994');
+
+      filters.sort = 'color-asc';
+      document.dispatchEvent(new CustomEvent('cards:filtered'));
+      vi.advanceTimersByTime(500);
+
+      expect(labelText()).toBe('Azorius');
+    });
+
+    it('shows the sets of the section under the thumb, not the first of the year', () => {
+      seedSection(0, [{ released_at: '1994-01-01', set: 'leg' }]);
+      seedSection(1000, [{ released_at: '1994-06-01', set: 'fem' }]);
+
+      vi.stubGlobal('scrollY', 1000);
+      localTeardown = initYearScrubber();
+
+      expect(labelText()).toBe('1994');
+      expect(setsText()).toBe('FEM');
     });
   });
 
