@@ -1,12 +1,12 @@
 name: CI debug
 
-# Temporary workflow to surface the `npm ci` failure as a public annotation.
+# Temporary workflow to work out the cross-platform lockfile fix.
 on:
   push:
     branches: [ci-debug]
 
 jobs:
-  debug:
+  normalize-then-ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,17 +16,34 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Diagnostics
+      - name: Version info
         run: |
           echo "node: $(node -v)"
           echo "npm: $(npm -v)"
-          node -e 'const l=require("./package-lock.json");console.log("lockfileVersion:",l.lockfileVersion)'
 
-      - name: npm ci (captured)
+      - name: Normalize lockfile on Linux
+        run: npm install --package-lock-only --no-audit --no-fund
+
+      - name: Show optional native deps now in lockfile
+        run: |
+          node -e 'const l=require("./package-lock.json");for(const n of Object.keys(l.packages)){if(/bufferutil|utf-8-validate|node-gyp-build/.test(n))console.log(n,l.packages[n].version)}' || true
+
+      - name: npm ci after normalize
         run: |
           set +e
-          npm ci >/tmp/npmci.log 2>&1
+          npm ci --no-audit --no-fund >/tmp/ci.log 2>&1
           code=$?
-          echo "npm ci exit code: $code"
-          node -e 'const fs=require("fs");let s=fs.readFileSync("/tmp/npmci.log","utf8");s=s.replace(/%/g,"%25").replace(/\r/g,"").replace(/\n/g,"%0A");console.log("::error::"+s)'
+          echo "npm ci exit: $code"
+          if [ $code -ne 0 ]; then
+            node -e 'const fs=require("fs");let s=fs.readFileSync("/tmp/ci.log","utf8");s=s.replace(/%/g,"%25").replace(/\r/g,"").replace(/\n/g,"%0A");console.log("::error::"+s)'
+          fi
           exit $code
+
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
