@@ -223,8 +223,9 @@ function createSetFilterButton(card, label, className) {
 }
 
 /**
- * A button that filters the grid to this card's colour identity. Colourless
- * cards filter to the colourless pip; everything else matches exactly.
+ * A button that filters the grid to this card's colour identity. Clicking a
+ * card's own colours uses "exclusive" mode, so a WB card shows W, B and WB
+ * rather than only exact WB. Colourless cards filter to the colourless pip.
  * @param {object} card
  * @returns {HTMLButtonElement}
  */
@@ -241,11 +242,10 @@ function createColorChip(card) {
   button.setAttribute('aria-label', button.title);
   button.addEventListener('click', (event) => {
     event.stopPropagation();
-    requestFilter(
-      isColorless
-        ? { colors: ['C'], colorMode: 'any' }
-        : { colors: [...identity], colorMode: 'exact' }
-    );
+    requestFilter({
+      colors: isColorless ? ['C'] : [...identity],
+      colorMode: 'exclusive',
+    });
   });
   return button;
 }

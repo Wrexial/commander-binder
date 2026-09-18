@@ -518,12 +518,23 @@ describe('filter chips', () => {
     expect(received).toEqual([{ set: 'dom' }]);
   });
 
-  it('emits an exact colour filter when the colour chip is clicked', () => {
+  it('emits an exclusive colour filter when the colour chip is clicked', () => {
     const element = createCardElement(card, 0);
     document.body.appendChild(element);
 
     const received = captureFilters(() => element.querySelector('.card-color-chip').click());
 
-    expect(received).toEqual([{ colors: ['W'], colorMode: 'exact' }]);
+    expect(received).toEqual([{ colors: ['W'], colorMode: 'exclusive' }]);
+  });
+
+  it('filters colourless cards through the colourless pip', () => {
+    const element = createCardElement({ ...card, color_identity: [] }, 0);
+    document.body.appendChild(element);
+
+    const chip = element.querySelector('.card-color-chip');
+    expect(chip.textContent).toBe('C');
+    const received = captureFilters(() => chip.click());
+
+    expect(received).toEqual([{ colors: ['C'], colorMode: 'exclusive' }]);
   });
 });
