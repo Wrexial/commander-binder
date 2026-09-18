@@ -185,7 +185,7 @@ describe('year scrubber', () => {
         cards: [{ released_at: '2020-01-01', set: 'zend', color_identity: ['U', 'W'] }],
       });
 
-      expect(buildMarks()[0].label).toBe('WU');
+      expect(buildMarks()[0].label).toBe('Azorius');
     });
   });
 

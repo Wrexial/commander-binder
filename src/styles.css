@@ -1518,44 +1518,28 @@ body.tooltip-open {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 2px solid var(--border-strong);
+  border: 2px solid transparent;
   border-radius: 50%;
-  background: var(--surface-3);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
+  background: transparent;
   cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    transform 0.12s ease;
+}
+
+.filter-pip img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.filter-pip:hover {
+  transform: scale(1.1);
 }
 
 .filter-pip[aria-pressed='true'] {
   border-color: var(--accent-strong);
   box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
-}
-
-.filter-pip-W {
-  background: var(--mtg-bg-W);
-  color: #111111;
-}
-.filter-pip-U {
-  background: var(--mtg-bg-U);
-  color: #111111;
-}
-.filter-pip-B {
-  background: var(--mtg-bg-B);
-  color: #111111;
-}
-.filter-pip-R {
-  background: var(--mtg-bg-R);
-  color: #111111;
-}
-.filter-pip-G {
-  background: var(--mtg-bg-G);
-  color: #111111;
-}
-.filter-pip-C {
-  background: var(--colorless-bg);
-  color: #111111;
 }
 
 .filter-chip {

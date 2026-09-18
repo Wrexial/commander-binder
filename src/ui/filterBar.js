@@ -16,6 +16,9 @@ import { SORT_OPTIONS } from '../utils/sortCards.js';
 
 const PRICE_DEBOUNCE_MS = 300;
 
+/** Official Scryfall mana-symbol SVGs (the same set the stats modal uses). */
+const manaSymbolUrl = (symbol) => `https://svgs.scryfall.io/card-symbols/${symbol}.svg`;
+
 const COLOR_MODE_OPTIONS = [
   { id: 'any', label: 'Any' },
   { id: 'all', label: 'All' },
@@ -65,7 +68,18 @@ function toggleButtons(options, className, onToggle) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = option.id ? `${className} ${className}-${option.id}` : className;
-    button.textContent = option.text ?? option.label ?? option.id;
+
+    if (option.icon) {
+      // Decorative image: the button's aria-label carries the name.
+      const img = document.createElement('img');
+      img.src = option.icon;
+      img.alt = '';
+      img.decoding = 'async';
+      button.appendChild(img);
+    } else {
+      button.textContent = option.text ?? option.label ?? option.id;
+    }
+
     button.setAttribute('aria-label', option.label ?? option.id);
     button.title = option.label ?? option.id;
     button.addEventListener('click', () => onToggle(option.id));
@@ -166,7 +180,11 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   });
 
   const colors = toggleButtons(
-    COLOR_OPTIONS.map((color) => ({ id: color.id, label: color.label, text: color.id })),
+    COLOR_OPTIONS.map((color) => ({
+      id: color.id,
+      label: color.label,
+      icon: manaSymbolUrl(color.id),
+    })),
     'filter-pip',
     (id) => {
       const index = filters.colors.indexOf(id);

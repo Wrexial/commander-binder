@@ -53,25 +53,25 @@ describe('sortCards', () => {
     expect(sortCards(cards, 'rarity-asc').map((c) => c.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 
-  it('sorts by colour: WUBRG, then multicolour, then colourless', () => {
+  it('groups by colour count: mono + colourless, then 2, 3, 4 and 5', () => {
     const colored = [
-      { name: 'MonoW', color_identity: ['W'] },
-      { name: 'MonoU', color_identity: ['U'] },
-      { name: 'MonoB', color_identity: ['B'] },
-      { name: 'MonoR', color_identity: ['R'] },
-      { name: 'MonoG', color_identity: ['G'] },
+      { name: 'Five', color_identity: ['W', 'U', 'B', 'R', 'G'] },
+      { name: 'Bant', color_identity: ['W', 'U', 'G'] },
       { name: 'Azorius', color_identity: ['W', 'U'] },
+      { name: 'Dune', color_identity: ['W', 'B', 'R', 'G'] },
+      { name: 'MonoU', color_identity: ['U'] },
+      { name: 'MonoW', color_identity: ['W'] },
       { name: 'Colorless', color_identity: [] },
     ];
 
     expect(sortCards(colored, 'color-asc').map((c) => c.name)).toEqual([
       'MonoW',
       'MonoU',
-      'MonoB',
-      'MonoR',
-      'MonoG',
-      'Azorius',
       'Colorless',
+      'Azorius',
+      'Bant',
+      'Dune',
+      'Five',
     ]);
   });
 
@@ -106,8 +106,12 @@ describe('sortMark', () => {
     expect(sortMark(cards[0], 'owned-asc')).toBe('Owned');
   });
 
-  it('labels the colour mark', () => {
-    expect(sortMark({ color_identity: ['U', 'W'] }, 'color-asc')).toBe('WU');
+  it('names colour combinations for the mark', () => {
+    expect(sortMark({ color_identity: ['W'] }, 'color-asc')).toBe('White');
+    expect(sortMark({ color_identity: ['U', 'W'] }, 'color-asc')).toBe('Azorius');
+    expect(sortMark({ color_identity: ['W', 'U', 'G'] }, 'color-asc')).toBe('Bant');
+    expect(sortMark({ color_identity: ['W', 'B', 'R', 'G'] }, 'color-asc')).toBe('Dune');
+    expect(sortMark({ color_identity: ['W', 'U', 'B', 'R', 'G'] }, 'color-asc')).toBe('WUBRG');
     expect(sortMark({ color_identity: [] }, 'color-asc')).toBe('Colourless');
   });
 });

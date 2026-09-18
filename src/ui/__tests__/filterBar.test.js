@@ -114,6 +114,18 @@ describe('initFilterBar', () => {
     expect(codes).toEqual(['', 'new', 'mid', 'old']);
   });
 
+  it('renders the colour pips as mana symbols', () => {
+    initFilterBar({ onChange: vi.fn() });
+
+    const pip = document.querySelector('.filter-pip-W');
+    const img = pip.querySelector('img');
+
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toContain('card-symbols/W.svg');
+    expect(img.getAttribute('alt')).toBe('');
+    expect(pip.getAttribute('aria-label')).toBe('White');
+  });
+
   it('changes the sort through the dedicated callback', () => {
     const onChange = vi.fn();
     const onSortChange = vi.fn();

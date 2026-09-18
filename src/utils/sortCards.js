@@ -42,19 +42,73 @@ const COLOR_INDEX = { W: 0, U: 1, B: 2, R: 3, G: 4 };
 /** Single-digit codes so a colour identity string sorts in WUBRG order. */
 const COLOR_DIGITS = { W: '1', U: '2', B: '3', R: '4', G: '5' };
 
-/** Mono colours first (in WUBRG order), then multicolour, then colourless. */
-function colorRank(card) {
-  const identity = card.color_identity || [];
-  if (identity.length === 0) return 6;
-  if (identity.length === 1) return COLOR_INDEX[identity[0]] ?? 5;
-  return 5;
+const COLOR_NAMES = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
+
+/**
+ * Guild / shard / wedge / four-colour names, keyed by the WUBRG-sorted identity
+ * ("WU" = Azorius, "WUG" = Bant, "WBRG" = Dune, …).
+ */
+const COLOR_COMBO_NAMES = {
+  // Guilds (two colours)
+  WU: 'Azorius',
+  WB: 'Orzhov',
+  WR: 'Boros',
+  WG: 'Selesnya',
+  UB: 'Dimir',
+  UR: 'Izzet',
+  UG: 'Simic',
+  BR: 'Rakdos',
+  BG: 'Golgari',
+  RG: 'Gruul',
+  // Shards and wedges (three colours)
+  WUG: 'Bant',
+  WUB: 'Esper',
+  UBR: 'Grixis',
+  BRG: 'Jund',
+  WRG: 'Naya',
+  WBG: 'Abzan',
+  WUR: 'Jeskai',
+  WBR: 'Mardu',
+  UBG: 'Sultai',
+  URG: 'Temur',
+  // Four colours
+  WBRG: 'Dune',
+  UBRG: 'Glint',
+  WURG: 'Ink',
+  WUBG: 'Witch',
+  WUBR: 'Yore',
+  // All five
+  WUBRG: 'WUBRG',
+};
+
+/** Identity letters in canonical WUBRG order. */
+function wubrg(identity) {
+  return [...identity].sort((a, b) => (COLOR_INDEX[a] ?? 9) - (COLOR_INDEX[b] ?? 9));
 }
 
+/** Groups: mono + colourless first, then two, three, four and five colours. */
+function colorRank(card) {
+  const count = (card.color_identity || []).length;
+  return count <= 1 ? 1 : count;
+}
+
+/** Within a group, sort by the WUBRG identity (colourless last in its group). */
 function colorKey(card) {
-  return (card.color_identity || [])
+  const identity = card.color_identity || [];
+  if (identity.length === 0) return '9';
+  return identity
     .map((color) => COLOR_DIGITS[color] || '8')
     .sort()
     .join('');
+}
+
+/** Human name for a card's colour identity, for the scrubber mark. */
+function colorLabel(card) {
+  const identity = wubrg(card.color_identity || []);
+  if (identity.length === 0) return 'Colourless';
+  const key = identity.join('');
+  if (identity.length === 1) return COLOR_NAMES[key] || key;
+  return COLOR_COMBO_NAMES[key] || key;
 }
 
 /** True only for the streamable, chronological default order. */
@@ -151,12 +205,8 @@ export function sortMark(card, sortId) {
       return card.cmc == null ? '—' : String(card.cmc);
     case 'rarity':
       return RARITY_LABELS[card.rarity] || card.rarity || '—';
-    case 'color': {
-      const identity = (card.color_identity || [])
-        .slice()
-        .sort((a, b) => (COLOR_INDEX[a] ?? 9) - (COLOR_INDEX[b] ?? 9));
-      return identity.length === 0 ? 'Colourless' : identity.join('');
-    }
+    case 'color':
+      return colorLabel(card);
     case 'owned':
       return isCardOwned(card) ? 'Owned' : 'Missing';
     case 'release':
