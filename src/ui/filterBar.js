@@ -2,6 +2,7 @@
 import { debounce } from '../utils/debounce.js';
 import { cardStore } from '../state/cardStore.js';
 import {
+  COLOR_MODE_OPTIONS,
   COLOR_OPTIONS,
   OWNED_OPTIONS,
   RARITY_OPTIONS,
@@ -18,12 +19,6 @@ const PRICE_DEBOUNCE_MS = 300;
 
 /** Official Scryfall mana-symbol SVGs (the same set the stats modal uses). */
 const manaSymbolUrl = (symbol) => `https://svgs.scryfall.io/card-symbols/${symbol}.svg`;
-
-const COLOR_MODE_OPTIONS = [
-  { id: 'any', label: 'Any' },
-  { id: 'all', label: 'All' },
-  { id: 'exact', label: 'Exact' },
-];
 
 let groupSeq = 0;
 
@@ -50,6 +45,7 @@ function segmented(options, onSelect) {
     button.type = 'button';
     button.className = 'filter-segment';
     button.textContent = option.label;
+    if (option.title) button.title = option.title;
     button.addEventListener('click', () => onSelect(option.id));
     group.appendChild(button);
     buttons.set(option.id, button);

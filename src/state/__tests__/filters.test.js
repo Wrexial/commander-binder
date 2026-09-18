@@ -63,6 +63,28 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard({ color_identity: [] }))).toBe(false);
   });
 
+  it('matches only the selected colours in "exclusive" mode', () => {
+    applyFilters({ ...DEFAULT_FILTERS, colors: ['W', 'B'], colorMode: 'exclusive' });
+
+    // W, B and WB are all subsets of {W, B}.
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W'] }))).toBe(true);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['B'] }))).toBe(true);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W', 'B'] }))).toBe(true);
+    // Anything using another colour is excluded.
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W', 'U'] }))).toBe(false);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W', 'U', 'B'] }))).toBe(false);
+    // Colourless is opt-in via its own pip, like every other mode.
+    expect(cardMatchesFilters(makeCard({ color_identity: [] }))).toBe(false);
+  });
+
+  it('includes colourless in "exclusive" mode only when its pip is selected', () => {
+    applyFilters({ ...DEFAULT_FILTERS, colors: ['W', 'C'], colorMode: 'exclusive' });
+
+    expect(cardMatchesFilters(makeCard({ color_identity: [] }))).toBe(true);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W'] }))).toBe(true);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['W', 'U'] }))).toBe(false);
+  });
+
   it('treats the colourless pip as an empty identity', () => {
     applyFilters({ ...DEFAULT_FILTERS, colors: ['C'] });
 
@@ -142,5 +164,9 @@ describe('normalizeFilters', () => {
 
   it('accepts the exact colour mode', () => {
     expect(normalizeFilters({ colorMode: 'exact' }).colorMode).toBe('exact');
+  });
+
+  it('accepts the exclusive colour mode', () => {
+    expect(normalizeFilters({ colorMode: 'exclusive' }).colorMode).toBe('exclusive');
   });
 });

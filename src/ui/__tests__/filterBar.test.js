@@ -86,6 +86,8 @@ describe('initFilterBar', () => {
     expect(filters.colorMode).toBe('all');
     modes[2].click(); // Exact
     expect(filters.colorMode).toBe('exact');
+    modes[3].click(); // Exclusive
+    expect(filters.colorMode).toBe('exclusive');
     expect(onChange).toHaveBeenCalled();
   });
 

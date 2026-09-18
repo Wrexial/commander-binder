@@ -34,10 +34,29 @@ export const OWNED_OPTIONS = [
   { id: 'missing', label: 'Missing' },
 ];
 
+/**
+ * How the selected colour pips are combined.
+ *  - `any`       the card contains at least one selected colour
+ *  - `all`       the card contains every selected colour
+ *  - `exact`     the card's identity is exactly the selected colours
+ *  - `exclusive` the card's identity uses only the selected colours
+ *                (e.g. selecting WB matches W, B and WB)
+ */
+export const COLOR_MODE_OPTIONS = [
+  { id: 'any', label: 'Any' },
+  { id: 'all', label: 'All' },
+  { id: 'exact', label: 'Exact' },
+  {
+    id: 'exclusive',
+    label: 'Exclusive',
+    title: 'Only the selected colours — WB shows W, B and WB cards',
+  },
+];
+
 export const DEFAULT_FILTERS = {
   owned: 'all', // 'all' | 'owned' | 'missing'
   colors: [], // subset of COLOR_OPTIONS ids; [] = any
-  colorMode: 'any', // 'any' (intersect) | 'all' (includes every selected colour)
+  colorMode: 'any', // one of COLOR_MODE_OPTIONS ids
   rarities: [], // subset of RARITY_OPTIONS ids; [] = any
   set: '', // lowercase set code; '' = any
   priceMin: null,
@@ -48,6 +67,7 @@ export const DEFAULT_FILTERS = {
 const COLOR_IDS = new Set(COLOR_OPTIONS.map((option) => option.id));
 const RARITY_IDS = new Set(RARITY_OPTIONS.map((option) => option.id));
 const OWNED_IDS = new Set(OWNED_OPTIONS.map((option) => option.id));
+const COLOR_MODES = new Set(COLOR_MODE_OPTIONS.map((option) => option.id));
 
 function cloneFilters(source) {
   return {
@@ -74,7 +94,7 @@ export function normalizeFilters(raw) {
   if (!raw || typeof raw !== 'object') return next;
 
   if (OWNED_IDS.has(raw.owned)) next.owned = raw.owned;
-  if (raw.colorMode === 'any' || raw.colorMode === 'all' || raw.colorMode === 'exact') {
+  if (COLOR_MODES.has(raw.colorMode)) {
     next.colorMode = raw.colorMode;
   }
   if (Array.isArray(raw.colors)) {
@@ -121,6 +141,13 @@ function matchesColors(card) {
     // The identity must be exactly the selected colours (colourless = empty).
     if (wantsColorless) return isColorless && wanted.length === 0;
     return identity.size === wanted.length && wanted.every((color) => identity.has(color));
+  }
+
+  if (filters.colorMode === 'exclusive') {
+    // Only the selected colours may appear: selecting WB matches W, B and WB.
+    // Colourless joins only when its pip is selected, like the other modes.
+    if (isColorless) return wantsColorless;
+    return [...identity].every((color) => wanted.includes(color));
   }
 
   if (filters.colorMode === 'all') {

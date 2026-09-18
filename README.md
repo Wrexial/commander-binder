@@ -27,8 +27,10 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   / `or`, and parentheses. An in-app help sheet documents each filter, and tests keep the docs
   and parser in sync.
 - **Click filters and sorting** — filter by colour identity, rarity, price, set and more, and
-  sort by release order (default), name, price, rarity or colour. Clicking the set or colour
-  chip on any tile filters the grid to that set or identity in one tap.
+  sort by release order (default), name, price, rarity or colour. Colour pips combine four
+  ways: **Any**, **All**, **Exact**, or **Exclusive** (selecting W+B shows W, B and WB cards).
+  Clicking the set or colour chip on any tile filters the grid to that set or identity in one
+  tap.
 - **Year scrubber** — a draggable rail that jumps to any point in the timeline, with a readout
   that follows the page under your thumb.
 - **Statistics** — a per-set completion breakdown of your collection, with a one-tap "Copy"
