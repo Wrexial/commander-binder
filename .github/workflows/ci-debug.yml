@@ -1,0 +1,32 @@
+name: CI debug
+
+# Temporary workflow to surface the `npm ci` failure as a public annotation.
+on:
+  push:
+    branches: [ci-debug]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Diagnostics
+        run: |
+          echo "node: $(node -v)"
+          echo "npm: $(npm -v)"
+          node -e 'const l=require("./package-lock.json");console.log("lockfileVersion:",l.lockfileVersion)'
+
+      - name: npm ci (captured)
+        run: |
+          set +e
+          npm ci >/tmp/npmci.log 2>&1
+          code=$?
+          echo "npm ci exit code: $code"
+          node -e 'const fs=require("fs");let s=fs.readFileSync("/tmp/npmci.log","utf8");s=s.replace(/%/g,"%25").replace(/\r/g,"").replace(/\n/g,"%0A");console.log("::error::"+s)'
+          exit $code
