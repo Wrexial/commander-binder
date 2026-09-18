@@ -168,6 +168,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateAllCardStates();
       updateAllBinderCounts();
       updateOwnedCounter();
+      // The owned/missing filter depends on this state, so re-evaluate it now
+      // that the saved marks have arrived.
+      refreshCardFilter();
     })
     .catch((err) => console.error('Failed to load card states:', err));
 

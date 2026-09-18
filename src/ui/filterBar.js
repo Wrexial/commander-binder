@@ -216,13 +216,17 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   priceMax.placeholder = 'Max €';
   priceMax.setAttribute('aria-label', 'Maximum price in euro');
 
-  const applyPrice = debounce(() => {
+  // Update the price state on every keystroke so a sync triggered by another
+  // control can't read back a stale value and revert the edit; only the
+  // (expensive) re-filter is debounced.
+  const schedulePriceCommit = debounce(commit, PRICE_DEBOUNCE_MS);
+  const onPriceInput = () => {
     filters.priceMin = toNumber(priceMin.value);
     filters.priceMax = toNumber(priceMax.value);
-    commit();
-  }, PRICE_DEBOUNCE_MS);
-  priceMin.addEventListener('input', applyPrice);
-  priceMax.addEventListener('input', applyPrice);
+    schedulePriceCommit();
+  };
+  priceMin.addEventListener('input', onPriceInput);
+  priceMax.addEventListener('input', onPriceInput);
 
   const priceRow = document.createElement('div');
   priceRow.className = 'filter-row';
@@ -250,7 +254,10 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   resetButton.className = 'filter-reset';
   resetButton.textContent = 'Reset filters';
   resetButton.addEventListener('click', () => {
+    // Sorting is a view preference, not a filter; keep it on reset.
+    const { sort } = filters;
     resetFilters();
+    filters.sort = sort;
     commit();
   });
 
