@@ -1,21 +1,17 @@
 import { debounce } from '../../utils/debounce.js';
-import { escapeHtml } from '../../utils/html.js';
-import { createModal } from './modal.js';
 import { showToast } from './toast.js';
+import {
+  addOwnedCards,
+  createCollectionModal,
+  normalizeName,
+  previewGroup,
+  summaryChip,
+} from './collectionModal.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { cardStore } from '../../state/cardStore.js';
-import { isCardOwned, setCardsOwned } from '../../state/cardState.js';
-import { updateAllCardStates } from '../cards.js';
-import { updateAllBinderCounts } from '../layout.js';
-import { updateOwnedCounter } from './ownedCounter.js';
+import { isCardOwned } from '../../state/cardState.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
-
-function normalizeName(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase();
-}
 
 /** One pass over the store: name -> default printing, and "set:number" -> printing. */
 function buildIndexes() {
@@ -46,24 +42,16 @@ function buildIndexes() {
 export function createImportModal() {
   const { byName, byPrinting } = buildIndexes();
 
-  const shell = createModal({ className: 'bulk-modal', ariaLabel: 'Import Collection' });
-  const { modal, close } = shell;
-
-  const header = document.createElement('div');
-  header.className = 'bulk-modal-header';
-
-  const heading = document.createElement('h2');
-  heading.textContent = 'Import Collection';
-
-  const subtitle = document.createElement('p');
-  subtitle.className = 'bulk-modal-subtitle';
-  subtitle.textContent =
-    'Paste a CSV, Moxfield, or Archidekt export, or choose a file. Matched cards are marked as owned.';
-
-  header.append(heading, subtitle);
-
-  const contentArea = document.createElement('div');
-  contentArea.className = 'modal-content-area bulk-content';
+  const { shell, close, contentArea, buttons } = createCollectionModal({
+    title: 'Import Collection',
+    subtitle:
+      'Paste a CSV, Moxfield, or Archidekt export, or choose a file. Matched cards are marked as owned.',
+    actions: [
+      { id: 'primary', className: 'primary' },
+      { id: 'close', text: 'Close' },
+    ],
+  });
+  const { primary: primaryButton, close: closeButton } = buttons;
 
   const toolbar = document.createElement('div');
   toolbar.className = 'transfer-toolbar';
@@ -87,20 +75,6 @@ export function createImportModal() {
   preview.className = 'bulk-preview';
 
   contentArea.append(toolbar, textArea, preview);
-
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'modal-button-container';
-
-  const primaryButton = document.createElement('button');
-  primaryButton.type = 'button';
-  primaryButton.className = 'primary';
-
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.textContent = 'Close';
-
-  buttonContainer.append(primaryButton, closeButton);
-  modal.append(header, contentArea, buttonContainer);
 
   let categorized = { add: [], owned: [], unknown: [] };
   let confirming = false;
@@ -134,20 +108,6 @@ export function createImportModal() {
     return { add, owned, unknown };
   }
 
-  function summaryChip(status, label, count) {
-    return `<span class="bulk-summary-chip bulk-chip-${status}">${label} <strong>${count}</strong></span>`;
-  }
-
-  function group(status, label, names) {
-    if (names.length === 0) return '';
-
-    const rows = names
-      .map((name) => `<li class="bulk-row bulk-row-${status}">${escapeHtml(name)}</li>`)
-      .join('');
-
-    return `<section class="bulk-group"><h3>${label}<span>${names.length}</span></h3><ul>${rows}</ul></section>`;
-  }
-
   function updatePrimary() {
     const count = categorized.add.length;
     primaryButton.textContent =
@@ -172,17 +132,17 @@ export function createImportModal() {
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
-                ${group(
+                ${previewGroup(
                   'missing',
                   'Will import',
                   add.map((card) => card.name)
                 )}
-                ${group(
+                ${previewGroup(
                   'owned',
                   'Already owned',
                   owned.map((card) => card.name)
                 )}
-                ${group('unknown', 'Not found', unknown)}
+                ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
     updatePrimary();
   }
@@ -197,11 +157,7 @@ export function createImportModal() {
     confirming = true;
     updatePrimary();
     try {
-      await setCardsOwned(add, true);
-      showToast(`Imported ${add.length} card${add.length === 1 ? '' : 's'}.`, 'success');
-      updateAllCardStates();
-      updateAllBinderCounts();
-      updateOwnedCounter();
+      await addOwnedCards(add, `Imported ${add.length} card${add.length === 1 ? '' : 's'}.`);
       // Re-render: the imported cards now show up under "Already owned".
       renderPreview();
     } catch (err) {

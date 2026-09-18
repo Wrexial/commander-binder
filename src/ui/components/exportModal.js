@@ -1,6 +1,6 @@
 import { escapeHtml } from '../../utils/html.js';
-import { createModal } from './modal.js';
 import { showToast } from './toast.js';
+import { createCollectionModal } from './collectionModal.js';
 import {
   DEFAULT_TRANSFER_FORMAT,
   TRANSFER_FORMATS,
@@ -23,23 +23,16 @@ function exportFileName(format) {
 export function createExportModal(cards) {
   const allCards = [...cards].sort((a, b) => a.name.localeCompare(b.name));
 
-  const shell = createModal({ className: 'bulk-modal', ariaLabel: 'Export Owned Cards' });
-  const { modal, close } = shell;
-
-  const header = document.createElement('div');
-  header.className = 'bulk-modal-header';
-
-  const heading = document.createElement('h2');
-  heading.textContent = 'Export Owned Cards';
-
-  const subtitle = document.createElement('p');
-  subtitle.className = 'bulk-modal-subtitle';
-  subtitle.textContent = `${allCards.length} owned card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`;
-
-  header.append(heading, subtitle);
-
-  const contentArea = document.createElement('div');
-  contentArea.className = 'modal-content-area bulk-content';
+  const { shell, close, contentArea, buttons } = createCollectionModal({
+    title: 'Export Owned Cards',
+    subtitle: `${allCards.length} owned card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`,
+    actions: [
+      { id: 'copy', className: 'primary export-copy' },
+      { id: 'download', className: 'export-download', text: 'Download' },
+      { id: 'close', text: 'Close' },
+    ],
+  });
+  const { copy: copyButton, download: downloadButton, close: closeButton } = buttons;
 
   const toolbar = document.createElement('div');
   toolbar.className = 'transfer-toolbar';
@@ -72,26 +65,6 @@ export function createExportModal(cards) {
   preview.className = 'bulk-preview';
 
   contentArea.append(toolbar, preview);
-
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'modal-button-container';
-
-  const copyButton = document.createElement('button');
-  copyButton.type = 'button';
-  copyButton.className = 'primary export-copy';
-
-  const downloadButton = document.createElement('button');
-  downloadButton.type = 'button';
-  downloadButton.className = 'export-download';
-  downloadButton.textContent = 'Download';
-
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.textContent = 'Close';
-
-  buttonContainer.append(copyButton, downloadButton, closeButton);
-
-  modal.append(header, contentArea, buttonContainer);
 
   let visible = allCards;
 

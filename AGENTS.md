@@ -74,7 +74,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
-  and focus restore — the bulk/export/import modals, `sidebar`, `toast`,
+  and focus restore — the shared collection-modal chrome/helpers
+  `collectionModal.js`, the bulk/export/import modals, `sidebar`, `toast`,
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`) and their
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they

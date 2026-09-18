@@ -248,6 +248,12 @@ function createCardFooter(card, price, version) {
   return footer;
 }
 
+/** Apply the card's colour-derived CSS custom properties to a tile. */
+function applyCardColors(element, card) {
+  element.style.setProperty('--card-border', getCardBorderStyle(card).borderColor);
+  element.style.setProperty('--card-bg', getCardBackground(card));
+}
+
 /**
  * (Re)build a card element's contents in place for the current display mode.
  * State classes (`.loading`, `.owned`) are left untouched so this can be used
@@ -270,9 +276,7 @@ function populateCard(div, card, cardIndex) {
   if (isImage) div.classList.add('image-tile');
   div.appendChild(mediaEl);
 
-  const borderStyle = getCardBorderStyle(card);
-  div.style.setProperty('--card-border', borderStyle.borderColor);
-  div.style.setProperty('--card-bg', getCardBackground(card));
+  applyCardColors(div, card);
   // Near-black text on the (always light) card backgrounds: >= 14.9:1 across
   // every --mtg-bg-* / --colorless-bg value, so comfortably AA.
   div.style.setProperty('--card-text', '#111111');
@@ -352,9 +356,7 @@ export function updateCardStyles() {
     if (!card) return;
 
     // Update styles based on settings
-    const borderStyle = getCardBorderStyle(card);
-    div.style.setProperty('--card-border', borderStyle.borderColor);
-    div.style.setProperty('--card-bg', getCardBackground(card));
+    applyCardColors(div, card);
   });
 }
 

@@ -1,12 +1,14 @@
 import { debounce } from '../../utils/debounce.js';
-import { escapeHtml } from '../../utils/html.js';
-import { createModal } from './modal.js';
 import { showToast } from './toast.js';
-import { isCardOwned, setCardsOwned } from '../../state/cardState.js';
+import {
+  addOwnedCards,
+  createCollectionModal,
+  normalizeName,
+  previewGroup,
+  summaryChip,
+} from './collectionModal.js';
+import { isCardOwned } from '../../state/cardState.js';
 import { cardStore } from '../../state/cardStore.js';
-import { updateAllCardStates } from '../cards.js';
-import { updateAllBinderCounts } from '../layout.js';
-import { updateOwnedCounter } from './ownedCounter.js';
 
 const MAX_SUGGESTIONS = 6;
 const VALIDATION_DEBOUNCE_MS = 250;
@@ -26,12 +28,6 @@ const MODE_CONFIG = {
     missingLabel: 'Missing',
   },
 };
-
-function normalizeName(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase();
-}
 
 /** One pass over the store: lowercase name -> card. Reused for every lookup. */
 function buildNameIndex() {
@@ -77,7 +73,7 @@ function findSuggestions(names, query) {
  * @param {'add'|'check'} mode
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createBulkCardModal(mode) {
+function createBulkCardModal(mode) {
   const config = MODE_CONFIG[mode];
   if (!config) throw new Error(`Unknown bulk modal mode: "${mode}"`);
 
@@ -86,23 +82,15 @@ export function createBulkCardModal(mode) {
     .map((card) => card.name)
     .sort((a, b) => a.localeCompare(b));
 
-  const shell = createModal({ className: 'bulk-modal', ariaLabel: config.title });
-  const { modal, close } = shell;
-
-  const header = document.createElement('div');
-  header.className = 'bulk-modal-header';
-
-  const heading = document.createElement('h2');
-  heading.textContent = config.title;
-
-  const subtitle = document.createElement('p');
-  subtitle.className = 'bulk-modal-subtitle';
-  subtitle.textContent = config.subtitle;
-
-  header.append(heading, subtitle);
-
-  const contentArea = document.createElement('div');
-  contentArea.className = 'modal-content-area bulk-content';
+  const { shell, close, contentArea, buttons } = createCollectionModal({
+    title: config.title,
+    subtitle: config.subtitle,
+    actions: [
+      { id: 'primary', className: 'primary' },
+      { id: 'close', text: 'Close' },
+    ],
+  });
+  const { primary: primaryButton, close: closeButton } = buttons;
 
   const wrapper = document.createElement('div');
   wrapper.className = 'bulk-input-wrapper';
@@ -123,21 +111,6 @@ export function createBulkCardModal(mode) {
   preview.className = 'bulk-preview';
 
   contentArea.append(wrapper, preview);
-
-  const buttonContainer = document.createElement('div');
-  buttonContainer.className = 'modal-button-container';
-
-  const primaryButton = document.createElement('button');
-  primaryButton.type = 'button';
-  primaryButton.className = 'primary';
-
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.textContent = 'Close';
-
-  buttonContainer.append(primaryButton, closeButton);
-
-  modal.append(header, contentArea, buttonContainer);
 
   let activeSuggestionIndex = -1;
   let categorized = { owned: [], missing: [], unknown: [] };
@@ -170,20 +143,6 @@ export function createBulkCardModal(mode) {
     return { owned, missing, unknown };
   }
 
-  function summaryChip(status, label, count) {
-    return `<span class="bulk-summary-chip bulk-chip-${status}">${label} <strong>${count}</strong></span>`;
-  }
-
-  function group(status, label, entries) {
-    if (entries.length === 0) return '';
-
-    const rows = entries
-      .map((entry) => `<li class="bulk-row bulk-row-${status}">${escapeHtml(nameOf(entry))}</li>`)
-      .join('');
-
-    return `<section class="bulk-group"><h3>${label}<span>${entries.length}</span></h3><ul>${rows}</ul></section>`;
-  }
-
   function updatePrimary() {
     const count = categorized.missing.length;
 
@@ -214,9 +173,9 @@ export function createBulkCardModal(mode) {
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
-                ${group('owned', 'Owned', owned)}
-                ${group('missing', config.missingLabel, missing)}
-                ${group('unknown', 'Not found', unknown)}
+                ${previewGroup('owned', 'Owned', owned.map(nameOf))}
+                ${previewGroup('missing', config.missingLabel, missing.map(nameOf))}
+                ${previewGroup('unknown', 'Not found', unknown.map(nameOf))}
             </div>`;
     updatePrimary();
   }
@@ -246,11 +205,10 @@ export function createBulkCardModal(mode) {
     confirming = true;
     updatePrimary();
     try {
-      await setCardsOwned(missing, true);
-      showToast(`Added ${missing.length} card${missing.length === 1 ? '' : 's'}.`, 'success');
-      updateAllCardStates();
-      updateAllBinderCounts();
-      updateOwnedCounter();
+      await addOwnedCards(
+        missing,
+        `Added ${missing.length} card${missing.length === 1 ? '' : 's'}.`
+      );
       // Re-render: the added cards now show up under "Owned".
       renderPreview();
     } catch (err) {

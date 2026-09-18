@@ -43,7 +43,7 @@ export const SUBSET_TTL_MS = 6 * 60 * 60 * 1000;
  * `unique=prints` data). Use `oracle_cards` for a much smaller download that
  * only contains one printing per card.
  */
-export const DEFAULT_BULK_TYPE = 'default_cards';
+const DEFAULT_BULK_TYPE = 'default_cards';
 
 const LEGENDARY_CREATURES_KEY = 'legendary-creatures';
 

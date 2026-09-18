@@ -8,7 +8,7 @@ function setSidebarOpen(isOpen) {
 }
 
 /** Close the menu (used by the backdrop and by any sidebar action). */
-export function closeSidebar() {
+function closeSidebar() {
   setSidebarOpen(false);
 }
 
