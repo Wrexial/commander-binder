@@ -119,12 +119,12 @@ describe('showListCompareModal', () => {
     expect(chips.some((text) => text.includes('You have') && text.includes('1'))).toBe(true);
     expect(chips.some((text) => text.includes("You don't have") && text.includes('1'))).toBe(true);
 
-    // Only the list's own cards are shown: what you have and what you don't.
-    // Cards you own that aren't on the list are ignored.
+    // Both list buckets plus the cards you own that aren't on the list.
     const rows = [...document.querySelectorAll('.bulk-row')].map((el) => el.textContent);
     expect(rows).toContain('Both Have');
     expect(rows).toContain('Only They Have');
-    expect(rows).not.toContain('Only I Have');
+    expect(rows).toContain('Only I Have');
+    expect(chips.some((text) => text.includes('not on the list') && text.includes('1'))).toBe(true);
 
     [...document.querySelectorAll('.modal-button-container button')]
       .find((candidate) => candidate.textContent === 'Wishlist missing')
@@ -133,6 +133,14 @@ describe('showListCompareModal', () => {
     await Promise.resolve();
 
     expect(setCardsWanted).toHaveBeenCalledWith([{ id: 'o1' }], true);
+  });
+
+  it('explains when the list itself is empty', async () => {
+    getListCardIds.mockReturnValue([]);
+
+    await showListCompareModal({ id: 'L1', name: 'Empty' });
+
+    expect(document.querySelector('.bulk-empty').textContent).toBe('This list has no cards yet.');
   });
 
   it('uses the viewer collection and wishlist in a share view', async () => {

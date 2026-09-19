@@ -60,21 +60,22 @@ function render(contentArea, modal, diff, labels) {
 }
 
 /**
- * Paint a list-vs-collection diff: only the two things that matter for a list
- * are shown — the list cards you have and the ones you don't. Cards in the
- * collection that aren't on the list are ignored.
+ * Paint a list-vs-collection diff: the list cards you have and don't have, plus
+ * the cards you own that aren't on the list at all.
  *
  * @param {HTMLElement} contentArea
  * @param {HTMLElement} modal
- * @param {{ ownerOnly: string[], shared: string[] }} diff
+ * @param {{ ownerOnly: string[], viewerOnly: string[], shared: string[] }} diff
  */
 function renderListCompare(contentArea, modal, diff) {
-  const missing = sortedLabels(diff.ownerOnly);
-  const have = sortedLabels(diff.shared);
+  const missing = sortedLabels(diff.ownerOnly); // on the list, not owned
+  const have = sortedLabels(diff.shared); // on the list and owned
+  const extra = sortedLabels(diff.viewerOnly); // owned, but not on the list
 
   const subtitle = modal.querySelector('.bulk-modal-subtitle');
   if (subtitle) subtitle.textContent = `${have.length} you have · ${missing.length} you don't`;
 
+  // An empty list would otherwise dump the whole collection into "not on the list".
   if (have.length === 0 && missing.length === 0) {
     contentArea.innerHTML = '<p class="bulk-empty">This list has no cards yet.</p>';
     return;
@@ -84,10 +85,13 @@ function renderListCompare(contentArea, modal, diff) {
     <div class="bulk-summary">
       ${summaryChip('owned', 'You have', have.length)}
       ${summaryChip('missing', "You don't have", missing.length)}
+      ${summaryChip('unknown', 'You own · not on the list', extra.length)}
     </div>`;
 
   const groups =
-    previewGroup('missing', "You don't have", missing) + previewGroup('owned', 'You have', have);
+    previewGroup('missing', "You don't have", missing) +
+    previewGroup('owned', 'You have', have) +
+    previewGroup('unknown', 'You own — not on the list', extra);
 
   contentArea.innerHTML = `${summary}<div class="bulk-groups">${groups}</div>`;
 }
