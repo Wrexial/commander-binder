@@ -48,7 +48,7 @@ describe('initFilterBar', () => {
     const panel = document.getElementById('filter-panel');
 
     expect(panel.hidden).toBe(true);
-    expect(panel.querySelectorAll('.filter-group')).toHaveLength(7);
+    expect(panel.querySelectorAll('.filter-group')).toHaveLength(6);
 
     toggle.click();
     expect(panel.hidden).toBe(false);
@@ -58,13 +58,13 @@ describe('initFilterBar', () => {
     expect(panel.hidden).toBe(true);
   });
 
-  it('applies the owned filter and updates the badge', () => {
+  it('applies the collection filter and updates the badge', () => {
     const onChange = vi.fn();
     initFilterBar({ onChange });
 
     segment('Collection', 'Owned').click();
 
-    expect(filters.owned).toBe('owned');
+    expect(filters.collection).toBe('owned');
     expect(onChange).toHaveBeenCalledTimes(1);
 
     const badge = document.getElementById('filter-count');
@@ -98,13 +98,13 @@ describe('initFilterBar', () => {
     expect(onChange).toHaveBeenCalled();
   });
 
-  it('filters by wishlist status', () => {
+  it('filters to the wishlist lens', () => {
     const onChange = vi.fn();
     initFilterBar({ onChange });
 
-    segment('Wishlist', 'Wanted').click();
+    segment('Collection', 'Wanted').click();
 
-    expect(filters.wanted).toBe('wanted');
+    expect(filters.collection).toBe('wanted');
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(activeBadgeText()).toBe('1');
   });
@@ -114,16 +114,16 @@ describe('initFilterBar', () => {
     initFilterBar({ onChange });
 
     segment('Collection', 'Owned').click();
-    segment('Wishlist', 'Wanted').click();
+    document.querySelector('.filter-chip-mythic').click();
 
     const chips = () =>
       [...document.querySelectorAll('.filter-active-chip')].map((el) => el.textContent);
-    expect(chips()).toEqual(['Owned', 'Wanted']);
+    expect(chips()).toEqual(['Owned', 'Mythic']);
 
     document.querySelector('.filter-active-chip').click();
 
-    expect(filters.owned).toBe('all');
-    expect(chips()).toEqual(['Wanted']);
+    expect(filters.collection).toBe('all');
+    expect(chips()).toEqual(['Mythic']);
     expect(onChange).toHaveBeenCalled();
   });
 
@@ -195,13 +195,13 @@ describe('initFilterBar', () => {
   it('restores persisted filters and re-applies them', () => {
     sessionStorage.setItem(
       'viewState',
-      JSON.stringify({ filters: { owned: 'missing', colors: ['G'], set: 'dom' } })
+      JSON.stringify({ filters: { collection: 'missing', colors: ['G'], set: 'dom' } })
     );
     const onChange = vi.fn();
 
     initFilterBar({ onChange });
 
-    expect(filters.owned).toBe('missing');
+    expect(filters.collection).toBe('missing');
     expect(filters.colors).toEqual(['G']);
     expect(filters.set).toBe('dom');
     expect(onChange).toHaveBeenCalledTimes(1);

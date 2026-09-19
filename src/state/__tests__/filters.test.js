@@ -32,14 +32,26 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard())).toBe(true);
   });
 
-  it('filters by owned / missing', () => {
+  it('filters by the collection lens', () => {
     isCardOwned.mockReturnValue(true);
+    isCardWanted.mockReturnValue(true);
 
-    applyFilters({ ...DEFAULT_FILTERS, owned: 'owned' });
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'owned' });
     expect(cardMatchesFilters(makeCard())).toBe(true);
 
-    applyFilters({ ...DEFAULT_FILTERS, owned: 'missing' });
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'missing' });
     expect(cardMatchesFilters(makeCard())).toBe(false);
+
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'wanted' });
+    expect(cardMatchesFilters(makeCard())).toBe(true);
+
+    isCardWanted.mockReturnValue(false);
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'wanted' });
+    expect(cardMatchesFilters(makeCard())).toBe(false);
+
+    isCardOwned.mockReturnValue(false);
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'missing' });
+    expect(cardMatchesFilters(makeCard())).toBe(true);
   });
 
   it('defaults to exclusive colour matching', () => {
@@ -91,16 +103,6 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard({ color_identity: ['G'] }))).toBe(false);
   });
 
-  it('filters by wanted / not wanted', () => {
-    isCardWanted.mockReturnValue(true);
-
-    applyFilters({ ...DEFAULT_FILTERS, wanted: 'wanted' });
-    expect(cardMatchesFilters(makeCard())).toBe(true);
-
-    applyFilters({ ...DEFAULT_FILTERS, wanted: 'unwanted' });
-    expect(cardMatchesFilters(makeCard())).toBe(false);
-  });
-
   it('filters by rarity and set', () => {
     applyFilters({ ...DEFAULT_FILTERS, rarities: ['mythic'], set: 'dom' });
 
@@ -130,10 +132,10 @@ describe('activeFilterCount', () => {
   it('counts each active group', () => {
     expect(activeFilterCount()).toBe(0);
 
-    applyFilters({ ...DEFAULT_FILTERS, owned: 'owned', colors: ['W'], priceMin: 1 });
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'owned', colors: ['W'], priceMin: 1 });
     expect(activeFilterCount()).toBe(3);
 
-    applyFilters({ ...DEFAULT_FILTERS, wanted: 'wanted' });
+    applyFilters({ ...DEFAULT_FILTERS, collection: 'wanted' });
     expect(activeFilterCount()).toBe(1);
   });
 });
@@ -141,8 +143,7 @@ describe('activeFilterCount', () => {
 describe('normalizeFilters', () => {
   it('drops unknown values and coerces prices', () => {
     const result = normalizeFilters({
-      owned: 'bogus',
-      wanted: 'bogus',
+      collection: 'bogus',
       colors: ['W', 'X'],
       colorMode: 'weird',
       rarities: ['rare', 'nope'],
@@ -151,9 +152,8 @@ describe('normalizeFilters', () => {
       priceMax: -3,
     });
 
-    expect(result.owned).toBe('all');
+    expect(result.collection).toBe('all');
     expect(result.colors).toEqual(['W']);
-    expect(result.wanted).toBe('all');
     expect(result.colorMode).toBe('exclusive');
     expect(result.rarities).toEqual(['rare']);
     expect(result.set).toBe('dom');
@@ -182,5 +182,13 @@ describe('normalizeFilters', () => {
 
   it('accepts the exclusive colour mode', () => {
     expect(normalizeFilters({ colorMode: 'exclusive' }).colorMode).toBe('exclusive');
+  });
+
+  it('migrates the old separate owned/wanted filters into the collection lens', () => {
+    expect(normalizeFilters({ owned: 'owned' }).collection).toBe('owned');
+    expect(normalizeFilters({ owned: 'missing' }).collection).toBe('missing');
+    expect(normalizeFilters({ wanted: 'wanted' }).collection).toBe('wanted');
+    // "Not wanted" no longer has a lens, so it falls back to All.
+    expect(normalizeFilters({ wanted: 'unwanted' }).collection).toBe('all');
   });
 });

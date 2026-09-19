@@ -89,8 +89,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
   `filters.js` holds the filter-bar state (including the sort option and the
-  owned/wanted/rarity/colour/set/price controls, surfaced as removable chips)
-  and the
+  collection lens — All/Owned/Wanted/Missing — plus rarity/colour/set/price
+  controls, surfaced as removable chips) and the
   `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
   account via the `user-settings` function (best-effort, signed-in only).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,

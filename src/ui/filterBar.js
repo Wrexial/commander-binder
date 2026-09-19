@@ -2,11 +2,10 @@
 import { debounce } from '../utils/debounce.js';
 import { cardStore } from '../state/cardStore.js';
 import {
+  COLLECTION_OPTIONS,
   COLOR_MODE_OPTIONS,
   COLOR_OPTIONS,
-  OWNED_OPTIONS,
   RARITY_OPTIONS,
-  WANTED_OPTIONS,
   activeFilterCount,
   applyFilters,
   filters,
@@ -178,13 +177,8 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   const saved = getSavedFilters();
   if (saved) applyFilters(normalizeFilters(saved));
 
-  const owned = segmented(OWNED_OPTIONS, (id) => {
-    filters.owned = id;
-    commit();
-  });
-
-  const wanted = segmented(WANTED_OPTIONS, (id) => {
-    filters.wanted = id;
+  const collection = segmented(COLLECTION_OPTIONS, (id) => {
+    filters.collection = id;
     commit();
   });
 
@@ -297,8 +291,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   /** Human labels for the active filters, used by the chips and the toggle. */
   function activeFilterLabels() {
     const items = [];
-    if (filters.owned !== 'all') items.push(labelFor(OWNED_OPTIONS, filters.owned));
-    if (filters.wanted !== 'all') items.push(labelFor(WANTED_OPTIONS, filters.wanted));
+    if (filters.collection !== 'all') items.push(labelFor(COLLECTION_OPTIONS, filters.collection));
     for (const color of filters.colors) items.push(labelFor(COLOR_OPTIONS, color));
     for (const rarity of filters.rarities) items.push(labelFor(RARITY_OPTIONS, rarity));
     if (filters.set) items.push(filters.set.toUpperCase());
@@ -317,14 +310,9 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     if (labels.length === 0) return;
 
     const actions = [];
-    if (filters.owned !== 'all') {
+    if (filters.collection !== 'all') {
       actions.push(() => {
-        filters.owned = 'all';
-      });
-    }
-    if (filters.wanted !== 'all') {
-      actions.push(() => {
-        filters.wanted = 'all';
+        filters.collection = 'all';
       });
     }
     for (const color of [...filters.colors]) {
@@ -371,8 +359,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   panel.append(
     activeRow,
     group('Sort by', sortSelect),
-    group('Collection', owned.el),
-    group('Wishlist', wanted.el),
+    group('Collection', collection.el),
     group('Colours', colorRow),
     group('Rarity', rarities.el),
     group('Set', setSelect),
@@ -381,8 +368,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   );
 
   function syncControls() {
-    owned.sync(filters.owned);
-    wanted.sync(filters.wanted);
+    collection.sync(filters.collection);
     colors.sync(filters.colors);
     colorMode.sync(filters.colorMode);
     rarities.sync(filters.rarities);

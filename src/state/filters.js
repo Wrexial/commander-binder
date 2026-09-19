@@ -29,17 +29,16 @@ export const RARITY_OPTIONS = [
   { id: 'bonus', label: 'Bonus' },
 ];
 
-export const OWNED_OPTIONS = [
+/**
+ * The collection lens: one single-select view of the grid rather than two
+ * overlapping filters. "Wanted" is the wishlist, "Missing" the acquisition
+ * gaps, "Owned" what is already in hand.
+ */
+export const COLLECTION_OPTIONS = [
   { id: 'all', label: 'All' },
   { id: 'owned', label: 'Owned' },
-  { id: 'missing', label: 'Missing' },
-];
-
-/** The wishlist filter group — independent of the owned/missing one. */
-export const WANTED_OPTIONS = [
-  { id: 'all', label: 'All' },
   { id: 'wanted', label: 'Wanted' },
-  { id: 'unwanted', label: 'Not wanted' },
+  { id: 'missing', label: 'Missing' },
 ];
 
 /**
@@ -62,8 +61,7 @@ export const COLOR_MODE_OPTIONS = [
 ];
 
 export const DEFAULT_FILTERS = {
-  owned: 'all', // 'all' | 'owned' | 'missing'
-  wanted: 'all', // 'all' | 'wanted' | 'unwanted'
+  collection: 'all', // 'all' | 'owned' | 'wanted' | 'missing'
   colors: [], // subset of COLOR_OPTIONS ids; [] = any
   colorMode: 'exclusive', // one of COLOR_MODE_OPTIONS ids
   rarities: [], // subset of RARITY_OPTIONS ids; [] = any
@@ -75,8 +73,7 @@ export const DEFAULT_FILTERS = {
 
 const COLOR_IDS = new Set(COLOR_OPTIONS.map((option) => option.id));
 const RARITY_IDS = new Set(RARITY_OPTIONS.map((option) => option.id));
-const OWNED_IDS = new Set(OWNED_OPTIONS.map((option) => option.id));
-const WANTED_IDS = new Set(WANTED_OPTIONS.map((option) => option.id));
+const COLLECTION_IDS = new Set(COLLECTION_OPTIONS.map((option) => option.id));
 const COLOR_MODES = new Set(COLOR_MODE_OPTIONS.map((option) => option.id));
 
 function cloneFilters(source) {
@@ -103,8 +100,12 @@ export function normalizeFilters(raw) {
   const next = cloneFilters(DEFAULT_FILTERS);
   if (!raw || typeof raw !== 'object') return next;
 
-  if (OWNED_IDS.has(raw.owned)) next.owned = raw.owned;
-  if (WANTED_IDS.has(raw.wanted)) next.wanted = raw.wanted;
+  // `collection` is the current field; older saved filters used separate
+  // owned/wanted fields, so fold those in for a smooth migration.
+  if (COLLECTION_IDS.has(raw.collection)) next.collection = raw.collection;
+  else if (raw.wanted === 'wanted') next.collection = 'wanted';
+  else if (raw.owned === 'owned') next.collection = 'owned';
+  else if (raw.owned === 'missing') next.collection = 'missing';
   if (COLOR_MODES.has(raw.colorMode)) {
     next.colorMode = raw.colorMode;
   }
@@ -134,8 +135,7 @@ export function resetFilters() {
 /** Number of active filter groups, for the toggle badge. */
 export function activeFilterCount() {
   let count = 0;
-  if (filters.owned !== 'all') count++;
-  if (filters.wanted !== 'all') count++;
+  if (filters.collection !== 'all') count++;
   if (filters.colors.length > 0) count++;
   if (filters.rarities.length > 0) count++;
   if (filters.set) count++;
@@ -170,11 +170,9 @@ function matchesColors(card) {
 export function cardMatchesFilters(card) {
   if (!card) return true;
 
-  if (filters.owned === 'owned' && !isCardOwned(card)) return false;
-  if (filters.owned === 'missing' && isCardOwned(card)) return false;
-
-  if (filters.wanted === 'wanted' && !isCardWanted(card)) return false;
-  if (filters.wanted === 'unwanted' && isCardWanted(card)) return false;
+  if (filters.collection === 'owned' && !isCardOwned(card)) return false;
+  if (filters.collection === 'missing' && isCardOwned(card)) return false;
+  if (filters.collection === 'wanted' && !isCardWanted(card)) return false;
 
   if (filters.colors.length > 0 && !matchesColors(card)) return false;
   if (filters.rarities.length > 0 && !filters.rarities.includes(card.rarity)) return false;
