@@ -16,7 +16,7 @@ import { initSettingsSync, pullSettings } from './state/settingsSync.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
-import { initBulkEdit } from './ui/bulkEdit.js';
+import { initBulkEdit, toggleSelectionMode } from './ui/bulkEdit.js';
 import {
   createExportOwnedButton,
   createExportWishlistButton,
@@ -63,6 +63,22 @@ async function showModal(loadModal) {
   }
 }
 
+/**
+ * The collection/browse tools shared by signed-in and signed-out modes. Guests
+ * can use every one of them against their device-local collection, so the same
+ * list keeps the two sidebars in sync.
+ */
+function addCollectionTools() {
+  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
+  addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
+
+  createAddCardsButton(() => showModal(loadAddCardsModal));
+  createAddWishlistButton(() => showModal(loadAddWishlistModal));
+  createSurpriseButton();
+  createRecentActivityButton();
+  createRecentActivityButton({ kind: 'wishlist', order: 25 });
+}
+
 function setupAuthenticatedUser(userButtonDiv, clerk) {
   clerk.mountUserButton(userButtonDiv);
   mainState.loggedInUserId = clerk.user.id;
@@ -102,13 +118,7 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
     20
   );
 
-  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
-
-  createAddCardsButton(() => showModal(loadAddCardsModal));
-  createAddWishlistButton(() => showModal(loadAddWishlistModal));
-  createSurpriseButton();
-  createRecentActivityButton();
-  createRecentActivityButton({ kind: 'wishlist', order: 25 });
+  addCollectionTools();
 }
 
 /**
@@ -157,8 +167,10 @@ export async function setupUI() {
     userActionsContainer.appendChild(signInButton);
     mainState.loggedInUserId = undefined;
     // Signed-out visitors are not view-only: they track a collection on this
-    // device, which is merged into their account on sign-in.
-    setHamburgerVisible(openBtn, false);
+    // device, which is merged into their account on sign-in. They get the full
+    // collection sidebar (add / export / bulk edit / statistics) as well.
+    addCollectionTools();
+    setHamburgerVisible(openBtn, true);
     renderGuestWelcome(clerk, welcomeMount);
   }
 

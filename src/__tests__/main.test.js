@@ -76,7 +76,24 @@ describe('setupUI', () => {
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
     const signIn = document.querySelector('#user-actions').querySelector('button');
     expect(signIn).not.toBeNull();
-    expect(document.body.classList.contains('has-hamburger')).toBe(false);
+    // Guests can open the sidebar and use the local collection tools.
+    expect(document.body.classList.contains('has-hamburger')).toBe(true);
+    const sidebarButtons = [...document.querySelectorAll('#sidebar button')].map(
+      (button) => button.textContent
+    );
+    expect(sidebarButtons).toEqual(
+      expect.arrayContaining([
+        '📊 Show Statistics',
+        '☑️ Bulk Edit',
+        '➕ Add Cards',
+        '💝 Add to Wishlist',
+        '🎲 Surprise Me',
+        '🕒 Recent Additions',
+        '🕒 Recent Wishlist',
+      ])
+    );
+    // Sharing needs a signed-in identity, so it stays hidden for guests.
+    expect(sidebarButtons.some((text) => text.includes('Share'))).toBe(false);
     // Signed-out visitors get the first-run welcome prompting sign-in.
     expect(document.querySelector('.guest-welcome')).not.toBeNull();
   });
@@ -100,5 +117,11 @@ describe('setupUI', () => {
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
     expect(document.body.classList.contains('has-hamburger')).toBe(true);
     expect(document.querySelector('.guest-welcome')).toBeNull();
+
+    // Bulk edit is reached from the sidebar, not a floating button.
+    const sidebarButtons = [...document.querySelectorAll('#sidebar button')].map(
+      (button) => button.textContent
+    );
+    expect(sidebarButtons.some((text) => text.includes('Bulk Edit'))).toBe(true);
   });
 });

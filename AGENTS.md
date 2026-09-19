@@ -79,7 +79,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `compareState.js` loads the viewer's _own_ collection separately from the
   share view's owner collection, so the two can be diffed. `selectionState.js`
   holds the bulk-edit multi-selection (keyed by card name), entered from the
-  floating "Select" button that `bulkEdit.js` renders for every editable mode.
+  sidebar's "☑️ Bulk Edit" button; `bulkEdit.js` renders the floating action bar
+  (hidden until the mode is active) and `cards.js` paints the selected tiles.
   `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
@@ -195,7 +196,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   (server when signed in, IndexedDB otherwise). Plain
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
-  (`merge-owned`/`merge-wishlist`). Changing
+  (`merge-owned`/`merge-wishlist`), and they get the same collection sidebar
+  (add / export / bulk edit / statistics) against that local data. Changing
   the Clerk user reloads the app so the correct collection mode is applied.
 - Tests are colocated under `__tests__/` folders (`src/__tests__/`,
   `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,
