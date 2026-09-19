@@ -25,9 +25,8 @@ vi.mock('../state/wishlistState.js', () => ({
 vi.mock('../ui/components/toast.js');
 vi.mock('../ui/components/ownedCounter.js');
 vi.mock('../ui/layout.js');
-vi.mock('../state/cardStore.js', () => ({
-  primaryName: (cardOrName) =>
-    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
+vi.mock('../state/cardStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   cardStore: {
     getPrintings: vi.fn(() => []),
     getPrintingPosition: vi.fn(() => ({ index: 1, total: 1 })),

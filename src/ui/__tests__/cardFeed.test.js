@@ -21,9 +21,8 @@ vi.mock('../cards.js', () => ({
   updateCardVersionCounts: vi.fn(),
   applyPreferredPrintings: vi.fn(),
 }));
-vi.mock('../../state/cardStore.js', () => ({
-  primaryName: (cardOrName) =>
-    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
+vi.mock('../../state/cardStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   cardStore: {
     add: vi.fn(),
     getPrintings: vi.fn(() => []),

@@ -8,9 +8,8 @@ vi.mock('../../state/wishlistState.js', () => ({
   isCardWanted: vi.fn(() => false),
 }));
 
-vi.mock('../../state/cardStore.js', () => ({
-  primaryName: (cardOrName) =>
-    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
+vi.mock('../../state/cardStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   cardStore: { getPrintings: vi.fn(() => []), getAll: vi.fn(() => []) },
 }));
 

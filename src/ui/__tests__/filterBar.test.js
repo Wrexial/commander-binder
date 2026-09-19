@@ -8,6 +8,14 @@ import { initFilterBar } from '../filterBar.js';
 import { filters, resetFilters } from '../../state/filters.js';
 import { cardStore } from '../../state/cardStore.js';
 
+/** The segment button with `text` inside the filter group labelled `groupLabel`. */
+function segment(groupLabel, text) {
+  const group = [...document.querySelectorAll('.filter-group')].find(
+    (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === groupLabel
+  );
+  return [...group.querySelectorAll('.filter-segment')].find((el) => el.textContent === text);
+}
+
 function setupDom() {
   document.body.innerHTML = `
     <button id="filter-toggle" type="button" aria-expanded="false">
@@ -54,10 +62,7 @@ describe('initFilterBar', () => {
     const onChange = vi.fn();
     initFilterBar({ onChange });
 
-    const ownedSegment = document
-      .querySelectorAll('.filter-group')[1]
-      .querySelectorAll('.filter-segment')[1]; // Owned
-    ownedSegment.click();
+    segment('Collection', 'Owned').click();
 
     expect(filters.owned).toBe('owned');
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -97,11 +102,7 @@ describe('initFilterBar', () => {
     const onChange = vi.fn();
     initFilterBar({ onChange });
 
-    const wishlistGroup = [...document.querySelectorAll('.filter-group')].find(
-      (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === 'Wishlist'
-    );
-    const wanted = wishlistGroup.querySelectorAll('.filter-segment')[1]; // Wanted
-    wanted.click();
+    segment('Wishlist', 'Wanted').click();
 
     expect(filters.wanted).toBe('wanted');
     expect(onChange).toHaveBeenCalledTimes(1);
@@ -112,11 +113,7 @@ describe('initFilterBar', () => {
     const onChange = vi.fn();
     initFilterBar({ onChange });
 
-    const tradeGroup = [...document.querySelectorAll('.filter-group')].find(
-      (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === 'Trade'
-    );
-    const duplicates = tradeGroup.querySelectorAll('.filter-segment')[1]; // Duplicates
-    duplicates.click();
+    segment('Trade', 'Duplicates').click();
 
     expect(filters.trade).toBe('duplicates');
     expect(onChange).toHaveBeenCalledTimes(1);

@@ -7,6 +7,7 @@ vi.mock('../../state/cardState.js', () => ({
 vi.mock('../../state/appState.js', () => ({
   appState: { seenSetCodes: new Set(), seenNames: new Set() },
 }));
+vi.mock('../../state/wishlistState.js', () => ({ isCardWanted: vi.fn(() => false) }));
 vi.mock('../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []), getPrintings: vi.fn(() => []) },
 }));
@@ -56,6 +57,14 @@ const cards = () => [...document.querySelectorAll('.card')];
 const allVisible = () => cards().every((card) => card.style.display === '');
 const cardEl = (name) => cards().find((card) => card.cardData.name === name);
 
+/** The Collection group's segment button with the given text. */
+function collectionSegment(text) {
+  const group = [...document.querySelectorAll('.filter-group')].find(
+    (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === 'Collection'
+  );
+  return [...group.querySelectorAll('.filter-segment')].find((el) => el.textContent === text);
+}
+
 beforeEach(() => {
   sessionStorage.clear();
   isCardOwned.mockReturnValue(false);
@@ -97,13 +106,13 @@ describe('filter integration', () => {
     isCardOwned.mockReturnValue(true);
     wire();
 
-    document.querySelectorAll('.filter-segment')[1].click(); // Owned
+    collectionSegment('Owned').click();
     expect(allVisible()).toBe(true);
 
-    document.querySelectorAll('.filter-segment')[2].click(); // Missing
+    collectionSegment('Missing').click();
     expect(allVisible()).toBe(false);
 
-    document.querySelectorAll('.filter-segment')[0].click(); // All
+    collectionSegment('All').click();
     expect(allVisible()).toBe(true);
   });
 

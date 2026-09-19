@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../state/cardStore.js', () => ({
+vi.mock('../../../state/cardStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   cardStore: { getByPrintingId: vi.fn() },
-  primaryName: (card) => (typeof card === 'string' ? card : (card?.name || '').split(' // ')[0]),
 }));
 vi.mock('../../../state/cardState.js', () => ({
   getOwnedAddedAt: vi.fn(() => new Map()),
