@@ -21,6 +21,7 @@ import {
   createExportWishlistButton,
   createAddCardsButton,
   createBulkCheckButton,
+  createCompareButton,
   createRecentActivityButton,
   createSurpriseButton,
   updateAllBinderCounts,
@@ -135,6 +136,7 @@ export async function setupUI() {
     addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
     createSurpriseButton();
     createRecentActivityButton();
+    createCompareButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
   } else if (clerk.user) {

@@ -64,7 +64,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
-  `localCollection`, `localWishlist`, `viewState`, `onboarding`, `filters`,
+  `localCollection`, `localWishlist`, `compareState`, `viewState`, `onboarding`,
+  `filters`,
   `settingsSync`). State is
   plain exported objects, not a framework store. `mainState.js` holds session
   state so `cardState.js` can read it without importing `main.js` (avoids a
@@ -72,7 +73,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   shared `collectionState.js` factory (owned vs wanted), each switching between
   the device-local store (`localCollection.js`/`localWishlist.js`, signed-out
   guest) and the server (signed in or share token). `preferredPrintings.js`
-  remembers the printing the user picked when cycling versions. `viewState.js`
+  remembers the printing the user picked when cycling versions.
+  `compareState.js` loads the viewer's _own_ collection separately from the
+  share view's owner collection, so the two can be diffed. `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
@@ -87,7 +90,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
   `collectionModal.js`, the add/check/export modals (plus the shared
-  `cardNameInput.js` autocomplete), `sidebar`, `toast`
+  `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
+  `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`) and their
   colocated CSS. `statistics.js` and the
@@ -131,10 +135,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   follow the card on screen.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
-  `sortCards`).
+  `compareCollections`, `sortCards`).
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;
+  `compareCollections.js` is the pure card-level diff behind the share view;
   `collectionFormats.js` serializes/parses the CSV, Moxfield, Archidekt, MTG
   Arena, MTGO and plain-text files used by the export/import modals (parsing is
   header-driven and tolerant); and
@@ -172,7 +177,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
   user's Clerk id is never exposed in the URL. The `?share=` view-only mode blocks
   ownership and wishlist edits but still allows view actions such as cycling
-  printings, and friends see both the owner's collection and wishlist. Plain
+  printings, and friends see both the owner's collection and wishlist. Share mode
+  also offers "Compare Collections" (`components/compareModal.js`), a read-only
+  diff of the owner's collection against the visitor's own — the owner's side
+  comes from `cardState` (share token) and the visitor's from `compareState`
+  (server when signed in, IndexedDB otherwise). Plain
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
   (`merge-owned`/`merge-wishlist`). Changing

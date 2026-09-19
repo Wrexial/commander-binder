@@ -196,6 +196,21 @@ export function createRecentActivityButton() {
   );
 }
 
+/** Read-only diff between a shared collection and the visitor's own. */
+export function createCompareButton() {
+  addButtonToSidebar(
+    '🔀 Compare Collections',
+    async () => {
+      if (document.querySelector('.list-modal-backdrop')) return;
+
+      const { showCompareModal } = await import('./components/compareModal.js');
+      await showCompareModal();
+    },
+    'browse',
+    40
+  );
+}
+
 export function startNewBinder(results) {
   const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
 
