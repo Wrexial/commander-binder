@@ -75,6 +75,16 @@ describe('calculateStatistics', () => {
     expect(stats.rarities).toEqual({ common: 3 });
   });
 
+  it('leaves the retired special/bonus rarities out of the breakdown', () => {
+    const stats = calculateStatistics([
+      makeCard({ name: 'A', rarity: 'mythic' }),
+      makeCard({ name: 'B', rarity: 'special' }),
+      makeCard({ name: 'C', rarity: 'bonus' }),
+    ]);
+
+    expect(stats.rarities).toEqual({ mythic: 1 });
+  });
+
   it('counts color identity separately from card colors', () => {
     const cards = [
       makeCard({ name: 'A', colors: ['U'], color_identity: ['U', 'B'] }),
@@ -336,6 +346,19 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('2 priced cards');
     expect(html).toContain('stats-price-summary');
     expect(html).toContain('most valuable');
+  });
+
+  it('does not render the retired special/bonus rarities', () => {
+    const stats = calculateStatistics([
+      makeCard({ name: 'A', rarity: 'special' }),
+      makeCard({ name: 'B', rarity: 'bonus' }),
+    ]);
+    const html = createStatisticsHTML(stats);
+
+    expect(html).not.toContain('Special');
+    expect(html).not.toContain('Bonus');
+    expect(html).not.toContain('stat-rarity-special');
+    expect(html).not.toContain('stat-rarity-bonus');
   });
 
   it('renders combination mana symbols in canonical WUBRG order', () => {

@@ -30,14 +30,12 @@ export const SORT_OPTIONS = [
 
 const SORT_IDS = new Set(SORT_OPTIONS.map((option) => option.id));
 
-const RARITY_ORDER = { mythic: 0, rare: 1, uncommon: 2, common: 3, special: 4, bonus: 5 };
+const RARITY_ORDER = { mythic: 0, rare: 1, uncommon: 2, common: 3 };
 const RARITY_LABELS = {
   mythic: 'Mythic',
   rare: 'Rare',
   uncommon: 'Uncommon',
   common: 'Common',
-  special: 'Special',
-  bonus: 'Bonus',
 };
 
 /** WUBRG order, used to rank a card's colour identity. */
@@ -209,7 +207,7 @@ export function sortMark(card, sortId) {
     case 'cmc':
       return card.cmc == null ? '—' : String(card.cmc);
     case 'rarity':
-      return RARITY_LABELS[card.rarity] || card.rarity || '—';
+      return RARITY_LABELS[card.rarity] || '—';
     case 'color':
       return colorLabel(card);
     case 'owned':

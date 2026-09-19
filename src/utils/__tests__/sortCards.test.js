@@ -113,6 +113,19 @@ describe('sortMark', () => {
     expect(sortMark(cards[1], 'rarity-asc')).toBe('Mythic');
   });
 
+  it('ranks the retired special/bonus rarities last and gives them a blank mark', () => {
+    const common = { name: 'Common Card', rarity: 'common' };
+    const special = { name: 'Special Card', rarity: 'special' };
+    const bonus = { name: 'Bonus Card', rarity: 'bonus' };
+
+    const sorted = sortCards([special, bonus, common], 'rarity-asc');
+    expect(sorted[0]).toBe(common);
+    expect(sorted.slice(1)).toEqual(expect.arrayContaining([special, bonus]));
+
+    expect(sortMark(special, 'rarity-asc')).toBe('—');
+    expect(sortMark(bonus, 'rarity-asc')).toBe('—');
+  });
+
   it('uses the owned state for the owned sorts', () => {
     isCardOwned.mockReturnValue(true);
     expect(sortMark(cards[0], 'owned-asc')).toBe('Owned');

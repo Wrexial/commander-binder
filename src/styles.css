@@ -3435,12 +3435,6 @@ footer a:focus-visible {
 .stat-rarity-mythic {
   --bar-color: #e0623b;
 }
-.stat-rarity-special {
-  --bar-color: #a97fd6;
-}
-.stat-rarity-bonus {
-  --bar-color: #e0a84c;
-}
 
 .stats-combos {
   display: flex;

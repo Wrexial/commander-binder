@@ -27,9 +27,13 @@ const RARITY_LABELS = {
   rare: 'Rare',
   uncommon: 'Uncommon',
   common: 'Common',
-  special: 'Special',
-  bonus: 'Bonus',
 };
+
+/**
+ * Scryfall rarities the app does not present (the `special`/`bonus` frame
+ * printings). They are left out of the rarity breakdown entirely.
+ */
+const EXCLUDED_RARITIES = new Set(['special', 'bonus']);
 
 /** Buckets for the mana-value curve. 7+ is the final catch-all column. */
 const MANA_CURVE_LABELS = ['0', '1', '2', '3', '4', '5', '6', '7+'];
@@ -233,7 +237,9 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     }
 
     const rarity = card.rarity || 'unknown';
-    rarities[rarity] = (rarities[rarity] || 0) + 1;
+    if (!EXCLUDED_RARITIES.has(rarity)) {
+      rarities[rarity] = (rarities[rarity] || 0) + 1;
+    }
 
     const manaValue = Number.isFinite(card.cmc) ? Math.max(0, Math.floor(card.cmc)) : 0;
     manaValues.push(manaValue);
