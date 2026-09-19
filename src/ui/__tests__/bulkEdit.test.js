@@ -37,6 +37,19 @@ beforeEach(() => {
 });
 
 describe('bulkEdit', () => {
+  it('offers an always-visible Select toggle that hides while selecting', () => {
+    const toggle = document.getElementById('select-toggle');
+    expect(toggle).not.toBeNull();
+    expect(toggle.hidden).toBe(false);
+
+    toggle.click();
+    expect(document.body.classList.contains('selection-mode')).toBe(true);
+    expect(toggle.hidden).toBe(true);
+
+    action('done').click();
+    expect(toggle.hidden).toBe(false);
+  });
+
   it('shows the bar and live count in selection mode', () => {
     toggleSelectionMode();
 

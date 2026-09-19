@@ -1,5 +1,6 @@
 import { setCardsOwned } from '../state/cardState.js';
 import { setCardsWanted } from '../state/wishlistState.js';
+import { appState } from '../state/appState.js';
 import {
   clearSelection,
   getSelectedCards,
@@ -15,7 +16,28 @@ import { showToast } from './components/toast.js';
 
 let bar = null;
 let countEl = null;
+let toggleBtn = null;
 let initialized = false;
+
+/**
+ * The always-visible "Select" button. It is rendered here rather than placed in
+ * the sidebar because signed-out guests cannot open the sidebar at all.
+ */
+function buildToggle() {
+  if (toggleBtn || document.getElementById('select-toggle')) {
+    toggleBtn = document.getElementById('select-toggle');
+    return toggleBtn;
+  }
+
+  toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.id = 'select-toggle';
+  toggleBtn.className = 'select-toggle';
+  toggleBtn.textContent = '☑️ Select';
+  toggleBtn.addEventListener('click', () => toggleSelectionMode());
+  document.body.appendChild(toggleBtn);
+  return toggleBtn;
+}
 
 /** Build the floating action bar once and wire its buttons. */
 function buildBar() {
@@ -81,19 +103,26 @@ async function handleAction(action) {
   showToast(`${cards.length} card${cards.length === 1 ? '' : 's'} updated.`, 'success');
 }
 
-/** Reflect the mode/count on the body class and the action bar. */
+/** Reflect the mode/count on the body class, the action bar and the toggle. */
 function sync() {
   const active = isSelectionMode();
   document.body.classList.toggle('selection-mode', active);
+
+  if (toggleBtn) {
+    toggleBtn.hidden = active || appState.isViewOnlyMode;
+    toggleBtn.setAttribute('aria-pressed', String(active));
+  }
+
   if (!bar) return;
   bar.hidden = !active;
   countEl.textContent = `${getSelectedCount()} selected`;
 }
 
-/** Create the bar and start listening. Idempotent. */
+/** Create the controls and start listening. Idempotent. */
 export function initBulkEdit() {
   if (initialized) return;
   initialized = true;
+  buildToggle();
   buildBar();
   onSelectionChange(sync);
   sync();

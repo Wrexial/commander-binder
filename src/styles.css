@@ -3955,6 +3955,39 @@ footer a:focus-visible {
 }
 
 /* --- Bulk edit (multi-select) --- */
+
+/* Always-visible entry into bulk-select mode; hidden while the mode or a
+   view-only share is active (the bar carries "Done"). */
+.select-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 180;
+  padding: 10px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+
+.select-toggle:hover,
+.select-toggle:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+@media (max-width: 768px) {
+  .select-toggle {
+    right: 10px;
+    bottom: 10px;
+  }
+}
+
 body.selection-mode .card {
   cursor: pointer;
 }

@@ -78,7 +78,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   remembers the printing the user picked when cycling versions.
   `compareState.js` loads the viewer's _own_ collection separately from the
   share view's owner collection, so the two can be diffed. `selectionState.js`
-  holds the bulk-edit multi-selection (keyed by card name). `viewState.js`
+  holds the bulk-edit multi-selection (keyed by card name), entered from the
+  floating "Select" button that `bulkEdit.js` renders for every editable mode.
+  `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;

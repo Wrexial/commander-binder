@@ -16,7 +16,7 @@ import { initSettingsSync, pullSettings } from './state/settingsSync.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
-import { initBulkEdit, toggleSelectionMode } from './ui/bulkEdit.js';
+import { initBulkEdit } from './ui/bulkEdit.js';
 import {
   createExportOwnedButton,
   createExportWishlistButton,
@@ -103,8 +103,6 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   );
 
   addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
-
-  addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
 
   createAddCardsButton(() => showModal(loadAddCardsModal));
   createAddWishlistButton(() => showModal(loadAddWishlistModal));
