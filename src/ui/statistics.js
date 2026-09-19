@@ -45,6 +45,27 @@ const MAX_TYPES_SHOWN = 12;
 /** How many sets to list in the per-set completion breakdown. */
 const MAX_SETS_SHOWN = 12;
 
+/** Completion milestones shown as a goal badge on each set row. */
+const COMPLETION_MILESTONES = [25, 50, 75, 100];
+
+/**
+ * A small goal badge for a set: "Complete" once every card is owned, otherwise
+ * a nudge toward the next milestone (25 / 50 / 75 / 100%).
+ *
+ * @param {number} owned
+ * @param {number} total
+ * @returns {string}
+ */
+function completionGoal(owned, total) {
+  if (total > 0 && owned >= total) {
+    return '<span class="stats-set-goal complete">✓ Complete</span>';
+  }
+
+  const percent = total > 0 ? (owned / total) * 100 : 0;
+  const next = COMPLETION_MILESTONES.find((milestone) => percent < milestone);
+  return next ? `<span class="stats-set-goal next">Next ${next}%</span>` : '';
+}
+
 /**
  * Resolve the colors of a card, falling back to its faces for modal DFCs.
  * Returns a de-duplicated array of color letters (empty for colorless cards).
@@ -475,7 +496,7 @@ function renderSetCompletion(sets) {
     .map(
       (set) => `
         <div class="stats-bar-row${set.missing.length > 0 ? ' has-copy' : ''}">
-            <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
+            <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span> ${completionGoal(set.owned, set.total)}</span>
             <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${Math.max(set.percent, 3)}%"></span></span>
             <span class="stats-bar-count">${set.owned}/${set.total}</span>
             ${

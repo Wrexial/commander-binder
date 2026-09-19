@@ -3,6 +3,10 @@ import { cardStore } from './cardStore.js';
 import { authenticatedFetch } from '../api/authenticatedFetch.js';
 
 const ownedCardIds = new Set();
+
+/** Printing id -> ISO timestamp of when it was marked owned (best effort). */
+const ownedAddedAt = new Map();
+
 let initialized = false;
 
 export async function loadCardStates() {
@@ -23,7 +27,10 @@ export async function loadCardStates() {
     if (!res.ok) return;
 
     const rows = await res.json();
-    rows.forEach(({ cardId }) => ownedCardIds.add(cardId));
+    rows.forEach(({ cardId, createdAt }) => {
+      ownedCardIds.add(cardId);
+      if (createdAt) ownedAddedAt.set(cardId, String(createdAt));
+    });
   } catch (err) {
     console.error('Failed to load owned cards:', err);
   } finally {
@@ -54,13 +61,17 @@ export async function toggleCardOwned(card) {
       cardIds: Array.from(ids),
       isOwned: false,
     });
-    ids.forEach((id) => ownedCardIds.delete(id));
+    ids.forEach((id) => {
+      ownedCardIds.delete(id);
+      ownedAddedAt.delete(id);
+    });
   } else {
     await persistOwned('/.netlify/functions/toggle-card', {
       cardId: card.id,
       isOwned: true,
     });
     ownedCardIds.add(card.id);
+    ownedAddedAt.set(card.id, new Date().toISOString());
   }
 
   return !wasOwned;
@@ -75,8 +86,10 @@ export async function setCardsOwned(cards, owned) {
   for (const card of cards) {
     if (owned) {
       ownedCardIds.add(card.id);
+      ownedAddedAt.set(card.id, new Date().toISOString());
     } else {
       ownedCardIds.delete(card.id);
+      ownedAddedAt.delete(card.id);
     }
   }
 }
@@ -101,4 +114,13 @@ async function persistOwned(path, body) {
 
 export function getOwnedCardIds() {
   return ownedCardIds;
+}
+
+/**
+ * Printing id -> ISO timestamp of when it was marked owned. Used by the
+ * "Recent additions" log; entries are absent for cards loaded before this was
+ * tracked or when the server did not report a time.
+ */
+export function getOwnedAddedAt() {
+  return ownedAddedAt;
 }

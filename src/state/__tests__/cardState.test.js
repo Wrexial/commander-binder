@@ -6,6 +6,7 @@ import {
   toggleCardOwned,
   setCardsOwned,
   getOwnedCardIds,
+  getOwnedAddedAt,
 } from '../../state/cardState.js';
 
 vi.mock('../mainState.js', () => ({
@@ -37,6 +38,7 @@ describe('cardState', () => {
   beforeEach(async () => {
     ownedCards = getOwnedCardIds();
     ownedCards.clear();
+    getOwnedAddedAt().clear();
     vi.clearAllMocks();
     // Ensure the module is "initialized" for isCardOwned tests
     const mockResponse = { ok: true, json: () => Promise.resolve([]) };
@@ -79,6 +81,21 @@ describe('cardState', () => {
 
       expect(ownedCards.has('card3')).toBe(true);
     });
+
+    it('records when each card was added', async () => {
+      const { mainState } = await import('../mainState.js');
+      mainState.loggedInUserId = 'user123';
+      mainState.shareToken = null;
+
+      fetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([{ cardId: 'card1', createdAt: '2024-01-01T00:00:00.000Z' }]),
+      });
+
+      await loadCardStates();
+
+      expect(getOwnedAddedAt().get('card1')).toBe('2024-01-01T00:00:00.000Z');
+    });
   });
 
   describe('isCardOwned', () => {
@@ -113,6 +130,18 @@ describe('cardState', () => {
       const card = { id: 'card1' };
       await toggleCardOwned(card);
       expect(ownedCards.has('card1')).toBe(false);
+    });
+
+    it('stamps a newly owned card and forgets it when removed', async () => {
+      const { mainState } = await import('../mainState.js');
+      mainState.loggedInUserId = 'user123';
+      const card = { id: 'card1' };
+
+      await toggleCardOwned(card);
+      expect(typeof getOwnedAddedAt().get('card1')).toBe('string');
+
+      await toggleCardOwned(card);
+      expect(getOwnedAddedAt().has('card1')).toBe(false);
     });
   });
 

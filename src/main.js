@@ -2,7 +2,7 @@
 import { appState } from './state/appState.js';
 import { initLazyCards } from './ui/lazyCardLoader.js';
 import { applySort } from './ui/cardFeed.js';
-import { initCardSettings } from './ui/settingsUI.js';
+import { initCardSettings, applySettingsFromStore } from './ui/settingsUI.js';
 import { loadCardStates } from './state/cardState.js';
 import { initSearch, refreshCardFilter } from './ui/search.js';
 import { initFilterBar } from './ui/filterBar.js';
@@ -11,13 +11,16 @@ import { createSignInButton } from './ui/components/SignInButton.js';
 import { createGuestModeText } from './ui/components/GuestModeText.js';
 import { createGuestWelcome } from './ui/components/GuestWelcome.js';
 import { isGuestWelcomeDismissed } from './state/onboarding.js';
+import { initSettingsSync, pullSettings } from './state/settingsSync.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
+import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
 import {
   createExportOwnedButton,
   createBulkAddButton,
   createBulkCheckButton,
   createImportButton,
+  createRecentActivityButton,
   createSurpriseButton,
   updateAllBinderCounts,
 } from './ui/layout.js';
@@ -86,6 +89,7 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   createBulkAddButton(() => showModal(loadBulkAddModal));
   createImportButton();
   createSurpriseButton();
+  createRecentActivityButton();
 }
 
 /**
@@ -117,6 +121,7 @@ export async function setupUI() {
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('📊 Show Statistics', showStatistics);
     createSurpriseButton();
+    createRecentActivityButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
   } else if (clerk.user) {
@@ -161,6 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const results = document.getElementById('results');
 
   await setupUI();
+  initSettingsSync();
   initScrollPosition();
 
   // Load saved marks in parallel with the card grid so Clerk/Netlify/DB
@@ -174,6 +180,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       // The owned/missing filter depends on this state, so re-evaluate it now
       // that the saved marks have arrived.
       refreshCardFilter();
+      // Cross-device preferences: pull the account's copy (a no-op for guests).
+      pullSettings().then((applied) => {
+        if (applied) applySettingsFromStore();
+      });
     })
     .catch((err) => console.error('Failed to load card states:', err));
 
@@ -188,4 +198,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSearch();
   initFilterBar({ onChange: refreshCardFilter, onSortChange: applySort });
   initCardInteractions(results, tooltip);
+  initKeyboardShortcuts();
 });

@@ -37,7 +37,7 @@ export async function handler(event: HandlerEvent) {
   }
 
   const rows = await db
-    .select({ cardId: ownedCards.cardId })
+    .select({ cardId: ownedCards.cardId, createdAt: ownedCards.createdAt })
     .from(ownedCards)
     .where(eq(ownedCards.userId, userId));
 

@@ -19,6 +19,7 @@ const DISPLAY_MODE_OPTIONS = [
  * @param {(checked: boolean) => unknown} [config.toValue] Maps the checkbox
  *   state back to the stored value (defaults to the boolean itself).
  * @param {(value: unknown) => void} [config.onChange] Side effect after saving.
+ * @returns {{el: HTMLElement, input: HTMLInputElement}}
  */
 function createSettingToggle({
   setting,
@@ -41,12 +42,14 @@ function createSettingToggle({
 
   labelEl.appendChild(checkbox);
   labelEl.appendChild(document.createTextNode(label));
-  return labelEl;
+  return { el: labelEl, input: checkbox };
 }
 
 /**
  * The display-mode picker. A `<select>` rather than a checkbox because there
  * are three tile layouts (images, text, list).
+ *
+ * @returns {{el: HTMLElement, select: HTMLSelectElement}}
  */
 function createDisplayModePicker() {
   const labelEl = document.createElement('label');
@@ -75,13 +78,33 @@ function createDisplayModePicker() {
   });
 
   labelEl.appendChild(select);
-  return labelEl;
+  return { el: labelEl, select };
 }
 
 function handleDisplayModeChange(value) {
   document.body.classList.toggle('images-mode', value === 'images');
   document.body.classList.toggle('list-mode', value === 'list');
   applyDisplayMode();
+}
+
+/** Re-read the stored settings into the controls and re-apply them to the page. */
+function syncControls() {
+  const toggle = document.querySelector('[data-setting="showTooltip"]');
+  if (toggle) toggle.checked = Boolean(getSetting('showTooltip'));
+
+  const select = document.querySelector('[data-setting="displayMode"]');
+  if (select) select.value = getSetting('displayMode');
+
+  updateCardStyles();
+  handleDisplayModeChange(getSetting('displayMode'));
+}
+
+/**
+ * Apply settings that changed elsewhere (e.g. pulled from the server) to the
+ * controls and the page. Safe to call before the sidebar exists.
+ */
+export function applySettingsFromStore() {
+  syncControls();
 }
 
 export function initCardSettings() {
@@ -98,11 +121,10 @@ export function initCardSettings() {
   });
   const displayModePicker = createDisplayModePicker();
 
-  settingsContainer.appendChild(showTooltipToggle);
-  settingsContainer.appendChild(displayModePicker);
+  settingsContainer.appendChild(showTooltipToggle.el);
+  settingsContainer.appendChild(displayModePicker.el);
   sidebar.appendChild(settingsContainer);
 
   // Apply the stored settings to the page on load.
-  updateCardStyles();
-  handleDisplayModeChange(getSetting('displayMode'));
+  syncControls();
 }

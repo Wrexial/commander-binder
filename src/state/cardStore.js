@@ -2,6 +2,7 @@
 
 const cardsByName = new Map();
 const printingIdsByName = new Map();
+const printingById = new Map();
 
 /**
  * Cards are grouped by their front-face name, so a double-faced card
@@ -35,6 +36,7 @@ export const cardStore = {
     const seenIds = printingIdsByName.get(name);
     if (seenIds.has(card.id)) return;
     seenIds.add(card.id);
+    printingById.set(card.id, card);
 
     // Keep printings ordered by release date. `released_at` is an ISO
     // YYYY-MM-DD string, so a string comparison is equivalent to a date
@@ -57,6 +59,11 @@ export const cardStore = {
 
   getPrintings(cardOrName) {
     return cardsByName.get(primaryName(cardOrName)) || [];
+  },
+
+  /** Look up a printing by its Scryfall id (e.g. for the activity log). */
+  getByPrintingId(id) {
+    return printingById.get(id);
   },
 
   getOldestPrinting(name) {
@@ -88,5 +95,6 @@ export const cardStore = {
   clear() {
     cardsByName.clear();
     printingIdsByName.clear();
+    printingById.clear();
   },
 };

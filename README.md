@@ -33,9 +33,11 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   tap.
 - **Year scrubber** — a draggable rail that jumps to any point in the timeline, with a readout
   that follows the page under your thumb.
-- **Statistics** — a per-set completion breakdown of your collection, with a one-tap "Copy"
-  for each set's missing cards (and a global "Copy missing") to turn the numbers into a
-  shopping list.
+- **Statistics** — a per-set completion breakdown of your collection, with per-set milestone
+  goal badges ("Next 50%" / "Complete"), a one-tap "Copy" for each set's missing cards, and a
+  global "Copy missing" to turn the numbers into a shopping list.
+- **Recent additions** — a timeline of when you marked each card owned, built from
+  `owned_cards.created_at`.
 - **Binders** — virtual groupings of the feed that make a large collection easier to page
   through.
 - **Three tile layouts** — full artwork, text tiles, or a compact list with inline ownership
@@ -48,7 +50,11 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   it feeds straight back into Bulk Add.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
   printings on touch, right-click on desktop, and swipe left/right in the card preview to move
-  between cards. Hover-only affordances are gated behind `isHoverCapable()`.
+  between cards. Keyboard shortcuts: `/` focuses search, `?` opens the syntax help, `j`/`k`
+  (or the arrow keys once a card is focused) move between cards, and `Esc` clears the search.
+  Hover-only affordances are gated behind `isHoverCapable()`.
+- **Synced preferences** — tooltip and display-mode settings follow you across devices through
+  the `user_settings` table (signed-in collectors only; localStorage is the offline fallback).
 - **Aggressive caching** — Scryfall responses and images are cached in IndexedDB, and the
   bulk-data subset is reused on a TTL.
 
@@ -145,7 +151,7 @@ src/
 db/                    Drizzle schema, tables and Neon client
 netlify/
   functions/           HTTP handlers (owned-cards, toggle-card,
-                       batch-toggle-cards, share-link)
+                       batch-toggle-cards, share-link, user-settings)
   utils/               Auth (JWT), shared owned-cards logic, request parsing
 migrations/            Generated Drizzle migrations (do not edit by hand)
 public/_headers        Netlify security + caching headers
@@ -185,8 +191,9 @@ Tests are colocated in `__tests__/` folders next to the code, with cross-module 
 
 Three tables, defined in `db/` and generated into `migrations/`:
 
-- `owned_cards` — `(user_id, card_id)` primary key, one row per owned card.
-- `user_settings` — per-user JSON settings blob.
+- `owned_cards` — `(user_id, card_id)` primary key, one row per owned card, plus `created_at`
+  for the "Recent additions" timeline.
+- `user_settings` — per-user JSON settings blob (synced UI preferences).
 - `share_links` — one revocable share token per user.
 
 Change `db/schema.ts`, then run:

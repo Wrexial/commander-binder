@@ -74,4 +74,32 @@ describe('cardSettings', () => {
       JSON.stringify({ showTooltip: false, displayMode: 'images' })
     );
   });
+
+  it('applies only known, valid settings and reports whether anything changed', async () => {
+    const { cardSettings, applySettings } = await import('../state/cardSettings.js');
+
+    expect(applySettings({ displayMode: 'list', showTooltip: 'nope', bogus: 1 })).toBe(true);
+    expect(cardSettings.displayMode).toBe('list');
+    expect(cardSettings.showTooltip).toBe(true); // invalid value ignored
+    expect(cardSettings.bogus).toBeUndefined();
+
+    expect(applySettings({ displayMode: 'list', showTooltip: true })).toBe(false);
+  });
+
+  it('notifies subscribers on setSetting but never echoes an applied patch', async () => {
+    const { setSetting, applySettings, onSettingsChange } =
+      await import('../state/cardSettings.js');
+    const listener = vi.fn();
+    const unsubscribe = onSettingsChange(listener);
+
+    setSetting('showTooltip', false);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    applySettings({ showTooltip: true, displayMode: 'text' });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    unsubscribe();
+    setSetting('showTooltip', false);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });

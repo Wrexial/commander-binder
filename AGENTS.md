@@ -55,24 +55,26 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/main.js` — app entry point; wires up all UI modules.
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
-  auth/share helpers (`authenticatedFetch.js`, `share.js`). `scryfall.js` is
+  auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
-  `cardStore`, `cardSettings`, `viewState`, `onboarding`, `filters`). State is
+  `cardStore`, `cardSettings`, `viewState`, `onboarding`, `filters`,
+  `settingsSync`). State is
   plain exported objects, not a framework store. `mainState.js` holds session
   state so `cardState.js` can read it without importing `main.js` (avoids a
   cycle). `viewState.js` persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
   `filters.js` holds the filter-bar state (including the sort option) and the
-  `cardMatchesFilters` predicate.
+  `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
+  account via the `user-settings` function (best-effort, signed-in only).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`,
-  `randomCard`),
+  `randomCard`, `keyboardShortcuts`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
@@ -124,11 +126,13 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
-  `batch-toggle-cards`, `share-link`).
+  `batch-toggle-cards`, `share-link`, `user-settings`).
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
   (exports `getUserId` and `unauthorized`; `verifyToken` is internal).
 - `netlify/utils/ownedCards.ts` — shared add/remove DB logic for the toggle
   handlers.
+- `netlify/utils/userSettings.ts` — load/save a user's JSON settings blob for
+  the `user-settings` handler, with a size cap and shape validation.
 - `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
   a thrown 500) and `badRequest`, plus the `MAX_BATCH_SIZE` cap used by the batch
   toggle.
@@ -180,7 +184,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 
 - `db/schema.ts` targets Postgres (`pg-core`), matching `drizzle.config.ts` and
   `db/index.ts` (Neon). Migrations live in `migrations/` (`0000` creates
-  `owned_cards`/`user_settings`, `0001` adds `share_links`). If the Neon database
+  `owned_cards`/`user_settings`, `0001` adds `share_links`, `0002` adds
+  `owned_cards.created_at` for the "Recent additions" log). If the Neon database
   was created outside Drizzle, baseline existing migrations before
   `npm run db:migrate`, otherwise it fails with "table already exists".
 - Keep `drizzle-kit` on the 0.31+ line. `drizzle.config.ts` and the `db:*`

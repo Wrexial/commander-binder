@@ -100,7 +100,9 @@ export function renderSearchHelp(container) {
   hint.className = 'search-help-hint';
   hint.append('Plain words match the card name, e.g. ');
   hint.appendChild(createCode('atraxa', 'search-help-inline'));
-  hint.append('.');
+  hint.append('. Press ');
+  hint.appendChild(createCode('/', 'search-help-inline'));
+  hint.append(' to jump to the search box.');
   header.appendChild(hint);
 
   container.appendChild(header);

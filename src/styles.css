@@ -2888,6 +2888,28 @@ footer a:focus-visible {
   color: var(--muted);
 }
 
+/* Completion goal badge: "Complete" once done, otherwise the next milestone. */
+.stats-set-goal {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stats-set-goal.complete {
+  background: rgba(70, 201, 138, 0.18);
+  border: 1px solid rgba(70, 201, 138, 0.5);
+  color: var(--success);
+}
+
+.stats-set-goal.next {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
 .stats-bar-track {
   display: block;
   height: 10px;
@@ -3387,6 +3409,53 @@ footer a:focus-visible {
 .bulk-row-unknown {
   border-left-color: var(--danger);
   color: var(--muted);
+}
+
+/* Recent Additions modal */
+.activity-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-1);
+  border-left: 3px solid var(--accent);
+}
+
+.activity-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.activity-set {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.activity-time {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .bulk-modal .primary {

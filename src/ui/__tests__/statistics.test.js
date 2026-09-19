@@ -297,6 +297,24 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('stats-set-copy');
     expect(html).toContain('data-set="lea"');
   });
+
+  it('shows a goal badge per set: Complete at 100%, otherwise the next milestone', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'C', set: 'm21', set_name: 'Core Set 2021' }),
+      makeCard({ name: 'D', set: 'm21', set_name: 'Core Set 2021' }),
+    ];
+    // Alpha fully owned; Core Set 2021 is half owned (next milestone: 75%).
+    const stats = calculateStatistics([all[0], all[1], all[2]], 4, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).toContain('stats-set-goal complete');
+    expect(html).toContain('Complete');
+    expect(html).toContain('stats-set-goal next');
+    expect(html).toContain('Next 75%');
+  });
 });
 
 describe('showStatisticsModal', () => {

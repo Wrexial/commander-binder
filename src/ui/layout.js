@@ -147,6 +147,16 @@ export function createExportOwnedButton() {
   });
 }
 
+/** A timeline of recently added cards. */
+export function createRecentActivityButton() {
+  addButtonToSidebar('🕒 Recent Additions', async () => {
+    if (document.querySelector('.list-modal-backdrop')) return;
+
+    const { createRecentActivityModal } = await import('./components/recentActivityModal.js');
+    createRecentActivityModal().show();
+  });
+}
+
 /** Import is a write action, so it is only offered to signed-in collectors. */
 export function createImportButton() {
   addButtonToSidebar('📥 Import Collection', async () => {
