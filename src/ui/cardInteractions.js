@@ -10,6 +10,7 @@ import { preloadCardImages } from '../utils/cardImages.js';
 import { nextPrinting } from '../utils/printings.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { refreshCardElement, syncCardOwnedUi } from './cards.js';
+import { showPressIndicator, hidePressIndicator } from './pressIndicator.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -93,6 +94,13 @@ let touchStartX, touchStartY;
 // through a long press, and that must not also cycle the printing.
 let touchSequenceActive = false;
 
+/** How long a press (touch or mouse) must be held to open the preview. */
+const LONG_PRESS_MS = 500;
+/** Movement (px) that cancels a pending mouse long-press. */
+const LONG_PRESS_MOVE_TOLERANCE = 12;
+/** How long after a mouse long-press its trailing click is swallowed. */
+const LONG_PRESS_CLICK_GRACE_MS = 400;
+
 function handleTouchStart(event, tooltip) {
   const cardElement = event.target.closest('.card');
   if (!cardElement) return;
@@ -117,7 +125,7 @@ function handleTouchStart(event, tooltip) {
     state.isLongPress = true;
     showTooltip(event.touches[0], cardElement.cardData, tooltip, { modal: true });
     if (navigator.vibrate) navigator.vibrate(10);
-  }, 500);
+  }, LONG_PRESS_MS);
 }
 
 function handleTouchMove(event) {
@@ -141,6 +149,59 @@ function handleTouchEnd(event) {
     state.suppressUntil = Date.now() + 100;
     state.isLongPress = false;
     // preventDefault might not be enough to stop the simulated click
+  }
+}
+
+// --- Mouse long-press (desktop) ---
+// A short click toggles ownership; holding the button opens the preview, with a
+// filling ring under the cursor as feedback.
+let mousePress = null;
+
+function cancelMousePress() {
+  if (!mousePress) return;
+  clearTimeout(mousePress.timer);
+  mousePress = null;
+  hidePressIndicator();
+}
+
+function handleMouseDown(event, tooltip) {
+  if (!isHoverCapable() || touchSequenceActive) return;
+  if (event.button !== 0) return;
+
+  const cardElement = event.target.closest('.card');
+  if (!cardElement?.cardData) return;
+
+  // Controls keep their own click behaviour.
+  if (event.target.closest('button, a, .card-toggle, .card-versions, .edhrec-link')) return;
+
+  cancelMousePress();
+
+  const state = getState(cardElement);
+  mousePress = {
+    cardElement,
+    state,
+    startX: event.clientX,
+    startY: event.clientY,
+    timer: setTimeout(() => {
+      const press = mousePress;
+      mousePress = null;
+      hidePressIndicator();
+      if (!press) return;
+      // Swallow the click that follows the release so it can't also toggle.
+      press.state.suppressUntil = Date.now() + LONG_PRESS_CLICK_GRACE_MS;
+      openPreview(press.cardElement, press.cardElement.cardData, tooltip, event);
+    }, LONG_PRESS_MS),
+  };
+
+  showPressIndicator(event.clientX, event.clientY, LONG_PRESS_MS);
+}
+
+function handleMouseMove(event) {
+  if (!mousePress) return;
+  const dx = Math.abs(event.clientX - mousePress.startX);
+  const dy = Math.abs(event.clientY - mousePress.startY);
+  if (dx > LONG_PRESS_MOVE_TOLERANCE || dy > LONG_PRESS_MOVE_TOLERANCE) {
+    cancelMousePress();
   }
 }
 
@@ -170,16 +231,6 @@ async function handleContainerClick(event, tooltip) {
   // Suppress clicks after a long-press (logic can be expanded here)
   const state = getState(cardElement);
   if (state.suppressUntil && Date.now() < state.suppressUntil) return;
-
-  // The ownership control is its own button. On a pointer device, clicking
-  // anywhere else opens the modal preview; on touch a tap still toggles, since
-  // the long-press is the preview there.
-  const onToggle = Boolean(event.target.closest('.card-toggle'));
-  if (!onToggle && isHoverCapable()) {
-    event.stopPropagation();
-    openPreview(cardElement, card, tooltip, event);
-    return;
-  }
 
   if (appState.isViewOnlyMode) return;
 
@@ -291,6 +342,12 @@ export function initCardInteractions(container, tooltip) {
   // A cancelled touch (system gesture, incoming call) must still clear the flag
   // above and drop the pending long-press.
   container.addEventListener('touchcancel', handleTouchEnd);
+
+  // Desktop long-press opens the preview (a short click still toggles).
+  container.addEventListener('mousedown', (event) => handleMouseDown(event, tooltip));
+  container.addEventListener('mousemove', handleMouseMove);
+  container.addEventListener('mouseup', cancelMousePress);
+  container.addEventListener('mouseleave', cancelMousePress);
 
   // `randomCard.js` asks for a preview without importing this module (which
   // would create an import cycle).

@@ -29,6 +29,7 @@ describe('initCardInteractions', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   beforeEach(() => {
@@ -334,7 +335,7 @@ describe('initCardInteractions', () => {
       expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
 
-    it('opens the modal preview when a pointer device clicks the tile', async () => {
+    it('toggles ownership on a short click on a pointer device', async () => {
       vi.stubGlobal('matchMedia', () => ({
         matches: true,
         addEventListener() {},
@@ -344,14 +345,96 @@ describe('initCardInteractions', () => {
 
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
+      expect(cardState.toggleCardOwned).toHaveBeenCalledWith(cardElement.cardData);
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
+    });
+
+    it('opens the modal preview after a long mouse press, with a progress ring', () => {
+      vi.useFakeTimers();
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      initCardInteractions(container, tooltipElement);
+
+      cardElement.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientX: 20, clientY: 20 })
+      );
+      expect(document.querySelector('.press-indicator.active')).not.toBeNull();
+
+      vi.advanceTimersByTime(500);
+
       expect(tooltip.showTooltip).toHaveBeenCalledWith(
         expect.anything(),
         cardElement.cardData,
         tooltipElement,
         { modal: true }
       );
-      // A preview click must not also toggle ownership.
-      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      // The ring is gone once the gesture completes.
+      expect(document.querySelector('.press-indicator.active')).toBeNull();
+
+      cardElement.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    it('does not open the preview when the mouse press is released early', () => {
+      vi.useFakeTimers();
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      initCardInteractions(container, tooltipElement);
+
+      cardElement.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientX: 20, clientY: 20 })
+      );
+      expect(document.querySelector('.press-indicator.active')).not.toBeNull();
+
+      cardElement.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      vi.advanceTimersByTime(500);
+
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
+      expect(document.querySelector('.press-indicator.active')).toBeNull();
+    });
+
+    it('cancels a long mouse press when the pointer moves', () => {
+      vi.useFakeTimers();
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      initCardInteractions(container, tooltipElement);
+
+      cardElement.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientX: 20, clientY: 20 })
+      );
+      cardElement.dispatchEvent(
+        new MouseEvent('mousemove', { bubbles: true, clientX: 80, clientY: 80 })
+      );
+      vi.advanceTimersByTime(500);
+
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
+    });
+
+    it('does not start a long press on the ownership button', () => {
+      vi.useFakeTimers();
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      initCardInteractions(container, tooltipElement);
+
+      const toggle = cardElement.querySelector('.card-toggle');
+      toggle.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, clientX: 20, clientY: 20 })
+      );
+      vi.advanceTimersByTime(500);
+
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
+      expect(document.querySelector('.press-indicator.active')).toBeNull();
     });
 
     it('still toggles via the card-toggle button on a pointer device', async () => {

@@ -110,11 +110,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   with an inline toggle), chosen in `settingsUI.js`; `randomCard.js` powers the
   sidebar “Surprise me” jump-to-a-missing-card action (it scrolls to the card
   and dispatches `card:preview`). The card preview (`tooltip.js`) is a centred
-  modal on every viewport — opened by a desktop click, a touch long-press or
-  Surprise me — with a floating variant kept only for the statistics hover
-  preview. It walks the visible grid on a left/right swipe and dismisses on a
-  downward swipe, and its owned/missing badge is a toggle button (hidden in
-  view-only mode); the host (`cardInteractions.js`) exposes
+  modal on every viewport — opened by a long press (mouse or touch, with a
+  filling progress ring under the cursor on desktop) or Surprise me — with a
+  floating variant kept only for the statistics hover preview. It walks the
+  visible grid on a left/right swipe and dismisses on a downward swipe, and its
+  owned/missing badge is a toggle button (hidden in view-only mode); the host
+  (`cardInteractions.js`) exposes
   `tooltip.onCycle`/`tooltip.onNavigate`/`tooltip.onToggle` so those controls
   follow the card on screen.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,

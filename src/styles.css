@@ -1529,6 +1529,50 @@ button.tooltip-owned-status:disabled {
   transition: none;
 }
 
+/* Mouse long-press progress ring (desktop card preview). */
+.press-indicator {
+  position: fixed;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  pointer-events: none;
+  z-index: calc(var(--z-index-tooltip) - 1);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.press-indicator.active {
+  opacity: 1;
+}
+
+.press-indicator-track {
+  fill: rgba(9, 12, 18, 0.45);
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 2;
+}
+
+.press-indicator-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  /* Circumference of an r=16 circle in a 36x36 viewBox. */
+  stroke-dasharray: 100.53;
+  stroke-dashoffset: 100.53;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.press-indicator.active .press-indicator-fill {
+  animation: press-indicator-fill var(--press-duration, 500ms) linear forwards;
+}
+
+@keyframes press-indicator-fill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .toast .toast-action {
   background: var(--accent-soft);
   border: 1px solid rgba(212, 175, 55, 0.4);
