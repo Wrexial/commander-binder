@@ -1,6 +1,5 @@
 // src/ui/cardInteractions.js
 import { showTooltip, showTooltipCard, isTooltipGestureActive } from './tooltip.js';
-import { cardSettings } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
 import { showUndo, showToast } from './components/toast.js';
@@ -9,6 +8,7 @@ import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { nextPrinting } from '../utils/printings.js';
+import { isHoverCapable } from '../utils/pointer.js';
 import { refreshCardElement, syncCardOwnedUi } from './cards.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
@@ -58,6 +58,19 @@ function navigateTooltip(direction, event, tooltip) {
   showTooltipCard(target.cardData, tooltip, event);
 }
 
+/**
+ * Open the modal preview for a tile, wiring its printing-cycle and
+ * swipe-navigation controls. Used by desktop clicks and "Surprise me".
+ */
+function openPreview(cardElement, card, tooltip, event) {
+  tooltipCardElement = cardElement;
+  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
+  tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
+  tooltip.cycleLabel = null;
+  preloadCardImages(card);
+  showTooltip(event, card, tooltip, { modal: true });
+}
+
 // --- Delegated Event Handlers ---
 
 // The card tooltip is touch-only: on PC the tile footer carries the name, set,
@@ -91,15 +104,13 @@ function handleTouchStart(event, tooltip) {
   tooltipCardElement = cardElement;
   tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
 
-  // Touch has no hover phase; start the image early since the tooltip shows
+  // Touch has no hover phase; start the image early since the preview shows
   // only after a 500ms long-press.
-  if (cardSettings.showTooltip) {
-    preloadCardImages(cardElement.cardData);
-  }
+  preloadCardImages(cardElement.cardData);
 
   touchTimer = setTimeout(() => {
     state.isLongPress = true;
-    showTooltip(event.touches[0], cardElement.cardData, tooltip);
+    showTooltip(event.touches[0], cardElement.cardData, tooltip, { modal: true });
     if (navigator.vibrate) navigator.vibrate(10);
   }, 500);
 }
@@ -141,13 +152,11 @@ async function handleContainerClick(event, tooltip) {
     return;
   }
 
-  // Ignore clicks on the EDHREC link, and on cards at all in view-only mode.
-  if (event.target.closest('.edhrec-link') || appState.isViewOnlyMode) {
-    return;
-  }
+  // Ignore clicks on the EDHREC link.
+  if (event.target.closest('.edhrec-link')) return;
 
-  // A tap that opened or dismissed the full-screen preview must not also mark
-  // the card owned — one tap, one action.
+  // A tap that opened or dismissed the preview must not also do anything else —
+  // one tap, one action.
   if (isTooltipGestureActive()) return;
 
   const card = cardElement.cardData;
@@ -156,6 +165,18 @@ async function handleContainerClick(event, tooltip) {
   // Suppress clicks after a long-press (logic can be expanded here)
   const state = getState(cardElement);
   if (state.suppressUntil && Date.now() < state.suppressUntil) return;
+
+  // The ownership control is its own button. On a pointer device, clicking
+  // anywhere else opens the modal preview; on touch a tap still toggles, since
+  // the long-press is the preview there.
+  const onToggle = Boolean(event.target.closest('.card-toggle'));
+  if (!onToggle && isHoverCapable()) {
+    event.stopPropagation();
+    openPreview(cardElement, card, tooltip, event);
+    return;
+  }
+
+  if (appState.isViewOnlyMode) return;
 
   const wasMissing = !isCardOwned(card);
   event.stopPropagation();
@@ -217,7 +238,7 @@ function cycleCardPrinting(cardElement, event, tooltip) {
   // `showTooltip` sets display to 'flex'; it starts empty and 'none' when
   // hidden, so check for the open value explicitly.
   if (tooltip && tooltip.style.display === 'flex') {
-    showTooltip(event, next, tooltip);
+    showTooltip(event, next, tooltip, { modal: true });
   }
 }
 
@@ -237,6 +258,9 @@ function handleContextMenu(event, tooltip) {
 
 // --- Main Initialization ---
 
+/** The active `card:preview` listener (replaced on re-init, never stacked). */
+let previewHandler = null;
+
 export function initCardInteractions(container, tooltip) {
   container.addEventListener('click', (event) => handleContainerClick(event, tooltip));
   container.addEventListener('contextmenu', (e) => handleContextMenu(e, tooltip));
@@ -247,4 +271,13 @@ export function initCardInteractions(container, tooltip) {
   // A cancelled touch (system gesture, incoming call) must still clear the flag
   // above and drop the pending long-press.
   container.addEventListener('touchcancel', handleTouchEnd);
+
+  // `randomCard.js` asks for a preview without importing this module (which
+  // would create an import cycle).
+  if (previewHandler) document.removeEventListener('card:preview', previewHandler);
+  previewHandler = (event) => {
+    const { element, card } = event.detail || {};
+    if (element && card) openPreview(element, card, tooltip, { clientX: 0, clientY: 0 });
+  };
+  document.addEventListener('card:preview', previewHandler);
 }

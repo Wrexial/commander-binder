@@ -33,13 +33,16 @@ function findCardElement(card) {
 }
 
 /** Expand any collapsed ancestors, scroll the tile into view and flash it. */
-function revealCard(element) {
+function revealCard(element, card) {
   element.closest('.section')?.classList.remove('collapsed');
   element.closest('.binder')?.classList.remove('collapsed');
   element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   element.classList.add('card-surprise');
   window.setTimeout(() => element.classList.remove('card-surprise'), HIGHLIGHT_MS);
+
+  // Ask the grid to open the modal preview (avoids importing cardInteractions).
+  document.dispatchEvent(new CustomEvent('card:preview', { detail: { element, card } }));
 }
 
 /** Jump to a random missing card, or explain why there is nothing to show. */
@@ -64,5 +67,5 @@ export function surpriseMe() {
     return;
   }
 
-  revealCard(element);
+  revealCard(element, target);
 }

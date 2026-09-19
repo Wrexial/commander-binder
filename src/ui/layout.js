@@ -119,52 +119,64 @@ function bindSetTooltipDismissal() {
 }
 
 export function createBulkAddButton(onClick) {
-  addButtonToSidebar('➕ Bulk Add', onClick);
+  addButtonToSidebar('➕ Bulk Add', onClick, 'collection');
 }
 
 /** Jump to a random card the collector is missing. */
 export function createSurpriseButton() {
-  addButtonToSidebar('🎲 Surprise Me', surpriseMe);
+  addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse');
 }
 
 export function createBulkCheckButton(onClick) {
-  addButtonToSidebar('✔️ Bulk Check', onClick);
+  addButtonToSidebar('✔️ Bulk Check', onClick, 'collection');
 }
 
 export function createExportOwnedButton() {
-  addButtonToSidebar('📄 Export All Owned', async () => {
-    const ownedCards = cardStore.getAll().filter(isCardOwned);
+  addButtonToSidebar(
+    '📄 Export All Owned',
+    async () => {
+      const ownedCards = cardStore.getAll().filter(isCardOwned);
 
-    if (ownedCards.length === 0) {
-      showToast('No owned cards to export.');
-      return;
-    }
+      if (ownedCards.length === 0) {
+        showToast('No owned cards to export.');
+        return;
+      }
 
-    if (document.querySelector('.list-modal-backdrop')) return;
+      if (document.querySelector('.list-modal-backdrop')) return;
 
-    const { createExportModal } = await import('./components/exportModal.js');
-    createExportModal(ownedCards).show();
-  });
+      const { createExportModal } = await import('./components/exportModal.js');
+      createExportModal(ownedCards).show();
+    },
+    'collection'
+  );
 }
 
 /** A timeline of recently added cards. */
 export function createRecentActivityButton() {
-  addButtonToSidebar('🕒 Recent Additions', async () => {
-    if (document.querySelector('.list-modal-backdrop')) return;
+  addButtonToSidebar(
+    '🕒 Recent Additions',
+    async () => {
+      if (document.querySelector('.list-modal-backdrop')) return;
 
-    const { createRecentActivityModal } = await import('./components/recentActivityModal.js');
-    createRecentActivityModal().show();
-  });
+      const { createRecentActivityModal } = await import('./components/recentActivityModal.js');
+      createRecentActivityModal().show();
+    },
+    'browse'
+  );
 }
 
 /** Import is a write action, so it is only offered to signed-in collectors. */
 export function createImportButton() {
-  addButtonToSidebar('📥 Import Collection', async () => {
-    if (document.querySelector('.list-modal-backdrop')) return;
+  addButtonToSidebar(
+    '📥 Import Collection',
+    async () => {
+      if (document.querySelector('.list-modal-backdrop')) return;
 
-    const { createImportModal } = await import('./components/importModal.js');
-    createImportModal().show();
-  });
+      const { createImportModal } = await import('./components/importModal.js');
+      createImportModal().show();
+    },
+    'collection'
+  );
 }
 
 export function startNewBinder(results) {

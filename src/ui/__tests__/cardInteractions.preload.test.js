@@ -9,7 +9,6 @@ vi.mock('../tooltip.js', () => ({
   hideTooltip: vi.fn(),
   positionTooltip: vi.fn(),
 }));
-vi.mock('../../state/cardSettings.js', () => ({ cardSettings: { showTooltip: true } }));
 vi.mock('../../state/appState.js', () => ({ appState: { isViewOnlyMode: false } }));
 vi.mock('../../state/cardState.js', () => ({
   isCardOwned: vi.fn(() => false),
@@ -25,7 +24,6 @@ vi.mock('../../state/cardStore.js', () => ({
 
 import { initCardInteractions } from '../cardInteractions.js';
 import { preloadCardImages } from '../../utils/cardImages.js';
-import { cardSettings } from '../../state/cardSettings.js';
 
 describe('touch image preloading', () => {
   let container;
@@ -34,7 +32,6 @@ describe('touch image preloading', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    cardSettings.showTooltip = true;
 
     container = document.createElement('div');
     tooltip = document.createElement('div');
@@ -64,14 +61,6 @@ describe('touch image preloading', () => {
     startTouch(card);
 
     expect(preloadCardImages).toHaveBeenCalledWith(card.cardData);
-  });
-
-  it('does not preload when tooltips are disabled', () => {
-    cardSettings.showTooltip = false;
-    const card = container.querySelector('.card');
-    startTouch(card);
-
-    expect(preloadCardImages).not.toHaveBeenCalled();
   });
 
   it('does not preload on mouse hover (touch-only tooltip)', () => {

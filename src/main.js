@@ -60,31 +60,39 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
   mainState.loggedInUserId = clerk.user.id;
   updateOwnedCounter();
 
-  addButtonToSidebar('🔗 Share', async () => {
-    try {
-      const token = await getShareToken();
-      const url = new URL(window.location.href);
-      url.searchParams.delete('user');
-      url.searchParams.set('share', token);
-      await navigator.clipboard.writeText(url.href);
-      showToast('Link copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to create share link:', err);
-      showToast('Could not create a share link.', 'error');
-    }
-  });
+  addButtonToSidebar(
+    '🔗 Share',
+    async () => {
+      try {
+        const token = await getShareToken();
+        const url = new URL(window.location.href);
+        url.searchParams.delete('user');
+        url.searchParams.set('share', token);
+        await navigator.clipboard.writeText(url.href);
+        showToast('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to create share link:', err);
+        showToast('Could not create a share link.', 'error');
+      }
+    },
+    'sharing'
+  );
 
-  addButtonToSidebar('♻️ Regenerate Share Link', async () => {
-    try {
-      await getShareToken({ regenerate: true });
-      showToast('Share link regenerated. Old links no longer work.', 'success');
-    } catch (err) {
-      console.error('Failed to regenerate share link:', err);
-      showToast('Could not regenerate the share link.', 'error');
-    }
-  });
+  addButtonToSidebar(
+    '♻️ Regenerate Share Link',
+    async () => {
+      try {
+        await getShareToken({ regenerate: true });
+        showToast('Share link regenerated. Old links no longer work.', 'success');
+      } catch (err) {
+        console.error('Failed to regenerate share link:', err);
+        showToast('Could not regenerate the share link.', 'error');
+      }
+    },
+    'sharing'
+  );
 
-  addButtonToSidebar('📊 Show Statistics', showStatistics);
+  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse');
 
   createBulkAddButton(() => showModal(loadBulkAddModal));
   createImportButton();
@@ -119,7 +127,7 @@ export async function setupUI() {
   if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
-    addButtonToSidebar('📊 Show Statistics', showStatistics);
+    addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse');
     createSurpriseButton();
     createRecentActivityButton();
     appState.isViewOnlyMode = true;

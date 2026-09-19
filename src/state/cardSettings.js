@@ -1,5 +1,4 @@
 const DEFAULT_SETTINGS = {
-  showTooltip: true,
   // displayMode: 'text' | 'images' | 'list' — names, artwork, or a compact
   // checklist row with an inline ownership toggle.
   displayMode: 'images',
@@ -7,7 +6,6 @@ const DEFAULT_SETTINGS = {
 
 /** Accepted values per setting, so persisted/synced data can't inject junk. */
 const SETTING_VALIDATORS = {
-  showTooltip: (value) => typeof value === 'boolean',
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
 };
 

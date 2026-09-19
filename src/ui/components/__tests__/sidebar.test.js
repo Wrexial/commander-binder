@@ -78,4 +78,21 @@ describe('sidebar', () => {
 
     expect(() => addButtonToSidebar('Nope', vi.fn())).not.toThrow();
   });
+
+  it('groups buttons into labelled sections in a stable order', () => {
+    // Added out of order on purpose.
+    addButtonToSidebar('Stats', vi.fn(), 'browse');
+    addButtonToSidebar('Share', vi.fn(), 'sharing');
+    addButtonToSidebar('Import', vi.fn(), 'collection');
+
+    const titles = [...document.querySelectorAll('#sidebar .sidebar-section-title')].map(
+      (el) => el.textContent
+    );
+    expect(titles).toEqual(['Collection', 'Browse', 'Sharing']);
+
+    const collectionButtons = [
+      ...document.querySelectorAll('[data-section="collection"] button'),
+    ].map((button) => button.textContent);
+    expect(collectionButtons).toEqual(['Import']);
+  });
 });

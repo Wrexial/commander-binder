@@ -36,27 +36,27 @@ export const OWNED_OPTIONS = [
 
 /**
  * How the selected colour pips are combined.
- *  - `any`       the card contains at least one selected colour
- *  - `all`       the card contains every selected colour
- *  - `exact`     the card's identity is exactly the selected colours
- *  - `exclusive` the card's identity uses only the selected colours
+ *  - `exclusive` (default) the card's identity uses only the selected colours
  *                (e.g. selecting WB matches W, B and WB)
+ *  - `exact`     the card's identity is exactly the selected colours
  */
 export const COLOR_MODE_OPTIONS = [
-  { id: 'any', label: 'Any' },
-  { id: 'all', label: 'All' },
-  { id: 'exact', label: 'Exact' },
   {
     id: 'exclusive',
     label: 'Exclusive',
     title: 'Only the selected colours — WB shows W, B and WB cards',
+  },
+  {
+    id: 'exact',
+    label: 'Exact',
+    title: 'Exactly the selected colours — WB shows only WB cards',
   },
 ];
 
 export const DEFAULT_FILTERS = {
   owned: 'all', // 'all' | 'owned' | 'missing'
   colors: [], // subset of COLOR_OPTIONS ids; [] = any
-  colorMode: 'any', // one of COLOR_MODE_OPTIONS ids
+  colorMode: 'exclusive', // one of COLOR_MODE_OPTIONS ids
   rarities: [], // subset of RARITY_OPTIONS ids; [] = any
   set: '', // lowercase set code; '' = any
   priceMin: null,
@@ -143,19 +143,10 @@ function matchesColors(card) {
     return identity.size === wanted.length && wanted.every((color) => identity.has(color));
   }
 
-  if (filters.colorMode === 'exclusive') {
-    // Only the selected colours may appear: selecting WB matches W, B and WB.
-    // Colourless joins only when its pip is selected, like the other modes.
-    if (isColorless) return wantsColorless;
-    return [...identity].every((color) => wanted.includes(color));
-  }
-
-  if (filters.colorMode === 'all') {
-    // Colourless plus any real colour can never match, which is acceptable.
-    return wanted.every((color) => identity.has(color)) && (!wantsColorless || isColorless);
-  }
-
-  return wanted.some((color) => identity.has(color)) || (wantsColorless && isColorless);
+  // Exclusive (default): only the selected colours may appear, so selecting
+  // WB matches W, B and WB. Colourless joins only when its pip is selected.
+  if (isColorless) return wantsColorless;
+  return [...identity].every((color) => wanted.includes(color));
 }
 
 /**

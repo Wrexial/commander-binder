@@ -184,6 +184,30 @@ body.sidebar-open #sidebar-backdrop {
   transition: opacity 0.42s ease;
 }
 
+/* Grouped sidebar sections */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.sidebar-section-title {
+  margin: 8px 0 2px;
+  padding: 0 26px;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.75;
+}
+
+.sidebar-section-body {
+  display: flex;
+  flex-direction: column;
+}
+
 .sidebar-settings-container {
   margin-top: auto;
   padding: 14px 0 0;

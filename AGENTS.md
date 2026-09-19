@@ -107,11 +107,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   applies and persists through the same commit path. `cards.js` supports three
   tile layouts (`images`, `text`, `list` — the last is a compact checklist row
   with an inline toggle), chosen in `settingsUI.js`; `randomCard.js` powers the
-  sidebar “Surprise me” jump-to-a-missing-card action. The card preview
-  (`tooltip.js`) walks the visible grid on a left/right swipe, and the full-screen
-  mobile dialog also dismisses on a downward swipe; the host
-  (`cardInteractions.js`) exposes `tooltip.onCycle`/`tooltip.onNavigate` so the
-  printing-cycle control follows the card on screen.
+  sidebar “Surprise me” jump-to-a-missing-card action (it scrolls to the card
+  and dispatches `card:preview`). The card preview (`tooltip.js`) is a centred
+  modal on every viewport — opened by a desktop click, a touch long-press or
+  Surprise me — with a floating variant kept only for the statistics hover
+  preview. It walks the visible grid on a left/right swipe and dismisses on a
+  downward swipe; the host (`cardInteractions.js`) exposes
+  `tooltip.onCycle`/`tooltip.onNavigate` so the printing-cycle control follows the
+  card on screen.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
   `sortCards`).

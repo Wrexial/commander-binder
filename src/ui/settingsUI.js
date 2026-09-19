@@ -9,43 +9,6 @@ const DISPLAY_MODE_OPTIONS = [
 ];
 
 /**
- * Build a labelled checkbox bound to a stored setting.
- *
- * @param {object} config
- * @param {string} config.setting Key in `cardSettings`.
- * @param {string} config.label Visible label text.
- * @param {(value: unknown) => boolean} [config.isChecked] Maps the stored value
- *   to the checkbox state (defaults to the value's truthiness).
- * @param {(checked: boolean) => unknown} [config.toValue] Maps the checkbox
- *   state back to the stored value (defaults to the boolean itself).
- * @param {(value: unknown) => void} [config.onChange] Side effect after saving.
- * @returns {{el: HTMLElement, input: HTMLInputElement}}
- */
-function createSettingToggle({
-  setting,
-  label,
-  isChecked = (value) => Boolean(value),
-  toValue = (checked) => checked,
-  onChange,
-}) {
-  const labelEl = document.createElement('label');
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.dataset.setting = setting;
-  checkbox.checked = isChecked(getSetting(setting));
-
-  checkbox.addEventListener('change', (event) => {
-    const value = toValue(event.target.checked);
-    setSetting(setting, value);
-    onChange?.(value);
-  });
-
-  labelEl.appendChild(checkbox);
-  labelEl.appendChild(document.createTextNode(label));
-  return { el: labelEl, input: checkbox };
-}
-
-/**
  * The display-mode picker. A `<select>` rather than a checkbox because there
  * are three tile layouts (images, text, list).
  *
@@ -89,9 +52,6 @@ function handleDisplayModeChange(value) {
 
 /** Re-read the stored settings into the controls and re-apply them to the page. */
 function syncControls() {
-  const toggle = document.querySelector('[data-setting="showTooltip"]');
-  if (toggle) toggle.checked = Boolean(getSetting('showTooltip'));
-
   const select = document.querySelector('[data-setting="displayMode"]');
   if (select) select.value = getSetting('displayMode');
 
@@ -113,16 +73,7 @@ export function initCardSettings() {
 
   const settingsContainer = document.createElement('div');
   settingsContainer.className = 'sidebar-settings-container';
-
-  // `showTooltip` is read live by the tooltip code, so it needs no side effect.
-  const showTooltipToggle = createSettingToggle({
-    setting: 'showTooltip',
-    label: ' Show Tooltip',
-  });
-  const displayModePicker = createDisplayModePicker();
-
-  settingsContainer.appendChild(showTooltipToggle.el);
-  settingsContainer.appendChild(displayModePicker.el);
+  settingsContainer.appendChild(createDisplayModePicker().el);
   sidebar.appendChild(settingsContainer);
 
   // Apply the stored settings to the page on load.

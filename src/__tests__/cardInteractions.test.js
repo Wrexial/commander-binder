@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { initCardInteractions } from '../ui/cardInteractions.js';
 import * as tooltip from '../ui/tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
@@ -26,6 +26,10 @@ vi.mock('../state/cardStore.js', () => ({
 
 describe('initCardInteractions', () => {
   let container, tooltipElement, cardElement;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   beforeEach(() => {
     // Reset mocks
@@ -83,7 +87,8 @@ describe('initCardInteractions', () => {
         expect(tooltip.showTooltip).toHaveBeenCalledWith(
           expect.anything(),
           cardElement.cardData,
-          tooltipElement
+          tooltipElement,
+          { modal: true }
         );
       } finally {
         vi.useRealTimers();
@@ -327,6 +332,58 @@ describe('initCardInteractions', () => {
       await edhrecLink.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+    });
+
+    it('opens the modal preview when a pointer device clicks the tile', async () => {
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      initCardInteractions(container, tooltipElement);
+
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(tooltip.showTooltip).toHaveBeenCalledWith(
+        expect.anything(),
+        cardElement.cardData,
+        tooltipElement,
+        { modal: true }
+      );
+      // A preview click must not also toggle ownership.
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+    });
+
+    it('still toggles via the card-toggle button on a pointer device', async () => {
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      initCardInteractions(container, tooltipElement);
+
+      const toggle = cardElement.querySelector('.card-toggle');
+      await toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(cardState.toggleCardOwned).toHaveBeenCalled();
+      expect(tooltip.showTooltip).not.toHaveBeenCalled();
+    });
+
+    it('opens a preview when the card:preview event fires (Surprise me)', () => {
+      initCardInteractions(container, tooltipElement);
+
+      document.dispatchEvent(
+        new CustomEvent('card:preview', {
+          detail: { element: cardElement, card: cardElement.cardData },
+        })
+      );
+
+      expect(tooltip.showTooltip).toHaveBeenCalledWith(
+        expect.anything(),
+        cardElement.cardData,
+        tooltipElement,
+        { modal: true }
+      );
     });
 
     it('should revert ownership when undo is clicked', async () => {

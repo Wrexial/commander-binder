@@ -6,18 +6,11 @@ import {
   positionTooltip,
   isTooltipGestureActive,
 } from '../ui/tooltip.js';
-import { cardSettings } from '../state/cardSettings.js';
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
 import { cardStore } from '../state/cardStore.js';
 
 // Mock dependencies
-vi.mock('../state/cardSettings.js', () => ({
-  cardSettings: {
-    showTooltip: true,
-  },
-}));
-
 vi.mock('../state/cardStore.js', () => ({
   cardStore: {
     getPrintings: vi.fn(() => []),
@@ -52,7 +45,6 @@ describe('tooltip', () => {
     document.body.innerHTML = '<div id="tooltip"></div>';
     tooltip = document.getElementById('tooltip');
     vi.clearAllMocks();
-    cardSettings.showTooltip = true;
     cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 1 });
     getCardImages.mockReturnValue([{ url: card.image_uris.normal, key: 'front' }]);
     getImage.mockImplementation(() => {
@@ -69,14 +61,6 @@ describe('tooltip', () => {
   });
 
   describe('showTooltip', () => {
-    it('should not show if cardSettings.showTooltip is false', () => {
-      cardSettings.showTooltip = false;
-      showTooltip(event, card, tooltip);
-      vi.runAllTimers();
-      expect(tooltip.style.display).not.toBe('flex');
-      expect(getCardImages).not.toHaveBeenCalled();
-    });
-
     it('should render the descriptor and a single image for a single-faced card', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
@@ -181,7 +165,7 @@ describe('tooltip', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
-      expect(tooltip.classList.contains('mobile')).toBe(true);
+      expect(tooltip.classList.contains('modal')).toBe(true);
       const backdropEl = document.querySelector('.tooltip-backdrop');
       expect(backdropEl).not.toBeNull();
       expect(backdropEl.classList.contains('visible')).toBe(true);
@@ -214,6 +198,20 @@ describe('tooltip', () => {
       expect(details.querySelector('.tooltip-owned-status')).not.toBeNull();
     });
 
+    it('places the printing-cycle button next to the owned/missing badge', () => {
+      cardStore.getPrintingPosition.mockReturnValue({ index: 2, total: 5 });
+      tooltip.onCycle = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      const status = tooltip.querySelector('.tooltip-card-status');
+      expect(status.querySelector('.tooltip-owned-status')).not.toBeNull();
+      expect(status.querySelector('.printing-cycle')).not.toBeNull();
+      // The old separate row is gone.
+      expect(tooltip.querySelector('.tooltip-text-container')).toBeNull();
+    });
+
     it('closes when the backdrop edge is tapped', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
@@ -221,7 +219,7 @@ describe('tooltip', () => {
       document.querySelector('.tooltip-backdrop').click();
 
       expect(tooltip.style.display).toBe('none');
-      expect(tooltip.classList.contains('mobile')).toBe(false);
+      expect(tooltip.classList.contains('modal')).toBe(false);
       expect(document.body.classList.contains('tooltip-open')).toBe(false);
     });
 
@@ -433,7 +431,7 @@ describe('tooltip', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
-      expect(tooltip.classList.contains('mobile')).toBe(false);
+      expect(tooltip.classList.contains('modal')).toBe(false);
       expect(tooltip.classList.contains('swipe-nav')).toBe(true);
       expect(tooltip.style.display).toBe('flex');
 
@@ -521,7 +519,7 @@ describe('tooltip', () => {
       vi.runAllTimers();
 
       // Wide touch screens get the floating tooltip, not the full-screen dialog.
-      expect(tooltip.classList.contains('mobile')).toBe(false);
+      expect(tooltip.classList.contains('modal')).toBe(false);
       expect(tooltip.style.display).toBe('flex');
 
       document.body.dispatchEvent(new Event('touchstart', { bubbles: true }));

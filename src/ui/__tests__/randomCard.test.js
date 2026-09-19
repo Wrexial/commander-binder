@@ -78,12 +78,19 @@ describe('surpriseMe', () => {
     tile.cardData = { name: 'B' };
     document.querySelector('.section').appendChild(tile);
 
+    const previews = [];
+    const listener = (event) => previews.push(event.detail);
+    document.addEventListener('card:preview', listener);
     surpriseMe();
+    document.removeEventListener('card:preview', listener);
 
     expect(tile.classList.contains('card-surprise')).toBe(true);
     expect(tile.scrollIntoView).toHaveBeenCalled();
     expect(document.querySelector('.section').classList.contains('collapsed')).toBe(false);
     expect(document.querySelector('.binder').classList.contains('collapsed')).toBe(false);
+
+    // It also asks the grid to open the modal preview for the chosen card.
+    expect(previews).toEqual([{ element: tile, card: tile.cardData }]);
 
     vi.advanceTimersByTime(2100);
     expect(tile.classList.contains('card-surprise')).toBe(false);

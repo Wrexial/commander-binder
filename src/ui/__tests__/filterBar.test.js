@@ -82,11 +82,9 @@ describe('initFilterBar', () => {
     const modes = document
       .querySelectorAll('.filter-segmented')[1]
       .querySelectorAll('.filter-segment');
-    modes[1].click(); // All
-    expect(filters.colorMode).toBe('all');
-    modes[2].click(); // Exact
+    modes[1].click(); // Exact
     expect(filters.colorMode).toBe('exact');
-    modes[3].click(); // Exclusive
+    modes[0].click(); // Exclusive
     expect(filters.colorMode).toBe('exclusive');
     expect(onChange).toHaveBeenCalled();
   });

@@ -1179,24 +1179,23 @@ body.list-mode .card.list-tile .owned-badge {
   pointer-events: auto;
 }
 
-/* Mobile: a fixed, centred, full-screen dialog instead of a box that chases the
-   pointer. The dimmed backdrop blocks the page; tapping its edges closes. */
-@media (max-width: 768px) {
-  .tooltip.mobile {
-    inset: 0;
-    margin: auto;
-    width: fit-content;
-    height: fit-content;
-    max-width: 94vw;
-    max-height: 92vh;
-    max-height: 92dvh;
-    /* Clear the notch and home indicator when a phone is held sideways. */
-    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-    overflow: auto;
-    overscroll-behavior: contain; /* don't scroll the grid behind the dialog */
-    -webkit-overflow-scrolling: touch;
-    pointer-events: auto;
-  }
+/* Preview dialog: a fixed, centred dialog with a dimmed backdrop instead of a
+   box that chases the pointer. Used on every viewport — the floating variant is
+   only the statistics hover preview. */
+.tooltip.modal {
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  max-width: 94vw;
+  max-height: 92vh;
+  max-height: 92dvh;
+  /* Clear the notch and home indicator when a phone is held sideways. */
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  overflow: auto;
+  overscroll-behavior: contain; /* don't scroll the grid behind the dialog */
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
 }
 
 /* Follow the finger without the show/hide transition lagging behind it —
@@ -1205,9 +1204,8 @@ body.list-mode .card.list-tile .owned-badge {
   transition: none;
 }
 
-/* Explicit close control for the full-screen dialog. The dimmed edge around a
-   centred dialog is a thin target on a phone, so the dialog carries its own. */
-.tooltip.mobile .tooltip-close {
+/* Explicit close control for the dialog. */
+.tooltip.modal .tooltip-close {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -1229,7 +1227,7 @@ body.list-mode .card.list-tile .owned-badge {
   cursor: pointer;
 }
 
-.tooltip.mobile .tooltip-close:active {
+.tooltip.modal .tooltip-close:active {
   background: var(--surface-3);
   border-color: var(--accent);
 }
@@ -1361,6 +1359,12 @@ body.tooltip-open {
   justify-content: center;
   gap: 10px;
   margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* The cycle button shares the status row, so drop its standalone margin. */
+.tooltip-card-status .printing-cycle {
+  margin: 0;
 }
 
 /* Swipe hint under the details in the full-screen card preview. */

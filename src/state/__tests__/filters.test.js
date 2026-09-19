@@ -39,19 +39,15 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard())).toBe(false);
   });
 
-  it('matches any selected colour by default', () => {
+  it('defaults to exclusive colour matching', () => {
     applyFilters({ ...DEFAULT_FILTERS, colors: ['W', 'U'] });
 
     expect(cardMatchesFilters(makeCard({ color_identity: ['W'] }))).toBe(true);
-    expect(cardMatchesFilters(makeCard({ color_identity: ['U', 'R'] }))).toBe(true);
-    expect(cardMatchesFilters(makeCard({ color_identity: ['B'] }))).toBe(false);
-  });
-
-  it('requires every selected colour in "all" mode', () => {
-    applyFilters({ ...DEFAULT_FILTERS, colors: ['W', 'U'], colorMode: 'all' });
-
+    expect(cardMatchesFilters(makeCard({ color_identity: ['U'] }))).toBe(true);
     expect(cardMatchesFilters(makeCard({ color_identity: ['W', 'U'] }))).toBe(true);
-    expect(cardMatchesFilters(makeCard({ color_identity: ['W'] }))).toBe(false);
+    // A colour outside the selection is excluded.
+    expect(cardMatchesFilters(makeCard({ color_identity: ['U', 'R'] }))).toBe(false);
+    expect(cardMatchesFilters(makeCard({ color_identity: ['B'] }))).toBe(false);
   });
 
   it('matches exactly the selected colours in "exact" mode', () => {
@@ -140,7 +136,7 @@ describe('normalizeFilters', () => {
 
     expect(result.owned).toBe('all');
     expect(result.colors).toEqual(['W']);
-    expect(result.colorMode).toBe('any');
+    expect(result.colorMode).toBe('exclusive');
     expect(result.rarities).toEqual(['rare']);
     expect(result.set).toBe('dom');
     expect(result.priceMin).toBe(1.5);

@@ -27,10 +27,10 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   / `or`, and parentheses. An in-app help sheet documents each filter, and tests keep the docs
   and parser in sync.
 - **Click filters and sorting** — filter by colour identity, rarity, price, set and more, and
-  sort by release order (default), name, price, rarity or colour. Colour pips combine four
-  ways: **Any**, **All**, **Exact**, or **Exclusive** (selecting W+B shows W, B and WB cards).
-  Clicking the set or colour chip on any tile filters the grid to that set or identity in one
-  tap.
+  sort by release order (default), name, price, rarity or colour. Colour pips combine two
+  ways: **Exclusive** (the default — selecting W+B shows W, B and WB cards) or **Exact**
+  (only W+B). Clicking the set or colour chip on any tile filters the grid to that set or
+  colour in one tap.
 - **Year scrubber** — a draggable rail that jumps to any point in the timeline, with a readout
   that follows the page under your thumb.
 - **Statistics** — a per-set completion breakdown of your collection, with per-set milestone
@@ -43,17 +43,20 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
 - **Three tile layouts** — full artwork, text tiles, or a compact list with inline ownership
   toggles, for marking a whole page quickly.
 - **Bulk add & bulk check** — add many cards at once or check which ones you already own.
-- **“Surprise me”** — jump to a random card you are still missing.
+- **“Surprise me”** — jump to a random missing card, scroll to it and open its preview.
 - **Import & export** — CSV, [Moxfield](https://moxfield.com/),
   [Archidekt](https://archidekt.com/), MTG Arena, MTGO and plain-text formats, parsed
   header-first and tolerant of messy files. The plain-text export is one card name per line, so
   it feeds straight back into Bulk Add.
+- **Modal card preview** — clicking a card on desktop (or long-pressing on touch) opens a
+  centred preview with the full artwork, set/price, owned status and a "Next printing" control;
+  swipe or use the arrows to move between cards.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
   printings on touch, right-click on desktop, and swipe left/right in the card preview to move
   between cards. Keyboard shortcuts: `/` focuses search, `?` opens the syntax help, `j`/`k`
   (or the arrow keys once a card is focused) move between cards, and `Esc` clears the search.
   Hover-only affordances are gated behind `isHoverCapable()`.
-- **Synced preferences** — tooltip and display-mode settings follow you across devices through
+- **Synced preferences** — the display-mode setting follows you across devices through
   the `user_settings` table (signed-in collectors only; localStorage is the offline fallback).
 - **Aggressive caching** — Scryfall responses and images are cached in IndexedDB, and the
   bulk-data subset is reused on a TTL.
