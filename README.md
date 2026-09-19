@@ -69,6 +69,10 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   fallback).
 - **Aggressive caching** — Scryfall responses and images are cached in IndexedDB, and the
   bulk-data subset is reused on a TTL.
+- **Installable app** — a web app manifest and service worker let you add the site to your
+  home screen and launch it standalone, with an offline app shell. An “Install app” button
+  appears in the header whenever the browser offers it; on iOS Safari it points to
+  Share → Add to Home Screen.
 
 ---
 
@@ -152,8 +156,9 @@ npm run build        # Production build (sourcemaps enabled)
 ```
 src/
   main.js              App entry point; wires up all UI modules
+  pwa.js               Service worker registration (production only)
   api/                 Scryfall client, bulk-data loader, response cache,
-                       authenticatedFetch, share helpers
+                       authenticatedFetch, share helpers, collection merge
   auth/                Clerk setup and dark theme
   config/constants.js  Shared constants (page size, binders, Clerk key)
   state/               Module-level state objects (plain exported objects)
@@ -163,15 +168,18 @@ src/
 db/                    Drizzle schema, tables and Neon client
 netlify/
   functions/           HTTP handlers (owned-cards, toggle-card,
-                       batch-toggle-cards, share-link, user-settings)
+                       batch-toggle-cards, merge-owned, share-link,
+                       user-settings)
   utils/               Auth (JWT), shared owned-cards logic, request parsing
 migrations/            Generated Drizzle migrations (do not edit by hand)
 public/_headers        Netlify security + caching headers
+public/manifest.webmanifest + public/sw.js   PWA manifest and offline service worker
+public/icons/          Install icons (192/512 + maskable)
 scripts/               Maintenance scripts (bulk-coverage check)
 ```
 
 Tests are colocated in `__tests__/` folders next to the code, with cross-module flows in
-`src/__integration__/ownedFlow.test.js`.
+`src/__integration__/` (ownership and guest sign-in merge).
 
 ---
 
@@ -196,6 +204,12 @@ Tests are colocated in `__tests__/` folders next to the code, with cross-module 
   rebuilds the grid once loaded.
 - **Security headers** live in `public/_headers`. The CSP currently ships in
   **Report-Only** mode; promote it to enforcing once the production console is clean.
+- **Installable / offline.** `public/manifest.webmanifest` plus `public/sw.js` make the app a
+  PWA. The service worker serves navigations network-first with a cached shell fallback, and
+  hashed assets / icons cache-first, but never caches `/.netlify/functions/*`, so auth and
+  collection data stay fresh. It is registered in production only (`src/pwa.js`); the header
+  install CTA lives in `src/ui/installPrompt.js` and falls back to Add-to-Home-Screen
+  instructions on iOS Safari.
 - **TypeScript** is limited to `netlify/**/*.ts`, `db/*.ts` and `drizzle.config.ts`. The rest
   of the app is JavaScript checked by ESLint.
 

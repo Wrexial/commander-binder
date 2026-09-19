@@ -52,7 +52,10 @@ describe('setupUI', () => {
     expect(guestModeText.createGuestModeText).toHaveBeenCalledTimes(1);
     expect(appState.isViewOnlyMode).toBe(true);
     expect(signInButton.createSignInButton).not.toHaveBeenCalled();
-    expect(document.querySelector('#user-actions').children.length).toBe(1);
+    // Guest Mode indicator + the (hidden) install button.
+    const userActions = document.querySelector('#user-actions');
+    expect(userActions.children.length).toBe(2);
+    expect(userActions.querySelector('#install-button')).not.toBeNull();
     // The top bars reserve room for the fixed hamburger.
     expect(document.body.classList.contains('has-hamburger')).toBe(true);
     // Share-token guests get the Guest Mode indicator, not the sign-in welcome.

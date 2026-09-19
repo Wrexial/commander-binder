@@ -77,7 +77,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`,
-  `randomCard`, `keyboardShortcuts`),
+  `randomCard`, `keyboardShortcuts`, `installPrompt`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
@@ -153,6 +153,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   toggle.
 - `public/_headers` — Netlify security headers (report-only CSP; see the file for
   how to promote it to enforcing) and immutable caching for `/assets/*`.
+- `public/manifest.webmanifest` + `public/sw.js` — PWA install metadata and the offline
+  app-shell service worker. The worker is registered from `src/pwa.js` (production only) and
+  never caches `/.netlify/functions/*`; the header install button is `src/ui/installPrompt.js`.
 - `scripts/verify-bulk-coverage.mjs` — checks that Scryfall's bulk file covers the
   app's legendary-creature search (used by `npm run verify:bulk`).
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the

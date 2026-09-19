@@ -31,6 +31,8 @@ import { initViewportMetrics } from './utils/viewport.js';
 import { initScrollPosition } from './ui/scrollPosition.js';
 import { initYearScrubber } from './ui/yearScrubber.js';
 import { mainState } from './state/mainState.js';
+import { registerServiceWorker } from './pwa.js';
+import { initInstallPrompt, mountInstallButton } from './ui/installPrompt.js';
 
 /**
  * The card add/check dialogs and the statistics dialog are the heaviest UI
@@ -148,6 +150,10 @@ export async function setupUI() {
     setHamburgerVisible(openBtn, false);
     renderGuestWelcome(clerk, welcomeMount);
   }
+
+  // Available in every mode (signed in, local guest, or share view); it stays
+  // hidden until the browser reports the app is installable.
+  mountInstallButton(userActionsContainer);
 }
 
 /**
@@ -191,6 +197,8 @@ function watchAuthChanges(clerk) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initSidebar();
+  initInstallPrompt();
+  registerServiceWorker();
   await initClerk();
   watchAuthChanges(getClerk());
   const urlParams = new URLSearchParams(window.location.search);

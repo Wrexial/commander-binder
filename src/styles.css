@@ -385,6 +385,11 @@ body.sidebar-open {
     font-size: 0.7rem;
   }
 
+  .install-button {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+  }
+
   /* Stack the guest controls and shrink them so the header title keeps its
      room on narrow screens. The `.user-actions` prefix beats the base button
      rules further down the file, which would otherwise win on specificity. */
@@ -436,6 +441,44 @@ body.sidebar-open {
 .exit-guest-button:focus-visible {
   outline: none;
   box-shadow: var(--focus-shadow);
+}
+
+/* "Install app" header button (src/ui/installPrompt.js). Outlined in the accent
+   colour so it reads as a secondary action beside Sign In. */
+.install-button {
+  padding: 9px 14px;
+  background-color: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.12s ease;
+}
+
+.install-button:hover {
+  background-color: var(--accent);
+  color: var(--button-text);
+  transform: translateY(-1px);
+}
+
+.install-button:active {
+  transform: translateY(0);
+}
+
+.install-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+
+.install-button[hidden] {
+  display: none;
 }
 
 .guest-mode-container {
