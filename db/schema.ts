@@ -16,3 +16,4 @@ export { shareLinks } from './shareLinks';
 export { wishlistCards } from './wishlistCards';
 export { cardLists } from './cardLists';
 export { cardListItems } from './cardListItems';
+export { binders } from './binders';

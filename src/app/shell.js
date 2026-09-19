@@ -14,6 +14,7 @@ import { initCardSettings, applySettingsFromStore } from '../ui/settingsUI.js';
 import { loadCardStates, mergeLocalCollectionToAccount } from '../state/cardState.js';
 import { loadWishlistStates, mergeLocalWishlistToAccount } from '../state/wishlistState.js';
 import { loadLists, mergeLocalListsToAccount } from '../state/listsState.js';
+import { mergeLocalBindersToAccount } from '../state/bindersState.js';
 import { initClerk, getClerk } from '../auth/clerk.js';
 import { createSignInButton } from '../ui/components/SignInButton.js';
 import { createGuestModeText } from '../ui/components/GuestModeText.js';
@@ -280,6 +281,11 @@ export async function bootShell() {
           await mergeLocalListsToAccount();
         } catch (err) {
           console.error('Failed to merge the local lists:', err);
+        }
+        try {
+          await mergeLocalBindersToAccount();
+        } catch (err) {
+          console.error('Failed to merge the local binders:', err);
         }
       }
 

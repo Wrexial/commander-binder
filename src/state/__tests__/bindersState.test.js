@@ -150,6 +150,19 @@ describe('bindersState', () => {
     expect(getActiveBinder().slots['1:0:0']).toBe('page-1-card');
   });
 
+  it('refuses to rename a binder to an existing name', async () => {
+    const { loadBinders, createBinder, updateBinder, getBinders, getBinderByName } = await load();
+    await loadBinders();
+
+    const second = await createBinder({ name: 'Second' });
+    const first = getBinders().find((binder) => binder.id !== second.id);
+
+    await updateBinder(second.id, { name: first.name });
+
+    expect(getBinderByName('Second').id).toBe(second.id);
+    expect(getBinderByName(first.name).id).toBe(first.id);
+  });
+
   it('reseeds an empty binder when the last one is deleted', async () => {
     const { loadBinders, deleteBinder, getBinders } = await load();
     await loadBinders();

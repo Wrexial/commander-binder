@@ -206,18 +206,28 @@ function wireChrome() {
     const current = getActiveBinder();
     pendingMove = null;
     activePage = 0;
-    await createBinder({
+    const created = await createBinder({
       columns: current?.columns || 3,
       rows: current?.rows || 3,
       pages: current?.pages || 1,
     });
-    showToast('New binder created.', 'success');
+    if (created) showToast('New binder created.', 'success');
   });
 
-  refs.nameInput.addEventListener('change', () => {
+  refs.nameInput.addEventListener('change', async () => {
     const binder = getActiveBinder();
     if (!binder) return;
-    updateBinder(binder.id, { name: refs.nameInput.value });
+    const name = refs.nameInput.value.trim();
+    const clash = getBinders().find(
+      (item) => item.id !== binder.id && item.name.toLowerCase() === name.toLowerCase()
+    );
+    if (!name || clash) {
+      // Reject locally so the input can't drift from the stored name.
+      refs.nameInput.value = binder.name;
+      if (clash) showToast('A binder with that name already exists.', 'error');
+      return;
+    }
+    await updateBinder(binder.id, { name });
   });
 
   refs.deleteButton.addEventListener('click', async () => {

@@ -97,9 +97,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `bindersState.js` is the Binder Builder registry (many user-authored binders,
   each `{ columns, rows, pages, slots }` where a slot is `"page:row:col" ->
 printingId`). It keeps an in-memory Map as the session source of truth and
-  persists each binder through `localBinders.js` (one self-contained IndexedDB
-  record), dispatching `binders:changed` on every mutation. Binder layouts are
-  device-local for now (not synced to the account).
+  mirrors the collections/lists split: signed-in callers read/write the server
+  (`binders`/`manage-binder`/`merge-binders`), while signed-out visitors keep
+  device-local binders in `localBinders.js` (one self-contained IndexedDB
+  record) and merge them on sign-in. It dispatches `binders:changed` on every
+  mutation.
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control).
@@ -227,11 +229,13 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   `sortCards.js` defines the sort options and the pure `sortCards`/`sortMark`
   helpers, including the WUBRG colour order.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`,
-  `wishlistCards.ts`, `cardLists.ts`, `cardListItems.ts`) and DB client (`index.ts`).
+  `wishlistCards.ts`, `cardLists.ts`, `cardListItems.ts`, `binders.ts`) and DB
+  client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
   `batch-toggle-cards`, `merge-owned`, `wishlist-cards`, `toggle-wishlist`,
   `batch-toggle-wishlist`, `merge-wishlist`, `share-link`, `user-settings`,
-  `lists`, `manage-list`, `list-items`, `merge-lists`).
+  `lists`, `manage-list`, `list-items`, `merge-lists`, `binders`,
+  `manage-binder`, `merge-binders`).
 - `netlify/utils/mergeOwned.ts` — validates the `cardIds` payload for
   `merge-owned` (shape + `MAX_BATCH_SIZE`); the handler union-inserts them into
   the verified caller's account and ignores `shareToken`.
@@ -247,6 +251,12 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   read/create/update/delete/item/merge handlers and their payload validation
   (`MAX_LISTS`, name/notes caps). `readLists` takes a `shareToken` as a read
   capability too, but returns only lists marked public.
+- `netlify/utils/binderHandlers.ts` + `netlify/utils/binders.ts` — the Binder
+  Builder read/create/update/delete/merge handlers and their payload validation
+  (`MAX_BINDERS`, grid bounds, `MAX_BINDER_SLOTS`/bytes). Binders are private:
+  `readBinders` always requires a verified Clerk id (no share capability), and
+  `mergeBinders` unions guest binders by name without ever overwriting a stored
+  pocket.
 - `netlify/utils/userSettings.ts` — load/save a user's JSON settings blob for
   the `user-settings` handler, with a size cap and shape validation.
 - `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
@@ -321,7 +331,8 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   `owned_cards`/`user_settings`, `0001` adds `share_links`, `0002` adds
   `owned_cards.created_at` for the "Recent additions" log, `0003` adds
   `wishlist_cards`, `0004` adds `card_lists`/`card_list_items` for the custom
-  named lists). If the Neon database
+  named lists, `0005` adds `binders` for the Binder Builder layouts). If the Neon
+  database
   was created outside Drizzle, baseline existing migrations before
   `npm run db:migrate`, otherwise it fails with "table already exists".
 - Keep `drizzle-kit` on the 0.31+ line. `drizzle.config.ts` and the `db:*`

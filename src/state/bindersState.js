@@ -3,16 +3,27 @@
  *
  * A binder is a named grid of physical pockets: `columns × rows` slots per
  * page, `pages` pages. Every slot is addressed by a `"page:row:col"` key and
- * holds one Scryfall printing id (or nothing). Unlike the browse grid — which
- * is generated from a Scryfall search — a binder is authored by the user, so it
- * is persisted on this device in IndexedDB and edited directly.
+ * holds one Scryfall printing id (or nothing).
  *
- * The registry mirrors the local-collection/list modules: an in-memory Map is
- * the source of truth for the session and IndexedDB is best-effort storage.
- * Every mutation dispatches `binders:changed` so the editor and any badges can
- * refresh without importing this module's internals.
+ * Like the collections and custom lists, the registry mirrors a server/local
+ * split:
+ *  - signed-in callers read/write the server (`binders`/`manage-binder`/
+ *    `merge-binders` functions),
+ *  - signed-out visitors (and share-link visitors, since binders are private)
+ *    keep device-local binders in IndexedDB and merge them on sign-in.
+ *
+ * Every mutation dispatches `binders:changed` so the editor repaints without
+ * importing this module's internals.
  */
+import { mainState } from './mainState.js';
 import { getSetting } from './cardSettings.js';
+import {
+  createBinder as apiCreateBinder,
+  deleteBinder as apiDeleteBinder,
+  fetchBinders,
+  mergeBinders as apiMergeBinders,
+  updateBinder as apiUpdateBinder,
+} from '../api/binders.js';
 import {
   clearLocalBinders,
   loadLocalBinders,
@@ -34,6 +45,18 @@ const binders = new Map();
 let initialized = false;
 let activeId = null;
 
+/** Serializes server writes so responses can't land out of order. */
+let writeQueue = Promise.resolve();
+
+function enqueue(task) {
+  const run = writeQueue.then(task, task);
+  writeQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
 function announce() {
   if (typeof document !== 'undefined') {
     document.dispatchEvent(new CustomEvent('binders:changed'));
@@ -51,6 +74,11 @@ function clampInt(value, min, max, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+/** Signed-out (or share-link) visitors track binders on this device. */
+function isLocalMode() {
+  return !mainState.loggedInUserId;
 }
 
 /** `"page:row:col"` for one pocket. */
@@ -91,12 +119,64 @@ function normalizeBinder(record) {
   };
 }
 
-async function persist(binder) {
+/** The server/local record shape sent over the wire or to IndexedDB. */
+function toRecord(binder) {
+  return {
+    id: binder.id,
+    name: binder.name,
+    columns: binder.columns,
+    rows: binder.rows,
+    pages: binder.pages,
+    slots: { ...binder.slots },
+    createdAt: binder.createdAt,
+    updatedAt: binder.updatedAt,
+  };
+}
+
+function rememberActive(id) {
+  activeId = id;
+  try {
+    localStorage.setItem(ACTIVE_KEY, id);
+  } catch {
+    /* best effort */
+  }
+}
+
+/** Replace the whole registry with a fresh server snapshot. */
+function applyBinders(records) {
+  binders.clear();
+  for (const record of records || []) {
+    if (!record || typeof record.id !== 'string') continue;
+    binders.set(record.id, normalizeBinder(record));
+  }
+  initialized = true;
+  announce();
+}
+
+async function persistLocal(binder) {
   try {
     await saveLocalBinder(binder);
   } catch (err) {
     console.error('Failed to persist the binder:', err);
   }
+}
+
+/**
+ * Push a binder snapshot to the server, taking the snapshot now (so serialized
+ * writes always carry the latest state) and adopting the server's reply.
+ */
+function pushBinder(binderId) {
+  const binder = binders.get(binderId);
+  if (!binder) return Promise.resolve(null);
+  const record = toRecord(binder);
+
+  return enqueue(async () => {
+    try {
+      applyBinders(await apiUpdateBinder(binderId, record));
+    } catch (err) {
+      console.error('Failed to save the binder:', err);
+    }
+  });
 }
 
 /** Every binder, oldest first then by name. */
@@ -112,6 +192,11 @@ export function getBinder(id) {
   return binders.get(id) || null;
 }
 
+export function getBinderByName(name) {
+  const target = String(name || '').toLowerCase();
+  return getBinders().find((binder) => binder.name.toLowerCase() === target) || null;
+}
+
 export function getActiveBinderId() {
   // Fall back to the first binder when the stored selection is gone.
   if (activeId && binders.has(activeId)) return activeId;
@@ -124,12 +209,7 @@ export function getActiveBinder() {
 
 export function setActiveBinder(id) {
   if (!binders.has(id)) return;
-  activeId = id;
-  try {
-    localStorage.setItem(ACTIVE_KEY, id);
-  } catch {
-    /* best effort */
-  }
+  rememberActive(id);
   announce();
 }
 
@@ -142,20 +222,30 @@ function uniqueName(base = 'Binder') {
   return `${base} ${n}`;
 }
 
-/** Load the device's binders; seeds one from the current grid settings. */
+/** Load binders from whichever source applies; seeds one from current settings. */
 export async function loadBinders() {
-  let records;
-  try {
-    records = await loadLocalBinders();
-  } catch (err) {
-    console.error('Failed to load local binders:', err);
-    records = [];
-  }
+  if (isLocalMode()) {
+    let records;
+    try {
+      records = await loadLocalBinders();
+    } catch (err) {
+      console.error('Failed to load local binders:', err);
+      records = [];
+    }
 
-  binders.clear();
-  for (const record of records) {
-    if (!record || typeof record.id !== 'string') continue;
-    binders.set(record.id, normalizeBinder(record));
+    binders.clear();
+    for (const record of records) {
+      if (!record || typeof record.id !== 'string') continue;
+      binders.set(record.id, normalizeBinder(record));
+    }
+  } else {
+    try {
+      applyBinders(await fetchBinders());
+    } catch (err) {
+      console.error('Failed to load binders:', err);
+      binders.clear();
+      initialized = true;
+    }
   }
 
   try {
@@ -194,26 +284,38 @@ export async function createBinder({
   pages = 1,
   silent = false,
 } = {}) {
+  const nextName = uniqueName(String(name || `Binder ${binders.size + 1}`).trim() || 'Binder');
+  const dims = {
+    columns: clampInt(columns, MIN_BINDER_COLUMNS, MAX_BINDER_COLUMNS, 3),
+    rows: clampInt(rows, MIN_BINDER_ROWS, MAX_BINDER_ROWS, 3),
+    pages: clampInt(pages, 1, MAX_BINDER_PAGES, 1),
+  };
+
+  if (!isLocalMode()) {
+    let created = null;
+    try {
+      applyBinders(await apiCreateBinder({ name: nextName, ...dims, slots: {} }));
+      created = getBinderByName(nextName);
+    } catch (err) {
+      console.error('Failed to create the binder:', err);
+    }
+    if (created) rememberActive(created.id);
+    return created;
+  }
+
   const now = new Date().toISOString();
   const binder = normalizeBinder({
     id: newId(),
-    name: uniqueName(String(name || `Binder ${binders.size + 1}`).trim() || 'Binder'),
-    columns,
-    rows,
-    pages,
+    name: nextName,
+    ...dims,
     slots: {},
     createdAt: now,
     updatedAt: now,
   });
 
   binders.set(binder.id, binder);
-  activeId = binder.id;
-  try {
-    localStorage.setItem(ACTIVE_KEY, binder.id);
-  } catch {
-    /* best effort */
-  }
-  await persist(binder);
+  rememberActive(binder.id);
+  await persistLocal(binder);
   if (!silent) announce();
   return binder;
 }
@@ -225,7 +327,10 @@ export async function updateBinder(id, patch = {}) {
 
   if (patch.name != null) {
     const next = String(patch.name).trim().slice(0, 80);
-    if (next) binder.name = next;
+    const clash =
+      next &&
+      getBinders().some((item) => item.id !== id && item.name.toLowerCase() === next.toLowerCase());
+    if (next && !clash) binder.name = next;
   }
   if (patch.columns != null) {
     binder.columns = clampInt(
@@ -243,14 +348,36 @@ export async function updateBinder(id, patch = {}) {
   }
 
   binder.updatedAt = new Date().toISOString();
-  await persist(binder);
-  announce();
+
+  if (isLocalMode()) {
+    await persistLocal(binder);
+    announce();
+    return binder;
+  }
+
+  await pushBinder(id);
   return binder;
 }
 
 /** Delete a binder; a new empty one is seeded when the last is removed. */
 export async function deleteBinder(id) {
   if (!binders.has(id)) return;
+
+  if (!isLocalMode()) {
+    try {
+      applyBinders(await apiDeleteBinder(id));
+    } catch (err) {
+      console.error('Failed to delete the binder:', err);
+      return;
+    }
+    if (activeId === id) activeId = getBinders()[0]?.id || null;
+    if (binders.size === 0) {
+      await createBinder({ name: 'Binder 1', columns: 3, rows: 3, pages: 1, silent: true });
+    }
+    announce();
+    return;
+  }
+
   binders.delete(id);
   try {
     await removeLocalBinder(id);
@@ -266,15 +393,24 @@ export async function deleteBinder(id) {
   announce();
 }
 
+/** Persist a mutated binder (local write, or a serialized server push). */
+async function commit(binder, { silent = false } = {}) {
+  binder.updatedAt = new Date().toISOString();
+  if (isLocalMode()) {
+    await persistLocal(binder);
+    if (!silent) announce();
+    return binder;
+  }
+  await pushBinder(binder.id);
+  return binder;
+}
+
 /** Place a printing in a slot (replacing whatever was there). */
 export async function assignCardToSlot(binderId, key, printingId) {
   const binder = binders.get(binderId);
   if (!binder || !parseSlotKey(key) || typeof printingId !== 'string' || !printingId) return null;
   binder.slots[key] = printingId;
-  binder.updatedAt = new Date().toISOString();
-  await persist(binder);
-  announce();
-  return binder;
+  return commit(binder);
 }
 
 /** Empty one slot. */
@@ -282,10 +418,7 @@ export async function clearSlot(binderId, key) {
   const binder = binders.get(binderId);
   if (!binder || !(key in binder.slots)) return null;
   delete binder.slots[key];
-  binder.updatedAt = new Date().toISOString();
-  await persist(binder);
-  announce();
-  return binder;
+  return commit(binder);
 }
 
 /** Move a card to another slot, swapping when the target already holds one. */
@@ -302,10 +435,7 @@ export async function moveSlot(binderId, fromKey, toKey) {
   if (target) binder.slots[fromKey] = target;
   else delete binder.slots[fromKey];
 
-  binder.updatedAt = new Date().toISOString();
-  await persist(binder);
-  announce();
-  return binder;
+  return commit(binder);
 }
 
 /** Empty every slot on one page. */
@@ -323,16 +453,37 @@ export async function clearPage(binderId, page) {
   }
   if (!changed) return binder;
 
-  binder.updatedAt = new Date().toISOString();
-  await persist(binder);
-  announce();
-  return binder;
+  return commit(binder);
+}
+
+/**
+ * Upload the visitor's device-local binders into the signed-in account and
+ * clear the local copy. The server merge is an additive union by name, so a
+ * failure is safe to retry — the records stay in IndexedDB until it succeeds.
+ *
+ * @returns {Promise<boolean>} true when local binders were merged and cleared.
+ */
+export async function mergeLocalBindersToAccount() {
+  if (!mainState.loggedInUserId) return false;
+
+  const records = await loadLocalBinders();
+  if (records.length === 0) return false;
+
+  const merged = await apiMergeBinders(records.map((record) => toRecord(normalizeBinder(record))));
+  applyBinders(merged);
+  try {
+    await clearLocalBinders();
+  } catch (err) {
+    console.error('Failed to clear local binders after merge:', err);
+  }
+  return true;
 }
 
 /** Drop every binder (used by tests/manual reset). */
 export async function resetBinders() {
   binders.clear();
   activeId = null;
+  initialized = false;
   await clearLocalBinders();
   announce();
 }
