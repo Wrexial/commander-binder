@@ -314,8 +314,9 @@ export function initYearScrubber() {
       lastThumbY = y;
       thumb.style.transform = `translateY(${y}px)`;
       // Percentages in a translate resolve against the element's own size, so
-      // this centres the (taller) label on the thumb.
-      label.style.transform = `translateY(calc(${y}px - 50%))`;
+      // this centres the (taller) label on the thumb. `max(0px, …)` stops it
+      // riding above the rail (and so onto the sticky toolbar) near the top.
+      label.style.transform = `translateY(max(0px, calc(${y}px - 50%)))`;
     }
 
     const visible = state.max > 0 && state.marks.length > 0 && window.scrollY >= stickAt - 2;

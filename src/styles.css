@@ -96,6 +96,10 @@ label,
   --openbtn-size: 42px;
   --openbtn-offset: 10px;
 
+  /* The header and sticky toolbar are inset a hair past the binder edges, so
+     the binders' outlines frame them instead of lining up exactly. */
+  --chrome-inset: 6px;
+
   /* Safe-area insets (notch, rounded corners, home indicator). Non-zero only
      when the viewport meta opts in with `viewport-fit=cover`; the fallback
      keeps calc() valid on browsers without env() support. */
@@ -105,6 +109,7 @@ label,
   --safe-left: env(safe-area-inset-left, 0px);
 
   /* Z-indexes */
+  --z-index-scrubber: 11;
   --z-index-sidebar-backdrop: 1000;
   --z-index-sidebar: 1010;
   --z-index-hamburger: 1020;
@@ -199,7 +204,9 @@ body.sidebar-open {
   position: relative;
   z-index: 10;
   gap: 1.25rem;
-  width: 100%;
+  width: calc(100% - (var(--chrome-inset) * 2));
+  margin-left: auto;
+  margin-right: auto;
   flex-wrap: nowrap; /* Force horizontal */
   padding: 1.25rem 1.5rem;
   background: linear-gradient(135deg, rgba(38, 48, 67, 0.92), rgba(22, 28, 40, 0.86));
@@ -1656,6 +1663,9 @@ button.tooltip-owned-status:disabled {
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
   z-index: 10;
   margin-bottom: 1rem;
+  width: calc(100% - (var(--chrome-inset) * 2));
+  margin-left: auto;
+  margin-right: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -3593,7 +3603,9 @@ footer a:focus-visible {
   right: 5px;
   bottom: calc(20px + var(--safe-bottom));
   width: 16px;
-  z-index: 6; /* above the grid, below the sticky bars (9/10) and modals */
+  /* The readout can ride above the thumb, so the rail must sit above the
+     sticky bars (9/10) or the toolbar would clip it. */
+  z-index: var(--z-index-scrubber);
   opacity: 0;
   pointer-events: none;
   touch-action: none; /* dragging the rail must not pan the page */
