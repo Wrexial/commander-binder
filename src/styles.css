@@ -596,7 +596,8 @@ body.images-mode .section {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* User-configurable (see settings modal / `--grid-columns`); 5 is the default. */
+  grid-template-columns: repeat(var(--grid-columns, 5), 1fr);
   gap: 0.75rem 1rem;
 }
 
@@ -611,7 +612,7 @@ body.images-mode .section {
    room and drop the redundant page slot number. */
 @media (max-width: 768px) {
   body.images-mode .grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(var(--grid-columns-mobile, 3), 1fr);
     gap: 0.35rem;
   }
 
@@ -4275,6 +4276,111 @@ body.selection-mode #results {
 .tooltip-list-button:focus-visible {
   border-color: var(--accent);
   background-color: var(--button-bg-hover);
+}
+
+/* Settings modal: grouped preference rows. */
+.list-modal.settings-modal {
+  max-width: 480px;
+  height: auto;
+  max-height: 85dvh;
+}
+
+.modal-content-area.settings-content {
+  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-group-title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.settings-row:hover {
+  background-color: var(--surface-3);
+  border-color: var(--border);
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.settings-row-hint {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.settings-select {
+  flex: 0 0 auto;
+  min-width: 96px;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-select:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
+.settings-row-toggle input[type='checkbox'] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-readout {
+  margin: 0;
+  padding: 2px 10px 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.settings-reset-printings {
+  align-self: flex-start;
+  margin-top: 6px;
 }
 
 /* Manager modal: nav column + editor. */

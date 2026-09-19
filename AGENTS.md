@@ -63,7 +63,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
-- `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
+- `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
   `localCollection`, `localWishlist`, `listsState`, `localLists`, `compareState`, `selectionState`, `viewState`,
@@ -104,9 +104,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
   account via the `user-settings` function (best-effort, signed-in only).
   `cardSettings.js` holds the display mode, the price currency
-  (EUR/USD/TIX), the swipe-to-dismiss flag and the preferred-printing map; the
+  (EUR/USD/TIX), the grid dimensions (`gridColumns` x `gridRows` = cards per
+  page), the pages-per-binder capacity, the swipe-to-dismiss flag and the
+  preferred-printing map; the
   currency is read by `utils/priceFields.js` so tiles, the filter bar, search,
-  sort and statistics all agree on one unit. `preferredPrintings.js` resolves
+  sort and statistics all agree on one unit. `getCardsPerPage()`/`getPagesPerBinder()`
+  derive the live page and binder sizes from those settings, so `cardFeed.js`,
+  `layout.js`, `cards.js` and the bulk-source pager follow a change immediately.
+  `preferredPrintings.js` resolves
   the printing a tile shows: the saved pick, else the cheapest printing.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
@@ -116,7 +121,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
-  `collectionModal.js`, the add/check/export modals (the add, bulk-check, export
+  `collectionModal.js`, the settings dialog `settingsModal.js` (display mode,
+  currency, grid columns/rows, pages per binder, swipe-to-dismiss and the
+  preferred-printings reset; the sidebar's “⚙️ Settings” entry opens it), the
+  add/check/export modals (the add, bulk-check, export
   and recent-activity modals share an Owned/Wishlist picker from
   `collectionModal.js`'s `createTargetToggle` (which can also pin a "+ New list"
   action); the add and bulk-check modals append every custom list as a target,
@@ -165,7 +173,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   emit a `filter:set` event when their set/colour chip is clicked, which the bar
   applies and persists through the same commit path. `cards.js` supports three
   tile layouts (`images`, `text`, `list` — the last is a compact checklist row
-  with an inline toggle), chosen in `settingsUI.js`; `randomCard.js` powers the
+  with an inline toggle), chosen in the settings modal; `randomCard.js` powers the
   sidebar “Surprise me” jump-to-a-missing-card action (it scrolls to the card
   and dispatches `card:preview`). The card preview (`tooltip.js`) is a centred
   modal on every viewport — opened by a long press (mouse or touch, with a

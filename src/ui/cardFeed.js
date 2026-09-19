@@ -5,7 +5,7 @@
  * binder/section DOM. Keeping this here means the API layer never has to know
  * about the DOM.
  */
-import { CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
+import { getCardsPerPage, getPagesPerBinder } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { cardStore, primaryName } from '../state/cardStore.js';
 import { fetchPage, isUsingBulkSource } from '../api/scryfall.js';
@@ -140,8 +140,8 @@ async function runFetch(results, tooltip) {
         appState.nextPageUrl = data.has_more ? data.next_page : null;
         renderedSections = 1;
       } else {
-        while (appState.pageCards.length >= CARDS_PER_PAGE) {
-          renderPage(results, tooltip, appState.pageCards.splice(0, CARDS_PER_PAGE));
+        while (appState.pageCards.length >= getCardsPerPage()) {
+          renderPage(results, tooltip, appState.pageCards.splice(0, getCardsPerPage()));
           renderedSections++;
         }
 
@@ -245,7 +245,7 @@ function renderPage(results, tooltip, pageCards) {
     updateOwnedCounter();
   }
 
-  if (appState.count % (CARDS_PER_PAGE * PAGES_PER_BINDER) === 0) {
+  if (appState.count % (getCardsPerPage() * getPagesPerBinder()) === 0) {
     startNewBinder(results);
   }
 }
@@ -272,8 +272,8 @@ function renderCollection(results) {
 
   rebuilding = true;
   try {
-    for (let i = 0; i < ordered.length; i += CARDS_PER_PAGE) {
-      renderPage(results, null, ordered.slice(i, i + CARDS_PER_PAGE));
+    for (let i = 0; i < ordered.length; i += getCardsPerPage()) {
+      renderPage(results, null, ordered.slice(i, i + getCardsPerPage()));
     }
   } finally {
     rebuilding = false;
@@ -297,11 +297,20 @@ export function applySort() {
   if (results) renderCollection(results);
 }
 
+/**
+ * Re-flow the grid after a layout setting (grid size or pages-per-binder)
+ * changed. Rebuilds from the card store so sections and binder headers take on
+ * the new dimensions.
+ */
+export function refreshGridLayout() {
+  applySort();
+}
+
 function updateBinderHeader() {
   const header = appState.binder.querySelector('.binder-header');
   if (!header) return;
 
-  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+  const binderNumber = Math.floor(appState.count / (getCardsPerPage() * getPagesPerBinder())) + 1;
   const titleEl = header.querySelector('.binder-title');
   if (titleEl) {
     titleEl.textContent = `Binder ${binderNumber}`;

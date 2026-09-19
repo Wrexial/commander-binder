@@ -5,7 +5,7 @@
  * (and tested) on its own. Pagination and rendering live in
  * `src/ui/cardFeed.js`.
  */
-import { CARDS_PER_PAGE } from '../config/constants.js';
+import { getCardsPerPage } from '../state/cardSettings.js';
 import { readCache, writeCache, isFresh } from './responseCache.js';
 
 /**
@@ -43,8 +43,8 @@ export const BULK_SOURCE_SENTINEL = 'bulk:legendary-creatures';
 
 /**
  * Serve pages from an already-filtered bulk subset instead of the API. Cards
- * are returned in `CARDS_PER_PAGE` chunks, so callers can treat a chunk like an
- * API page.
+ * are returned in page-sized chunks (see `getCardsPerPage`), so callers can
+ * treat a chunk like an API page.
  * @param {object[]} cards
  * @returns {boolean} whether a source was installed
  */
@@ -53,7 +53,8 @@ export function setBulkCardSource(cards) {
 
   let offset = 0;
   bulkPager = async () => {
-    const data = cards.slice(offset, offset + CARDS_PER_PAGE);
+    const pageSize = getCardsPerPage();
+    const data = cards.slice(offset, offset + pageSize);
     offset += data.length;
     const hasMore = offset < cards.length;
     return {

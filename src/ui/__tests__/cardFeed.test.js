@@ -38,7 +38,7 @@ vi.mock('../components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-import { fetchNextPage, applySort } from '../cardFeed.js';
+import { fetchNextPage, applySort, refreshGridLayout } from '../cardFeed.js';
 import { setRequestThrottle, setBulkCardSource, clearBulkCardSource } from '../../api/scryfall.js';
 import { appState } from '../../state/appState.js';
 import { clearCache, writeCache, CACHE_TTL_MS } from '../../api/responseCache.js';
@@ -47,6 +47,7 @@ import * as cards from '../cards.js';
 import { showToast } from '../components/toast.js';
 import { cardStore } from '../../state/cardStore.js';
 import { filters, resetFilters } from '../../state/filters.js';
+import { cardSettings } from '../../state/cardSettings.js';
 
 const START_URL = 'https://api.scryfall.com/cards/search?page=1';
 const PAGE_2 =
@@ -490,5 +491,48 @@ describe('applySort', () => {
       'Alpha',
       'Beta',
     ]);
+  });
+
+  it('paginates by the configured grid size when the layout changes', () => {
+    const results = document.getElementById('results');
+
+    layout.startNewBinder.mockImplementation(() => {
+      const binder = document.createElement('div');
+      binder.className = 'binder';
+      binder.totalCards = 0;
+      binder.ownedCards = 0;
+      appState.binder = binder;
+      results.appendChild(binder);
+    });
+    layout.startNewSection.mockImplementation(() => {
+      const section = document.createElement('div');
+      section.className = 'section';
+      appState.section = section;
+      appState.grid = document.createElement('div');
+      section.appendChild(appState.grid);
+      appState.binder.appendChild(section);
+    });
+
+    // 5 columns x 2 rows = 10 cards per page; 25 cards make 3 sections.
+    cardSettings.gridColumns = 5;
+    cardSettings.gridRows = 2;
+    cardStore.getAll.mockReturnValue(
+      Array.from({ length: 25 }, (_, i) => ({
+        id: `c${i}`,
+        name: `Card ${i}`,
+        set: 'tst',
+        set_name: 'Test Set',
+        released_at: '2024-01-01',
+      }))
+    );
+
+    refreshGridLayout();
+
+    expect(cards.createCardElement).toHaveBeenCalledTimes(25);
+    expect(layout.startNewSection).toHaveBeenCalledTimes(3);
+
+    // Restore the defaults for the rest of the suite.
+    cardSettings.gridColumns = 5;
+    cardSettings.gridRows = 4;
   });
 });

@@ -1,3 +1,9 @@
+import {
+  DEFAULT_GRID_COLUMNS,
+  DEFAULT_GRID_ROWS,
+  DEFAULT_PAGES_PER_BINDER,
+} from '../config/constants.js';
+
 /**
  * Cap on remembered preferred printings. The list rides the 8 KB account
  * settings blob (`netlify/utils/userSettings.ts`) and printing ids are ~36
@@ -5,6 +11,15 @@
  * covering far more cards than a collector typically picks art for.
  */
 export const MAX_PREFERRED_PRINTINGS = 150;
+
+/** Grid dimensions stay in a range that keeps a tile legible on every viewport. */
+export const MIN_GRID_COLUMNS = 3;
+export const MAX_GRID_COLUMNS = 8;
+export const MIN_GRID_ROWS = 2;
+export const MAX_GRID_ROWS = 8;
+/** Binder capacity (pages) is a positive count; the cap just rejects junk data. */
+export const MIN_PAGES_PER_BINDER = 1;
+export const MAX_PAGES_PER_BINDER = 200;
 
 const DEFAULT_SETTINGS = {
   // displayMode: 'text' | 'images' | 'list' — names, artwork, or a compact
@@ -15,16 +30,28 @@ const DEFAULT_SETTINGS = {
   currency: 'eur',
   // Swipe any direction on a toast (e.g. the undo prompt) to dismiss it early.
   swipeDismissToast: true,
+  // Card-grid dimensions. One page (a section) shows `gridColumns` x
+  // `gridRows` cards.
+  gridColumns: DEFAULT_GRID_COLUMNS,
+  gridRows: DEFAULT_GRID_ROWS,
+  // How many pages make up one binder before a new binder starts.
+  pagesPerBinder: DEFAULT_PAGES_PER_BINDER,
   // Card name -> chosen printing id. One entry per card, so cycling a name a
   // second time replaces the first pick rather than accumulating printings.
   preferredPrintings: {},
 };
+
+const isIntegerInRange = (value, min, max) =>
+  Number.isInteger(value) && value >= min && value <= max;
 
 /** Accepted values per setting, so persisted/synced data can't inject junk. */
 const SETTING_VALIDATORS = {
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
   currency: (value) => value === 'eur' || value === 'usd' || value === 'tix',
   swipeDismissToast: (value) => typeof value === 'boolean',
+  gridColumns: (value) => isIntegerInRange(value, MIN_GRID_COLUMNS, MAX_GRID_COLUMNS),
+  gridRows: (value) => isIntegerInRange(value, MIN_GRID_ROWS, MAX_GRID_ROWS),
+  pagesPerBinder: (value) => isIntegerInRange(value, MIN_PAGES_PER_BINDER, MAX_PAGES_PER_BINDER),
   preferredPrintings: (value) =>
     value !== null &&
     typeof value === 'object' &&
@@ -69,6 +96,18 @@ export function onSettingsChange(listener) {
 
 export function getSetting(key) {
   return cardSettings[key];
+}
+
+/** Cards shown on one grid page (section): columns x rows. */
+export function getCardsPerPage() {
+  const columns = Number(getSetting('gridColumns')) || DEFAULT_GRID_COLUMNS;
+  const rows = Number(getSetting('gridRows')) || DEFAULT_GRID_ROWS;
+  return columns * rows;
+}
+
+/** Pages in one binder before the next binder begins. */
+export function getPagesPerBinder() {
+  return Number(getSetting('pagesPerBinder')) || DEFAULT_PAGES_PER_BINDER;
 }
 
 export function setSetting(key, value) {

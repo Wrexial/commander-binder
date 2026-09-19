@@ -8,6 +8,7 @@ const SECTIONS = [
   { id: 'collection', title: 'Collection' },
   { id: 'browse', title: 'Browse' },
   { id: 'sharing', title: 'Sharing' },
+  { id: 'settings', title: 'Settings' },
 ];
 
 /** Cached section bodies, so repeated `addButtonToSidebar` calls append. */

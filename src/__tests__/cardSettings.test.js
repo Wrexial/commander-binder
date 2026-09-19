@@ -54,6 +54,9 @@ describe('cardSettings', () => {
         displayMode: 'list',
         currency: 'eur',
         swipeDismissToast: true,
+        gridColumns: 5,
+        gridRows: 4,
+        pagesPerBinder: 64,
         preferredPrintings: {},
       })
     );
@@ -71,6 +74,9 @@ describe('cardSettings', () => {
         displayMode: 'list',
         currency: 'eur',
         swipeDismissToast: true,
+        gridColumns: 5,
+        gridRows: 4,
+        pagesPerBinder: 64,
         preferredPrintings: {},
       })
     );
@@ -118,6 +124,41 @@ describe('cardSettings', () => {
     // An invalid value is ignored, so nothing changes.
     expect(applySettings({ displayMode: 'nope' })).toBe(false);
     expect(cardSettings.displayMode).toBe('list');
+  });
+
+  it('accepts only in-range integer grid and binder settings', async () => {
+    const { cardSettings, applySettings } = await import('../state/cardSettings.js');
+
+    expect(applySettings({ gridColumns: 6, gridRows: 5, pagesPerBinder: 32 })).toBe(true);
+    expect(cardSettings.gridColumns).toBe(6);
+    expect(cardSettings.gridRows).toBe(5);
+    expect(cardSettings.pagesPerBinder).toBe(32);
+
+    // Out-of-range, non-integer and non-numeric values are all rejected.
+    expect(applySettings({ gridColumns: 1 })).toBe(false);
+    expect(applySettings({ gridColumns: 99 })).toBe(false);
+    expect(applySettings({ gridColumns: 4.5 })).toBe(false);
+    expect(applySettings({ gridRows: 0 })).toBe(false);
+    expect(applySettings({ gridRows: '4' })).toBe(false);
+    expect(applySettings({ pagesPerBinder: 0 })).toBe(false);
+    expect(cardSettings.gridColumns).toBe(6);
+    expect(cardSettings.gridRows).toBe(5);
+    expect(cardSettings.pagesPerBinder).toBe(32);
+  });
+
+  it('exposes cards-per-page and pages-per-binder derived from the settings', async () => {
+    const { cardSettings, getCardsPerPage, getPagesPerBinder } =
+      await import('../state/cardSettings.js');
+
+    // Defaults: 5 columns x 4 rows, 64 pages to a binder.
+    expect(getCardsPerPage()).toBe(20);
+    expect(getPagesPerBinder()).toBe(64);
+
+    cardSettings.gridColumns = 6;
+    cardSettings.gridRows = 3;
+    cardSettings.pagesPerBinder = 16;
+    expect(getCardsPerPage()).toBe(18);
+    expect(getPagesPerBinder()).toBe(16);
   });
 
   it('notifies subscribers on setSetting but never echoes an applied patch', async () => {

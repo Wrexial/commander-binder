@@ -49,6 +49,8 @@ const loadBulkCheckModal = async () =>
   (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
 const loadListsModal = async () =>
   (await import('./ui/components/listsModal.js')).createListsModal();
+const loadSettingsModal = async () =>
+  (await import('./ui/components/settingsModal.js')).createSettingsModal();
 
 async function showStatistics() {
   const { showStatisticsModal } = await import('./ui/statistics.js');
@@ -187,6 +189,10 @@ export async function setupUI() {
   // Available in every mode (signed in, local guest, or share view); it stays
   // hidden until the browser reports the app is installable.
   mountInstallButton(userActionsContainer);
+
+  // Settings are per-device/per-account preferences, so the entry point is the
+  // same in every mode.
+  addButtonToSidebar('⚙️ Settings', () => showModal(loadSettingsModal), 'settings', 10);
 }
 
 /**
@@ -240,6 +246,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const results = document.getElementById('results');
 
   await setupUI();
+  // Apply the stored grid dimensions before the first cards render.
+  initCardSettings();
   initSettingsSync();
   initScrollPosition();
 
@@ -294,7 +302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   createBulkCheckButton(() => showModal(loadBulkCheckModal));
   createExportButton();
 
-  initCardSettings();
   initViewportMetrics();
   initSearch();
   initFilterBar({ onChange: refreshCardFilter, onSortChange: applySort });

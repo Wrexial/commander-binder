@@ -21,6 +21,7 @@ vi.mock('../state/cardSettings.js', () => ({
     showTooltip: true,
     displayMode: 'text',
   },
+  getCardsPerPage: () => 20,
 }));
 
 vi.mock('../state/appState.js', () => ({

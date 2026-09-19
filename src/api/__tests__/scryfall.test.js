@@ -8,7 +8,7 @@ import {
   BULK_SOURCE_SENTINEL,
 } from '../scryfall.js';
 import { clearCache } from '../responseCache.js';
-import { CARDS_PER_PAGE } from '../../config/constants.js';
+import { getCardsPerPage } from '../../state/cardSettings.js';
 
 const PAGE_URL = 'https://example.com/cards/search?page=1';
 
@@ -42,11 +42,12 @@ describe('fetchPage', () => {
   });
 
   it('chunks an installed bulk source and marks more pages with the sentinel', async () => {
-    expect(setBulkCardSource(makeCards(CARDS_PER_PAGE + 3))).toBe(true);
+    const perPage = getCardsPerPage();
+    expect(setBulkCardSource(makeCards(perPage + 3))).toBe(true);
     expect(isUsingBulkSource()).toBe(true);
 
     const first = await fetchPage('ignored');
-    expect(first.data).toHaveLength(CARDS_PER_PAGE);
+    expect(first.data).toHaveLength(perPage);
     expect(first.has_more).toBe(true);
     expect(first.next_page).toBe(BULK_SOURCE_SENTINEL);
 

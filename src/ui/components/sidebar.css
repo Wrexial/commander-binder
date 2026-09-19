@@ -208,50 +208,6 @@ body.sidebar-open #sidebar-backdrop {
   flex-direction: column;
 }
 
-.sidebar-settings-container {
-  margin-top: auto;
-  padding: 14px 0 0;
-  border-top: 1px solid var(--border);
-}
-
-.sidebar-settings-container::before {
-  content: 'Settings';
-  display: block;
-  padding: 0 26px 6px;
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
-  opacity: 0.8;
-}
-
-.sidebar-settings-container label {
-  display: flex;
-  align-items: center;
-  padding: 10px 26px;
-  font-size: 0.92rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    color 0.18s ease,
-    background-color 0.18s ease;
-}
-
-.sidebar-settings-container label:hover {
-  color: var(--text);
-  background-color: var(--surface-3);
-}
-
-.sidebar-settings-container input[type='checkbox'] {
-  margin-right: 12px;
-  accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
 /* Touch screens latch :hover on the last-tapped item, which leaves sidebar
    links stuck in their shifted state. */
 @media (hover: none) {

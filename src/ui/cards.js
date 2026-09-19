@@ -1,11 +1,10 @@
 // cards.js
-import { cardSettings } from '../state/cardSettings.js';
+import { cardSettings, getCardsPerPage } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned } from '../state/cardState.js';
 import { getCardBorderStyle, getCardBackground } from '../utils/colors.js';
 import { getCardImageUrls } from '../utils/cardImages.js';
 import { getDisplayedPrice, formatPrice } from '../utils/prices.js';
-import { CARDS_PER_PAGE } from '../config/constants.js';
 import { cardStore } from '../state/cardStore.js';
 import { getPreferredPrinting, resolveDisplayPrinting } from '../state/preferredPrintings.js';
 import { isCardWanted } from '../state/wishlistState.js';
@@ -427,7 +426,7 @@ function populateListCard(div, card, cardIndex) {
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
-  slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
+  slotNumberEl.textContent = `#${(cardIndex % getCardsPerPage()) + 1}`;
   div.appendChild(slotNumberEl);
 
   const nameEl = document.createElement('span');
@@ -494,7 +493,7 @@ function populateCard(div, card, cardIndex) {
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
-  slotNumberEl.textContent = `#${(cardIndex % CARDS_PER_PAGE) + 1}`;
+  slotNumberEl.textContent = `#${(cardIndex % getCardsPerPage()) + 1}`;
   slotNumberEl.style.display = 'block';
   div.appendChild(slotNumberEl);
 

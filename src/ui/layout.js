@@ -1,4 +1,5 @@
-import { binderColors, CARDS_PER_PAGE, PAGES_PER_BINDER } from '../config/constants.js';
+import { binderColors } from '../config/constants.js';
+import { getCardsPerPage, getPagesPerBinder } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { positionTooltip } from './tooltip.js';
 import { isHoverCapable } from '../utils/pointer.js';
@@ -224,7 +225,7 @@ export function createCompareButton() {
 }
 
 export function startNewBinder(results) {
-  const binderNumber = Math.floor(appState.count / (CARDS_PER_PAGE * PAGES_PER_BINDER)) + 1;
+  const binderNumber = Math.floor(appState.count / (getCardsPerPage() * getPagesPerBinder())) + 1;
 
   const newBinder = document.createElement('div');
   newBinder.className = 'binder';
