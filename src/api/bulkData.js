@@ -17,6 +17,7 @@
  */
 
 import { createStore } from '../utils/idb.js';
+import { setCardCatalog } from '../state/cardCatalog.js';
 
 const BULK_INDEX_URL = 'https://api.scryfall.com/bulk-data';
 
@@ -49,7 +50,9 @@ export const SUBSET_TTL_MS = 6 * 60 * 60 * 1000;
  */
 const DEFAULT_BULK_TYPE = 'default_cards';
 
-const LEGENDARY_CREATURES_KEY = 'legendary-creatures';
+// Bump the version suffix whenever the cached subset shape changes (v2 added
+// the all-cards name catalog) so stale records are rebuilt instead of reused.
+const LEGENDARY_CREATURES_KEY = 'legendary-creatures-v2';
 
 /** @type {{ts: number, entries: Map<string, object>}|null} */
 let indexCache = null;
@@ -235,7 +238,7 @@ export async function* readJsonlLines(response) {
  *
  * @param {string} type Bulk type, e.g. `default_cards`.
  * @param {(card: object) => boolean} predicate
- * @param {{entry?: object, onProgress?: (received: number) => void}} [options]
+ * @param {{entry?: object, onProgress?: (received: number) => void, onCard?: (card: object) => void}} [options]
  * @returns {Promise<{updatedAt: string, cards: object[]}>}
  */
 export async function downloadFilteredBulkCards(type, predicate, options = {}) {
@@ -261,6 +264,9 @@ export async function downloadFilteredBulkCards(type, predicate, options = {}) {
     } catch {
       continue; // skip a malformed line rather than aborting the whole file
     }
+    // Every parsed card is offered to the caller (used to build the all-cards
+    // name catalog for free while the same stream runs).
+    options.onCard?.(card);
     if (predicate(card)) cards.push(card);
   }
 
@@ -301,13 +307,23 @@ export function verifyBulkCoverage(
   };
 }
 
+/** Publish a subset's all-cards name catalog for the picker/compare tools. */
+function publishCardCatalog(subset) {
+  if (!subset) return;
+  setCardCatalog({ cardNames: subset.cardNames, cardNameById: subset.cardNameById });
+}
+
 /**
  * Return every paper legendary-creature printing, sorted by release date to
  * match the app's `order=released&dir=asc` view. Cached in IndexedDB and
  * reused for {@link SUBSET_TTL_MS} before Scryfall's index is re-checked.
  *
+ * The same stream also builds the all-cards name catalog (`cardNames` /
+ * `cardNameById`) for free, so the Binder Builder picker and the compare tools
+ * have every card name without downloading anything extra.
+ *
  * @param {{type?: string, force?: boolean}} [options]
- * @returns {Promise<{updatedAt: string, type: string, fetchedAt: number, cards: object[]}>}
+ * @returns {Promise<{updatedAt: string, type: string, fetchedAt: number, cards: object[], cardNames?: string[], cardNameById?: object}>}
  */
 export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = false } = {}) {
   const cacheKey = `${type}:${LEGENDARY_CREATURES_KEY}`;
@@ -321,6 +337,7 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
     Array.isArray(cached.cards) &&
     Date.now() - (cached.fetchedAt || 0) < SUBSET_TTL_MS
   ) {
+    publishCardCatalog(cached);
     return cached;
   }
 
@@ -331,6 +348,7 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
     // Offline or rate-limited index: a stale subset beats no cards at all.
     if (cached && Array.isArray(cached.cards)) {
       console.warn('Scryfall bulk index unavailable; using cached bulk data.', err);
+      publishCardCatalog(cached);
       return cached;
     }
     throw err;
@@ -340,16 +358,36 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
     // Unchanged upstream: extend the freshness window without re-downloading.
     const refreshed = { ...cached, fetchedAt: Date.now() };
     await writeSubset(cacheKey, refreshed);
+    publishCardCatalog(refreshed);
     return refreshed;
   }
 
+  const cardNames = new Set();
+  const cardNameById = {};
   const { updatedAt, cards } = await downloadFilteredBulkCards(type, isPlayableLegendaryCreature, {
     entry,
+    // Every card in the file contributes its front-face name, not just the
+    // legendary creatures we keep below.
+    onCard: (card) => {
+      if (!card || typeof card.name !== 'string' || !card.name) return;
+      const front = card.name.split(' // ')[0];
+      if (!front) return;
+      cardNames.add(front);
+      if (typeof card.id === 'string' && card.id) cardNameById[card.id] = front;
+    },
   });
   cards.sort((a, b) => String(a.released_at || '').localeCompare(String(b.released_at || '')));
 
-  const subset = { updatedAt, type, fetchedAt: Date.now(), cards };
+  const subset = {
+    updatedAt,
+    type,
+    fetchedAt: Date.now(),
+    cards,
+    cardNames: [...cardNames].sort((a, b) => a.localeCompare(b)),
+    cardNameById,
+  };
   await writeSubset(cacheKey, subset);
+  publishCardCatalog(subset);
   return subset;
 }
 

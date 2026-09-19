@@ -32,10 +32,12 @@ vi.mock('../../../utils/prices.js', () => ({
 
 import { createCardPickerModal, rankCardNames } from '../cardPickerModal.js';
 import { autocompleteCardNames, loadPrintingsForName } from '../../../api/cardSearch.js';
+import { resetCardCatalog, setCardCatalog } from '../../../state/cardCatalog.js';
 
 beforeEach(() => {
   document.body.innerHTML = '';
   vi.clearAllMocks();
+  resetCardCatalog();
 });
 
 afterEach(() => {
@@ -80,6 +82,20 @@ describe('cardPickerModal', () => {
     expect(autocompleteCardNames).toHaveBeenCalledWith('sr');
     const names = [...document.querySelectorAll('.card-picker-name')].map((el) => el.textContent);
     expect(names).toContain('Atraxa, Praetors Voice');
+  });
+
+  it('uses the all-cards catalog without hitting the API once it is loaded', () => {
+    setCardCatalog({ cardNames: ['Sol Ring', 'Solitude'], cardNameById: {} });
+    const picker = createCardPickerModal({ onPick: vi.fn() });
+    picker.show();
+
+    const input = document.querySelector('.card-picker-search');
+    input.value = 'sol';
+    input.dispatchEvent(new Event('input'));
+
+    const names = [...document.querySelectorAll('.card-picker-name')].map((el) => el.textContent);
+    expect(names).toEqual(['Sol Ring', 'Solitude']);
+    expect(autocompleteCardNames).not.toHaveBeenCalled();
   });
 
   it('picks an already-loaded card without fetching its printings', async () => {

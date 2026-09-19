@@ -11,6 +11,7 @@
  */
 import { cardStore } from '../../state/cardStore.js';
 import { resolveDisplayPrinting } from '../../state/preferredPrintings.js';
+import { isCardCatalogLoaded, rankCatalogNames } from '../../state/cardCatalog.js';
 import {
   autocompleteCardNames,
   ensurePrintingsLoaded,
@@ -104,6 +105,10 @@ export function createCardPickerModal({ title = 'Add a card', onPick, onRemove }
 
   function localNames(query) {
     if (query.trim().length < 2) return [];
+    // Prefer the all-cards catalog (every name, no network); fall back to the
+    // cards already loaded in the store while the catalog is still streaming.
+    const fromCatalog = rankCatalogNames(query, MAX_RESULTS);
+    if (fromCatalog.length > 0) return fromCatalog;
     return rankCardNames(cardStore.getAll(), query).map((card) => card.name);
   }
 
@@ -197,7 +202,9 @@ export function createCardPickerModal({ title = 'Add a card', onPick, onRemove }
     if (local.length > 0) renderRows(local);
     else renderMessage('Searching…');
 
-    runLiveSearch(query, token);
+    // Once the all-cards catalog is loaded it can answer every query itself,
+    // so only hit the network while it is still unavailable.
+    if (!isCardCatalogLoaded()) runLiveSearch(query, token);
   });
 
   function show({ title: nextTitle, showRemove = false } = {}) {

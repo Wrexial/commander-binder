@@ -1,5 +1,6 @@
 import { getOwnedCardIds } from '../../state/cardState.js';
 import { addToViewerWishlist, loadViewerCollection } from '../../state/compareState.js';
+import { resolveCatalogName } from '../../state/cardCatalog.js';
 import { cardStore, primaryName } from '../../state/cardStore.js';
 import { getListCardIds } from '../../state/listsState.js';
 import { mainState } from '../../state/mainState.js';
@@ -11,12 +12,14 @@ import { showToast } from './toast.js';
 
 /**
  * A comparison key for a printing id: the card's name when the printing is
- * loaded (so different printings of one card count once), otherwise the raw id
- * so an unloaded card never silently disappears from the diff.
+ * loaded (so different printings of one card count once), else the all-cards
+ * catalog name, otherwise the raw id so an unloaded card never silently
+ * disappears from the diff.
  */
 function keyFor(id) {
   const card = cardStore.getByPrintingId(id);
-  return card ? primaryName(card) : id;
+  if (card) return primaryName(card);
+  return resolveCatalogName(id) || id;
 }
 
 /** A display label for a comparison key. */
@@ -24,7 +27,8 @@ function labelFor(key) {
   const byId = cardStore.getByPrintingId(key);
   if (byId) return byId.name;
   const oldest = cardStore.getOldestPrinting(key);
-  return oldest ? oldest.name : key;
+  if (oldest) return oldest.name;
+  return resolveCatalogName(key) || key;
 }
 
 function sortedLabels(keys) {

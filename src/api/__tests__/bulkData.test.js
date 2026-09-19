@@ -11,6 +11,7 @@ import {
   clearBulkCache,
   SUBSET_TTL_MS,
 } from '../bulkData.js';
+import { getCatalogNames, isCardCatalogLoaded, resetCardCatalog } from '../../state/cardCatalog.js';
 
 function makeCard(overrides = {}) {
   return {
@@ -61,6 +62,7 @@ function mockResponse({
 describe('bulkData', () => {
   beforeEach(async () => {
     await clearBulkCache();
+    resetCardCatalog();
     global.fetch = vi.fn();
   });
 
@@ -143,6 +145,17 @@ describe('bulkData', () => {
 
     expect(subset.cards.map((c) => c.name)).toEqual(['Old Legend', 'New Legend']);
     expect(subset.updatedAt).toBe(entry.updated_at);
+
+    // The same stream builds a catalog of *every* card name, legendary or not.
+    expect(subset.cardNames).toEqual([
+      'Digital Legend',
+      'Mono Creature',
+      'New Legend',
+      'Old Legend',
+    ]);
+    expect(subset.cardNameById['Mono Creature']).toBe('Mono Creature');
+    expect(isCardCatalogLoaded()).toBe(true);
+    expect(getCatalogNames()).toContain('Digital Legend');
 
     const downloadCalls = global.fetch.mock.calls.filter(([u]) =>
       String(u).includes('cards.jsonl.gz')

@@ -25,6 +25,7 @@ import { getListCardIds } from '../../../state/listsState.js';
 import { mainState } from '../../../state/mainState.js';
 import { setCardsWanted } from '../../../state/wishlistState.js';
 import { cardStore } from '../../../state/cardStore.js';
+import { resetCardCatalog, setCardCatalog } from '../../../state/cardCatalog.js';
 import { showToast } from '../toast.js';
 
 function card(id, name) {
@@ -47,6 +48,7 @@ beforeEach(() => {
 afterEach(() => {
   document.body.innerHTML = '';
   cardStore.clear();
+  resetCardCatalog();
 });
 
 describe('showCompareModal', () => {
@@ -66,6 +68,17 @@ describe('showCompareModal', () => {
     expect(rows).toContain('Only They Have');
     expect(rows).toContain('Only I Have');
     expect(rows).not.toContain('Both Have');
+  });
+
+  it('labels collection ids that are not loaded via the all-cards catalog', async () => {
+    getOwnedCardIds.mockReturnValue(new Set(['ghost', 'b1']));
+    loadViewerCollection.mockResolvedValue(new Set(['b1']));
+    setCardCatalog({ cardNames: ['Ghost Card'], cardNameById: { ghost: 'Ghost Card' } });
+
+    await showCompareModal();
+
+    const rows = [...document.querySelectorAll('.bulk-row')].map((el) => el.textContent);
+    expect(rows).toContain('Ghost Card');
   });
 
   it('reports when the collections are identical', async () => {

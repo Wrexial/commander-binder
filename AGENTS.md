@@ -78,13 +78,19 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   create/update/delete, item add/remove and guest merge). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `fetchCardsByIds` (the batched collection endpoint),
-  `setRequestThrottle`, and the bulk-source controls. `cardSearch.js` is the
+  `setRequestThrottle`, and the bulk-source controls. `bulkData.js` streams the
+  Scryfall `default_cards` file once and, in the same pass, keeps the legendary
+  subset _and_ builds the all-cards name catalog (`state/cardCatalog.js`) — so
+  every card name is available for the picker and compare tools with no extra
+  download. The cached subset is versioned, so a shape change forces one rebuild.
+  `cardSearch.js` is the
   Binder Builder's all-cards layer: autocomplete, exact-name printing lists and
   id hydration (added to `cardStore`), all through the same cache/rate limiter.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
+  `cardCatalog`,
   `localCollection`, `localWishlist`, `listsState`, `localLists`, `bindersState`,
   `localBinders`, `compareState`, `selectionState`, `viewState`,
   `onboarding`,
@@ -174,8 +180,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   tiles so ownership toggles and the preview keep working). A share-link view
   renders it read-only: `canEditBinders()` hides the toolbar edits, the pocket
   controls and empty-slot adders) and its card picker `cardPickerModal.js`
-  (all-cards search: local matches render instantly, Scryfall autocomplete
-  results merge in, and picking loads the name's printings into `cardStore`),
+  (all-cards search: the `cardCatalog` name list answers instantly with no
+  network, and only while it is still loading does the picker fall back to
+  Scryfall autocomplete; picking loads the name's printings into `cardStore`),
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
