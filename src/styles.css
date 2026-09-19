@@ -1261,11 +1261,6 @@ body.tooltip-open {
   max-height: 80dvh;
   width: auto;
   display: block;
-  transition: transform 0.15s ease-out;
-}
-
-.tooltip img:hover {
-  transform: scale(1.03);
 }
 
 .tooltip .loading {
