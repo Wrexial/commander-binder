@@ -1,5 +1,7 @@
 import { getSetting, setSetting } from '../state/cardSettings.js';
+import { resetPreferredPrintings } from '../state/preferredPrintings.js';
 import { applyPreferredPrintings, updateCardStyles, applyDisplayMode } from './cards.js';
+import { showToast } from './components/toast.js';
 
 /** Tile layouts offered by the display-mode picker, in display order. */
 const DISPLAY_MODE_OPTIONS = [
@@ -72,6 +74,25 @@ function handleDisplayModeChange(value) {
   applyDisplayMode();
 }
 
+/**
+ * A button that forgets every remembered printing and falls the grid back to
+ * each card's base printing. Without it the pin has no escape hatch.
+ *
+ * @returns {{el: HTMLButtonElement}}
+ */
+function createResetPrintingsButton() {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'sidebar-setting sidebar-reset-printings';
+  button.textContent = 'Reset preferred printings';
+  button.addEventListener('click', () => {
+    resetPreferredPrintings();
+    applyPreferredPrintings();
+    showToast('Preferred printings cleared.', 'success');
+  });
+  return { el: button };
+}
+
 /** Re-read the stored settings into the controls and re-apply them to the page. */
 function syncControls() {
   const modeSelect = document.querySelector('[data-setting="displayMode"]');
@@ -107,8 +128,9 @@ export function initCardSettings() {
     setting: 'swipeDismissToast',
     label: ' Swipe to dismiss alerts',
   });
+  const resetPrintings = createResetPrintingsButton();
 
-  settingsContainer.append(displayModePicker.el, swipeToggle.el);
+  settingsContainer.append(displayModePicker.el, swipeToggle.el, resetPrintings.el);
   sidebar.appendChild(settingsContainer);
 
   // Apply the stored settings to the page on load.

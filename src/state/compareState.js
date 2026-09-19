@@ -1,6 +1,7 @@
 import { authenticatedFetch } from '../api/authenticatedFetch.js';
 import { getClerk } from '../auth/clerk.js';
 import { loadLocalCollection } from './localCollection.js';
+import { addLocalWishlistCard } from './localWishlist.js';
 
 /**
  * The signed-in visitor's own collection, loaded separately from the share
@@ -60,4 +61,27 @@ export async function loadViewerCollection() {
 /** The last loaded viewer collection ids. */
 export function getViewerCollectionIds() {
   return viewerIds;
+}
+
+/**
+ * Add printing ids to the viewer's *own* wishlist. This is deliberately
+ * separate from `wishlistState`, which in share mode represents the owner, so
+ * comparing never mutates the displayed share. Signed-in viewers write to the
+ * account; guests mirror the pick to their device-local wishlist.
+ *
+ * @param {string[]} ids
+ */
+export async function addToViewerWishlist(ids) {
+  if (ids.length === 0) return;
+
+  if (isSignedIn()) {
+    const res = await authenticatedFetch('/.netlify/functions/batch-toggle-wishlist', {
+      method: 'POST',
+      body: JSON.stringify({ cardIds: ids, isOwned: true }),
+    });
+    if (!res.ok) throw new Error(`Failed to add to the wishlist (${res.status})`);
+    return;
+  }
+
+  await Promise.all(ids.map((id) => addLocalWishlistCard(id)));
 }

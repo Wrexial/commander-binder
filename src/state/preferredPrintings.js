@@ -69,3 +69,12 @@ export function rememberPreferredPrinting(card) {
   }
   return true;
 }
+
+/** Forget every saved printing preference. */
+export function resetPreferredPrintings() {
+  try {
+    setSetting('preferredPrintings', {});
+  } catch (err) {
+    console.error('Failed to clear the preferred printings:', err);
+  }
+}

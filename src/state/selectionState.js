@@ -58,6 +58,13 @@ export function toggleSelection(card) {
   notify();
 }
 
+/** Replace the whole selection with `cards` (one entry per card name). */
+export function setSelection(cards) {
+  selected.clear();
+  for (const card of cards) selected.set(primaryName(card), card);
+  notify();
+}
+
 export function clearSelection() {
   if (selected.size === 0) return;
   selected.clear();

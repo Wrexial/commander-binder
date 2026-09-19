@@ -1,22 +1,29 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../state/cardState.js', () => ({
+  isCardOwned: vi.fn(() => false),
   setCardsOwned: vi.fn(() => Promise.resolve()),
 }));
 vi.mock('../../state/wishlistState.js', () => ({
+  isCardWanted: vi.fn(() => false),
   setCardsWanted: vi.fn(() => Promise.resolve()),
 }));
 vi.mock('../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../components/ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
-vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
+vi.mock('../components/toast.js', () => ({ showToast: vi.fn(), showUndo: vi.fn() }));
 
 import { initBulkEdit, toggleSelectionMode } from '../bulkEdit.js';
 import { updateAllCardStates } from '../cards.js';
-import { setCardsOwned } from '../../state/cardState.js';
+import { isCardOwned, setCardsOwned } from '../../state/cardState.js';
 import { setCardsWanted } from '../../state/wishlistState.js';
-import { setSelectionMode, toggleSelection } from '../../state/selectionState.js';
-import { showToast } from '../components/toast.js';
+import {
+  getSelectedCount,
+  isSelectionMode,
+  setSelectionMode,
+  toggleSelection,
+} from '../../state/selectionState.js';
+import { showToast, showUndo } from '../components/toast.js';
 
 const bar = () => document.querySelector('.bulk-edit-bar');
 const action = (name) => document.querySelector(`button[data-action="${name}"]`);
@@ -68,7 +75,7 @@ describe('bulkEdit', () => {
     await Promise.resolve();
 
     expect(setCardsOwned).toHaveBeenCalledWith([{ id: 'a', name: 'Alpha' }], true);
-    expect(showToast).toHaveBeenCalledWith('1 card updated.', 'success');
+    expect(showUndo).toHaveBeenCalledWith('1 card updated', expect.any(Function));
   });
 
   it('adds the selection to the wishlist', async () => {
@@ -119,5 +126,73 @@ describe('bulkEdit', () => {
     action('done').click();
 
     expect(updateAllCardStates).toHaveBeenCalled();
+  });
+
+  /** Build a #results grid of tiles; hidden tiles get display:none. */
+  function withResults(tiles) {
+    const results = document.createElement('div');
+    results.id = 'results';
+    for (const { id, hidden } of tiles) {
+      const element = document.createElement('div');
+      element.className = 'card';
+      element.cardData = { id, name: `Card ${id}` };
+      if (hidden) element.style.display = 'none';
+      results.appendChild(element);
+    }
+    document.body.appendChild(results);
+    return results;
+  }
+
+  it('selects every visible tile from Select all', () => {
+    const results = withResults([{ id: 'a' }, { id: 'b' }, { id: 'c', hidden: true }]);
+
+    toggleSelectionMode();
+    action('all').click();
+
+    expect(getSelectedCount()).toBe(2);
+    results.remove();
+    setSelectionMode(false);
+  });
+
+  it('drops hidden cards from the selection when the filter changes', () => {
+    const results = withResults([{ id: 'a' }, { id: 'b' }]);
+
+    toggleSelectionMode();
+    toggleSelection({ id: 'a', name: 'Card a' });
+    toggleSelection({ id: 'b', name: 'Card b' });
+    expect(getSelectedCount()).toBe(2);
+
+    results.querySelectorAll('.card')[1].style.display = 'none';
+    document.dispatchEvent(new CustomEvent('cards:filtered'));
+
+    expect(getSelectedCount()).toBe(1);
+    results.remove();
+    setSelectionMode(false);
+  });
+
+  it('offers an undo that restores the previous ownership', async () => {
+    toggleSelectionMode();
+    toggleSelection({ id: 'a', name: 'Alpha' });
+    isCardOwned.mockReturnValue(false); // was missing before the action
+
+    action('owned').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(setCardsOwned).toHaveBeenCalledWith([{ id: 'a', name: 'Alpha' }], true);
+
+    const undo = showUndo.mock.calls.at(-1)[1];
+    setCardsOwned.mockClear();
+    await undo();
+
+    expect(setCardsOwned).toHaveBeenCalledWith([{ id: 'a', name: 'Alpha' }], false);
+  });
+
+  it('leaves selection mode on Escape', () => {
+    toggleSelectionMode();
+    expect(isSelectionMode()).toBe(true);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(isSelectionMode()).toBe(false);
   });
 });

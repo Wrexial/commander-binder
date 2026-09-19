@@ -132,8 +132,12 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
   function updatePrimary() {
     const count = categorized.add.length;
-    primaryButton.textContent =
-      count > 0 ? `Add ${count} card${count === 1 ? '' : 's'}` : 'Add cards';
+    if (isWishlist) {
+      primaryButton.textContent = count > 0 ? `Add ${count} to wishlist` : 'Add to wishlist';
+    } else {
+      primaryButton.textContent =
+        count > 0 ? `Add ${count} card${count === 1 ? '' : 's'}` : 'Add cards';
+    }
     primaryButton.disabled = count === 0 || confirming;
   }
 

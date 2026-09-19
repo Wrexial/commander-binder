@@ -1,8 +1,9 @@
 import { getOwnedCardIds } from '../../state/cardState.js';
-import { loadViewerCollection } from '../../state/compareState.js';
+import { addToViewerWishlist, loadViewerCollection } from '../../state/compareState.js';
 import { cardStore, primaryName } from '../../state/cardStore.js';
 import { diffCollections } from '../../utils/compareCollections.js';
 import { createCollectionModal, previewGroup, summaryChip } from './collectionModal.js';
+import { showToast } from './toast.js';
 
 /**
  * A comparison key for a printing id: the card's name when the printing is
@@ -59,16 +60,61 @@ export async function showCompareModal() {
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title: 'Compare Collections',
     subtitle: 'Loading your collection…',
-    actions: [{ id: 'close', text: 'Close' }],
+    actions: [
+      { id: 'wishlist', className: 'primary', text: 'Wishlist missing' },
+      { id: 'copy', text: 'Copy names' },
+      { id: 'close', text: 'Close' },
+    ],
   });
   buttons.close.addEventListener('click', close);
+  buttons.wishlist.disabled = true;
+  buttons.copy.disabled = true;
   contentArea.innerHTML = '<p class="bulk-empty">Loading your collection…</p>';
   shell.show();
 
   // The owner's side is already in `cardState` (loaded with the share token);
   // only the viewer's own collection needs loading.
+  const ownerIds = getOwnedCardIds();
   const viewerIds = await loadViewerCollection();
-  const diff = diffCollections(getOwnedCardIds(), viewerIds, keyFor);
+  const diff = diffCollections(ownerIds, viewerIds, keyFor);
 
   render(contentArea, shell.modal, diff);
+
+  // One owner printing id per card they have that the viewer lacks.
+  const ownerIdByKey = new Map();
+  for (const id of ownerIds) ownerIdByKey.set(keyFor(id), id);
+  const missingIds = diff.ownerOnly.map((key) => ownerIdByKey.get(key)).filter(Boolean);
+
+  const nothingMissing = missingIds.length === 0;
+  buttons.wishlist.disabled = nothingMissing;
+  buttons.copy.disabled = nothingMissing;
+
+  buttons.wishlist.addEventListener('click', async () => {
+    buttons.wishlist.disabled = true;
+    try {
+      await addToViewerWishlist(missingIds);
+      buttons.wishlist.textContent = 'Wishlisted';
+      showToast(
+        `Added ${missingIds.length} card${missingIds.length === 1 ? '' : 's'} to your wishlist.`,
+        'success'
+      );
+    } catch (err) {
+      buttons.wishlist.disabled = false;
+      console.error('Failed to wishlist the shared collection:', err);
+      showToast('Could not update your wishlist.', 'error');
+    }
+  });
+
+  buttons.copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(sortedLabels(diff.ownerOnly).join('\n'));
+      showToast(
+        `Copied ${diff.ownerOnly.length} name${diff.ownerOnly.length === 1 ? '' : 's'}.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Failed to copy card names:', err);
+      showToast('Could not copy to the clipboard.', 'error');
+    }
+  });
 }

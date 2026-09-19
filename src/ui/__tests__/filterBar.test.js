@@ -119,6 +119,24 @@ describe('initFilterBar', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a removable chip for each active filter', () => {
+    const onChange = vi.fn();
+    initFilterBar({ onChange });
+
+    segment('Collection', 'Owned').click();
+    segment('Wishlist', 'Wanted').click();
+
+    const chips = () =>
+      [...document.querySelectorAll('.filter-active-chip')].map((el) => el.textContent);
+    expect(chips()).toEqual(['Owned', 'Wanted']);
+
+    document.querySelector('.filter-active-chip').click();
+
+    expect(filters.owned).toBe('all');
+    expect(chips()).toEqual(['Wanted']);
+    expect(onChange).toHaveBeenCalled();
+  });
+
   it('selects a set from the loaded collection', () => {
     initFilterBar({ onChange: vi.fn() });
 

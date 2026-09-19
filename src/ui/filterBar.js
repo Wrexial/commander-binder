@@ -294,11 +294,94 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     commit();
   });
 
+  const activeRow = document.createElement('div');
+  activeRow.className = 'filter-active';
+  activeRow.hidden = true;
+
+  const labelFor = (options, id) => options.find((option) => option.id === id)?.label || id;
+
+  /** Human labels for the active filters, used by the chips and the toggle. */
+  function activeFilterLabels() {
+    const items = [];
+    if (filters.owned !== 'all') items.push(labelFor(OWNED_OPTIONS, filters.owned));
+    if (filters.wanted !== 'all') items.push(labelFor(WANTED_OPTIONS, filters.wanted));
+    if (filters.trade !== 'all') items.push(labelFor(TRADE_OPTIONS, filters.trade));
+    for (const color of filters.colors) items.push(labelFor(COLOR_OPTIONS, color));
+    for (const rarity of filters.rarities) items.push(labelFor(RARITY_OPTIONS, rarity));
+    if (filters.set) items.push(filters.set.toUpperCase());
+    if (filters.priceMin != null || filters.priceMax != null) {
+      const min = filters.priceMin != null ? `€${filters.priceMin}` : '';
+      const max = filters.priceMax != null ? `€${filters.priceMax}` : '';
+      items.push(min && max ? `${min}–${max}` : min ? `${min}+` : `≤${max}`);
+    }
+    return items;
+  }
+
+  /** One removable chip per active filter, so it can be cleared in place. */
+  function renderActiveChips(labels) {
+    activeRow.textContent = '';
+    activeRow.hidden = labels.length === 0;
+    if (labels.length === 0) return;
+
+    const actions = [];
+    if (filters.owned !== 'all') {
+      actions.push(() => {
+        filters.owned = 'all';
+      });
+    }
+    if (filters.wanted !== 'all') {
+      actions.push(() => {
+        filters.wanted = 'all';
+      });
+    }
+    if (filters.trade !== 'all') {
+      actions.push(() => {
+        filters.trade = 'all';
+      });
+    }
+    for (const color of [...filters.colors]) {
+      actions.push(() => {
+        filters.colors = filters.colors.filter((value) => value !== color);
+      });
+    }
+    for (const rarity of [...filters.rarities]) {
+      actions.push(() => {
+        filters.rarities = filters.rarities.filter((value) => value !== rarity);
+      });
+    }
+    if (filters.set) {
+      actions.push(() => {
+        filters.set = '';
+      });
+    }
+    if (filters.priceMin != null || filters.priceMax != null) {
+      actions.push(() => {
+        filters.priceMin = null;
+        filters.priceMax = null;
+      });
+    }
+
+    labels.forEach((label, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'filter-active-chip';
+      button.textContent = label;
+      button.title = `Remove ${label} filter`;
+      button.setAttribute('aria-label', `Remove ${label} filter`);
+      button.addEventListener('click', () => {
+        actions[index]?.();
+        commit();
+      });
+      activeRow.appendChild(button);
+    });
+  }
+
   const colorRow = document.createElement('div');
   colorRow.className = 'filter-row';
   colorRow.append(colors.el, colorMode.el);
 
   panel.append(
+    activeRow,
     group('Sort by', sortSelect),
     group('Collection', owned.el),
     group('Wishlist', wanted.el),
@@ -323,11 +406,14 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     priceMax.value = filters.priceMax ?? '';
 
     const count = activeFilterCount();
+    const labels = activeFilterLabels();
+    renderActiveChips(labels);
     if (badge) {
       badge.textContent = String(count);
       badge.hidden = count === 0;
     }
     toggle.setAttribute('aria-label', count > 0 ? `Filters, ${count} active` : 'Filters');
+    toggle.title = labels.length > 0 ? `Filters: ${labels.join(', ')}` : 'Filters';
     toggle.classList.toggle('has-filters', count > 0);
     resetButton.disabled = count === 0;
   }

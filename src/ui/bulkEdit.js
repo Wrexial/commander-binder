@@ -1,21 +1,38 @@
-import { setCardsOwned } from '../state/cardState.js';
-import { setCardsWanted } from '../state/wishlistState.js';
+import { isCardOwned, setCardsOwned } from '../state/cardState.js';
+import { isCardWanted, setCardsWanted } from '../state/wishlistState.js';
 import {
   clearSelection,
   getSelectedCards,
   getSelectedCount,
   isSelectionMode,
   onSelectionChange,
+  setSelection,
   setSelectionMode,
 } from '../state/selectionState.js';
+import { primaryName } from '../state/cardStore.js';
 import { updateAllCardStates } from './cards.js';
 import { updateAllBinderCounts } from './layout.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
-import { showToast } from './components/toast.js';
+import { showToast, showUndo } from './components/toast.js';
 
 let bar = null;
 let countEl = null;
 let initialized = false;
+
+/** True when a card tile (or an ancestor) is hidden by the active filter. */
+function isElementVisible(element) {
+  for (let node = element; node; node = node.parentElement) {
+    if (node.hidden || node.style?.display === 'none') return false;
+  }
+  return true;
+}
+
+/** The mounted tiles the active search/filter currently shows. */
+function visibleCards() {
+  return Array.from(document.querySelectorAll('#results .card')).filter(
+    (element) => element.cardData && isElementVisible(element)
+  );
+}
 
 /** Build the floating action bar once and wire its buttons. */
 function buildBar() {
@@ -25,8 +42,10 @@ function buildBar() {
   bar.className = 'bulk-edit-bar';
   bar.hidden = true;
   bar.innerHTML = `
+    <span class="bulk-edit-label">Selecting</span>
     <span class="bulk-edit-count" aria-live="polite"></span>
     <div class="bulk-edit-actions">
+      <button type="button" data-action="all">Select all</button>
       <button type="button" data-action="owned">Mark owned</button>
       <button type="button" data-action="missing">Mark missing</button>
       <button type="button" data-action="want">Want</button>
@@ -43,7 +62,61 @@ function buildBar() {
   return bar;
 }
 
+/** Select every tile the active filter is showing. */
+function selectAllVisible() {
+  const cards = visibleCards().map((element) => element.cardData);
+  if (cards.length === 0) {
+    showToast('No visible cards to select.', 'warning');
+    return;
+  }
+  setSelection(cards);
+  updateAllCardStates();
+}
+
+/**
+ * Drop selected cards a filter has just hidden, so an action can never touch
+ * cards the collector can't see.
+ */
+function pruneHiddenSelection() {
+  if (!isSelectionMode()) return;
+
+  const visibleNames = new Set(visibleCards().map((element) => primaryName(element.cardData)));
+  const selected = getSelectedCards();
+  const kept = selected.filter((card) => visibleNames.has(primaryName(card)));
+  if (kept.length === selected.length) return;
+
+  setSelection(kept);
+  updateAllCardStates();
+}
+
+async function applyToSelection(action, cards) {
+  if (action === 'owned') await setCardsOwned(cards, true);
+  else if (action === 'missing') await setCardsOwned(cards, false);
+  else if (action === 'want') await setCardsWanted(cards, true);
+  else if (action === 'unwant') await setCardsWanted(cards, false);
+}
+
+/** Restore the pre-action state of the affected collection. */
+async function undoSelection(action, before) {
+  if (action === 'owned' || action === 'missing') {
+    const owned = before.filter((entry) => entry.owned).map((entry) => entry.card);
+    const missing = before.filter((entry) => !entry.owned).map((entry) => entry.card);
+    if (owned.length > 0) await setCardsOwned(owned, true);
+    if (missing.length > 0) await setCardsOwned(missing, false);
+    return;
+  }
+
+  const wanted = before.filter((entry) => entry.wanted).map((entry) => entry.card);
+  const unwanted = before.filter((entry) => !entry.wanted).map((entry) => entry.card);
+  if (wanted.length > 0) await setCardsWanted(wanted, true);
+  if (unwanted.length > 0) await setCardsWanted(unwanted, false);
+}
+
 async function handleAction(action) {
+  if (action === 'all') {
+    selectAllVisible();
+    return;
+  }
   if (action === 'clear') {
     clearSelection();
     // The selection map changed, so repaint the tiles' selection outlines.
@@ -62,26 +135,38 @@ async function handleAction(action) {
     return;
   }
 
+  // Snapshot before the change so the undo toast can restore each card exactly.
+  const before = cards.map((card) => ({
+    card,
+    owned: isCardOwned(card),
+    wanted: isCardWanted(card),
+  }));
+
   try {
-    if (action === 'owned') await setCardsOwned(cards, true);
-    else if (action === 'missing') await setCardsOwned(cards, false);
-    else if (action === 'want') await setCardsWanted(cards, true);
-    else if (action === 'unwant') await setCardsWanted(cards, false);
-    else return;
+    await applyToSelection(action, cards);
   } catch (err) {
     console.error('Bulk edit failed:', err);
     showToast('Could not update the selected cards.', 'error');
     return;
   }
 
-  // Marks are stored, so re-sync the tiles. Only the owned actions move the
-  // binder/owned counters; the wishlist has no counter of its own.
   updateAllCardStates();
   if (action === 'owned' || action === 'missing') {
     updateAllBinderCounts();
     updateOwnedCounter();
   }
-  showToast(`${cards.length} card${cards.length === 1 ? '' : 's'} updated.`, 'success');
+  showUndo(`${cards.length} card${cards.length === 1 ? '' : 's'} updated`, async () => {
+    try {
+      await undoSelection(action, before);
+    } catch (err) {
+      console.error('Bulk edit undo failed:', err);
+      showToast('Could not undo the change.', 'error');
+      return;
+    }
+    updateAllCardStates();
+    updateAllBinderCounts();
+    updateOwnedCounter();
+  });
 }
 
 /** Reflect the mode/count on the body class and the action bar. */
@@ -99,6 +184,13 @@ export function initBulkEdit() {
   initialized = true;
   buildBar();
   onSelectionChange(sync);
+  // A filter pass may hide selected tiles; keep the selection to what's visible.
+  document.addEventListener('cards:filtered', pruneHiddenSelection);
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !isSelectionMode()) return;
+    setSelectionMode(false);
+    updateAllCardStates();
+  });
   sync();
 }
 

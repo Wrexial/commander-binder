@@ -75,12 +75,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   shared `collectionState.js` factory (owned vs wanted), each switching between
   the device-local store (`localCollection.js`/`localWishlist.js`, signed-out
   guest) and the server (signed in or share token). `preferredPrintings.js`
-  remembers the printing the user picked when cycling versions.
+  remembers the printing the user picked when cycling versions (saved tiles
+  show a pin; the sidebar settings has a reset control).
   `compareState.js` loads the viewer's _own_ collection separately from the
   share view's owner collection, so the two can be diffed. `selectionState.js`
   holds the bulk-edit multi-selection (keyed by card name), entered from the
   sidebar's "☑️ Bulk Edit" button; `bulkEdit.js` renders the floating action bar
-  (hidden until the mode is active) and `cards.js` paints the selected tiles.
+  (hidden until the mode is active) and offers select-all-visible,
+  hidden-selection pruning, per-batch undo and Esc to exit; `cards.js` paints
+  the selected tiles.
   `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
@@ -194,7 +197,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   also offers "Compare Collections" (`components/compareModal.js`), a read-only
   diff of the owner's collection against the visitor's own — the owner's side
   comes from `cardState` (share token) and the visitor's from `compareState`
-  (server when signed in, IndexedDB otherwise). Plain
+  (server when signed in, IndexedDB otherwise), with "Wishlist missing" and
+  "Copy names" actions. Plain
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
   (`merge-owned`/`merge-wishlist`), and they get the same collection sidebar

@@ -229,12 +229,12 @@ function createWishlistToggle(wanted) {
 export function syncCardWantedUi(cardElement, wanted) {
   cardElement.classList.toggle('wanted', wanted);
 
-  const toggle = cardElement.querySelector('.card-wishlist');
-  if (!toggle) return;
-
-  toggle.setAttribute('aria-pressed', String(wanted));
-  toggle.setAttribute('aria-label', wishlistToggleLabel(wanted));
-  toggle.title = wishlistToggleLabel(wanted);
+  // There can be two hearts: the footer one and the mobile floating one.
+  cardElement.querySelectorAll('.card-wishlist').forEach((toggle) => {
+    toggle.setAttribute('aria-pressed', String(wanted));
+    toggle.setAttribute('aria-label', wishlistToggleLabel(wanted));
+    toggle.title = wishlistToggleLabel(wanted);
+  });
 }
 
 /**
@@ -493,7 +493,13 @@ function populateCard(div, card, cardIndex) {
   // stays legible instead of carrying half a dozen floating badges.
   if (isImage) {
     div.appendChild(createCardFooter(card, price, version));
-    if (!appState.isViewOnlyMode) div.classList.add('has-toggle');
+    if (!appState.isViewOnlyMode) {
+      div.classList.add('has-toggle');
+      // Phones hide the tile footer, so the heart gets its own floating control.
+      const floatHeart = createWishlistToggle(isCardWanted(card));
+      floatHeart.classList.add('card-wishlist-float');
+      div.appendChild(floatHeart);
+    }
     return div;
   }
 
@@ -573,6 +579,8 @@ export function updateCardState(cardElement) {
   // The wishlist is independent of ownership, so it is synced separately.
   syncCardWantedUi(cardElement, isCardWanted(card));
   syncCardSelection(cardElement);
+  // A saved preferred printing gets a small pin on the version badge.
+  cardElement.classList.toggle('pinned', Boolean(getPreferredPrinting(card)));
 }
 
 export function updateCardStyles() {

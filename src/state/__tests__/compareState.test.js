@@ -3,11 +3,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../auth/clerk.js', () => ({ getClerk: vi.fn(() => ({ user: null })) }));
 vi.mock('../../api/authenticatedFetch.js', () => ({ authenticatedFetch: vi.fn() }));
 vi.mock('../localCollection.js', () => ({ loadLocalCollection: vi.fn(() => Promise.resolve([])) }));
+vi.mock('../localWishlist.js', () => ({
+  addLocalWishlistCard: vi.fn(() => Promise.resolve(true)),
+}));
 
-import { loadViewerCollection, getViewerCollectionIds } from '../compareState.js';
+import {
+  addToViewerWishlist,
+  getViewerCollectionIds,
+  loadViewerCollection,
+} from '../compareState.js';
 import { getClerk } from '../../auth/clerk.js';
 import { authenticatedFetch } from '../../api/authenticatedFetch.js';
 import { loadLocalCollection } from '../localCollection.js';
+import { addLocalWishlistCard } from '../localWishlist.js';
 
 describe('compareState', () => {
   beforeEach(() => {
@@ -60,5 +68,29 @@ describe('compareState', () => {
 
     authenticatedFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ nope: true }) });
     await expect(loadViewerCollection()).resolves.toEqual(new Set());
+  });
+
+  it('adds to the account wishlist when signed in', async () => {
+    getClerk.mockReturnValue({ user: { id: 'u1' } });
+    authenticatedFetch.mockResolvedValue({ ok: true });
+
+    await addToViewerWishlist(['a', 'b']);
+
+    expect(authenticatedFetch).toHaveBeenCalledWith(
+      '/.netlify/functions/batch-toggle-wishlist',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ cardIds: ['a', 'b'], isOwned: true }),
+      })
+    );
+  });
+
+  it('mirrors wishlist picks to the device store for guests', async () => {
+    getClerk.mockReturnValue({ user: null });
+
+    await addToViewerWishlist(['a']);
+
+    expect(addLocalWishlistCard).toHaveBeenCalledWith('a');
+    expect(authenticatedFetch).not.toHaveBeenCalled();
   });
 });

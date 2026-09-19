@@ -1,15 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('../../../state/compareState.js', () => ({ loadViewerCollection: vi.fn() }));
+vi.mock('../../../state/compareState.js', () => ({
+  loadViewerCollection: vi.fn(),
+  addToViewerWishlist: vi.fn(() => Promise.resolve()),
+}));
 vi.mock('../../../state/cardState.js', () => ({
   getOwnedCardIds: vi.fn(() => new Set()),
   setCardsOwned: vi.fn(),
 }));
+vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 
 import { showCompareModal } from '../compareModal.js';
-import { loadViewerCollection } from '../../../state/compareState.js';
+import { addToViewerWishlist, loadViewerCollection } from '../../../state/compareState.js';
 import { getOwnedCardIds } from '../../../state/cardState.js';
 import { cardStore } from '../../../state/cardStore.js';
+import { showToast } from '../toast.js';
 
 function card(id, name) {
   return { id, name, released_at: '2020-01-01' };
@@ -58,5 +63,33 @@ describe('showCompareModal', () => {
 
     expect(document.querySelector('.bulk-empty').textContent).toBe('You both have the same cards.');
     expect(document.querySelectorAll('.bulk-row')).toHaveLength(0);
+  });
+
+  it('wishlists the cards only the owner has', async () => {
+    await showCompareModal();
+
+    const button = [...document.querySelectorAll('.modal-button-container button')].find(
+      (candidate) => candidate.textContent === 'Wishlist missing'
+    );
+    button.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(addToViewerWishlist).toHaveBeenCalledWith(['o1']);
+    expect(button.textContent).toBe('Wishlisted');
+    expect(showToast).toHaveBeenCalledWith('Added 1 card to your wishlist.', 'success');
+  });
+
+  it('copies the names the owner has that the viewer lacks', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    await showCompareModal();
+    [...document.querySelectorAll('.modal-button-container button')]
+      .find((candidate) => candidate.textContent === 'Copy names')
+      .click();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith('Only They Have');
   });
 });

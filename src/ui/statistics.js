@@ -582,7 +582,7 @@ function renderWishlistTargets(sets) {
         <div class="stats-bar-row has-copy"${titleAttr}>
             <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
             <span class="stats-bar-count">${set.wantedMissing.length} wanted</span>
-            <button type="button" class="stats-wishlist-copy" data-set="${escapeHtml(set.code)}" title="Copy ${set.wantedMissing.length} wanted missing card${set.wantedMissing.length === 1 ? '' : 's'}" aria-label="Copy ${set.wantedMissing.length} wanted missing card${set.wantedMissing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)}">Copy</button>
+            <button type="button" class="stats-wishlist-copy" data-set="${escapeHtml(set.code)}" title="Copy ${set.wantedMissing.length} wanted card name${set.wantedMissing.length === 1 ? '' : 's'}" aria-label="Copy ${set.wantedMissing.length} wanted card name${set.wantedMissing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)}">Copy names</button>
         </div>`;
     })
     .join('');
@@ -903,7 +903,7 @@ export function showStatisticsModal() {
   const copyMissingButton = document.createElement('button');
   copyMissingButton.type = 'button';
   copyMissingButton.className = 'stats-copy-missing';
-  copyMissingButton.textContent = `Copy ${stats.missingCount} missing`;
+  copyMissingButton.textContent = `Copy all ${stats.missingCount} missing`;
   copyMissingButton.disabled = stats.missingCount === 0;
   copyMissingButton.addEventListener('click', () =>
     copyCardNames(stats.missingNames, 'missing cards')

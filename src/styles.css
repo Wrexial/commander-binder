@@ -836,6 +836,18 @@ body.images-mode .section {
   outline-offset: 1px;
 }
 
+/* A saved preferred printing gets a small star on its version badge. */
+.card.pinned .card-versions::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 3px;
+  vertical-align: -1px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l3 7h7l-5.5 4.3 2 7L12 16l-6.5 4.3 2-7L2 9h7z' fill='%23f0cd6b'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
 /* Mobile gets the compact "1/3"; desktop shows "1/3 printings". */
 .card-versions-short {
   display: none;
@@ -1916,10 +1928,39 @@ button.tooltip-wishlist-status:disabled {
   cursor: default;
 }
 
+/* Removable chips for the filters that are currently applied. */
+.filter-active {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.filter-active-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.filter-active-chip::after {
+  content: ' ×';
+  color: var(--muted);
+}
+
+.filter-active-chip:hover {
+  border-color: var(--accent);
+}
+
 .filter-toggle:focus-visible,
 .filter-segment:focus-visible,
 .filter-pip:focus-visible,
 .filter-chip:focus-visible,
+.filter-active-chip:focus-visible,
 .filter-select:focus-visible,
 .filter-price:focus-visible,
 .filter-reset:focus-visible {
@@ -2533,6 +2574,22 @@ body.list-mode .card.list-tile .wanted-badge {
   position: static;
   padding: 1px 5px;
   font-size: 0.52rem;
+}
+
+/* Phones hide the tile footer, so image tiles get a floating heart instead. */
+.card-wishlist-float {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .image-tile .card-wishlist-float {
+    display: inline-flex;
+    bottom: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.9;
+  }
 }
 
 /* Owned badge */
@@ -4027,6 +4084,19 @@ body.selection-mode .card .edhrec-link {
   font-size: 0.8rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.bulk-edit-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+/* Leave room so the floating bar never covers the last row of cards. */
+body.selection-mode #results {
+  padding-bottom: 84px;
 }
 
 .bulk-edit-actions {

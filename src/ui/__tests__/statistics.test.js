@@ -477,7 +477,7 @@ describe('showStatisticsModal', () => {
     showStatisticsModal();
 
     const button = document.querySelector('.stats-copy-missing');
-    expect(button.textContent).toBe('Copy 1 missing');
+    expect(button.textContent).toBe('Copy all 1 missing');
     button.click();
     await Promise.resolve();
 
