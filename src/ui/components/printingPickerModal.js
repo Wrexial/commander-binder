@@ -3,7 +3,8 @@
  * A scrollable list of every printing of a card, used to choose the exact
  * version a Binder Builder pocket shows. Cycling (right-click / the version
  * badge) is fine for a couple of printings, but a common card can have dozens,
- * so this modal lists them all with set, collector number, year and price.
+ * so this modal lists them all with set, collector number, year and price, plus
+ * a filter for finding a set by code or name.
  */
 import { getCardImageUrls } from '../../utils/cardImages.js';
 import { getDisplayedPrice, formatPrice } from '../../utils/prices.js';
@@ -22,6 +23,22 @@ function releaseYear(printing) {
   return typeof date === 'string' && date.length >= 4 ? date.slice(0, 4) : '';
 }
 
+/** Everything the set filter searches: code, name, collector number and year. */
+function searchText(printing) {
+  return [printing.set, printing.set_name, printing.collector_number, releaseYear(printing)]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+/** True when every whitespace-separated term appears in the printing's text. */
+function matchesQuery(printing, query) {
+  const terms = query.split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = searchText(printing);
+  return terms.every((term) => haystack.includes(term));
+}
+
 /**
  * Build the printing picker.
  *
@@ -33,7 +50,11 @@ function releaseYear(printing) {
  * @returns {{show: () => void, close: () => void, destroy: () => void}}
  */
 export function createPrintingPickerModal({ card, printings, currentId, onPick }) {
-  const { modal, show, close } = createModal({
+  const {
+    modal,
+    show: showShell,
+    close,
+  } = createModal({
     className: 'printing-picker',
     ariaLabel: 'Select printing',
   });
@@ -51,14 +72,20 @@ export function createPrintingPickerModal({ card, printings, currentId, onPick }
   }`;
 
   header.append(heading, subtitle);
-  modal.appendChild(header);
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'printing-picker-search';
+  searchInput.placeholder = 'Filter by set code or set name…';
+  searchInput.setAttribute('aria-label', 'Filter printings by set');
+  searchInput.autocomplete = 'off';
 
   const list = document.createElement('div');
   list.className = 'printing-picker-list';
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', 'Printings');
 
-  for (const printing of printings) {
+  function buildRow(printing) {
     const isCurrent = printing.id === currentId;
 
     const row = document.createElement('button');
@@ -70,9 +97,11 @@ export function createPrintingPickerModal({ card, printings, currentId, onPick }
     const thumb = document.createElement('span');
     thumb.className = 'printing-picker-thumb';
     const urls = getCardImageUrls(printing);
-    if (urls?.thumb) {
+    if (urls) {
       const img = document.createElement('img');
-      img.src = urls.thumb;
+      // The sharper `grid` art reads well at the larger preview size; lazy
+      // loading keeps a long list of printings cheap.
+      img.src = urls.grid || urls.thumb;
       img.alt = '';
       img.loading = 'lazy';
       img.decoding = 'async';
@@ -108,10 +137,26 @@ export function createPrintingPickerModal({ card, printings, currentId, onPick }
       close();
     });
 
-    list.appendChild(row);
+    return row;
   }
 
-  modal.appendChild(list);
+  /** Filter the printings by the current query and rebuild the list. */
+  function renderRows() {
+    const query = searchInput.value.trim().toLowerCase();
+    const matches = printings.filter((printing) => matchesQuery(printing, query));
+
+    list.replaceChildren();
+
+    if (matches.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'printing-picker-empty';
+      empty.textContent = 'No printings match that set.';
+      list.appendChild(empty);
+      return;
+    }
+
+    for (const printing of matches) list.appendChild(buildRow(printing));
+  }
 
   const footer = document.createElement('div');
   footer.className = 'modal-button-container';
@@ -120,11 +165,16 @@ export function createPrintingPickerModal({ card, printings, currentId, onPick }
   closeButton.textContent = 'Close';
   closeButton.addEventListener('click', close);
   footer.appendChild(closeButton);
-  modal.appendChild(footer);
+
+  searchInput.addEventListener('input', renderRows);
+
+  modal.append(header, searchInput, list, footer);
+  renderRows();
 
   return {
     show: () => {
-      show();
+      showShell();
+      searchInput.focus();
       // Bring the pocket's current printing into view for a long list.
       const current = list.querySelector('.printing-picker-row.is-current');
       if (current && typeof current.scrollIntoView === 'function') {

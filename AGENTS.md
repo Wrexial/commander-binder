@@ -194,7 +194,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `cardNameInput.js` autocomplete (which suggests names from the catalog too), the share-view `compareModal.js` diff,
   the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation, a
   per-binder Public toggle and the add/move/remove controls plus a `≡` choose
-  printing control that opens the scrollable `printingPickerModal.js`; it reuses
+  printing control that opens the scrollable `printingPickerModal.js` (filterable
+  by set code, set name, collector number or year); it reuses
   `cards.js` tiles so ownership toggles and the preview keep working, and each
   pocket pins its own exact printing). A share-link view
   renders it read-only: `canEditBinders()` hides the toolbar edits, the pocket

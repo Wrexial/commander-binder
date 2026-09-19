@@ -5072,18 +5072,49 @@ body.selection-mode #results {
 
 /* --- Printing picker (Binder Builder) ----------------------------------- */
 .list-modal.printing-picker {
-  max-width: 460px;
+  max-width: 680px;
+}
+
+@media (max-width: 720px) {
+  .list-modal.printing-picker {
+    width: 94%;
+  }
+}
+
+.printing-picker-search {
+  width: 100%;
+  margin-top: 8px;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.printing-picker-search:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
+.printing-picker-empty {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .printing-picker-list {
   flex: 1;
   min-height: 0;
-  margin-top: 6px;
+  margin-top: 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 2px;
   scrollbar-width: thin;
 }
@@ -5091,9 +5122,9 @@ body.selection-mode #results {
 .printing-picker-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   text-align: left;
 }
 
@@ -5104,9 +5135,9 @@ body.selection-mode #results {
 
 .printing-picker-thumb {
   flex: 0 0 auto;
-  width: 44px;
-  height: 62px;
-  border-radius: 4px;
+  width: 96px;
+  aspect-ratio: 146 / 204;
+  border-radius: 6px;
   overflow: hidden;
   background: var(--surface-2);
 }
@@ -5123,10 +5154,11 @@ body.selection-mode #results {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .printing-picker-set {
+  font-size: 1.02rem;
   font-weight: 600;
   color: var(--text);
   overflow: hidden;
@@ -5135,12 +5167,13 @@ body.selection-mode #results {
 }
 
 .printing-picker-meta {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--muted);
 }
 
 .printing-picker-check {
   flex: 0 0 auto;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--accent-strong);
 }

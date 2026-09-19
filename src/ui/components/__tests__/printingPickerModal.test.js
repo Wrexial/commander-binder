@@ -63,4 +63,38 @@ describe('printingPickerModal', () => {
     expect(onPick).toHaveBeenCalledWith(printings[1]);
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();
   });
+
+  it('filters printings by set code or set name', () => {
+    const picker = createPrintingPickerModal({ card, printings, currentId: 'p1', onPick: vi.fn() });
+    picker.show();
+
+    const input = document.querySelector('.printing-picker-search');
+    const filter = (value) => {
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+
+    filter('cmm');
+    let rows = document.querySelectorAll('.printing-picker-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].querySelector('.printing-picker-set').textContent).toContain(
+      'Commander Masters'
+    );
+
+    filter('limited edition');
+    rows = document.querySelectorAll('.printing-picker-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].querySelector('.printing-picker-set').textContent).toContain(
+      'Limited Edition Alpha'
+    );
+
+    filter('commander 342');
+    expect(document.querySelectorAll('.printing-picker-row')).toHaveLength(1);
+
+    filter('nope');
+    expect(document.querySelector('.printing-picker-empty')).not.toBeNull();
+
+    filter('');
+    expect(document.querySelectorAll('.printing-picker-row')).toHaveLength(2);
+  });
 });
