@@ -50,6 +50,7 @@ beforeEach(() => {
   isCardOwned.mockReturnValue(false);
   isCardWanted.mockReturnValue(false);
   setCardsWanted.mockClear();
+  setCardsWanted.mockResolvedValue();
   updateAllCardStates.mockClear();
   appState.isViewOnlyMode = false;
   showTooltip.mockClear();
@@ -327,6 +328,21 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('data-set="lea"');
   });
 
+  it('omits the wishlist button once every missing card is already wanted', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
+    ];
+    isCardWanted.mockReturnValue(true);
+    const stats = calculateStatistics([all[0]], 2, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).not.toContain('stats-set-wishlist');
+    // The set is still surfaced, just under Wishlist Targets instead.
+    expect(html).toContain('stats-wishlist-copy');
+  });
+
   it('summarises completed sets and lists the near-complete ones', () => {
     const all = [
       makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
@@ -437,25 +453,34 @@ describe('showStatisticsModal', () => {
     expect(writeText).toHaveBeenCalledWith('Missing One');
   });
 
-  it("adds a set's missing cards to the wishlist from its row button", async () => {
+  it("adds a set's missing cards and refreshes the wishlist targets", async () => {
     document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
     const owned = makeCard({ id: 'o', name: 'Owned', set: 'lea', set_name: 'Alpha' });
     const missing = makeCard({ id: 'm', name: 'Missing One', set: 'lea', set_name: 'Alpha' });
     cardStore.getAll.mockReturnValue([owned, missing]);
     cardStore.getPrintings.mockReturnValue([]);
     isCardOwned.mockImplementation((card) => card.id === 'o');
+    // Once wishlisted, the live state reports the card as wanted.
+    setCardsWanted.mockImplementation(() => {
+      isCardWanted.mockReturnValue(true);
+      return Promise.resolve();
+    });
 
     showStatisticsModal();
+    expect(document.querySelector('.stats-set-wishlist')).toBeTruthy();
+    expect(document.querySelector('.stats-wishlist-copy')).toBeNull();
 
-    const button = document.querySelector('.stats-set-wishlist');
-    expect(button).toBeTruthy();
-    button.click();
+    document.querySelector('.stats-set-wishlist').click();
+    await Promise.resolve();
     await Promise.resolve();
 
     expect(setCardsWanted).toHaveBeenCalledWith([missing], true);
     expect(updateAllCardStates).toHaveBeenCalled();
-    expect(button.textContent).toBe('Wishlisted');
-    expect(button.disabled).toBe(true);
+
+    // Repainted immediately: the satisfied row drops its button and the set
+    // now appears under Wishlist Targets.
+    expect(document.querySelector('.stats-set-wishlist')).toBeNull();
+    expect(document.querySelector('.stats-wishlist-copy')).toBeTruthy();
   });
 
   it('hides the wishlist row buttons in a view-only share', () => {

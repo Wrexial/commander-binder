@@ -517,19 +517,21 @@ function renderSetCompletion(sets, setsCompleted) {
 
   const rows = inProgress
     .slice(0, MAX_SETS_SHOWN)
-    .map(
-      (set) => `
-        <div class="stats-bar-row${set.missing.length > 0 ? ' has-copy' : ''}">
+    .map((set) => {
+      // Only offer the action while at least one missing card isn't wanted yet.
+      const canWishlist = set.wantedMissing.length < set.missing.length;
+      return `
+        <div class="stats-bar-row${canWishlist ? ' has-copy' : ''}">
             <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
             <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${Math.max(set.percent, 3)}%"></span></span>
             <span class="stats-bar-count">${set.owned}/${set.total}</span>
             ${
-              set.missing.length > 0
+              canWishlist
                 ? `<button type="button" class="stats-set-wishlist" data-set="${escapeHtml(set.code)}" title="Add ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'} to your wishlist" aria-label="Add ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)} to your wishlist">Wishlist</button>`
                 : ''
             }
-        </div>`
-    )
+        </div>`;
+    })
     .join('');
 
   return section('Set Completion', `<div class="stats-bars">${rows}</div>`, meta);
@@ -757,7 +759,7 @@ export function showStatisticsModal() {
 
   // Completion is measured against unique card names, which is what the
   // collection UI tracks (the search's apiTotalCards counts printings).
-  const stats = calculateStatistics(ownedCards, allCards.length, allCards);
+  let stats = calculateStatistics(ownedCards, allCards.length, allCards);
   const tooltip = document.getElementById('tooltip');
   // The stats preview is hover-driven; make sure it never inherits the grid's
   // swipe-navigation handler.
@@ -789,63 +791,80 @@ export function showStatisticsModal() {
 
   const subtitle = document.createElement('p');
   subtitle.className = 'statistics-subtitle';
-  const cardWord = stats.totalCards === 1 ? 'card' : 'cards';
-  const wishlistSuffix = stats.wishlist.wanted > 0 ? ` · ${stats.wishlist.wanted} wanted` : '';
-  subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatEuro(stats.totalValue)} total value${wishlistSuffix}`;
 
   headerText.appendChild(modalHeader);
   headerText.appendChild(subtitle);
 
   const contentArea = document.createElement('div');
   contentArea.className = 'modal-content-area statistics-content';
-  contentArea.innerHTML = createStatisticsHTML(stats);
 
-  // Each set row's "Wishlist" button adds that set's missing cards to the
-  // wishlist. Read-only share views get the row but not the action.
   const cardsByName = new Map(allCards.map((card) => [card.name, card]));
-  const missingCardsBySet = new Map(
-    stats.sets.map((set) => [
-      set.code,
-      set.missing.map((name) => cardsByName.get(name)).filter(Boolean),
-    ])
-  );
-  contentArea.querySelectorAll('.stats-set-wishlist').forEach((button) => {
-    if (appState.isViewOnlyMode) {
-      button.hidden = true;
-      return;
-    }
 
-    button.addEventListener('click', async () => {
-      const cards = missingCardsBySet.get(button.dataset.set) || [];
-      if (cards.length === 0) return;
+  /** Recompute and repaint after a wishlist change. */
+  function renderContent() {
+    stats = calculateStatistics(ownedCards, allCards.length, allCards);
 
-      button.disabled = true;
-      try {
-        await setCardsWanted(cards, true);
-        updateAllCardStates();
-        button.textContent = 'Wishlisted';
-        showToast(
-          `Added ${cards.length} card${cards.length === 1 ? '' : 's'} to your wishlist.`,
-          'success'
-        );
-      } catch (err) {
-        button.disabled = false;
-        console.error('Failed to wishlist set cards:', err);
-        showToast('Could not update the wishlist.', 'error');
+    const cardWord = stats.totalCards === 1 ? 'card' : 'cards';
+    const wishlistSuffix = stats.wishlist.wanted > 0 ? ` · ${stats.wishlist.wanted} wanted` : '';
+    subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatEuro(stats.totalValue)} total value${wishlistSuffix}`;
+
+    contentArea.innerHTML = createStatisticsHTML(stats);
+    wireStatisticsActions();
+  }
+
+  function wireStatisticsActions() {
+    // Each set row's "Wishlist" button adds that set's missing cards. Read-only
+    // share views get the row but not the action.
+    const missingCardsBySet = new Map(
+      stats.sets.map((set) => [
+        set.code,
+        set.missing.map((name) => cardsByName.get(name)).filter(Boolean),
+      ])
+    );
+
+    contentArea.querySelectorAll('.stats-set-wishlist').forEach((button) => {
+      if (appState.isViewOnlyMode) {
+        button.hidden = true;
+        return;
       }
-    });
-  });
 
-  // The wishlist-target rows copy only the wanted-and-missing names.
-  const wantedMissingBySet = new Map(stats.sets.map((set) => [set.code, set.wantedMissing]));
-  contentArea.querySelectorAll('.stats-wishlist-copy').forEach((button) => {
-    button.addEventListener('click', () => {
-      copyCardNames(wantedMissingBySet.get(button.dataset.set) || [], 'wanted cards');
-    });
-  });
+      button.addEventListener('click', async () => {
+        const cards = missingCardsBySet.get(button.dataset.set) || [];
+        if (cards.length === 0) return;
 
-  // Hover the "most valuable cards" rows to preview the full card.
-  cleanupTopCardTooltips = wireTopCardTooltips(contentArea, tooltip, stats.top5ValuableCards);
+        button.disabled = true;
+        try {
+          await setCardsWanted(cards, true);
+          updateAllCardStates();
+          showToast(
+            `Added ${cards.length} card${cards.length === 1 ? '' : 's'} to your wishlist.`,
+            'success'
+          );
+          // Repaint so the Wishlist Targets section reflects the change and the
+          // now-satisfied rows drop their button.
+          renderContent();
+        } catch (err) {
+          button.disabled = false;
+          console.error('Failed to wishlist set cards:', err);
+          showToast('Could not update the wishlist.', 'error');
+        }
+      });
+    });
+
+    // The wishlist-target rows copy only the wanted-and-missing names.
+    const wantedMissingBySet = new Map(stats.sets.map((set) => [set.code, set.wantedMissing]));
+    contentArea.querySelectorAll('.stats-wishlist-copy').forEach((button) => {
+      button.addEventListener('click', () => {
+        copyCardNames(wantedMissingBySet.get(button.dataset.set) || [], 'wanted cards');
+      });
+    });
+
+    // Hover the "most valuable cards" rows to preview the full card.
+    cleanupTopCardTooltips();
+    cleanupTopCardTooltips = wireTopCardTooltips(contentArea, tooltip, stats.top5ValuableCards);
+  }
+
+  renderContent();
 
   const buttonContainer = document.createElement('div');
   buttonContainer.className = 'modal-button-container';
