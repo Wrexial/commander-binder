@@ -4703,3 +4703,337 @@ body.selection-mode #results {
     max-height: 30%;
   }
 }
+
+/* --- Binder Builder page ------------------------------------------------ */
+.binder-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.binder-builder-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.bb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.bb-field input,
+.bb-field select {
+  background-color: var(--surface-1);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.bb-name {
+  min-width: 160px;
+}
+
+.bb-field-number input {
+  width: 68px;
+  text-align: center;
+}
+
+.bb-dims {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.binder-builder-toolbar button,
+.binder-builder-nav button {
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.binder-builder-toolbar button:hover,
+.binder-builder-nav button:hover {
+  background-color: var(--button-bg-hover);
+  border-color: var(--accent);
+}
+
+.binder-builder-toolbar .danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: transparent;
+}
+
+.binder-builder-toolbar .danger:hover {
+  background: rgba(224, 96, 96, 0.12);
+}
+
+.binder-builder-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.binder-builder-nav button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bb-page-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bb-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+}
+
+.bb-status[hidden] {
+  display: none;
+}
+
+.bb-status button {
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.binder-page {
+  display: grid;
+  grid-template-columns: repeat(var(--binder-columns, 3), minmax(0, 1fr));
+  gap: 0.6rem;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.binder-slot {
+  position: relative;
+  display: flex;
+  aspect-ratio: 146 / 204;
+  border-radius: 10px;
+  border: 1px dashed var(--border-strong);
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.binder-slot.is-filled {
+  border-style: solid;
+}
+
+.binder-slot.is-drop-target {
+  border-color: var(--accent);
+}
+
+.binder-slot.is-move-source {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.binder-slot .card {
+  width: 100%;
+  height: 100%;
+}
+
+/* The grid itself shows the pocket position; a slot number would just be noise. */
+.binder-slot .card-slot-number {
+  display: none;
+}
+
+.binder-slot-add {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.7rem;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.binder-slot-add:hover {
+  color: var(--accent);
+}
+
+.binder-slot-unknown {
+  margin: auto;
+  padding: 8px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.binder-slot-controls {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 4;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.binder-slot:hover .binder-slot-controls,
+.binder-slot:focus-within .binder-slot-controls {
+  opacity: 1;
+}
+
+/* Touch has no hover phase, so the controls must stay visible. */
+@media (hover: none) {
+  .binder-slot-controls {
+    opacity: 1;
+  }
+}
+
+.binder-slot-controls button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: rgba(9, 12, 18, 0.85);
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.binder-slot-controls button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.binder-slot-remove:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.binder-builder-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+@media (max-width: 768px) {
+  .binder-page {
+    padding: 8px;
+    gap: 0.35rem;
+  }
+
+  .bb-dims {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* --- Card picker (Binder Builder) --------------------------------------- */
+.list-modal.card-picker {
+  max-width: 480px;
+  height: auto;
+  max-height: 85dvh;
+}
+
+.card-picker-title {
+  margin: 0 0 10px;
+}
+
+.card-picker-search {
+  width: 100%;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.card-picker-search:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
+.card-picker-results {
+  flex: 1;
+  min-height: 160px;
+  max-height: 50dvh;
+  margin-top: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-picker-result {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  padding: 9px 10px;
+}
+
+.card-picker-name {
+  font-weight: 600;
+}
+
+.card-picker-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.card-picker-empty {
+  margin: 0;
+  padding: 12px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-align: center;
+}

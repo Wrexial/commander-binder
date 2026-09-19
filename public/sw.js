@@ -7,9 +7,9 @@
  */
 
 const CACHE = 'lcc-shell-v1';
-// Both keys are cached because Netlify serves the shell at `/` while a
+// Both pages are cached because Netlify serves the shell at `/` while a
 // navigation request's URL may be either.
-const SHELL = ['/', '/index.html'];
+const SHELL = ['/', '/index.html', '/binder.html'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -43,17 +43,21 @@ self.addEventListener('fetch', (event) => {
   // Navigations: network-first, so a new deploy is picked up immediately, with
   // the cached shell as the offline fallback.
   if (request.mode === 'navigate') {
+    const shellUrl = new URL(request.url);
+    const fallback = SHELL.includes(shellUrl.pathname) ? shellUrl.pathname : '/index.html';
     event.respondWith(
       fetch(request)
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => {
-            cache.put('/index.html', copy.clone());
-            cache.put('/', copy);
+            cache.put(fallback, copy.clone());
+            if (fallback === '/index.html') cache.put('/', copy);
           });
           return response;
         })
-        .catch(() => caches.match('/index.html').then((cached) => cached || caches.match('/')))
+        .catch(() =>
+          caches.match(fallback).then((cached) => cached || caches.match('/index.html'))
+        )
     );
     return;
   }

@@ -17,6 +17,15 @@ describe('createModal', () => {
     expect(modal.getAttribute('aria-label')).toBe('Test');
   });
 
+  it('starts hidden and is revealed by show()', () => {
+    const { show } = createModal({});
+    const backdrop = document.querySelector('.list-modal-backdrop');
+
+    expect(backdrop.style.display).toBe('none');
+    show();
+    expect(backdrop.style.display).toBe('block');
+  });
+
   it('closes on close() and runs the onClose callback exactly once', () => {
     let closes = 0;
     const { close } = createModal({ onClose: () => closes++ });

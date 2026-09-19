@@ -121,6 +121,9 @@ export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
   document.addEventListener('keydown', handleKeyDown);
 
   backdrop.appendChild(modal);
+  // Created hidden so a modal can be built once and shown later (e.g. the
+  // Binder Builder's card picker). `show()` reveals it.
+  backdrop.style.display = 'none';
   document.body.appendChild(backdrop);
 
   return {

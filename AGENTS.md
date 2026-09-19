@@ -53,7 +53,18 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `netlify/**/*.ts`, `db/*.ts`, and `drizzle.config.ts` (the function/db files
   run through Netlify's/esbuild transpilation; `drizzle.config.ts` is loaded by
   drizzle-kit). Typecheck with `npm run typecheck` (see `tsconfig.json`).
-- `src/main.js` — app entry point; wires up all UI modules.
+- `src/main.js` — browse/collection entry point; wires up all UI modules on top
+  of the shared shell.
+- `src/app/shell.js` — the shared boot used by both entry points: Clerk auth,
+  the sidebar and its collection tools, the guest welcome/install prompt,
+  collection/wishlist/list loading and the guest→account merges, settings sync
+  and `setupUI`. Each page calls `bootShell()` and then mounts its own main
+  content (`main.js` = the search/browse grid, `binderMain.js` = the Binder
+  Builder).
+- `src/binderMain.js` + `binder.html` — the separate Binder Builder page. It
+  reuses the shell, loads the full collection into `cardStore`, and renders the
+  editor into `#binder-root`. Vite builds both pages (`vite.config.js`
+  `rollupOptions.input`).
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
@@ -66,7 +77,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
-  `localCollection`, `localWishlist`, `listsState`, `localLists`, `compareState`, `selectionState`, `viewState`,
+  `localCollection`, `localWishlist`, `listsState`, `localLists`, `bindersState`,
+  `localBinders`, `compareState`, `selectionState`, `viewState`,
   `onboarding`,
   `filters`,
   `settingsSync`). State is
@@ -82,6 +94,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   record per list) for guests and read-only public lists in a share view. It
   dispatches `lists:changed` on every load/mutation; `main.js` repaints tile
   badges from it and `filterBar.js` refreshes its list dropdown.
+  `bindersState.js` is the Binder Builder registry (many user-authored binders,
+  each `{ columns, rows, pages, slots }` where a slot is `"page:row:col" ->
+printingId`). It keeps an in-memory Map as the session source of truth and
+  persists each binder through `localBinders.js` (one self-contained IndexedDB
+  record), dispatching `binders:changed` on every mutation. Binder layouts are
+  device-local for now (not synced to the account).
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control).
@@ -116,7 +134,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `bulkEdit`, `yearScrubber`, `scrollPosition`,
-  `filterBar`,
+  `filterBar`, `binderBuilder`,
   `randomCard`, `keyboardShortcuts`, `installPrompt`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
@@ -133,6 +151,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   as a collection, so they all work on lists exactly like the built-ins; plus the
   shared
   `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
+  the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation and
+  the add/move/remove controls; it reuses `cards.js` tiles so ownership toggles
+  and the preview keep working) and its card picker `cardPickerModal.js`,
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the

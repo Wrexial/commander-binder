@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Binder Builder — Legendex</title>
+
+    <meta
+      name="description"
+      content="Lay out your legendary creatures into physical binders, pocket by pocket."
+    />
+    <meta name="author" content="Dylan Abela" />
+
+    <meta name="theme-color" content="#0f131c" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="src/styles.css" />
+    <link rel="stylesheet" href="src/ui/components/sidebar.css" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Legendex" />
+  </head>
+
+  <body>
+    <div id="sidebar-backdrop"></div>
+    <div id="sidebar" class="sidebar"></div>
+    <button
+      id="openbtn"
+      type="button"
+      aria-label="Toggle navigation menu"
+      aria-controls="sidebar"
+      aria-expanded="false"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <div id="main">
+      <main class="container">
+        <header class="main-header">
+          <picture>
+            <source srcset="logo.webp" type="image/webp" />
+            <img src="logo.png" alt="Logo" class="logo" width="84" height="84" />
+          </picture>
+          <div class="header-text">
+            <h1>Binder Builder</h1>
+            <p class="description">
+              Lay out your legendary creatures into physical binders, pocket by pocket.
+            </p>
+          </div>
+          <div id="user-actions" class="user-actions"></div>
+        </header>
+        <!-- Filled in by setupUI for signed-out visitors (GuestWelcome.js). -->
+        <div id="guest-welcome"></div>
+
+        <!-- Filled in by initBinderBuilder (src/ui/binderBuilder.js). -->
+        <div id="binder-root" class="binder-builder"></div>
+      </main>
+    </div>
+
+    <!-- Toast / undo area -->
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <div
+      id="loading-indicator"
+      class="loading-indicator"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+    <div id="set-tooltip" class="set-tooltip"></div>
+    <div id="tooltip" class="tooltip" role="tooltip"></div>
+
+    <script type="module" src="src/binderMain.js"></script>
+    <footer>
+      <p>
+        &copy; 2026
+        <a href="http://www.dylanabela.com" target="_blank" rel="noopener noreferrer">Dylan Abela</a
+        >. All rights reserved.
+      </p>
+    </footer>
+  </body>
+</html>
