@@ -26,8 +26,6 @@ export const RARITY_OPTIONS = [
   { id: 'rare', label: 'Rare' },
   { id: 'uncommon', label: 'Uncommon' },
   { id: 'common', label: 'Common' },
-  { id: 'special', label: 'Special' },
-  { id: 'bonus', label: 'Bonus' },
 ];
 
 /**

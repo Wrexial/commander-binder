@@ -7,6 +7,7 @@ vi.mock('../../utils/prices.js', () => ({ getDisplayedPrice: vi.fn(() => null) }
 
 import {
   DEFAULT_FILTERS,
+  RARITY_OPTIONS,
   activeFilterCount,
   applyFilters,
   cardMatchesFilters,
@@ -180,6 +181,19 @@ describe('normalizeFilters', () => {
 
   it('returns defaults for junk input', () => {
     expect(normalizeFilters(null)).toEqual(DEFAULT_FILTERS);
+  });
+
+  it('offers only the four standard rarities', () => {
+    expect(RARITY_OPTIONS.map((option) => option.id)).toEqual([
+      'mythic',
+      'rare',
+      'uncommon',
+      'common',
+    ]);
+  });
+
+  it('drops the removed special/bonus rarities from persisted filters', () => {
+    expect(normalizeFilters({ rarities: ['rare', 'special', 'bonus'] }).rarities).toEqual(['rare']);
   });
 
   it('keeps empty price bounds empty instead of coercing them to zero', () => {
