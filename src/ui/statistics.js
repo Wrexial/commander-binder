@@ -46,9 +46,6 @@ const PRICE_BUCKETS = [
   { label: () => formatPriceRange(50, null), test: (price) => price >= 50 },
 ];
 
-/** How many creature types to list before the breakdown gets noisy. */
-const MAX_TYPES_SHOWN = 12;
-
 /** How many sets to list in the per-set completion breakdown. */
 const MAX_SETS_SHOWN = 12;
 
@@ -507,13 +504,14 @@ function renderCreatureTypes(types) {
     return section('Creature Types', '<p class="stats-empty">No type data.</p>');
   }
 
-  const shown = entries.slice(0, MAX_TYPES_SHOWN);
-  const max = shown[0][1];
-  const rows = shown.map(([type, count]) => barRow({ label: type, count, max })).join('');
+  const max = entries[0][1];
+  const rows = entries.map(([type, count]) => barRow({ label: type, count, max })).join('');
 
   return section(
     'Creature Types',
-    `<div class="stats-bars">${rows}</div>`,
+    // All types are rendered; the list scrolls inside its card so a collection
+    // with hundreds of creature types can't stretch the whole modal.
+    `<div class="stats-bars stats-bars-scroll">${rows}</div>`,
     `${entries.length} type${entries.length === 1 ? '' : 's'}`
   );
 }

@@ -3187,6 +3187,17 @@ footer a:focus-visible {
   gap: 10px;
 }
 
+/* The creature-type list can run long; cap its height and scroll it in place
+   rather than letting the section stretch the whole modal. `overscroll-behavior`
+   keeps a flick at the end of the list from scrolling the modal behind it. */
+.stats-bars-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-width: thin;
+}
+
 .stats-bar-row {
   display: grid;
   grid-template-columns: minmax(84px, auto) 1fr auto;

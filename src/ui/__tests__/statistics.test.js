@@ -296,6 +296,20 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('No priced cards in this collection yet.');
   });
 
+  it('renders every creature type in a scrollable list', () => {
+    const cards = Array.from({ length: 20 }, (_, i) =>
+      makeCard({ name: `Card ${i}`, type_line: `Legendary Creature — Type${i}` })
+    );
+    const stats = calculateStatistics(cards);
+    const html = createStatisticsHTML(stats);
+
+    // A type the old 12-row cap would have dropped is present, and the list is
+    // the scrollable variant.
+    expect(html).toContain('Type19');
+    expect(html).toContain('stats-bars stats-bars-scroll');
+    expect(html).toContain('20 types');
+  });
+
   it('renders combination mana symbols in canonical WUBRG order', () => {
     const stats = calculateStatistics([makeCard({ name: 'A', colors: ['W', 'B'] })]);
     const html = createStatisticsHTML(stats);
