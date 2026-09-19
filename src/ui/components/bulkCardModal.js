@@ -2,31 +2,75 @@ import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
 import {
   createCollectionModal,
+  createTargetToggle,
   normalizeName,
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
 import { createCardNameInput } from './cardNameInput.js';
 import { isCardOwned } from '../../state/cardState.js';
+import { isCardWanted } from '../../state/wishlistState.js';
+import { getList, getLists, isInList } from '../../state/listsState.js';
 
 const VALIDATION_DEBOUNCE_MS = 250;
 
 /**
- * Create the "Bulk Check Cards" modal: paste names to see which you own, then
- * copy the missing ones. (Adding cards lives in `addCardsModal.js`.)
+ * Create the "Bulk Check Cards" modal: paste names to see which are in the
+ * picked target (collection, wishlist or a custom list), then copy the ones
+ * that aren't. (Adding cards lives in `addCardsModal.js`.)
  *
+ * @param {{target?: string}} [options] Initial target id.
  * @returns {{ show: () => void, destroy: () => void }}
  */
-function buildBulkCheckModal() {
+function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
+  /** Resolve a target id to the predicate and copy the modal needs. */
+  function describeTarget(id) {
+    if (id === 'wishlist') {
+      return {
+        present: isCardWanted,
+        presentLabel: 'Wanted',
+        missingLabel: 'Not wanted',
+        targetNoun: 'wishlist',
+      };
+    }
+    if (id === 'owned') {
+      return {
+        present: isCardOwned,
+        presentLabel: 'Owned',
+        missingLabel: 'Missing',
+        targetNoun: 'collection',
+      };
+    }
+
+    const name = getList(id)?.name || 'list';
+    return {
+      present: (card) => isInList(id, card),
+      presentLabel: `In “${name}”`,
+      missingLabel: `Not in “${name}”`,
+      targetNoun: `“${name}”`,
+    };
+  }
+
+  const targetOptions = [
+    { id: 'owned', label: 'Collection' },
+    { id: 'wishlist', label: 'Wishlist' },
+    ...getLists().map((list) => ({ id: list.id, label: list.name })),
+  ];
+  let targetId = targetOptions.some((option) => option.id === initialTarget)
+    ? initialTarget
+    : 'owned';
+  let config = describeTarget(targetId);
+
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title: 'Bulk Check Cards',
-    subtitle: 'Paste one card name per line to see what you own.',
+    subtitle: `Paste one card name per line to see what's in your ${config.targetNoun}.`,
     actions: [
       { id: 'primary', className: 'primary' },
       { id: 'close', text: 'Close' },
     ],
   });
   const { primary: primaryButton, close: closeButton } = buttons;
+  const subtitle = shell.modal.querySelector('.bulk-modal-subtitle');
 
   const input = createCardNameInput({
     placeholder: 'One card name per line (Ctrl+Enter to copy missing)',
@@ -37,14 +81,28 @@ function buildBulkCheckModal() {
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
 
-  contentArea.append(input.el, preview);
+  const target = createTargetToggle({
+    options: targetOptions,
+    initial: targetId,
+    onChange: applyTarget,
+  });
 
-  let categorized = { owned: [], missing: [], unknown: [] };
+  contentArea.append(target.el, input.el, preview);
 
-  /** Split the textarea into owned / missing / unknown, de-duplicating. */
+  let categorized = { present: [], missing: [], unknown: [] };
+
+  /** Switch the target and relabel the modal; the pasted list stays put. */
+  function applyTarget(next) {
+    targetId = next;
+    config = describeTarget(next);
+    subtitle.textContent = `Paste one card name per line to see what's in your ${config.targetNoun}.`;
+    renderPreview();
+  }
+
+  /** Split the textarea into present / missing / unknown, de-duplicating. */
   function categorize() {
     const seen = new Set();
-    const owned = [];
+    const present = [];
     const missing = [];
     const unknown = [];
 
@@ -56,14 +114,14 @@ function buildBulkCheckModal() {
       const card = input.nameIndex.get(key);
       if (!card) {
         unknown.push(line.trim());
-      } else if (isCardOwned(card)) {
-        owned.push(card);
+      } else if (config.present(card)) {
+        present.push(card);
       } else {
         missing.push(card);
       }
     }
 
-    return { owned, missing, unknown };
+    return { present, missing, unknown };
   }
 
   function updatePrimary() {
@@ -74,9 +132,9 @@ function buildBulkCheckModal() {
 
   function renderPreview() {
     categorized = categorize();
-    const { owned, missing, unknown } = categorized;
+    const { present, missing, unknown } = categorized;
 
-    if (owned.length + missing.length + unknown.length === 0) {
+    if (present.length + missing.length + unknown.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No card names yet.</p>';
       updatePrimary();
       return;
@@ -84,19 +142,19 @@ function buildBulkCheckModal() {
 
     preview.innerHTML = `
             <div class="bulk-summary">
-                ${summaryChip('owned', 'Owned', owned.length)}
-                ${summaryChip('missing', 'Missing', missing.length)}
+                ${summaryChip('owned', config.presentLabel, present.length)}
+                ${summaryChip('missing', config.missingLabel, missing.length)}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
                 ${previewGroup(
                   'owned',
-                  'Owned',
-                  owned.map((card) => card.name)
+                  config.presentLabel,
+                  present.map((card) => card.name)
                 )}
                 ${previewGroup(
                   'missing',
-                  'Missing',
+                  config.missingLabel,
                   missing.map((card) => card.name)
                 )}
                 ${previewGroup('unknown', 'Not found', unknown)}
@@ -148,7 +206,7 @@ function buildBulkCheckModal() {
 const NOOP_MODAL = { show: () => {}, destroy: () => {} };
 
 /** Open the bulk-check modal, unless another modal is already open. */
-export function createBulkCheckModal() {
+export function createBulkCheckModal(options) {
   if (document.querySelector('.list-modal-backdrop')) return NOOP_MODAL;
-  return buildBulkCheckModal();
+  return buildBulkCheckModal(options);
 }
