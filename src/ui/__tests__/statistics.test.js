@@ -343,6 +343,37 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('stats-wishlist-copy');
   });
 
+  it('lists the missing and wanted card names in row tooltips', () => {
+    const all = [
+      makeCard({ name: 'Owned', set: 'lea', set_name: 'Alpha' }),
+      makeCard({ name: 'Wanted One', set: 'lea', set_name: 'Alpha' }),
+      makeCard({ name: 'Plain Missing', set: 'lea', set_name: 'Alpha' }),
+    ];
+    isCardWanted.mockImplementation((card) => card.name === 'Wanted One');
+    const stats = calculateStatistics([all[0]], 3, all);
+
+    const html = createStatisticsHTML(stats);
+
+    // Set Completion lists every missing card...
+    expect(html).toContain('title="Wanted One\nPlain Missing"');
+    // ...and Wishlist Targets lists only the wanted ones.
+    expect(html).toContain('title="Wanted One"');
+  });
+
+  it('truncates very long tooltip name lists', () => {
+    const all = [
+      makeCard({ name: 'Owned', set: 'lea', set_name: 'Alpha' }),
+      ...Array.from({ length: 30 }, (_, i) =>
+        makeCard({ name: `Missing ${i}`, set: 'lea', set_name: 'Alpha' })
+      ),
+    ];
+    const stats = calculateStatistics([all[0]], all.length, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).toContain('…and 5 more');
+  });
+
   it('summarises completed sets and lists the near-complete ones', () => {
     const all = [
       makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),

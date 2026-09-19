@@ -49,6 +49,9 @@ const MAX_TYPES_SHOWN = 12;
 /** How many sets to list in the per-set completion breakdown. */
 const MAX_SETS_SHOWN = 12;
 
+/** Cap on names listed in a stats-row hover tooltip before "…and N more". */
+const MAX_TOOLTIP_NAMES = 25;
+
 /**
  * Resolve the colors of a card, falling back to its faces for modal DFCs.
  * Returns a de-duplicated array of color letters (empty for colorless cards).
@@ -355,6 +358,20 @@ function entriesByCount(record) {
   return Object.entries(record).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
+/**
+ * A hover tooltip body listing card names, one per line. Long lists are
+ * truncated so a set with hundreds of missing cards stays readable.
+ *
+ * @param {string[]} names
+ * @returns {string}
+ */
+function cardsTitle(names) {
+  if (names.length === 0) return '';
+  const shown = names.slice(0, MAX_TOOLTIP_NAMES);
+  const extra = names.length - shown.length;
+  return extra > 0 ? `${shown.join('\n')}\n…and ${extra} more` : shown.join('\n');
+}
+
 function renderSummary(stats) {
   const { owned, total, percent } = stats.completion;
   const creatureWord = total === 1 ? 'legendary creature' : 'legendary creatures';
@@ -520,8 +537,10 @@ function renderSetCompletion(sets, setsCompleted) {
     .map((set) => {
       // Only offer the action while at least one missing card isn't wanted yet.
       const canWishlist = set.wantedMissing.length < set.missing.length;
+      const title = cardsTitle(set.missing);
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
       return `
-        <div class="stats-bar-row${canWishlist ? ' has-copy' : ''}">
+        <div class="stats-bar-row${canWishlist ? ' has-copy' : ''}"${titleAttr}>
             <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
             <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${Math.max(set.percent, 3)}%"></span></span>
             <span class="stats-bar-count">${set.owned}/${set.total}</span>
@@ -556,14 +575,16 @@ function renderWishlistTargets(sets) {
   }
 
   const rows = targets
-    .map(
-      (set) => `
-        <div class="stats-bar-row has-copy">
+    .map((set) => {
+      const title = cardsTitle(set.wantedMissing);
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+      return `
+        <div class="stats-bar-row has-copy"${titleAttr}>
             <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
             <span class="stats-bar-count">${set.wantedMissing.length} wanted</span>
             <button type="button" class="stats-wishlist-copy" data-set="${escapeHtml(set.code)}" title="Copy ${set.wantedMissing.length} wanted missing card${set.wantedMissing.length === 1 ? '' : 's'}" aria-label="Copy ${set.wantedMissing.length} wanted missing card${set.wantedMissing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)}">Copy</button>
-        </div>`
-    )
+        </div>`;
+    })
     .join('');
 
   return section(
