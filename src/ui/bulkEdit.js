@@ -46,10 +46,13 @@ function buildBar() {
 async function handleAction(action) {
   if (action === 'clear') {
     clearSelection();
+    // The selection map changed, so repaint the tiles' selection outlines.
+    updateAllCardStates();
     return;
   }
   if (action === 'done') {
     setSelectionMode(false);
+    updateAllCardStates();
     return;
   }
 

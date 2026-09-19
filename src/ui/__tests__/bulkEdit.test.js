@@ -12,6 +12,7 @@ vi.mock('../components/ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() })
 vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
 
 import { initBulkEdit, toggleSelectionMode } from '../bulkEdit.js';
+import { updateAllCardStates } from '../cards.js';
 import { setCardsOwned } from '../../state/cardState.js';
 import { setCardsWanted } from '../../state/wishlistState.js';
 import { setSelectionMode, toggleSelection } from '../../state/selectionState.js';
@@ -97,5 +98,26 @@ describe('bulkEdit', () => {
 
     expect(document.body.classList.contains('selection-mode')).toBe(false);
     expect(bar().hidden).toBe(true);
+  });
+
+  it('repaints the tile outlines when Clear empties the selection', () => {
+    toggleSelectionMode();
+    toggleSelection({ id: 'a', name: 'Alpha' });
+    updateAllCardStates.mockClear();
+
+    action('clear').click();
+
+    expect(updateAllCardStates).toHaveBeenCalled();
+    expect(document.querySelector('.bulk-edit-count').textContent).toBe('0 selected');
+  });
+
+  it('repaints the tile outlines when Done leaves the mode', () => {
+    toggleSelectionMode();
+    toggleSelection({ id: 'a', name: 'Alpha' });
+    updateAllCardStates.mockClear();
+
+    action('done').click();
+
+    expect(updateAllCardStates).toHaveBeenCalled();
   });
 });

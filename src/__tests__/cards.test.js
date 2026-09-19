@@ -14,6 +14,7 @@ import { cardStore } from '../state/cardStore.js';
 import * as cardState from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
 import { getPreferredPrinting } from '../state/preferredPrintings.js';
+import { clearSelection, setSelectionMode, toggleSelection } from '../state/selectionState.js';
 
 vi.mock('../state/cardSettings.js', () => ({
   cardSettings: {
@@ -150,6 +151,31 @@ describe('wishlist heart', () => {
     expect(element.querySelector('.wanted-badge')).not.toBeNull();
 
     appState.isViewOnlyMode = false;
+  });
+});
+
+describe('selection outline', () => {
+  const selectedCard = { id: 'sel-1', name: 'Select Me', color_identity: [] };
+
+  afterEach(() => {
+    setSelectionMode(false);
+    clearSelection();
+    document.body.innerHTML = '';
+  });
+
+  it('toggles the selected class from the shared selection state', () => {
+    cardState.isCardOwned.mockReturnValue(false);
+    const element = createCardElement(selectedCard, 0);
+    document.body.appendChild(element);
+
+    setSelectionMode(true);
+    toggleSelection(selectedCard);
+    updateCardState(element);
+    expect(element.classList.contains('selected')).toBe(true);
+
+    clearSelection();
+    updateCardState(element);
+    expect(element.classList.contains('selected')).toBe(false);
   });
 });
 
