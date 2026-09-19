@@ -11,7 +11,8 @@ import { applyPreferredPrintings } from '../../cards.js';
 import { getCurrency } from '../../../utils/prices.js';
 import { showToast } from '../toast.js';
 
-vi.mock('../../../state/cardSettings.js', () => ({
+vi.mock('../../../state/cardSettings.js', async (importOriginal) => ({
+  ...(await importOriginal()),
   getSetting: vi.fn(),
   setSetting: vi.fn(),
 }));
@@ -63,12 +64,12 @@ function resetValues() {
   });
 }
 
-function select(ariaLabel) {
+function control(ariaLabel) {
   return document.querySelector(`[aria-label="${ariaLabel}"]`);
 }
 
-function changeSelect(ariaLabel, value) {
-  const el = select(ariaLabel);
+function changeControl(ariaLabel, value) {
+  const el = control(ariaLabel);
   el.value = value;
   el.dispatchEvent(new Event('change'));
 }
@@ -88,11 +89,15 @@ describe('settingsModal', () => {
   it('reflects the stored settings in its controls', () => {
     createSettingsModal();
 
-    expect(select('Card display mode').value).toBe('images');
-    expect(select('Price currency').value).toBe('eur');
-    expect(select('Grid columns').value).toBe('5');
-    expect(select('Grid rows').value).toBe('4');
-    expect(select('Pages per binder').value).toBe('64');
+    expect(control('Card display mode').value).toBe('images');
+    expect(control('Price currency').value).toBe('eur');
+
+    // The layout settings are number inputs, not dropdowns.
+    const columns = control('Grid columns');
+    expect(columns.type).toBe('number');
+    expect(columns.value).toBe('5');
+    expect(control('Grid rows').value).toBe('4');
+    expect(control('Pages per binder').value).toBe('64');
 
     const swipe = document.querySelector('.settings-row-toggle input[type="checkbox"]');
     expect(swipe.checked).toBe(true);
@@ -111,24 +116,52 @@ describe('settingsModal', () => {
   it('updates the grid settings and reflows the grid', () => {
     createSettingsModal();
 
-    changeSelect('Grid columns', '6');
+    changeControl('Grid columns', '6');
     expect(setSetting).toHaveBeenCalledWith('gridColumns', 6);
     expect(applyGridSettings).toHaveBeenCalledTimes(1);
 
-    changeSelect('Grid rows', '3');
+    changeControl('Grid rows', '3');
     expect(setSetting).toHaveBeenCalledWith('gridRows', 3);
     expect(applyGridSettings).toHaveBeenCalledTimes(2);
     expect(document.querySelector('.settings-readout').textContent).toContain('6 x 3');
 
-    changeSelect('Pages per binder', '16');
+    changeControl('Pages per binder', '16');
     expect(setSetting).toHaveBeenCalledWith('pagesPerBinder', 16);
     expect(applyGridSettings).toHaveBeenCalledTimes(3);
+  });
+
+  it('clamps number inputs into the accepted range', () => {
+    createSettingsModal();
+
+    changeControl('Grid columns', '99');
+    expect(setSetting).toHaveBeenCalledWith('gridColumns', 16);
+    expect(control('Grid columns').value).toBe('16');
+
+    changeControl('Grid rows', '1');
+    expect(setSetting).toHaveBeenCalledWith('gridRows', 2);
+
+    changeControl('Pages per binder', '0');
+    expect(setSetting).toHaveBeenCalledWith('pagesPerBinder', 1);
+  });
+
+  it('reverts a cleared or non-numeric number field', () => {
+    createSettingsModal();
+
+    const columns = control('Grid columns');
+    columns.value = '';
+    columns.dispatchEvent(new Event('change'));
+    expect(columns.value).toBe('5');
+
+    columns.value = 'abc';
+    columns.dispatchEvent(new Event('change'));
+    expect(columns.value).toBe('5');
+    expect(setSetting).not.toHaveBeenCalled();
   });
 
   it('applies a display-mode change', () => {
     createSettingsModal();
 
-    changeSelect('Card display mode', 'list');
+    changeControl('Card display mode', 'list');
 
     expect(setSetting).toHaveBeenCalledWith('displayMode', 'list');
     expect(handleDisplayModeChange).toHaveBeenCalledWith('list');
@@ -137,7 +170,7 @@ describe('settingsModal', () => {
   it('applies a currency change', () => {
     createSettingsModal();
 
-    changeSelect('Price currency', 'usd');
+    changeControl('Price currency', 'usd');
 
     expect(setSetting).toHaveBeenCalledWith('currency', 'usd');
     expect(applyCurrencyChange).toHaveBeenCalledTimes(1);

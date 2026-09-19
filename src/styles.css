@@ -4357,6 +4357,24 @@ body.selection-mode #results {
   cursor: pointer;
 }
 
+.settings-number {
+  flex: 0 0 auto;
+  width: 72px;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font: inherit;
+  text-align: center;
+}
+
+.settings-number:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
 .settings-select:focus-visible {
   outline: none;
   border-color: var(--focus);

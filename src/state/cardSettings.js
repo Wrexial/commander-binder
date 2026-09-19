@@ -13,10 +13,10 @@ import {
 export const MAX_PREFERRED_PRINTINGS = 150;
 
 /** Grid dimensions stay in a range that keeps a tile legible on every viewport. */
-export const MIN_GRID_COLUMNS = 3;
-export const MAX_GRID_COLUMNS = 8;
+export const MIN_GRID_COLUMNS = 2;
+export const MAX_GRID_COLUMNS = 16;
 export const MIN_GRID_ROWS = 2;
-export const MAX_GRID_ROWS = 8;
+export const MAX_GRID_ROWS = 16;
 /** Binder capacity (pages) is a positive count; the cap just rejects junk data. */
 export const MIN_PAGES_PER_BINDER = 1;
 export const MAX_PAGES_PER_BINDER = 200;

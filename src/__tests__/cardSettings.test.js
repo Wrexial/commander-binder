@@ -146,6 +146,25 @@ describe('cardSettings', () => {
     expect(cardSettings.pagesPerBinder).toBe(32);
   });
 
+  it('accepts the full 2-16 grid range and rejects one step outside it', async () => {
+    const { cardSettings, applySettings } = await import('../state/cardSettings.js');
+
+    expect(applySettings({ gridColumns: 2, gridRows: 16 })).toBe(true);
+    expect(cardSettings.gridColumns).toBe(2);
+    expect(cardSettings.gridRows).toBe(16);
+
+    expect(applySettings({ gridColumns: 16, gridRows: 2 })).toBe(true);
+    expect(cardSettings.gridColumns).toBe(16);
+    expect(cardSettings.gridRows).toBe(2);
+
+    expect(applySettings({ gridColumns: 1 })).toBe(false);
+    expect(applySettings({ gridColumns: 17 })).toBe(false);
+    expect(applySettings({ gridRows: 1 })).toBe(false);
+    expect(applySettings({ gridRows: 17 })).toBe(false);
+    expect(cardSettings.gridColumns).toBe(16);
+    expect(cardSettings.gridRows).toBe(2);
+  });
+
   it('exposes cards-per-page and pages-per-binder derived from the settings', async () => {
     const { cardSettings, getCardsPerPage, getPagesPerBinder } =
       await import('../state/cardSettings.js');

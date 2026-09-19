@@ -7,7 +7,16 @@
  * Layout changes rebuild the grid immediately (see `applyGridSettings`), since
  * section and binder sizes are baked into the DOM.
  */
-import { getSetting, setSetting } from '../../state/cardSettings.js';
+import {
+  getSetting,
+  setSetting,
+  MAX_GRID_COLUMNS,
+  MAX_GRID_ROWS,
+  MAX_PAGES_PER_BINDER,
+  MIN_GRID_COLUMNS,
+  MIN_GRID_ROWS,
+  MIN_PAGES_PER_BINDER,
+} from '../../state/cardSettings.js';
 import { resetPreferredPrintings } from '../../state/preferredPrintings.js';
 import { applyCurrencyChange, applyGridSettings, handleDisplayModeChange } from '../settingsUI.js';
 import { applyPreferredPrintings } from '../cards.js';
@@ -21,13 +30,6 @@ const DISPLAY_MODE_OPTIONS = [
   { value: 'text', label: 'Text only' },
   { value: 'list', label: 'List' },
 ];
-
-/** Grid columns and rows; a page (section) holds columns x rows cards. */
-const GRID_COLUMN_OPTIONS = [3, 4, 5, 6, 7, 8];
-const GRID_ROW_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
-
-/** Pages in one binder. The physical albums collectors use come in these sizes. */
-const PAGES_PER_BINDER_OPTIONS = [8, 16, 32, 64, 128];
 
 /** A titled block of related settings. */
 function createSettingsGroup(title) {
@@ -91,6 +93,78 @@ function createSelectRow({ label, hint, ariaLabel, options, value, onChange }) {
   });
 
   row.append(text, select);
+  return row;
+}
+
+/**
+ * A label + number-input row for the numeric layout settings.
+ *
+ * The value is clamped into `[min, max]` on commit, so a stray keystroke or a
+ * cleared field can never persist an out-of-range preference. A cleared or
+ * non-numeric field simply reverts to the current value.
+ *
+ * @param {object} config
+ * @param {string} config.label
+ * @param {string} [config.hint]
+ * @param {string} config.ariaLabel
+ * @param {number} config.min
+ * @param {number} config.max
+ * @param {number} config.value
+ * @param {(value: number) => void} config.onChange
+ * @returns {HTMLElement}
+ */
+function createNumberRow({ label, hint, ariaLabel, min, max, value, onChange }) {
+  const row = document.createElement('label');
+  row.className = 'settings-row';
+
+  const text = document.createElement('span');
+  text.className = 'settings-row-text';
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'settings-row-label';
+  labelEl.textContent = label;
+  text.appendChild(labelEl);
+
+  if (hint) {
+    const hintEl = document.createElement('span');
+    hintEl.className = 'settings-row-hint';
+    hintEl.textContent = hint;
+    text.appendChild(hintEl);
+  }
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'settings-number';
+  input.setAttribute('aria-label', ariaLabel);
+  input.setAttribute('inputmode', 'numeric');
+  input.min = String(min);
+  input.max = String(max);
+  input.step = '1';
+  input.value = String(value);
+
+  let current = value;
+
+  const commit = () => {
+    const raw = input.value.trim();
+    const parsed = Number(raw);
+    const next =
+      raw === '' || !Number.isFinite(parsed)
+        ? current
+        : Math.min(max, Math.max(min, Math.round(parsed)));
+
+    input.value = String(next);
+    if (next === current) return;
+    current = next;
+    onChange(next);
+  };
+
+  input.addEventListener('change', commit);
+  // Enter commits without making the user click/tab away first.
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') input.blur();
+  });
+
+  row.append(text, input);
   return row;
 }
 
@@ -175,10 +249,11 @@ export function createSettingsModal() {
   };
 
   gridGroup.appendChild(
-    createSelectRow({
+    createNumberRow({
       label: 'Columns',
       ariaLabel: 'Grid columns',
-      options: GRID_COLUMN_OPTIONS,
+      min: MIN_GRID_COLUMNS,
+      max: MAX_GRID_COLUMNS,
       value: getSetting('gridColumns'),
       onChange: (value) => {
         setSetting('gridColumns', value);
@@ -189,10 +264,11 @@ export function createSettingsModal() {
   );
 
   gridGroup.appendChild(
-    createSelectRow({
+    createNumberRow({
       label: 'Rows',
       ariaLabel: 'Grid rows',
-      options: GRID_ROW_OPTIONS,
+      min: MIN_GRID_ROWS,
+      max: MAX_GRID_ROWS,
       value: getSetting('gridRows'),
       onChange: (value) => {
         setSetting('gridRows', value);
@@ -206,11 +282,12 @@ export function createSettingsModal() {
   updateCardsPerPage();
 
   gridGroup.appendChild(
-    createSelectRow({
+    createNumberRow({
       label: 'Pages per binder',
       hint: 'How many pages before a new binder starts.',
       ariaLabel: 'Pages per binder',
-      options: PAGES_PER_BINDER_OPTIONS,
+      min: MIN_PAGES_PER_BINDER,
+      max: MAX_PAGES_PER_BINDER,
       value: getSetting('pagesPerBinder'),
       onChange: (value) => {
         setSetting('pagesPerBinder', value);
