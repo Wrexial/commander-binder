@@ -3155,28 +3155,6 @@ footer a:focus-visible {
   color: var(--muted);
 }
 
-/* Completion goal badge: "Complete" once done, otherwise the next milestone. */
-.stats-set-goal {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.stats-set-goal.complete {
-  background: rgba(70, 201, 138, 0.18);
-  border: 1px solid rgba(70, 201, 138, 0.5);
-  color: var(--success);
-}
-
-.stats-set-goal.next {
-  background: var(--surface-3);
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
 .stats-bar-track {
   display: block;
   height: 10px;
@@ -3215,7 +3193,7 @@ footer a:focus-visible {
   grid-template-columns: minmax(84px, auto) 1fr auto auto;
 }
 
-.stats-set-copy,
+.stats-set-wishlist,
 .stats-wishlist-copy {
   padding: 3px 9px;
   border: 1px solid var(--border);
@@ -3227,15 +3205,15 @@ footer a:focus-visible {
   cursor: pointer;
 }
 
-.stats-set-copy:hover,
-.stats-set-copy:focus-visible,
+.stats-set-wishlist:hover,
+.stats-set-wishlist:focus-visible,
 .stats-wishlist-copy:hover,
 .stats-wishlist-copy:focus-visible {
   background: var(--surface-2);
   color: var(--text);
 }
 
-.stats-set-copy:disabled,
+.stats-set-wishlist:disabled,
 .stats-wishlist-copy:disabled {
   opacity: 0.5;
   cursor: default;

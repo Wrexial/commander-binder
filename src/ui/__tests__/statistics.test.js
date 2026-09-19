@@ -6,7 +6,10 @@ vi.mock('../../state/cardState.js', () => ({
 }));
 vi.mock('../../state/wishlistState.js', () => ({
   isCardWanted: vi.fn(() => false),
+  setCardsWanted: vi.fn(() => Promise.resolve()),
 }));
+vi.mock('../cards.js', () => ({ updateAllCardStates: vi.fn() }));
+vi.mock('../../state/appState.js', () => ({ appState: { isViewOnlyMode: false } }));
 
 vi.mock('../../state/cardStore.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -24,7 +27,9 @@ vi.mock('../tooltip.js', () => ({
 import { calculateStatistics, createStatisticsHTML, showStatisticsModal } from '../statistics.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
-import { isCardWanted } from '../../state/wishlistState.js';
+import { isCardWanted, setCardsWanted } from '../../state/wishlistState.js';
+import { updateAllCardStates } from '../cards.js';
+import { appState } from '../../state/appState.js';
 import { showTooltip } from '../tooltip.js';
 
 function makeCard(overrides = {}) {
@@ -44,6 +49,9 @@ beforeEach(() => {
   cardStore.getAll.mockReturnValue([]);
   isCardOwned.mockReturnValue(false);
   isCardWanted.mockReturnValue(false);
+  setCardsWanted.mockClear();
+  updateAllCardStates.mockClear();
+  appState.isViewOnlyMode = false;
   showTooltip.mockClear();
 });
 
@@ -306,7 +314,7 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('&lt;img src=x');
   });
 
-  it('adds a copy button to sets that have missing cards', () => {
+  it('adds a wishlist button to sets that have missing cards', () => {
     const all = [
       makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
       makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
@@ -315,7 +323,7 @@ describe('createStatisticsHTML', () => {
 
     const html = createStatisticsHTML(stats);
 
-    expect(html).toContain('stats-set-copy');
+    expect(html).toContain('stats-set-wishlist');
     expect(html).toContain('data-set="lea"');
   });
 
@@ -326,17 +334,15 @@ describe('createStatisticsHTML', () => {
       makeCard({ name: 'C', set: 'm21', set_name: 'Core Set 2021' }),
       makeCard({ name: 'D', set: 'm21', set_name: 'Core Set 2021' }),
     ];
-    // Alpha fully owned; Core Set 2021 is half owned (next milestone: 75%).
+    // Alpha fully owned; Core Set 2021 is half owned.
     const stats = calculateStatistics([all[0], all[1], all[2]], 4, all);
 
     const html = createStatisticsHTML(stats);
 
     expect(stats.setsCompleted).toBe(1);
     expect(html).toContain('Sets completed: 1');
-    expect(html).toContain('stats-set-goal next');
-    expect(html).toContain('Next 75%');
+    expect(html).toContain('Core Set 2021');
     // The completed set is summarised, not listed among the in-progress rows.
-    expect(html).not.toContain('stats-set-goal complete');
     expect(html).not.toContain('Limited Edition Alpha');
   });
 
@@ -431,7 +437,7 @@ describe('showStatisticsModal', () => {
     expect(writeText).toHaveBeenCalledWith('Missing One');
   });
 
-  it("copies a single set's missing cards from its row button", async () => {
+  it("adds a set's missing cards to the wishlist from its row button", async () => {
     document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
     const owned = makeCard({ id: 'o', name: 'Owned', set: 'lea', set_name: 'Alpha' });
     const missing = makeCard({ id: 'm', name: 'Missing One', set: 'lea', set_name: 'Alpha' });
@@ -439,15 +445,31 @@ describe('showStatisticsModal', () => {
     cardStore.getPrintings.mockReturnValue([]);
     isCardOwned.mockImplementation((card) => card.id === 'o');
 
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.assign(navigator, { clipboard: { writeText } });
+    showStatisticsModal();
+
+    const button = document.querySelector('.stats-set-wishlist');
+    expect(button).toBeTruthy();
+    button.click();
+    await Promise.resolve();
+
+    expect(setCardsWanted).toHaveBeenCalledWith([missing], true);
+    expect(updateAllCardStates).toHaveBeenCalled();
+    expect(button.textContent).toBe('Wishlisted');
+    expect(button.disabled).toBe(true);
+  });
+
+  it('hides the wishlist row buttons in a view-only share', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const owned = makeCard({ id: 'o', name: 'Owned', set: 'lea', set_name: 'Alpha' });
+    const missing = makeCard({ id: 'm', name: 'Missing One', set: 'lea', set_name: 'Alpha' });
+    cardStore.getAll.mockReturnValue([owned, missing]);
+    cardStore.getPrintings.mockReturnValue([]);
+    isCardOwned.mockImplementation((card) => card.id === 'o');
+    appState.isViewOnlyMode = true;
 
     showStatisticsModal();
 
-    document.querySelector('.stats-set-copy').click();
-    await Promise.resolve();
-
-    expect(writeText).toHaveBeenCalledWith('Missing One');
+    expect(document.querySelector('.stats-set-wishlist').hidden).toBe(true);
   });
 
   it('copies wanted-and-missing cards from a wishlist target row', async () => {

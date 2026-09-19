@@ -1,9 +1,11 @@
 import { isCardOwned } from '../state/cardState.js';
-import { isCardWanted } from '../state/wishlistState.js';
+import { isCardWanted, setCardsWanted } from '../state/wishlistState.js';
+import { appState } from '../state/appState.js';
 import { cardStore } from '../state/cardStore.js';
 import { escapeHtml } from '../utils/html.js';
 import { createModal } from './components/modal.js';
 import { showToast } from './components/toast.js';
+import { updateAllCardStates } from './cards.js';
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { getCheapestPrice } from '../utils/prices.js';
@@ -46,27 +48,6 @@ const MAX_TYPES_SHOWN = 12;
 
 /** How many sets to list in the per-set completion breakdown. */
 const MAX_SETS_SHOWN = 12;
-
-/** Completion milestones shown as a goal badge on each set row. */
-const COMPLETION_MILESTONES = [25, 50, 75, 100];
-
-/**
- * A small goal badge for a set: "Complete" once every card is owned, otherwise
- * a nudge toward the next milestone (25 / 50 / 75 / 100%).
- *
- * @param {number} owned
- * @param {number} total
- * @returns {string}
- */
-function completionGoal(owned, total) {
-  if (total > 0 && owned >= total) {
-    return '<span class="stats-set-goal complete">✓ Complete</span>';
-  }
-
-  const percent = total > 0 ? (owned / total) * 100 : 0;
-  const next = COMPLETION_MILESTONES.find((milestone) => percent < milestone);
-  return next ? `<span class="stats-set-goal next">Next ${next}%</span>` : '';
-}
 
 /**
  * Resolve the colors of a card, falling back to its faces for modal DFCs.
@@ -539,12 +520,12 @@ function renderSetCompletion(sets, setsCompleted) {
     .map(
       (set) => `
         <div class="stats-bar-row${set.missing.length > 0 ? ' has-copy' : ''}">
-            <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span> ${completionGoal(set.owned, set.total)}</span>
+            <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
             <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${Math.max(set.percent, 3)}%"></span></span>
             <span class="stats-bar-count">${set.owned}/${set.total}</span>
             ${
               set.missing.length > 0
-                ? `<button type="button" class="stats-set-copy" data-set="${escapeHtml(set.code)}" title="Copy ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'}" aria-label="Copy ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)}">Copy</button>`
+                ? `<button type="button" class="stats-set-wishlist" data-set="${escapeHtml(set.code)}" title="Add ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'} to your wishlist" aria-label="Add ${set.missing.length} missing card${set.missing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)} to your wishlist">Wishlist</button>`
                 : ''
             }
         </div>`
@@ -819,11 +800,39 @@ export function showStatisticsModal() {
   contentArea.className = 'modal-content-area statistics-content';
   contentArea.innerHTML = createStatisticsHTML(stats);
 
-  // Each set row's "Copy" button copies that set's missing cards.
-  const missingBySet = new Map(stats.sets.map((set) => [set.code, set.missing]));
-  contentArea.querySelectorAll('.stats-set-copy').forEach((button) => {
-    button.addEventListener('click', () => {
-      copyCardNames(missingBySet.get(button.dataset.set) || [], 'missing cards');
+  // Each set row's "Wishlist" button adds that set's missing cards to the
+  // wishlist. Read-only share views get the row but not the action.
+  const cardsByName = new Map(allCards.map((card) => [card.name, card]));
+  const missingCardsBySet = new Map(
+    stats.sets.map((set) => [
+      set.code,
+      set.missing.map((name) => cardsByName.get(name)).filter(Boolean),
+    ])
+  );
+  contentArea.querySelectorAll('.stats-set-wishlist').forEach((button) => {
+    if (appState.isViewOnlyMode) {
+      button.hidden = true;
+      return;
+    }
+
+    button.addEventListener('click', async () => {
+      const cards = missingCardsBySet.get(button.dataset.set) || [];
+      if (cards.length === 0) return;
+
+      button.disabled = true;
+      try {
+        await setCardsWanted(cards, true);
+        updateAllCardStates();
+        button.textContent = 'Wishlisted';
+        showToast(
+          `Added ${cards.length} card${cards.length === 1 ? '' : 's'} to your wishlist.`,
+          'success'
+        );
+      } catch (err) {
+        button.disabled = false;
+        console.error('Failed to wishlist set cards:', err);
+        showToast('Could not update the wishlist.', 'error');
+      }
     });
   });
 
