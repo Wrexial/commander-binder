@@ -4,7 +4,7 @@ import { appState } from '../state/appState.js';
 import { isCardOwned } from '../state/cardState.js';
 import { getCardBorderStyle, getCardBackground } from '../utils/colors.js';
 import { getCardImageUrls } from '../utils/cardImages.js';
-import { getDisplayedPrice } from '../utils/prices.js';
+import { getDisplayedPrice, formatPrice } from '../utils/prices.js';
 import { CARDS_PER_PAGE } from '../config/constants.js';
 import { cardStore } from '../state/cardStore.js';
 import { getPreferredPrinting } from '../state/preferredPrintings.js';
@@ -130,7 +130,7 @@ function createEdhrecLink(card) {
 function createPriceElement(price) {
   const el = document.createElement('span');
   el.className = 'card-price';
-  el.textContent = `€${price.toFixed(2)}`;
+  el.textContent = formatPrice(price);
   return el;
 }
 

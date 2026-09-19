@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../state/cardState.js', () => ({ isCardOwned: vi.fn(() => false) }));
 vi.mock('../../state/wishlistState.js', () => ({ isCardWanted: vi.fn(() => false) }));
-vi.mock('../prices.js', () => ({ getDisplayedPrice: vi.fn(() => null) }));
+vi.mock('../prices.js', () => ({
+  getDisplayedPrice: vi.fn(() => null),
+  formatPrice: (value) => (value == null ? '—' : `€${Number(value).toFixed(2)}`),
+}));
 
 import { DEFAULT_SORT, isDefaultSort, sortCards, sortMark } from '../sortCards.js';
 import { isCardOwned } from '../../state/cardState.js';

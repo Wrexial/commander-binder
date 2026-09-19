@@ -1,7 +1,7 @@
 // tooltip.js
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
-import { getDisplayedPrice } from '../utils/prices.js';
+import { getDisplayedPrice, formatPrice } from '../utils/prices.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { cardStore } from '../state/cardStore.js';
 import { isCardOwned } from '../state/cardState.js';
@@ -96,7 +96,7 @@ function createTooltipDetails(card, version, cycleControl, tooltip) {
     if (price !== null) {
       const priceEl = document.createElement('span');
       priceEl.className = 'tooltip-card-price';
-      priceEl.textContent = `€${price.toFixed(2)}`;
+      priceEl.textContent = formatPrice(price);
       meta.appendChild(priceEl);
     }
 

@@ -1,6 +1,7 @@
 import { getSetting, setSetting } from '../state/cardSettings.js';
 import { resetPreferredPrintings } from '../state/preferredPrintings.js';
 import { applyPreferredPrintings, updateCardStyles, applyDisplayMode } from './cards.js';
+import { CURRENCY_OPTIONS, getCurrency } from '../utils/prices.js';
 import { showToast } from './components/toast.js';
 
 /** Tile layouts offered by the display-mode picker, in display order. */
@@ -75,6 +76,48 @@ function handleDisplayModeChange(value) {
 }
 
 /**
+ * The price-currency picker. Changing it rebuilds every tile (prices are baked
+ * in when the tile is rendered) and notifies the filter bar to relabel and
+ * re-run its price filter against the new currency.
+ *
+ * @returns {{el: HTMLElement, select: HTMLSelectElement}}
+ */
+function createCurrencyPicker() {
+  const labelEl = document.createElement('label');
+  labelEl.className = 'sidebar-setting';
+
+  const text = document.createElement('span');
+  text.textContent = 'Currency';
+  labelEl.appendChild(text);
+
+  const select = document.createElement('select');
+  select.className = 'currency-select';
+  select.dataset.setting = 'currency';
+  select.setAttribute('aria-label', 'Price currency');
+  for (const option of CURRENCY_OPTIONS) {
+    const el = document.createElement('option');
+    el.value = option.id;
+    el.textContent = option.label;
+    select.appendChild(el);
+  }
+  select.value = getCurrency();
+
+  select.addEventListener('change', (event) => {
+    setSetting('currency', event.target.value);
+    applyCurrencyChange();
+  });
+
+  labelEl.appendChild(select);
+  return { el: labelEl, select };
+}
+
+/** Re-render tiles and tell the filter bar the price unit changed. */
+function applyCurrencyChange() {
+  applyDisplayMode();
+  document.dispatchEvent(new CustomEvent('currency:changed'));
+}
+
+/**
  * A button that forgets every remembered printing and falls the grid back to
  * each card's base printing. Without it the pin has no escape hatch.
  *
@@ -98,6 +141,9 @@ function syncControls() {
   const modeSelect = document.querySelector('[data-setting="displayMode"]');
   if (modeSelect) modeSelect.value = getSetting('displayMode');
 
+  const currencySelect = document.querySelector('[data-setting="currency"]');
+  if (currencySelect) currencySelect.value = getCurrency();
+
   const swipeToggle = document.querySelector('[data-setting="swipeDismissToast"]');
   if (swipeToggle) swipeToggle.checked = Boolean(getSetting('swipeDismissToast'));
 
@@ -106,6 +152,8 @@ function syncControls() {
   // Settings pulled from the account may carry preferred printings; re-apply
   // them to the mounted tiles.
   applyPreferredPrintings();
+  // Let the filter bar refresh its price labels (it may already be built).
+  document.dispatchEvent(new CustomEvent('currency:changed'));
 }
 
 /**
@@ -124,13 +172,19 @@ export function initCardSettings() {
   settingsContainer.className = 'sidebar-settings-container';
 
   const displayModePicker = createDisplayModePicker();
+  const currencyPicker = createCurrencyPicker();
   const swipeToggle = createSettingToggle({
     setting: 'swipeDismissToast',
     label: ' Swipe to dismiss alerts',
   });
   const resetPrintings = createResetPrintingsButton();
 
-  settingsContainer.append(displayModePicker.el, swipeToggle.el, resetPrintings.el);
+  settingsContainer.append(
+    displayModePicker.el,
+    currencyPicker.el,
+    swipeToggle.el,
+    resetPrintings.el
+  );
   sidebar.appendChild(settingsContainer);
 
   // Apply the stored settings to the page on load.

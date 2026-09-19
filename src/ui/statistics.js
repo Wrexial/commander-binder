@@ -8,7 +8,7 @@ import { showToast } from './components/toast.js';
 import { updateAllCardStates } from './cards.js';
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { preloadCardImages } from '../utils/cardImages.js';
-import { getCheapestPrice } from '../utils/prices.js';
+import { getCheapestPrice, formatPrice, formatPriceRange } from '../utils/prices.js';
 import { nextPrinting } from '../utils/printings.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 
@@ -34,13 +34,16 @@ const RARITY_LABELS = {
 /** Buckets for the mana-value curve. 7+ is the final catch-all column. */
 const MANA_CURVE_LABELS = ['0', '1', '2', '3', '4', '5', '6', '7+'];
 
-/** EUR price brackets, checked in order. Covers every non-negative price. */
+/**
+ * Price brackets, checked in order. Covers every non-negative price. Labels are
+ * built lazily so they follow the selected currency (EUR/USD/TIX).
+ */
 const PRICE_BUCKETS = [
-  { label: '< €1', test: (price) => price < 1 },
-  { label: '€1–5', test: (price) => price >= 1 && price < 5 },
-  { label: '€5–20', test: (price) => price >= 5 && price < 20 },
-  { label: '€20–50', test: (price) => price >= 20 && price < 50 },
-  { label: '€50+', test: (price) => price >= 50 },
+  { label: () => `< ${formatPrice(1, { decimals: 0 })}`, test: (price) => price < 1 },
+  { label: () => formatPriceRange(1, 5), test: (price) => price >= 1 && price < 5 },
+  { label: () => formatPriceRange(5, 20), test: (price) => price >= 5 && price < 20 },
+  { label: () => formatPriceRange(20, 50), test: (price) => price >= 20 && price < 50 },
+  { label: () => formatPriceRange(50, null), test: (price) => price >= 50 },
 ];
 
 /** How many creature types to list before the breakdown gets noisy. */
@@ -205,10 +208,7 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
   const top5ValuableCards = [...pricedCards].sort((a, b) => b.price - a.price).slice(0, 5);
   const averageCardValue = totalCards > 0 ? totalValue / totalCards : 0;
 
-  const priceBuckets = PRICE_BUCKETS.map((bucket) => ({
-    label: bucket.label,
-    count: 0,
-  }));
+  const priceBuckets = PRICE_BUCKETS.map((bucket) => ({ label: bucket.label(), count: 0 }));
   for (const { price } of pricedCards) {
     const index = PRICE_BUCKETS.findIndex((bucket) => bucket.test(price));
     if (index >= 0) priceBuckets[index].count += 1;
@@ -317,8 +317,8 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
   };
 }
 
-function formatEuro(value) {
-  return `€${Number(value).toFixed(2)}`;
+function formatMoney(value) {
+  return formatPrice(value);
 }
 
 function formatPercent(value) {
@@ -384,11 +384,11 @@ function renderSummary(stats) {
             </div>
             <div class="stat-card">
                 <span class="stat-card-label">Total Value</span>
-                <span class="stat-card-value">${formatEuro(stats.totalValue)}</span>
+                <span class="stat-card-value">${formatMoney(stats.totalValue)}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-card-label">Average Card Value</span>
-                <span class="stat-card-value">${formatEuro(stats.averageCardValue)}</span>
+                <span class="stat-card-value">${formatMoney(stats.averageCardValue)}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-card-label">Completion</span>
@@ -611,7 +611,7 @@ function renderPriceDistribution(priceBuckets, medianValue) {
   return section(
     'Price Distribution',
     `<div class="stats-bars">${rows}</div>`,
-    `median ${formatEuro(medianValue)}`
+    `median ${formatMoney(medianValue)}`
   );
 }
 
@@ -629,7 +629,7 @@ function renderTopCards(cards) {
             <li class="stats-top-card">
                 <span class="stats-top-rank">${index + 1}</span>
                 <span class="stats-top-name" title="${escapeHtml(card.name)}">${escapeHtml(card.name)}</span>
-                <span class="stats-top-price">${formatEuro(card.price)}</span>
+                <span class="stats-top-price">${formatMoney(card.price)}</span>
             </li>`
     )
     .join('');
@@ -827,7 +827,7 @@ export function showStatisticsModal() {
 
     const cardWord = stats.totalCards === 1 ? 'card' : 'cards';
     const wishlistSuffix = stats.wishlist.wanted > 0 ? ` · ${stats.wishlist.wanted} wanted` : '';
-    subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatEuro(stats.totalValue)} total value${wishlistSuffix}`;
+    subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatMoney(stats.totalValue)} total value${wishlistSuffix}`;
 
     contentArea.innerHTML = createStatisticsHTML(stats);
     wireStatisticsActions();

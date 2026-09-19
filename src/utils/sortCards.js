@@ -6,7 +6,7 @@
  */
 import { isCardOwned } from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
-import { getDisplayedPrice } from './prices.js';
+import { getDisplayedPrice, formatPrice } from './prices.js';
 
 export const DEFAULT_SORT = 'release-asc';
 
@@ -204,7 +204,7 @@ export function sortMark(card, sortId) {
     }
     case 'price': {
       const price = getDisplayedPrice(card);
-      return price == null ? '—' : `€${price.toFixed(2)}`;
+      return price == null ? '—' : formatPrice(price);
     }
     case 'cmc':
       return card.cmc == null ? '—' : String(card.cmc);

@@ -50,7 +50,12 @@ describe('cardSettings', () => {
     saveSettings();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: {} })
+      JSON.stringify({
+        displayMode: 'list',
+        currency: 'eur',
+        swipeDismissToast: true,
+        preferredPrintings: {},
+      })
     );
   });
 
@@ -62,7 +67,12 @@ describe('cardSettings', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: {} })
+      JSON.stringify({
+        displayMode: 'list',
+        currency: 'eur',
+        swipeDismissToast: true,
+        preferredPrintings: {},
+      })
     );
   });
 
@@ -98,6 +108,12 @@ describe('cardSettings', () => {
     // A boolean setting is accepted too.
     expect(applySettings({ swipeDismissToast: false })).toBe(true);
     expect(cardSettings.swipeDismissToast).toBe(false);
+
+    // The currency accepts only the three known ids.
+    expect(applySettings({ currency: 'usd' })).toBe(true);
+    expect(cardSettings.currency).toBe('usd');
+    expect(applySettings({ currency: 'gbp' })).toBe(false);
+    expect(cardSettings.currency).toBe('usd');
 
     // An invalid value is ignored, so nothing changes.
     expect(applySettings({ displayMode: 'nope' })).toBe(false);

@@ -10,6 +10,9 @@ const DEFAULT_SETTINGS = {
   // displayMode: 'text' | 'images' | 'list' — names, artwork, or a compact
   // checklist row with an inline ownership toggle.
   displayMode: 'images',
+  // Price currency shown on tiles, in statistics and used by the price filter:
+  // 'eur' | 'usd' | 'tix' (MTGO tickets).
+  currency: 'eur',
   // Swipe any direction on a toast (e.g. the undo prompt) to dismiss it early.
   swipeDismissToast: true,
   // Card name -> chosen printing id. One entry per card, so cycling a name a
@@ -20,6 +23,7 @@ const DEFAULT_SETTINGS = {
 /** Accepted values per setting, so persisted/synced data can't inject junk. */
 const SETTING_VALIDATORS = {
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
+  currency: (value) => value === 'eur' || value === 'usd' || value === 'tix',
   swipeDismissToast: (value) => typeof value === 'boolean',
   preferredPrintings: (value) =>
     value !== null &&

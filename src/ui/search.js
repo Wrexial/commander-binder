@@ -6,6 +6,7 @@ import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned, getOwnedAddedAt } from '../state/cardState.js';
 import { isCardWanted, getWantedAddedAt } from '../state/wishlistState.js';
 import { getListByName, getListsForCard, isInList } from '../state/listsState.js';
+import { getDisplayedPrice } from '../utils/prices.js';
 import { cardStore } from '../state/cardStore.js';
 import { getSavedSearch, saveSearch } from '../state/viewState.js';
 import { activeFilterCount, cardMatchesFilters } from '../state/filters.js';
@@ -212,8 +213,8 @@ function cardMatchesFilter(card, filter) {
     match = list ? isInList(list.id, card.cardData) : false;
   } else if (filter.startsWith('price:')) {
     const priceTerm = getFilterValue(filter, 'price:').replace(',', '.');
-    const price = parseFloat(card.cardData.prices?.eur);
-    if (isNaN(price)) {
+    const price = getDisplayedPrice(card.cardData);
+    if (price == null) {
       match = false;
     } else if (priceTerm.includes('-')) {
       const [minPrice, maxPrice] = priceTerm.split('-').map((p) => parseFloat(p));

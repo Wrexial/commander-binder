@@ -14,6 +14,7 @@ import { initFilterBar } from '../filterBar.js';
 import { filters, resetFilters } from '../../state/filters.js';
 import { cardStore } from '../../state/cardStore.js';
 import { getList, getLists } from '../../state/listsState.js';
+import { cardSettings } from '../../state/cardSettings.js';
 
 /** The segment button with `text` inside the filter group labelled `groupLabel`. */
 function segment(groupLabel, text) {
@@ -38,6 +39,7 @@ beforeEach(() => {
   document.body.innerHTML = '';
   getLists.mockReturnValue([]);
   getList.mockReturnValue(null);
+  cardSettings.currency = 'eur';
   cardStore.getAll.mockReturnValue([
     { name: 'A', set: 'dom', set_name: 'Dominaria' },
     { name: 'B', set: 'ice', set_name: 'Ice Age' },
@@ -208,6 +210,28 @@ describe('initFilterBar', () => {
     // Sorting rebuilds the grid (which re-applies filters), so the plain
     // filter callback must not run again.
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('relabels the price group when the currency changes', () => {
+    const onChange = vi.fn();
+    initFilterBar({ onChange });
+
+    const priceLabel = () =>
+      [...document.querySelectorAll('.filter-group-label')].find((el) =>
+        el.textContent.startsWith('Price')
+      );
+    expect(priceLabel().textContent).toBe('Price (€)');
+
+    // Simulate the settings UI switching to USD and announcing it.
+    cardSettings.currency = 'usd';
+    document.dispatchEvent(new CustomEvent('currency:changed'));
+
+    expect(priceLabel().textContent).toBe('Price ($)');
+    expect(document.querySelector('.filter-price').placeholder).toBe('Min $');
+    expect(onChange).toHaveBeenCalled();
+
+    cardSettings.currency = 'eur';
+    document.dispatchEvent(new CustomEvent('currency:changed'));
   });
 
   it('resets every filter', () => {

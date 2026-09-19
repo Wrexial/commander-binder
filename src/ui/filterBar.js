@@ -14,6 +14,7 @@ import {
 } from '../state/filters.js';
 import { getSavedFilters, saveFilters } from '../state/viewState.js';
 import { getList, getLists } from '../state/listsState.js';
+import { formatPrice, getCurrencySymbol } from '../utils/prices.js';
 import { SORT_OPTIONS } from '../utils/sortCards.js';
 
 const PRICE_DEBOUNCE_MS = 300;
@@ -32,6 +33,9 @@ let externalFilterHandler = null;
 
 /** The active `lists:changed` listener, replaced on re-init like the above. */
 let listsChangedHandler = null;
+
+/** The active `currency:changed` listener, replaced on re-init. */
+let currencyChangedHandler = null;
 
 function toNumber(value) {
   const number = Number(value);
@@ -269,16 +273,12 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   priceMin.min = '0';
   priceMin.step = '0.01';
   priceMin.className = 'filter-price';
-  priceMin.placeholder = 'Min €';
-  priceMin.setAttribute('aria-label', 'Minimum price in euro');
 
   const priceMax = document.createElement('input');
   priceMax.type = 'number';
   priceMax.min = '0';
   priceMax.step = '0.01';
   priceMax.className = 'filter-price';
-  priceMax.placeholder = 'Max €';
-  priceMax.setAttribute('aria-label', 'Maximum price in euro');
 
   // Update the price state on every keystroke so a sync triggered by another
   // control can't read back a stale value and revert the edit; only the
@@ -340,8 +340,10 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     if (filters.set) items.push(filters.set.toUpperCase());
     if (filters.list) items.push(getList(filters.list)?.name || 'List');
     if (filters.priceMin != null || filters.priceMax != null) {
-      const min = filters.priceMin != null ? `€${filters.priceMin}` : '';
-      const max = filters.priceMax != null ? `€${filters.priceMax}` : '';
+      const formatBound = (value) =>
+        formatPrice(value, { decimals: Number.isInteger(value) ? 0 : 2 });
+      const min = filters.priceMin != null ? formatBound(filters.priceMin) : '';
+      const max = filters.priceMax != null ? formatBound(filters.priceMax) : '';
       items.push(min && max ? `${min}–${max}` : min ? `${min}+` : `≤${max}`);
     }
     return items;
@@ -405,6 +407,10 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   colorRow.className = 'filter-row';
   colorRow.append(colors.el, colorMode.el);
 
+  // The label is filled in by `syncPriceLabels()` below so it always names the
+  // selected currency.
+  const priceGroup = group('Price', priceRow);
+
   panel.append(
     activeRow,
     group('Sort by', sortSelect),
@@ -413,9 +419,20 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     group('Rarity', rarities.el),
     group('Set', setSelect),
     group('List', listSelect),
-    group('Price (€)', priceRow),
+    priceGroup,
     resetButton
   );
+
+  /** Relabel the price group and its inputs for the selected currency. */
+  function syncPriceLabels() {
+    const symbol = getCurrencySymbol();
+    const title = priceGroup.querySelector('.filter-group-label');
+    if (title) title.textContent = `Price (${symbol})`;
+    priceMin.placeholder = `Min ${symbol}`;
+    priceMax.placeholder = `Max ${symbol}`;
+    priceMin.setAttribute('aria-label', `Minimum price in ${symbol}`);
+    priceMax.setAttribute('aria-label', `Maximum price in ${symbol}`);
+  }
 
   function syncControls() {
     collection.sync(filters.collection);
@@ -467,6 +484,16 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   };
   document.addEventListener('lists:changed', listsChangedHandler);
 
+  // The price bounds keep their numbers but now mean a different currency, so
+  // relabel the controls and re-run the filter (the chips reformat too).
+  if (currencyChangedHandler)
+    document.removeEventListener('currency:changed', currencyChangedHandler);
+  currencyChangedHandler = () => {
+    syncPriceLabels();
+    commit();
+  };
+  document.addEventListener('currency:changed', currencyChangedHandler);
+
   function setOpen(open) {
     panel.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
@@ -488,6 +515,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
 
   populateSetOptions(setSelect, filters.set);
   populateListOptions(listSelect, filters.list);
+  syncPriceLabels();
   syncControls();
 
   // Apply restored filters to anything already rendered.

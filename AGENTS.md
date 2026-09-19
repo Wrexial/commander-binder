@@ -103,6 +103,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   controls, surfaced as removable chips) and the
   `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
   account via the `user-settings` function (best-effort, signed-in only).
+  `cardSettings.js` holds the display mode, the price currency
+  (EUR/USD/TIX), the swipe-to-dismiss flag and the preferred-printing map; the
+  currency is read by `utils/prices.js` so tiles, the filter bar, search,
+  sort and statistics all agree on one unit.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `bulkEdit`, `yearScrubber`, `scrollPosition`,
@@ -168,6 +172,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
   `compareCollections`, `sortCards`).
+  `prices.js` is the single place that reads Scryfall's per-currency
+  `prices.eur`/`usd`/`tix` fields (plus `formatPrice`/`formatPriceRange`), so a
+  currency switch is a settings change rather than a data change.
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;

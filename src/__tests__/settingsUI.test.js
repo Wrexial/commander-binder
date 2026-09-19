@@ -7,6 +7,7 @@ import { applyDisplayMode } from '../ui/cards.js';
 vi.mock('../state/cardSettings.js', () => ({
   getSetting: vi.fn(),
   setSetting: vi.fn(),
+  cardSettings: { currency: 'eur' },
 }));
 
 vi.mock('../ui/cards.js', () => ({
@@ -21,7 +22,11 @@ describe('initCardSettings', () => {
     document.body.className = '';
     // setupUI sidebars is where the settings controls are injected
     document.body.innerHTML = '<div id="sidebar"></div>';
-    getSetting.mockReturnValue('images');
+    getSetting.mockImplementation((key) => {
+      if (key === 'currency') return 'eur';
+      if (key === 'swipeDismissToast') return false;
+      return 'images';
+    });
   });
 
   it('creates the display-mode picker reflecting the stored value', () => {
@@ -65,6 +70,21 @@ describe('initCardSettings', () => {
     expect(setSetting).toHaveBeenCalledWith('displayMode', 'images');
     expect(document.body.classList.contains('images-mode')).toBe(true);
     expect(document.body.classList.contains('list-mode')).toBe(false);
+  });
+
+  it('creates the currency picker and re-renders on change', () => {
+    initCardSettings();
+
+    const select = document.querySelector('[data-setting="currency"]');
+    expect(select).not.toBeNull();
+    expect([...select.options].map((option) => option.value)).toEqual(['eur', 'usd', 'tix']);
+    expect(select.value).toBe('eur');
+
+    select.value = 'usd';
+    select.dispatchEvent(new Event('change'));
+
+    expect(setSetting).toHaveBeenCalledWith('currency', 'usd');
+    expect(applyDisplayMode).toHaveBeenCalled();
   });
 
   it('toggles the swipe-to-dismiss-alerts setting', () => {

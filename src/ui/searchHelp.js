@@ -33,7 +33,11 @@ export const SEARCH_SYNTAX_GROUPS = [
     title: 'Date & price',
     entries: [
       { key: 'd:', label: 'Release year, or a year range', example: 'd:2018-2020' },
-      { key: 'price:', label: 'Price in € — a minimum, or a range', example: 'price:1.50-20' },
+      {
+        key: 'price:',
+        label: 'Price in the selected currency — a minimum, or a range',
+        example: 'price:1.50-20',
+      },
     ],
   },
   {
