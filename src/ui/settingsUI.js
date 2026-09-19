@@ -1,5 +1,5 @@
 import { getSetting, setSetting } from '../state/cardSettings.js';
-import { updateCardStyles, applyDisplayMode } from './cards.js';
+import { applyPreferredPrintings, updateCardStyles, applyDisplayMode } from './cards.js';
 
 /** Tile layouts offered by the display-mode picker, in display order. */
 const DISPLAY_MODE_OPTIONS = [
@@ -82,6 +82,9 @@ function syncControls() {
 
   updateCardStyles();
   handleDisplayModeChange(getSetting('displayMode'));
+  // Settings pulled from the account may carry preferred printings; re-apply
+  // them to the mounted tiles.
+  applyPreferredPrintings();
 }
 
 /**

@@ -8,6 +8,7 @@ import * as toast from '../ui/components/toast.js';
 import * as ownedCounter from '../ui/components/ownedCounter.js';
 import * as layout from '../ui/layout.js';
 import { cardStore } from '../state/cardStore.js';
+import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 
 // Mock all dependencies
 vi.mock('../ui/tooltip.js');
@@ -22,6 +23,9 @@ vi.mock('../state/cardStore.js', () => ({
     getPrintings: vi.fn(() => []),
     getPrintingPosition: vi.fn(() => ({ index: 1, total: 1 })),
   },
+}));
+vi.mock('../state/preferredPrintings.js', () => ({
+  rememberPreferredPrinting: vi.fn(),
 }));
 
 describe('initCardInteractions', () => {
@@ -281,6 +285,18 @@ describe('initCardInteractions', () => {
 
       expect(cardElement.cardData.id).toBe('p2');
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
+    });
+
+    it('remembers the chosen printing so the grid keeps showing it', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      initCardInteractions(container, tooltipElement);
+      cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+      expect(rememberPreferredPrinting).toHaveBeenCalledWith(second);
     });
 
     it('cycles the printing when the version badge is activated, without toggling ownership', async () => {

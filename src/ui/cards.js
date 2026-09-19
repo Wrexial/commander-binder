@@ -7,6 +7,7 @@ import { getCardImageUrls } from '../utils/cardImages.js';
 import { getDisplayedPrice } from '../utils/prices.js';
 import { CARDS_PER_PAGE } from '../config/constants.js';
 import { cardStore } from '../state/cardStore.js';
+import { getPreferredPrinting } from '../state/preferredPrintings.js';
 
 /**
  * Native browser tooltip hint shown on mouse-driven (PC) layouts, where the
@@ -464,6 +465,25 @@ export function refreshCardElement(cardElement) {
 /** Re-render every mounted card, e.g. after the display mode changes. */
 export function applyDisplayMode() {
   document.querySelectorAll('.card').forEach((cardElement) => {
+    refreshCardElement(cardElement);
+  });
+}
+
+/**
+ * Point every mounted tile at the user's chosen printing (or the base printing
+ * when they have not chosen one). Applied once the whole collection has loaded
+ * and whenever settings arrive from the server, so a preference whose printing
+ * was not loaded when the tile first rendered still wins.
+ */
+export function applyPreferredPrintings() {
+  document.querySelectorAll('.card').forEach((cardElement) => {
+    const card = cardElement.cardData;
+    if (!card) return;
+
+    const target = getPreferredPrinting(card) || cardStore.getOldestPrinting(card.name);
+    if (!target || target.id === card.id) return;
+
+    cardElement.cardData = target;
     refreshCardElement(cardElement);
   });
 }

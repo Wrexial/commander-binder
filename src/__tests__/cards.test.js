@@ -4,6 +4,7 @@ import {
   createCardElement,
   updateCardState,
   applyDisplayMode,
+  applyPreferredPrintings,
   refreshCardElement,
   updateCardVersionCounts,
 } from '../ui/cards.js';
@@ -11,6 +12,7 @@ import { appState } from '../state/appState.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 import * as cardState from '../state/cardState.js';
+import { getPreferredPrinting } from '../state/preferredPrintings.js';
 
 vi.mock('../state/cardSettings.js', () => ({
   cardSettings: {
@@ -23,6 +25,10 @@ vi.mock('../state/appState.js', () => ({
   appState: {
     isViewOnlyMode: false,
   },
+}));
+
+vi.mock('../state/preferredPrintings.js', () => ({
+  getPreferredPrinting: vi.fn(() => null),
 }));
 
 vi.mock('../state/cardState.js', () => ({
@@ -394,6 +400,46 @@ describe('applyDisplayMode', () => {
     expect(element.classList.contains('image-tile')).toBe(true);
 
     cardSettings.displayMode = 'text';
+    document.body.innerHTML = '';
+  });
+});
+
+describe('applyPreferredPrintings', () => {
+  beforeEach(() => {
+    cardStore.clear();
+    getPreferredPrinting.mockReturnValue(null);
+  });
+
+  it('switches a mounted tile to the saved printing', () => {
+    const base = { id: 'base', name: 'Card', released_at: '2010-01-01' };
+    const chosen = { id: 'chosen', name: 'Card', released_at: '2020-01-01' };
+    cardStore.add(base);
+    cardStore.add(chosen);
+    cardState.isCardOwned.mockReturnValue(false);
+    getPreferredPrinting.mockReturnValue(chosen);
+
+    const element = createCardElement(base, 0);
+    document.body.appendChild(element);
+
+    applyPreferredPrintings();
+
+    expect(element.cardData).toBe(chosen);
+    document.body.innerHTML = '';
+  });
+
+  it('falls back to the base printing when no preference is stored', () => {
+    const base = { id: 'base', name: 'Card', released_at: '2010-01-01' };
+    const other = { id: 'other', name: 'Card', released_at: '2020-01-01' };
+    cardStore.add(base);
+    cardStore.add(other);
+    cardState.isCardOwned.mockReturnValue(false);
+
+    const element = createCardElement(other, 0);
+    document.body.appendChild(element);
+
+    applyPreferredPrintings();
+
+    expect(element.cardData).toBe(base);
     document.body.innerHTML = '';
   });
 });

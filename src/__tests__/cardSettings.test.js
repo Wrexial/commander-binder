@@ -50,7 +50,7 @@ describe('cardSettings', () => {
     saveSettings();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list', swipeDismissToast: true })
+      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: [] })
     );
   });
 
@@ -62,8 +62,25 @@ describe('cardSettings', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list', swipeDismissToast: true })
+      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: [] })
     );
+  });
+
+  it('accepts a printing-id list but drops out-of-cap or malformed values', async () => {
+    const { MAX_PREFERRED_PRINTINGS, cardSettings, applySettings } =
+      await import('../state/cardSettings.js');
+
+    expect(applySettings({ preferredPrintings: ['a', 'b'] })).toBe(true);
+    expect(cardSettings.preferredPrintings).toEqual(['a', 'b']);
+
+    // Non-string entries are rejected.
+    expect(applySettings({ preferredPrintings: ['a', 2] })).toBe(false);
+    expect(cardSettings.preferredPrintings).toEqual(['a', 'b']);
+
+    // An over-cap list is rejected rather than truncated by the sanitizer.
+    const tooMany = Array.from({ length: MAX_PREFERRED_PRINTINGS + 1 }, (_, i) => `p${i}`);
+    expect(applySettings({ preferredPrintings: tooMany })).toBe(false);
+    expect(cardSettings.preferredPrintings).toEqual(['a', 'b']);
   });
 
   it('applies only known, valid settings and reports whether anything changed', async () => {

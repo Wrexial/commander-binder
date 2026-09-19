@@ -16,12 +16,14 @@ import {
   updateCardState,
   updateAllCardStates,
   updateCardVersionCounts,
+  applyPreferredPrintings,
 } from './cards.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { showToast } from './components/toast.js';
 import { reapplySearchFilter } from './search.js';
 import { filters } from '../state/filters.js';
 import { isDefaultSort, sortCards, sortMark } from '../utils/sortCards.js';
+import { resolveDisplayPrinting } from '../state/preferredPrintings.js';
 
 /**
  * When a page yields too few new unique cards to render a section, we keep
@@ -59,8 +61,9 @@ function processScryfallData(data) {
     if (isNewUniqueCard) {
       appState.seenNames.add(name);
       // Default to the card's base (oldest) printing so the thumbnail
-      // and its price line up, whatever order the source delivered.
-      newUniqueCards.push(cardStore.getOldestPrinting(name) || card);
+      // and its price line up, whatever order the source delivered — unless
+      // the user has saved a preferred printing for this name.
+      newUniqueCards.push(resolveDisplayPrinting(cardStore.getOldestPrinting(name) || card));
     }
     appState.seenSetCodes.add(card.set.toLowerCase());
   }
@@ -165,6 +168,8 @@ async function runFetch(results, tooltip) {
     if (!appState.nextPageUrl) {
       updateAllCardStates();
       updateCardVersionCounts();
+      // A saved preferred printing may only have arrived with a later page.
+      applyPreferredPrintings();
       // Finish a sorted rebuild now that the whole collection is in the store.
       if (!isDefaultSort(filters.sort)) renderCollection(results);
     }
@@ -251,7 +256,10 @@ function renderPage(results, tooltip, pageCards) {
  * default order after the feed stopped streaming.
  */
 function renderCollection(results) {
-  const ordered = sortCards(cardStore.getAll(), filters.sort);
+  const ordered = sortCards(
+    cardStore.getAll().map((card) => resolveDisplayPrinting(card)),
+    filters.sort
+  );
 
   // Drop the old binders but keep the infinite-scroll sentinel, if present.
   results.querySelectorAll('.binder').forEach((binder) => binder.remove());

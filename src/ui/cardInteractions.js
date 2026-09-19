@@ -8,6 +8,7 @@ import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { nextPrinting } from '../utils/printings.js';
+import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { refreshCardElement, syncCardOwnedUi } from './cards.js';
 import { showPressIndicator, hidePressIndicator } from './pressIndicator.js';
@@ -296,6 +297,11 @@ function cycleCardPrinting(cardElement, event, tooltip, direction = 1) {
     direction
   );
   if (!next) return;
+
+  // Remember the pick so the grid keeps showing this printing on later loads.
+  // Persisted from the view-only share path too: choosing art is a view action,
+  // not an ownership edit.
+  rememberPreferredPrinting(next);
 
   // Cycling rebuilds the tile, which would drop focus on the (replaced) version
   // button; put it back so keyboard users stay on the control they activated.

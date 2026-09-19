@@ -1,15 +1,31 @@
+/**
+ * Cap on remembered preferred printings. The list rides the 8 KB account
+ * settings blob (`netlify/utils/userSettings.ts`) and printing ids are ~36
+ * bytes each, so this keeps the sync comfortably under the limit while still
+ * covering far more cards than a collector typically picks art for.
+ */
+export const MAX_PREFERRED_PRINTINGS = 150;
+
 const DEFAULT_SETTINGS = {
   // displayMode: 'text' | 'images' | 'list' — names, artwork, or a compact
   // checklist row with an inline ownership toggle.
   displayMode: 'images',
   // Swipe any direction on a toast (e.g. the undo prompt) to dismiss it early.
   swipeDismissToast: true,
+  // Printing ids the user explicitly chose with the version cycle, oldest
+  // choice first. Ids only (not names) keep the synced blob small; the card
+  // store resolves them to the actual printing at render time.
+  preferredPrintings: [],
 };
 
 /** Accepted values per setting, so persisted/synced data can't inject junk. */
 const SETTING_VALIDATORS = {
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
   swipeDismissToast: (value) => typeof value === 'boolean',
+  preferredPrintings: (value) =>
+    Array.isArray(value) &&
+    value.length <= MAX_PREFERRED_PRINTINGS &&
+    value.every((id) => typeof id === 'string' && id.length > 0),
 };
 
 const STORAGE_KEY = 'cardSettings';

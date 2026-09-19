@@ -7,6 +7,7 @@ import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { getCheapestPrice } from '../utils/prices.js';
 import { nextPrinting } from '../utils/printings.js';
+import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 
 /** Canonical display order and labels for the five colors plus colorless. */
 const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G', 'C'];
@@ -625,6 +626,9 @@ function wireTopCardTooltips(container, tooltip, topCards) {
 
     const next = nextPrinting(cardStore.getPrintings(row.cardData.name), row.cardData);
     if (!next) return;
+
+    // A pick made in the statistics preview follows the card to the grid.
+    rememberPreferredPrinting(next);
 
     row.cardData = next;
     showTooltip(event, row.cardData, tooltip);

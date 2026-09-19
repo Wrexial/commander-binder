@@ -12,6 +12,7 @@ vi.mock('../state/cardSettings.js', () => ({
 vi.mock('../ui/cards.js', () => ({
   updateCardStyles: vi.fn(),
   applyDisplayMode: vi.fn(),
+  applyPreferredPrintings: vi.fn(),
 }));
 
 describe('initCardSettings', () => {
