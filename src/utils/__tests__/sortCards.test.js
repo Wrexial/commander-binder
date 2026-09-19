@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../state/cardState.js', () => ({ isCardOwned: vi.fn(() => false) }));
+vi.mock('../../state/wishlistState.js', () => ({ isCardWanted: vi.fn(() => false) }));
 vi.mock('../prices.js', () => ({ getDisplayedPrice: vi.fn(() => null) }));
 
 import { DEFAULT_SORT, isDefaultSort, sortCards, sortMark } from '../sortCards.js';
 import { isCardOwned } from '../../state/cardState.js';
+import { isCardWanted } from '../../state/wishlistState.js';
 import { getDisplayedPrice } from '../prices.js';
 
 const cards = [
@@ -81,6 +83,13 @@ describe('sortCards', () => {
     expect(sortCards(cards, 'owned-asc').map((c) => c.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
     expect(sortCards(cards, 'owned-desc').map((c) => c.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
+
+  it('puts wanted cards first (and not wanted first in reverse)', () => {
+    isCardWanted.mockImplementation((card) => card.name === 'Beta');
+
+    expect(sortCards(cards, 'wanted-asc').map((c) => c.name)).toEqual(['Beta', 'Alpha', 'Gamma']);
+    expect(sortCards(cards, 'wanted-desc').map((c) => c.name)).toEqual(['Alpha', 'Gamma', 'Beta']);
+  });
 });
 
 describe('sortMark', () => {
@@ -104,6 +113,11 @@ describe('sortMark', () => {
   it('uses the owned state for the owned sorts', () => {
     isCardOwned.mockReturnValue(true);
     expect(sortMark(cards[0], 'owned-asc')).toBe('Owned');
+  });
+
+  it('uses the wishlist state for the wanted sorts', () => {
+    isCardWanted.mockReturnValue(true);
+    expect(sortMark(cards[0], 'wanted-asc')).toBe('Wanted');
   });
 
   it('names colour combinations for the mark', () => {

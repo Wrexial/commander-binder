@@ -3949,3 +3949,84 @@ footer a:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* --- Bulk edit (multi-select) --- */
+body.selection-mode .card {
+  cursor: pointer;
+}
+
+.card.selected {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+/* While selecting, a tap edits the selection rather than the card, so the
+   inline edit controls step out of the way. */
+body.selection-mode .card .card-toggle,
+body.selection-mode .card .card-wishlist,
+body.selection-mode .card .card-versions,
+body.selection-mode .card .edhrec-link {
+  pointer-events: none;
+}
+
+.bulk-edit-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 24px);
+  padding: 8px 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+}
+
+.bulk-edit-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bulk-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bulk-edit-actions button {
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.bulk-edit-actions button:hover {
+  background: var(--button-bg-hover);
+}
+
+.bulk-edit-actions button.primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: #1b1600;
+}
+
+@media (max-width: 768px) {
+  .bulk-edit-bar {
+    left: 8px;
+    right: 8px;
+    transform: none;
+    justify-content: space-between;
+    border-radius: var(--radius-md);
+  }
+}

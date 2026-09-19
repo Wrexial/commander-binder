@@ -1,4 +1,5 @@
 import { isCardOwned } from '../state/cardState.js';
+import { isCardWanted } from '../state/wishlistState.js';
 import { cardStore } from '../state/cardStore.js';
 import { escapeHtml } from '../utils/html.js';
 import { createModal } from './components/modal.js';
@@ -153,10 +154,11 @@ function median(values) {
  *   medianManaValue: number|null,
  *   priceBuckets: { label: string, count: number }[],
  *   top5ValuableCards: { name: string, price: number, card: object }[],
- *   sets: { code: string, name: string, owned: number, total: number, percent: number, missing: string[] }[],
+ *   sets: { code: string, name: string, owned: number, total: number, percent: number, missing: string[], wantedMissing: string[] }[],
  *   setsCompleted: number,
  *   missingCount: number,
  *   missingNames: string[],
+ *   wishlist: { wanted: number, missing: number, missingNames: string[] },
  * }}
  */
 export function calculateStatistics(cards, totalAvailable = cards.length, allCards = cards) {
@@ -257,9 +259,22 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
   const ownedSet = new Set(cards);
   const missingBySet = new Map();
   const missingNames = [];
+  const wantedMissingBySet = new Map();
+  const wantedMissingNames = [];
+  let wantedCount = 0;
   for (const card of allCards) {
+    const wanted = isCardWanted(card);
+    if (wanted) wantedCount += 1;
     if (ownedSet.has(card)) continue;
     missingNames.push(card.name);
+    if (wanted) {
+      wantedMissingNames.push(card.name);
+      if (card.set) {
+        const wantedList = wantedMissingBySet.get(card.set);
+        if (wantedList) wantedList.push(card.name);
+        else wantedMissingBySet.set(card.set, [card.name]);
+      }
+    }
     if (!card.set) continue;
     const list = missingBySet.get(card.set);
     if (list) list.push(card.name);
@@ -274,6 +289,7 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
         owned,
         percent: entry.total > 0 ? (owned / entry.total) * 100 : 0,
         missing: missingBySet.get(entry.code) || [],
+        wantedMissing: wantedMissingBySet.get(entry.code) || [],
       };
     })
     .filter((entry) => entry.owned > 0)
@@ -309,6 +325,11 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     setsCompleted,
     missingCount: missingNames.length,
     missingNames,
+    wishlist: {
+      wanted: wantedCount,
+      missing: wantedMissingNames.length,
+      missingNames: wantedMissingNames,
+    },
   };
 }
 
@@ -533,6 +554,42 @@ function renderSetCompletion(sets, setsCompleted) {
   return section('Set Completion', `<div class="stats-bars">${rows}</div>`, meta);
 }
 
+/**
+ * Sets ranked by how many of their missing cards are on the wishlist, so the
+ * collector can see which set to chase next. Only *missing* cards count: a
+ * wanted card already owned is not a target.
+ */
+function renderWishlistTargets(sets) {
+  const targets = sets
+    .filter((set) => set.wantedMissing.length > 0)
+    .sort((a, b) => b.wantedMissing.length - a.wantedMissing.length || a.name.localeCompare(b.name))
+    .slice(0, MAX_SETS_SHOWN);
+
+  if (targets.length === 0) {
+    return section(
+      'Wishlist Targets',
+      '<p class="stats-empty">No missing cards on your wishlist.</p>'
+    );
+  }
+
+  const rows = targets
+    .map(
+      (set) => `
+        <div class="stats-bar-row has-copy">
+            <span class="stats-bar-label">${escapeHtml(set.name)} <span class="stats-set-code">${escapeHtml(set.code.toUpperCase())}</span></span>
+            <span class="stats-bar-count">${set.wantedMissing.length} wanted</span>
+            <button type="button" class="stats-wishlist-copy" data-set="${escapeHtml(set.code)}" title="Copy ${set.wantedMissing.length} wanted missing card${set.wantedMissing.length === 1 ? '' : 's'}" aria-label="Copy ${set.wantedMissing.length} wanted missing card${set.wantedMissing.length === 1 ? '' : 's'} from ${escapeHtml(set.name)}">Copy</button>
+        </div>`
+    )
+    .join('');
+
+  return section(
+    'Wishlist Targets',
+    `<div class="stats-bars">${rows}</div>`,
+    `${targets.length} set${targets.length === 1 ? '' : 's'}`
+  );
+}
+
 function renderPriceDistribution(priceBuckets, medianValue) {
   const total = priceBuckets.reduce((sum, bucket) => sum + bucket.count, 0);
   if (total === 0) {
@@ -674,6 +731,7 @@ export function createStatisticsHTML(stats) {
             ${renderRarities(stats.rarities)}
             ${renderCreatureTypes(stats.types)}
             ${renderSetCompletion(stats.sets, stats.setsCompleted)}
+            ${renderWishlistTargets(stats.sets)}
             ${renderPriceDistribution(stats.priceBuckets, stats.medianCardValue)}
         </div>
         ${renderTopCards(stats.top5ValuableCards)}
@@ -751,7 +809,8 @@ export function showStatisticsModal() {
   const subtitle = document.createElement('p');
   subtitle.className = 'statistics-subtitle';
   const cardWord = stats.totalCards === 1 ? 'card' : 'cards';
-  subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatEuro(stats.totalValue)} total value`;
+  const wishlistSuffix = stats.wishlist.wanted > 0 ? ` · ${stats.wishlist.wanted} wanted` : '';
+  subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatEuro(stats.totalValue)} total value${wishlistSuffix}`;
 
   headerText.appendChild(modalHeader);
   headerText.appendChild(subtitle);
@@ -765,6 +824,14 @@ export function showStatisticsModal() {
   contentArea.querySelectorAll('.stats-set-copy').forEach((button) => {
     button.addEventListener('click', () => {
       copyCardNames(missingBySet.get(button.dataset.set) || [], 'missing cards');
+    });
+  });
+
+  // The wishlist-target rows copy only the wanted-and-missing names.
+  const wantedMissingBySet = new Map(stats.sets.map((set) => [set.code, set.wantedMissing]));
+  contentArea.querySelectorAll('.stats-wishlist-copy').forEach((button) => {
+    button.addEventListener('click', () => {
+      copyCardNames(wantedMissingBySet.get(button.dataset.set) || [], 'wanted cards');
     });
   });
 

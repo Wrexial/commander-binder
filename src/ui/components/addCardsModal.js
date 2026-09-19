@@ -2,6 +2,7 @@ import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
 import {
   addOwnedCards,
+  addWantedCards,
   createCollectionModal,
   normalizeName,
   previewGroup,
@@ -11,6 +12,7 @@ import { createCardNameInput } from './cardNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
+import { isCardWanted } from '../../state/wishlistState.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
 
@@ -30,17 +32,24 @@ function buildPrintingIndex() {
 /**
  * The "Add Cards" modal: the former Bulk Add and Import Collection in one place.
  * Accepts typed names (with autocomplete), a pasted plain list or CSV / Moxfield
- * / Archidekt export, or a file, then marks the not-yet-owned matches owned.
+ * / Archidekt export, or a file, then marks the not-yet-present matches owned —
+ * or wanted, when `kind` is `'wishlist'` (the same modal serves both).
  *
+ * @param {{kind?: 'owned'|'wishlist'}} [options]
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createAddCardsModal() {
+export function createAddCardsModal({ kind = 'owned' } = {}) {
   const byPrinting = buildPrintingIndex();
 
+  const isWishlist = kind === 'wishlist';
+  const isPresent = isWishlist ? isCardWanted : isCardOwned;
+  const addCards = isWishlist ? addWantedCards : addOwnedCards;
+  const presentLabel = isWishlist ? 'Already wanted' : 'Already owned';
+  const successSuffix = isWishlist ? ' to your wishlist' : '';
+
   const { shell, close, contentArea, buttons } = createCollectionModal({
-    title: 'Add Cards',
-    subtitle:
-      'Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already own are skipped.',
+    title: isWishlist ? 'Add to Wishlist' : 'Add Cards',
+    subtitle: `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${isWishlist ? 'want' : 'own'} are skipped.`,
     actions: [
       { id: 'primary', className: 'primary' },
       { id: 'close', text: 'Close' },
@@ -94,7 +103,7 @@ export function createAddCardsModal() {
       if (seen.has(card.id)) continue;
       seen.add(card.id);
 
-      if (isCardOwned(card)) owned.push(card);
+      if (isPresent(card)) owned.push(card);
       else add.push(card);
     }
 
@@ -121,7 +130,7 @@ export function createAddCardsModal() {
     preview.innerHTML = `
             <div class="bulk-summary">
                 ${summaryChip('missing', 'Will add', add.length)}
-                ${summaryChip('owned', 'Already owned', owned.length)}
+                ${summaryChip('owned', presentLabel, owned.length)}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
@@ -132,7 +141,7 @@ export function createAddCardsModal() {
                 )}
                 ${previewGroup(
                   'owned',
-                  'Already owned',
+                  presentLabel,
                   owned.map((card) => card.name)
                 )}
                 ${previewGroup('unknown', 'Not found', unknown)}
@@ -150,8 +159,11 @@ export function createAddCardsModal() {
     confirming = true;
     updatePrimary();
     try {
-      await addOwnedCards(add, `Added ${add.length} card${add.length === 1 ? '' : 's'}.`);
-      // Re-render: the added cards now show up under "Already owned".
+      await addCards(
+        add,
+        `Added ${add.length} card${add.length === 1 ? '' : 's'}${successSuffix}.`
+      );
+      // Re-render: the added cards now show up under "Already ...".
       renderPreview();
     } catch (err) {
       console.error('Add cards failed:', err);

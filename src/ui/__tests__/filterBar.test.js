@@ -40,7 +40,7 @@ describe('initFilterBar', () => {
     const panel = document.getElementById('filter-panel');
 
     expect(panel.hidden).toBe(true);
-    expect(panel.querySelectorAll('.filter-group')).toHaveLength(7);
+    expect(panel.querySelectorAll('.filter-group')).toHaveLength(8);
 
     toggle.click();
     expect(panel.hidden).toBe(false);
@@ -106,6 +106,20 @@ describe('initFilterBar', () => {
     expect(filters.wanted).toBe('wanted');
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(activeBadgeText()).toBe('1');
+  });
+
+  it('applies a trade preset', () => {
+    const onChange = vi.fn();
+    initFilterBar({ onChange });
+
+    const tradeGroup = [...document.querySelectorAll('.filter-group')].find(
+      (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === 'Trade'
+    );
+    const duplicates = tradeGroup.querySelectorAll('.filter-segment')[1]; // Duplicates
+    duplicates.click();
+
+    expect(filters.trade).toBe('duplicates');
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('selects a set from the loaded collection', () => {

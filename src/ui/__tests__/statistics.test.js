@@ -4,6 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../state/cardState.js', () => ({
   isCardOwned: vi.fn(() => false),
 }));
+vi.mock('../../state/wishlistState.js', () => ({
+  isCardWanted: vi.fn(() => false),
+}));
 
 vi.mock('../../state/cardStore.js', () => ({
   primaryName: (cardOrName) =>
@@ -22,6 +25,7 @@ vi.mock('../tooltip.js', () => ({
 import { calculateStatistics, createStatisticsHTML, showStatisticsModal } from '../statistics.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
+import { isCardWanted } from '../../state/wishlistState.js';
 import { showTooltip } from '../tooltip.js';
 
 function makeCard(overrides = {}) {
@@ -40,6 +44,7 @@ beforeEach(() => {
   cardStore.getPrintings.mockReturnValue([]);
   cardStore.getAll.mockReturnValue([]);
   isCardOwned.mockReturnValue(false);
+  isCardWanted.mockReturnValue(false);
   showTooltip.mockClear();
 });
 
@@ -188,7 +193,15 @@ describe('calculateStatistics', () => {
 
     // Highest completion first; sets with no owned cards are omitted.
     expect(stats.sets).toEqual([
-      { code: 'm21', name: 'Core Set 2021', total: 1, owned: 1, percent: 100, missing: [] },
+      {
+        code: 'm21',
+        name: 'Core Set 2021',
+        total: 1,
+        owned: 1,
+        percent: 100,
+        missing: [],
+        wantedMissing: [],
+      },
       {
         code: 'lea',
         name: 'Limited Edition Alpha',
@@ -196,6 +209,7 @@ describe('calculateStatistics', () => {
         owned: 1,
         percent: 50,
         missing: ['B'],
+        wantedMissing: [],
       },
     ]);
     expect(stats.missingCount).toBe(1);
@@ -339,6 +353,25 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('Sets completed: 1');
     expect(html).toContain('Every set you have started is complete');
   });
+
+  it('renders wishlist targets for wanted missing cards', () => {
+    const all = [
+      makeCard({ name: 'Owned', set: 'abc', set_name: 'Set ABC' }),
+      makeCard({ name: 'Wanted One', set: 'abc', set_name: 'Set ABC' }),
+      makeCard({ name: 'Wanted Two', set: 'abc', set_name: 'Set ABC' }),
+    ];
+    isCardWanted.mockImplementation((card) => card.name !== 'Owned');
+    const stats = calculateStatistics([all[0]], 3, all);
+
+    expect(stats.wishlist).toMatchObject({ wanted: 2, missing: 2 });
+    expect(stats.wishlist.missingNames).toEqual(['Wanted One', 'Wanted Two']);
+    expect(stats.sets[0].wantedMissing).toHaveLength(2);
+
+    const html = createStatisticsHTML(stats);
+    expect(html).toContain('Wishlist Targets');
+    expect(html).toContain('2 wanted');
+    expect(html).toContain('stats-wishlist-copy');
+  });
 });
 
 describe('showStatisticsModal', () => {
@@ -416,5 +449,27 @@ describe('showStatisticsModal', () => {
     await Promise.resolve();
 
     expect(writeText).toHaveBeenCalledWith('Missing One');
+  });
+
+  it('copies wanted-and-missing cards from a wishlist target row', async () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const owned = makeCard({ id: 'owned', name: 'Owned', set: 'lea', set_name: 'Alpha' });
+    const wanted = makeCard({ id: 'wanted', name: 'Wanted One', set: 'lea', set_name: 'Alpha' });
+    cardStore.getAll.mockReturnValue([owned, wanted]);
+    cardStore.getPrintings.mockReturnValue([]);
+    isCardOwned.mockImplementation((card) => card.id === 'owned');
+    isCardWanted.mockImplementation((card) => card.id === 'wanted');
+
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    showStatisticsModal();
+
+    const button = document.querySelector('.stats-wishlist-copy');
+    expect(button).toBeTruthy();
+    button.click();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith('Wanted One');
   });
 });

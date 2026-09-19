@@ -64,7 +64,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
-  `localCollection`, `localWishlist`, `compareState`, `viewState`, `onboarding`,
+  `localCollection`, `localWishlist`, `compareState`, `selectionState`, `viewState`,
+  `onboarding`,
   `filters`,
   `settingsSync`). State is
   plain exported objects, not a framework store. `mainState.js` holds session
@@ -75,30 +76,37 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   guest) and the server (signed in or share token). `preferredPrintings.js`
   remembers the printing the user picked when cycling versions.
   `compareState.js` loads the viewer's _own_ collection separately from the
-  share view's owner collection, so the two can be diffed. `viewState.js`
+  share view's owner collection, so the two can be diffed. `selectionState.js`
+  holds the bulk-edit multi-selection (keyed by card name). `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
-  `filters.js` holds the filter-bar state (including the sort option) and the
+  `filters.js` holds the filter-bar state (including the sort option, the
+  owned/wanted groups and the trade presets) and the
   `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
   account via the `user-settings` function (best-effort, signed-in only).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
-  `tooltip`, `cardInteractions`, `yearScrubber`, `scrollPosition`, `filterBar`,
+  `tooltip`, `cardInteractions`, `bulkEdit`, `yearScrubber`, `scrollPosition`,
+  `filterBar`,
   `randomCard`, `keyboardShortcuts`, `installPrompt`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
-  `collectionModal.js`, the add/check/export modals (plus the shared
+  `collectionModal.js`, the add/check/export modals (the add and recent-activity
+  modals take a `kind` of `owned` or `wishlist`; plus the shared
   `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`) and their
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
-  ship as separate chunks.
+  ship as separate chunks. Statistics includes a "Wishlist Targets" section that
+  ranks sets by how many of their missing cards are on the wishlist.
   `searchHelp.js` owns the syntax reference as data (rendered into
-  `#search-tooltip`), so the docs and `parseQuery` cannot drift apart.
+  `#search-tooltip`), so the docs and `parseQuery` cannot drift apart. `is:wanted`
+  reads the wishlist and `is:new` matches cards added to either collection in the
+  last 30 days; `sortCards.js` also offers wanted-first/not-wanted-first orders.
   `yearScrubber.js` builds the draggable rail from one mark per _visible_
   section (the section's first visible card, labelled by the active sort —
   release year + sets in the default order, or letter/price/rarity/colour

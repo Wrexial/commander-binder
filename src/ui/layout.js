@@ -124,6 +124,11 @@ export function createAddCardsButton(onClick) {
   addButtonToSidebar('➕ Add Cards', onClick, 'collection', 20);
 }
 
+/** Add / import cards straight onto the wishlist. */
+export function createAddWishlistButton(onClick) {
+  addButtonToSidebar('💝 Add to Wishlist', onClick, 'collection', 25);
+}
+
 /** Jump to a random card the collector is missing. */
 export function createSurpriseButton() {
   addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse', 10);
@@ -181,18 +186,22 @@ export function createExportWishlistButton() {
   );
 }
 
-/** A timeline of recently added cards. */
-export function createRecentActivityButton() {
+/**
+ * A timeline of recently added cards, for the owned collection by default.
+ *
+ * @param {{kind?: 'owned'|'wishlist', label?: string, order?: number}} [options]
+ */
+export function createRecentActivityButton({ kind = 'owned', label, order = 20 } = {}) {
   addButtonToSidebar(
-    '🕒 Recent Additions',
+    label || (kind === 'wishlist' ? '🕒 Recent Wishlist' : '🕒 Recent Additions'),
     async () => {
       if (document.querySelector('.list-modal-backdrop')) return;
 
       const { createRecentActivityModal } = await import('./components/recentActivityModal.js');
-      createRecentActivityModal().show();
+      createRecentActivityModal({ kind }).show();
     },
     'browse',
-    20
+    order
   );
 }
 

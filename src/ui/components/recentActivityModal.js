@@ -1,4 +1,5 @@
 import { getOwnedAddedAt } from '../../state/cardState.js';
+import { getWantedAddedAt } from '../../state/wishlistState.js';
 import { cardStore, primaryName } from '../../state/cardStore.js';
 import { escapeHtml } from '../../utils/html.js';
 import { createModal } from './modal.js';
@@ -64,28 +65,32 @@ export function recentAdditions(addedAt = getOwnedAddedAt(), limit = MAX_ENTRIES
 
 /**
  * Create the "Recent Additions" modal — a simple timeline of when cards were
- * marked owned. Cards added before `created_at` existed still appear, but only
- * once the migration has run.
+ * marked owned (or wanted, with `kind: 'wishlist'`). Cards added before
+ * `created_at` existed still appear, but only once the migration has run.
  *
+ * @param {{kind?: 'owned'|'wishlist'}} [options]
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createRecentActivityModal() {
-  const entries = recentAdditions();
+export function createRecentActivityModal({ kind = 'owned' } = {}) {
+  const isWishlist = kind === 'wishlist';
+  const title = isWishlist ? 'Recent Wishlist Additions' : 'Recent Additions';
+  const verb = isWishlist ? 'wanted' : 'owned';
+  const entries = recentAdditions(isWishlist ? getWantedAddedAt() : getOwnedAddedAt());
 
-  const shell = createModal({ className: 'activity-modal', ariaLabel: 'Recent Additions' });
+  const shell = createModal({ className: 'activity-modal', ariaLabel: title });
   const { modal, close } = shell;
 
   const header = document.createElement('div');
   header.className = 'bulk-modal-header';
 
   const heading = document.createElement('h2');
-  heading.textContent = 'Recent Additions';
+  heading.textContent = title;
 
   const subtitle = document.createElement('p');
   subtitle.className = 'bulk-modal-subtitle';
   subtitle.textContent = entries.length
-    ? `Your ${entries.length} most recently added card${entries.length === 1 ? '' : 's'}.`
-    : 'Cards you mark as owned show up here.';
+    ? `Your ${entries.length} most recently ${verb} card${entries.length === 1 ? '' : 's'}.`
+    : `Cards you mark as ${verb} show up here.`;
 
   header.append(heading, subtitle);
 
@@ -93,8 +98,7 @@ export function createRecentActivityModal() {
   contentArea.className = 'modal-content-area activity-content';
 
   if (entries.length === 0) {
-    contentArea.innerHTML =
-      '<p class="bulk-empty">Nothing added yet. Mark cards as owned and they will appear here.</p>';
+    contentArea.innerHTML = `<p class="bulk-empty">Nothing added yet. Mark cards as ${verb} and they will appear here.</p>`;
   } else {
     contentArea.innerHTML = `<ul class="activity-list">${entries
       .map(

@@ -7,6 +7,9 @@ vi.mock('../../../state/cardStore.js', () => ({
 vi.mock('../../../state/cardState.js', () => ({
   getOwnedAddedAt: vi.fn(() => new Map()),
 }));
+vi.mock('../../../state/wishlistState.js', () => ({
+  getWantedAddedAt: vi.fn(() => new Map()),
+}));
 
 import {
   formatAddedAt,
@@ -15,6 +18,7 @@ import {
 } from '../recentActivityModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { getOwnedAddedAt } from '../../../state/cardState.js';
+import { getWantedAddedAt } from '../../../state/wishlistState.js';
 
 const NOW = Date.parse('2024-06-10T12:00:00.000Z');
 
@@ -103,5 +107,17 @@ describe('createRecentActivityModal', () => {
     createRecentActivityModal().show();
 
     expect(document.querySelector('.bulk-empty')).not.toBeNull();
+  });
+
+  it('uses the wishlist store and title in wishlist mode', () => {
+    cardStore.getByPrintingId.mockReturnValue({ id: 'w', name: 'Wanted Card', set: 'neo' });
+    getWantedAddedAt.mockReturnValue(new Map([['w', new Date().toISOString()]]));
+
+    createRecentActivityModal({ kind: 'wishlist' }).show();
+
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe(
+      'Recent Wishlist Additions'
+    );
+    expect(document.querySelector('.activity-name').textContent).toBe('Wanted Card');
   });
 });

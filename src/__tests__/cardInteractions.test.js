@@ -5,6 +5,7 @@ import { cardSettings } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import * as cardState from '../state/cardState.js';
 import * as wishlistState from '../state/wishlistState.js';
+import { getSelectedCards, setSelectionMode } from '../state/selectionState.js';
 import * as toast from '../ui/components/toast.js';
 import * as ownedCounter from '../ui/components/ownedCounter.js';
 import * as layout from '../ui/layout.js';
@@ -25,6 +26,8 @@ vi.mock('../ui/components/toast.js');
 vi.mock('../ui/components/ownedCounter.js');
 vi.mock('../ui/layout.js');
 vi.mock('../state/cardStore.js', () => ({
+  primaryName: (cardOrName) =>
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
   cardStore: {
     getPrintings: vi.fn(() => []),
     getPrintingPosition: vi.fn(() => ({ index: 1, total: 1 })),
@@ -38,6 +41,7 @@ describe('initCardInteractions', () => {
   let container, tooltipElement, cardElement;
 
   afterEach(() => {
+    setSelectionMode(false);
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });
@@ -333,6 +337,17 @@ describe('initCardInteractions', () => {
       expect(cardElement.classList.contains('owned')).toBe(true);
       expect(ownedCounter.updateOwnedCounter).toHaveBeenCalled();
       expect(toast.showUndo).toHaveBeenCalled();
+    });
+
+    it('selects a card instead of toggling ownership in bulk-select mode', async () => {
+      setSelectionMode(true);
+      initCardInteractions(container, tooltipElement);
+
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      expect(cardElement.classList.contains('selected')).toBe(true);
+      expect(getSelectedCards()).toHaveLength(1);
     });
 
     it('toggles the wishlist from the heart without touching ownership', async () => {

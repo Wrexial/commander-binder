@@ -232,6 +232,18 @@ describe('evaluateCondition', () => {
     expect(evaluateCondition(card, { type: 'filter', value: 'is:wanted' })).toBe(false);
   });
 
+  it('should handle is:new filters using recently-added marks', () => {
+    const added = { cardData: { id: 'recent-1', name: 'Recently Added' } };
+    vi.spyOn(cardState, 'getOwnedAddedAt').mockReturnValue(
+      new Map([['recent-1', new Date().toISOString()]])
+    );
+    expect(evaluateCondition(added, { type: 'filter', value: 'is:new' })).toBe(true);
+
+    vi.spyOn(cardState, 'getOwnedAddedAt').mockReturnValue(new Map());
+    vi.spyOn(wishlistState, 'getWantedAddedAt').mockReturnValue(new Map());
+    expect(evaluateCondition(added, { type: 'filter', value: 'is:new' })).toBe(false);
+  });
+
   it('should handle colourless and multicolour filters', () => {
     const colorless = { cardData: { name: 'Karn', color_identity: [] } };
     const mono = { cardData: { name: 'Serra Angel', color_identity: ['W'] } };

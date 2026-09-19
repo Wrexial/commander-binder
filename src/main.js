@@ -16,10 +16,12 @@ import { initSettingsSync, pullSettings } from './state/settingsSync.js';
 import { updateOwnedCounter } from './ui/components/ownedCounter.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
+import { initBulkEdit, toggleSelectionMode } from './ui/bulkEdit.js';
 import {
   createExportOwnedButton,
   createExportWishlistButton,
   createAddCardsButton,
+  createAddWishlistButton,
   createBulkCheckButton,
   createCompareButton,
   createRecentActivityButton,
@@ -44,6 +46,8 @@ import { initInstallPrompt, mountInstallButton } from './ui/installPrompt.js';
  */
 const loadAddCardsModal = async () =>
   (await import('./ui/components/addCardsModal.js')).createAddCardsModal();
+const loadAddWishlistModal = async () =>
+  (await import('./ui/components/addCardsModal.js')).createAddCardsModal({ kind: 'wishlist' });
 const loadBulkCheckModal = async () =>
   (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
 
@@ -100,9 +104,13 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
 
   addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
 
+  addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
+
   createAddCardsButton(() => showModal(loadAddCardsModal));
+  createAddWishlistButton(() => showModal(loadAddWishlistModal));
   createSurpriseButton();
   createRecentActivityButton();
+  createRecentActivityButton({ kind: 'wishlist', order: 25 });
 }
 
 /**
@@ -136,6 +144,7 @@ export async function setupUI() {
     addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
     createSurpriseButton();
     createRecentActivityButton();
+    createRecentActivityButton({ kind: 'wishlist', order: 25 });
     createCompareButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
@@ -260,5 +269,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSearch();
   initFilterBar({ onChange: refreshCardFilter, onSortChange: applySort });
   initCardInteractions(results, tooltip);
+  initBulkEdit();
   initKeyboardShortcuts();
 });

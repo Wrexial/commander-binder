@@ -3,8 +3,9 @@ import { debounce } from '../utils/debounce.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { renderSearchHelp } from './searchHelp.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
-import { isCardOwned } from '../state/cardState.js';
-import { isCardWanted } from '../state/wishlistState.js';
+import { isCardOwned, getOwnedAddedAt } from '../state/cardState.js';
+import { isCardWanted, getWantedAddedAt } from '../state/wishlistState.js';
+import { cardStore } from '../state/cardStore.js';
 import { getSavedSearch, saveSearch } from '../state/viewState.js';
 import { activeFilterCount, cardMatchesFilters } from '../state/filters.js';
 
@@ -105,6 +106,25 @@ export function evaluateCondition(card, condition) {
   return true;
 }
 
+/** How recent `is:new` means, in milliseconds (30 days). */
+const NEW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * True when the card was added to the collection or wishlist within the
+ * `is:new` window. Any printing of the name counts, matching `isCardOwned`.
+ * @param {object} card Scryfall card object.
+ */
+function wasAddedRecently(card) {
+  const cutoff = Date.now() - NEW_WINDOW_MS;
+  const ids = [card.id, ...cardStore.getPrintings(card.name).map((printing) => printing.id)];
+  return [getOwnedAddedAt(), getWantedAddedAt()].some((map) =>
+    ids.some((id) => {
+      const at = map.get(id);
+      return at ? Date.parse(at) >= cutoff : false;
+    })
+  );
+}
+
 function cardMatchesFilter(card, filter) {
   if (!filter) return true;
   const not = filter.startsWith('!');
@@ -168,6 +188,9 @@ function cardMatchesFilter(card, filter) {
         break;
       case 'wanted':
         match = isCardWanted(card.cardData);
+        break;
+      case 'new':
+        match = wasAddedRecently(card.cardData);
         break;
       case 'colorless':
         match = (card.cardData.color_identity || []).length === 0;

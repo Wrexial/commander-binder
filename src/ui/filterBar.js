@@ -6,6 +6,7 @@ import {
   COLOR_OPTIONS,
   OWNED_OPTIONS,
   RARITY_OPTIONS,
+  TRADE_OPTIONS,
   WANTED_OPTIONS,
   activeFilterCount,
   applyFilters,
@@ -188,6 +189,11 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     commit();
   });
 
+  const trade = segmented(TRADE_OPTIONS, (id) => {
+    filters.trade = id;
+    commit();
+  });
+
   const colors = toggleButtons(
     COLOR_OPTIONS.map((color) => ({
       id: color.id,
@@ -296,6 +302,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     group('Sort by', sortSelect),
     group('Collection', owned.el),
     group('Wishlist', wanted.el),
+    group('Trade', trade.el),
     group('Colours', colorRow),
     group('Rarity', rarities.el),
     group('Set', setSelect),
@@ -306,6 +313,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   function syncControls() {
     owned.sync(filters.owned);
     wanted.sync(filters.wanted);
+    trade.sync(filters.trade);
     colors.sync(filters.colors);
     colorMode.sync(filters.colorMode);
     rarities.sync(filters.rarities);

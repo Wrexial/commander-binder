@@ -43,6 +43,19 @@ export const WANTED_OPTIONS = [
 ];
 
 /**
+ * Trade-oriented presets that combine the owned and wanted collections:
+ *  - `duplicates` you want a card you already own (an upgrade candidate)
+ *  - `wants`      you want a card you do not own yet
+ *  - `trade`      you own a card you do not want (spare / trade stock)
+ */
+export const TRADE_OPTIONS = [
+  { id: 'all', label: 'All' },
+  { id: 'duplicates', label: 'Duplicates' },
+  { id: 'wants', label: 'Open wants' },
+  { id: 'trade', label: 'For trade' },
+];
+
+/**
  * How the selected colour pips are combined.
  *  - `exclusive` (default) the card's identity uses only the selected colours
  *                (e.g. selecting WB matches W, B and WB)
@@ -64,6 +77,7 @@ export const COLOR_MODE_OPTIONS = [
 export const DEFAULT_FILTERS = {
   owned: 'all', // 'all' | 'owned' | 'missing'
   wanted: 'all', // 'all' | 'wanted' | 'unwanted'
+  trade: 'all', // 'all' | 'duplicates' | 'wants' | 'trade'
   colors: [], // subset of COLOR_OPTIONS ids; [] = any
   colorMode: 'exclusive', // one of COLOR_MODE_OPTIONS ids
   rarities: [], // subset of RARITY_OPTIONS ids; [] = any
@@ -77,6 +91,7 @@ const COLOR_IDS = new Set(COLOR_OPTIONS.map((option) => option.id));
 const RARITY_IDS = new Set(RARITY_OPTIONS.map((option) => option.id));
 const OWNED_IDS = new Set(OWNED_OPTIONS.map((option) => option.id));
 const WANTED_IDS = new Set(WANTED_OPTIONS.map((option) => option.id));
+const TRADE_IDS = new Set(TRADE_OPTIONS.map((option) => option.id));
 const COLOR_MODES = new Set(COLOR_MODE_OPTIONS.map((option) => option.id));
 
 function cloneFilters(source) {
@@ -105,6 +120,7 @@ export function normalizeFilters(raw) {
 
   if (OWNED_IDS.has(raw.owned)) next.owned = raw.owned;
   if (WANTED_IDS.has(raw.wanted)) next.wanted = raw.wanted;
+  if (TRADE_IDS.has(raw.trade)) next.trade = raw.trade;
   if (COLOR_MODES.has(raw.colorMode)) {
     next.colorMode = raw.colorMode;
   }
@@ -136,6 +152,7 @@ export function activeFilterCount() {
   let count = 0;
   if (filters.owned !== 'all') count++;
   if (filters.wanted !== 'all') count++;
+  if (filters.trade !== 'all') count++;
   if (filters.colors.length > 0) count++;
   if (filters.rarities.length > 0) count++;
   if (filters.set) count++;
@@ -175,6 +192,14 @@ export function cardMatchesFilters(card) {
 
   if (filters.wanted === 'wanted' && !isCardWanted(card)) return false;
   if (filters.wanted === 'unwanted' && isCardWanted(card)) return false;
+
+  if (filters.trade !== 'all') {
+    const owned = isCardOwned(card);
+    const wanted = isCardWanted(card);
+    if (filters.trade === 'duplicates' && !(owned && wanted)) return false;
+    if (filters.trade === 'wants' && !(wanted && !owned)) return false;
+    if (filters.trade === 'trade' && !(owned && !wanted)) return false;
+  }
 
   if (filters.colors.length > 0 && !matchesColors(card)) return false;
   if (filters.rarities.length > 0 && !filters.rarities.includes(card.rarity)) return false;

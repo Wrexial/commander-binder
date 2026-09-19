@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../utils/html.js';
 import { setCardsOwned } from '../../state/cardState.js';
+import { setCardsWanted } from '../../state/wishlistState.js';
 import { updateAllCardStates } from '../cards.js';
 import { updateAllBinderCounts } from '../layout.js';
 import { updateOwnedCounter } from './ownedCounter.js';
@@ -95,4 +96,17 @@ export async function addOwnedCards(cards, successMessage) {
   updateAllCardStates();
   updateAllBinderCounts();
   updateOwnedCounter();
+}
+
+/**
+ * Mark every card wanted and refresh the tiles. The wishlist has no binder
+ * counters of its own, so syncing the card states is all the chrome needs.
+ *
+ * @param {object[]} cards
+ * @param {string} successMessage
+ */
+export async function addWantedCards(cards, successMessage) {
+  await setCardsWanted(cards, true);
+  showToast(successMessage, 'success');
+  updateAllCardStates();
 }

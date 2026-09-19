@@ -4,6 +4,10 @@ vi.mock('../../../state/cardState.js', () => ({
   isCardOwned: vi.fn(() => false),
   setCardsOwned: vi.fn(() => Promise.resolve()),
 }));
+vi.mock('../../../state/wishlistState.js', () => ({
+  isCardWanted: vi.fn(() => false),
+  setCardsWanted: vi.fn(() => Promise.resolve()),
+}));
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []), getPrintings: vi.fn(() => []) },
 }));
@@ -15,6 +19,7 @@ vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 import { createAddCardsModal } from '../addCardsModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
+import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
 import { showToast } from '../toast.js';
 
 const solRing = { id: 'id-sol', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
@@ -42,6 +47,7 @@ const chipTexts = () =>
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.clearAllMocks();
   document.body.innerHTML = '';
   cardStore.getAll.mockReturnValue([solRing, atraxa]);
   cardStore.getPrintings.mockImplementation((name) => (name === 'Sol Ring' ? [solRing] : [atraxa]));
@@ -95,6 +101,30 @@ describe('addCardsModal', () => {
     paste('Sol Ring');
 
     expect(chipTexts()[1]).toContain('Already owned');
+    expect(primary().disabled).toBe(true);
+  });
+
+  it('adds matched cards to the wishlist in wishlist mode', async () => {
+    createAddCardsModal({ kind: 'wishlist' }).show();
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Add to Wishlist');
+
+    paste('Sol Ring');
+    primary().click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(setCardsWanted).toHaveBeenCalledWith([solRing], true);
+    expect(setCardsOwned).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith('Added 1 card to your wishlist.', 'success');
+  });
+
+  it('skips cards already on the wishlist', () => {
+    isCardWanted.mockReturnValue(true);
+    createAddCardsModal({ kind: 'wishlist' }).show();
+    paste('Sol Ring');
+
+    expect(chipTexts()[1]).toContain('Already wanted');
     expect(primary().disabled).toBe(true);
   });
 

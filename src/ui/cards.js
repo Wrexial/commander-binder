@@ -9,6 +9,7 @@ import { CARDS_PER_PAGE } from '../config/constants.js';
 import { cardStore } from '../state/cardStore.js';
 import { getPreferredPrinting } from '../state/preferredPrintings.js';
 import { isCardWanted } from '../state/wishlistState.js';
+import { isCardSelected, isSelectionMode } from '../state/selectionState.js';
 
 /**
  * Native browser tooltip hint shown on mouse-driven (PC) layouts, where the
@@ -234,6 +235,17 @@ export function syncCardWantedUi(cardElement, wanted) {
   toggle.setAttribute('aria-pressed', String(wanted));
   toggle.setAttribute('aria-label', wishlistToggleLabel(wanted));
   toggle.title = wishlistToggleLabel(wanted);
+}
+
+/**
+ * Paint the bulk-select outline from the shared selection state. Only shown
+ * while selection mode is active; the selection itself survives leaving mode.
+ * @param {HTMLElement} cardElement
+ */
+export function syncCardSelection(cardElement) {
+  const card = cardElement.cardData;
+  const selected = isSelectionMode() && Boolean(card) && isCardSelected(card);
+  cardElement.classList.toggle('selected', selected);
 }
 
 /**
@@ -560,6 +572,7 @@ export function updateCardState(cardElement) {
 
   // The wishlist is independent of ownership, so it is synced separately.
   syncCardWantedUi(cardElement, isCardWanted(card));
+  syncCardSelection(cardElement);
 }
 
 export function updateCardStyles() {

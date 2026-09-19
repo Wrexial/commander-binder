@@ -3,6 +3,7 @@ import { showTooltip, showTooltipCard, isTooltipGestureActive } from './tooltip.
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
 import { isCardWanted, toggleCardWanted, setCardsWanted } from '../state/wishlistState.js';
+import { isSelectionMode, toggleSelection } from '../state/selectionState.js';
 import { showUndo, showToast } from './components/toast.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { adjustBinderOwnedCount } from './layout.js';
@@ -11,7 +12,12 @@ import { preloadCardImages } from '../utils/cardImages.js';
 import { nextPrinting } from '../utils/printings.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 import { isHoverCapable } from '../utils/pointer.js';
-import { refreshCardElement, syncCardOwnedUi, syncCardWantedUi } from './cards.js';
+import {
+  refreshCardElement,
+  syncCardOwnedUi,
+  syncCardWantedUi,
+  syncCardSelection,
+} from './cards.js';
 import { showPressIndicator, hidePressIndicator } from './pressIndicator.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
@@ -237,6 +243,14 @@ async function handleContainerClick(event, tooltip) {
   // Suppress clicks after a long-press (logic can be expanded here)
   const state = getState(cardElement);
   if (state.suppressUntil && Date.now() < state.suppressUntil) return;
+
+  // In bulk-select mode a tap selects the tile instead of editing it.
+  if (isSelectionMode()) {
+    event.stopPropagation();
+    toggleSelection(card);
+    syncCardSelection(cardElement);
+    return;
+  }
 
   if (appState.isViewOnlyMode) return;
 

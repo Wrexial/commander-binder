@@ -5,6 +5,7 @@
  * the grid once the collection is loaded (see `cardFeed.js`).
  */
 import { isCardOwned } from '../state/cardState.js';
+import { isCardWanted } from '../state/wishlistState.js';
 import { getDisplayedPrice } from './prices.js';
 
 export const DEFAULT_SORT = 'release-asc';
@@ -23,6 +24,8 @@ export const SORT_OPTIONS = [
   { id: 'rarity-desc', label: 'Rarity: commonest first' },
   { id: 'owned-asc', label: 'Owned first' },
   { id: 'owned-desc', label: 'Missing first' },
+  { id: 'wanted-asc', label: 'Wanted first' },
+  { id: 'wanted-desc', label: 'Not wanted first' },
 ];
 
 const SORT_IDS = new Set(SORT_OPTIONS.map((option) => option.id));
@@ -143,6 +146,8 @@ function primaryCompare(key, a, b) {
       return (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99);
     case 'owned':
       return Number(isCardOwned(b)) - Number(isCardOwned(a));
+    case 'wanted':
+      return Number(isCardWanted(b)) - Number(isCardWanted(a));
     case 'release':
     default:
       return (a.released_at || '').localeCompare(b.released_at || '');
@@ -152,6 +157,12 @@ function primaryCompare(key, a, b) {
 /** Stable order among equal primary keys (the direction must not flip this). */
 function tiebreakCompare(key, a, b) {
   if (key === 'owned') {
+    return (
+      (a.released_at || '').localeCompare(b.released_at || '') ||
+      (a.name || '').localeCompare(b.name || '')
+    );
+  }
+  if (key === 'wanted') {
     return (
       (a.released_at || '').localeCompare(b.released_at || '') ||
       (a.name || '').localeCompare(b.name || '')
@@ -209,6 +220,8 @@ export function sortMark(card, sortId) {
       return colorLabel(card);
     case 'owned':
       return isCardOwned(card) ? 'Owned' : 'Missing';
+    case 'wanted':
+      return isCardWanted(card) ? 'Wanted' : 'Not wanted';
     case 'release':
     default:
       return card.released_at ? String(new Date(card.released_at).getFullYear()) : '—';
