@@ -170,6 +170,18 @@ export async function setupUI() {
     // device, which is merged into their account on sign-in. They get the full
     // collection sidebar (add / export / bulk edit / statistics) as well.
     addCollectionTools();
+
+    // Sharing needs an account, so the guest entry just opens the sign-in flow.
+    addButtonToSidebar(
+      '🔗 Share',
+      () => {
+        showToast('Sign in to create a share link.');
+        clerk.openSignIn();
+      },
+      'sharing',
+      10
+    );
+
     setHamburgerVisible(openBtn, true);
     renderGuestWelcome(clerk, welcomeMount);
   }

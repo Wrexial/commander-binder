@@ -197,7 +197,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
   (`merge-owned`/`merge-wishlist`), and they get the same collection sidebar
-  (add / export / bulk edit / statistics) against that local data. Changing
+  (add / export / bulk edit / statistics) against that local data. A guest
+  "Share" entry opens the sign-in flow instead of creating a link. Changing
   the Clerk user reloads the app so the correct collection mode is applied.
 - Tests are colocated under `__tests__/` folders (`src/__tests__/`,
   `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,

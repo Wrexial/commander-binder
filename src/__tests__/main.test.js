@@ -64,7 +64,7 @@ describe('setupUI', () => {
 
   it('should setup for a logged-out user if no user and no share token', async () => {
     mainState.shareToken = undefined;
-    const emptyClerk = {};
+    const emptyClerk = { openSignIn: vi.fn() };
     clerk.getClerk.mockReturnValue(emptyClerk); // No user object
 
     await setupUI();
@@ -92,8 +92,13 @@ describe('setupUI', () => {
         '🕒 Recent Wishlist',
       ])
     );
-    // Sharing needs a signed-in identity, so it stays hidden for guests.
-    expect(sidebarButtons.some((text) => text.includes('Share'))).toBe(false);
+    // Sharing needs an account, so the guest entry opens the sign-in flow.
+    const shareButton = [...document.querySelectorAll('#sidebar button')].find((button) =>
+      button.textContent.includes('Share')
+    );
+    expect(shareButton).toBeTruthy();
+    shareButton.click();
+    expect(emptyClerk.openSignIn).toHaveBeenCalledTimes(1);
     // Signed-out visitors get the first-run welcome prompting sign-in.
     expect(document.querySelector('.guest-welcome')).not.toBeNull();
   });
