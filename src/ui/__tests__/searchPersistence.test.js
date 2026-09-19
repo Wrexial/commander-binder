@@ -96,4 +96,22 @@ describe('search persistence', () => {
       true
     );
   });
+
+  it('keeps an empty binder visible when no query or filter is active', () => {
+    // The first binder is created before its page renders. A filter pass in
+    // that window (e.g. after the owned state loads) must not hide the whole
+    // grid — it is just not populated yet. Regression: binder 1 stayed
+    // `display: none` while the collection loaded.
+    document.body.innerHTML = `
+      <div id="search-wrapper"><input id="search-input" /><button id="clear-search"></button></div>
+      <div id="owned-counter"></div>
+      <div id="no-results-message"></div>
+      <div class="binder"></div>
+    `;
+
+    search.initSearch();
+    search.refreshCardFilter();
+
+    expect(document.querySelector('.binder').style.display).toBe('');
+  });
 });

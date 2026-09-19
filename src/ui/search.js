@@ -217,6 +217,11 @@ function filterCards() {
   const conditions = parseQuery(searchTerm);
   let visibleCardCount = 0;
   const hasConditions = conditions.length > 0;
+  // Nothing to filter by means every rendered card is visible, so a section or
+  // binder with zero visible cards is simply one whose cards have not rendered
+  // yet (the first binder exists before the first page arrives). Hiding those
+  // would blank the whole grid until some unrelated pass happened to re-run.
+  const isFiltering = hasConditions || activeFilterCount() > 0;
 
   document.querySelectorAll('.binder').forEach((binder) => {
     let visibleCardsInBinder = 0;
@@ -233,12 +238,12 @@ function filterCards() {
         if (isVisible) visibleCardsInSection++;
       });
 
-      section.style.display = visibleCardsInSection === 0 ? 'none' : '';
+      section.style.display = isFiltering && visibleCardsInSection === 0 ? 'none' : '';
       if (visibleCardsInSection > 0) visibleCardsInBinder++;
       visibleCardCount += visibleCardsInSection;
     });
 
-    binder.style.display = visibleCardsInBinder === 0 ? 'none' : '';
+    binder.style.display = isFiltering && visibleCardsInBinder === 0 ? 'none' : '';
   });
 
   updateOwnedCounter();
