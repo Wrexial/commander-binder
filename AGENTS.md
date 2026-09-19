@@ -129,7 +129,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks. Statistics includes a "Wishlist Targets" section that
-  ranks sets by how many of their missing cards are on the wishlist.
+  ranks sets by how many of their missing cards are on the wishlist; money
+  metrics value each card at its `resolveDisplayPrinting` printing (the pinned
+  or cheapest one), so the totals match the tile prices.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart. `is:wanted`
   reads the wishlist and `is:new` matches cards added to either collection in the

@@ -27,9 +27,10 @@ export function getPreferredPrintings() {
  * @returns {object|null}
  */
 export function getPreferredPrinting(cardOrName) {
-  const id = getPreferredPrintings()[primaryName(cardOrName)];
+  const name = primaryName(cardOrName);
+  const id = getPreferredPrintings()[name];
   if (!id) return null;
-  return cardStore.getPrintings(cardOrName).find((printing) => printing.id === id) ?? null;
+  return cardStore.getPrintings(name).find((printing) => printing.id === id) ?? null;
 }
 
 /**
@@ -44,7 +45,7 @@ export function resolveDisplayPrinting(cardOrName) {
   const preferred = getPreferredPrinting(cardOrName);
   if (preferred) return preferred;
 
-  const cheapest = cheapestPrinting(cardStore.getPrintings(cardOrName));
+  const cheapest = cheapestPrinting(cardStore.getPrintings(primaryName(cardOrName)));
   if (cheapest) return cheapest;
 
   return typeof cardOrName === 'string' ? null : cardOrName;

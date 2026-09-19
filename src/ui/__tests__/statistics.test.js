@@ -146,6 +146,24 @@ describe('calculateStatistics', () => {
     expect(stats.top5ValuableCards[0]).toMatchObject({ name: 'Cheap', price: 5 });
   });
 
+  it('values a card by its selected (pinned) printing, not the cheapest', async () => {
+    const { rememberPreferredPrinting, resetPreferredPrintings } =
+      await import('../../state/preferredPrintings.js');
+    cardStore.getPrintings.mockReturnValue([
+      { id: 'cheap', name: 'Pinned Card', prices: { eur: '5.00' } },
+      { id: 'pricey', name: 'Pinned Card', prices: { eur: '50.00' } },
+    ]);
+    rememberPreferredPrinting({ id: 'pricey', name: 'Pinned Card' });
+
+    try {
+      const stats = calculateStatistics([makeCard({ name: 'Pinned Card' })]);
+      expect(stats.totalValue).toBe(50);
+      expect(stats.top5ValuableCards[0]).toMatchObject({ price: 50 });
+    } finally {
+      resetPreferredPrintings();
+    }
+  });
+
   it('computes price distribution buckets and the median', () => {
     cardStore.getPrintings.mockImplementation((name) => {
       const prices = { Cheap: '0.50', Mid: '3.00', Pricey: '30.00', Grail: '120.00' };
@@ -454,10 +472,12 @@ describe('showStatisticsModal', () => {
     // The modal advertises the right-click shortcut rather than touch wording.
     expect(document.getElementById('tooltip').cycleLabel).toBe('Right-click for next printing');
 
-    // Right-click cycles to the next printing, like the main card grid.
+    // The row starts on the printing the grid shows (the cheapest, since
+    // nothing is pinned), then right-click cycles to the next one by price.
+    expect(row.cardData.id).toBe('printing-2');
     row.dispatchEvent(new MouseEvent('contextmenu', { clientX: 10, clientY: 10 }));
     expect(showTooltip).toHaveBeenCalledTimes(2);
-    expect(row.cardData.id).toBe('printing-2');
+    expect(row.cardData.id).toBe('printing-1');
 
     document.querySelector('.statistics-close').click();
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();

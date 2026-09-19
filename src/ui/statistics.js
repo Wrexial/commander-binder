@@ -8,9 +8,9 @@ import { showToast } from './components/toast.js';
 import { updateAllCardStates } from './cards.js';
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { preloadCardImages } from '../utils/cardImages.js';
-import { getCheapestPrice, formatPrice, formatPriceRange } from '../utils/prices.js';
+import { getDisplayedPrice, formatPrice, formatPriceRange } from '../utils/prices.js';
 import { nextPrinting, orderPrintingsByPrice } from '../utils/printings.js';
-import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
+import { rememberPreferredPrinting, resolveDisplayPrinting } from '../state/preferredPrintings.js';
 
 /** Canonical display order and labels for the five colors plus colorless. */
 const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G', 'C'];
@@ -161,10 +161,14 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
   const manaCurve = Object.fromEntries(MANA_CURVE_LABELS.map((label) => [label, 0]));
 
   for (const card of cards) {
-    const price = getCheapestPrice(card);
+    // Value the printing the grid is actually showing for this card — the
+    // user's pinned printing, or the cheapest one — not the cheapest across
+    // every printing, so the statistics total matches the tile prices.
+    const displayCard = resolveDisplayPrinting(card);
+    const price = displayCard ? getDisplayedPrice(displayCard) : null;
     if (price !== null) {
       totalValue += price;
-      pricedCards.push({ name: card.name, price, card });
+      pricedCards.push({ name: card.name, price, card: displayCard });
     }
 
     const cardColors = resolveColors(card);
