@@ -11,6 +11,12 @@ vi.mock('../../../state/wishlistState.js', () => ({
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []), getPrintings: vi.fn(() => []) },
 }));
+vi.mock('../../../state/listsState.js', () => ({
+  getLists: vi.fn(() => [{ id: 'L1', name: 'Trade pile' }]),
+  getList: vi.fn((id) => (id === 'L1' ? { id: 'L1', name: 'Trade pile' } : null)),
+  isInList: vi.fn(() => false),
+  addCardsToList: vi.fn(() => Promise.resolve()),
+}));
 vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
@@ -20,6 +26,7 @@ import { createAddCardsModal } from '../addCardsModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
+import { addCardsToList, isInList } from '../../../state/listsState.js';
 import { showToast } from '../toast.js';
 
 const solRing = { id: 'id-sol', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
@@ -56,6 +63,7 @@ beforeEach(() => {
   cardStore.getAll.mockReturnValue([solRing, atraxa]);
   cardStore.getPrintings.mockImplementation((name) => (name === 'Sol Ring' ? [solRing] : [atraxa]));
   isCardOwned.mockReturnValue(false);
+  isInList.mockReturnValue(false);
   setCardsOwned.mockResolvedValue();
 });
 
@@ -131,6 +139,32 @@ describe('addCardsModal', () => {
     paste('Sol Ring');
 
     expect(chipTexts()[1]).toContain('Already wanted');
+    expect(primary().disabled).toBe(true);
+  });
+
+  it('switches the target to a custom list and adds there', async () => {
+    createAddCardsModal().show();
+    target('Trade pile').click();
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Add to “Trade pile”');
+
+    paste('Sol Ring');
+    primary().click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(addCardsToList).toHaveBeenCalledWith('L1', [solRing]);
+    expect(setCardsOwned).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith('Added 1 card to “Trade pile”.', 'success');
+  });
+
+  it('flags cards already in the selected list', () => {
+    isInList.mockReturnValue(true);
+    createAddCardsModal().show();
+    target('Trade pile').click();
+    paste('Sol Ring');
+
+    expect(chipTexts()[1]).toContain('Already in “Trade pile”');
     expect(primary().disabled).toBe(true);
   });
 

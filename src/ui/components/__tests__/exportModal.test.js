@@ -40,6 +40,15 @@ const wishlistCollection = (wantedCards) => ({
   emptyMessage: 'Your wishlist is empty.',
 });
 
+const listCollection = (listCards) => ({
+  id: 'L1',
+  label: 'Trade pile',
+  cards: listCards,
+  filePrefix: 'list-trade-pile',
+  noun: 'list',
+  emptyMessage: '“Trade pile” has no cards yet.',
+});
+
 /** Open the modal with an owned collection, plus a wishlist one when given. */
 function open(ownedCards, wantedCards) {
   const collections = [ownedCollection(ownedCards)];
@@ -152,6 +161,29 @@ describe('exportModal', () => {
     await Promise.resolve();
 
     expect(writeText.mock.calls[0][0]).toContain('Wanted Card');
+    expect(writeText.mock.calls[0][0]).not.toContain('Sol Ring');
+  });
+
+  it('exports a custom list like any other collection', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const modal = createExportModal({
+      collections: [
+        ownedCollection(cards),
+        listCollection([{ id: 'x', name: 'List Card', set: 'neo', collector_number: '1' }]),
+      ],
+    });
+    modal.show();
+
+    target('Trade pile').click();
+    expect(document.querySelector('.bulk-search-input').placeholder).toBe('Filter list cards…');
+
+    document.querySelector('.export-copy').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(writeText.mock.calls[0][0]).toContain('List Card');
     expect(writeText.mock.calls[0][0]).not.toContain('Sol Ring');
   });
 

@@ -4,6 +4,7 @@ import { positionTooltip } from './tooltip.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { isCardOwned } from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
+import { getListCards, getLists } from '../state/listsState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
@@ -133,7 +134,17 @@ export function createBulkCheckButton(onClick) {
   addButtonToSidebar('✔️ Bulk Check', onClick, 'collection', 10);
 }
 
-/** Export the owned collection or the wishlist through the combined modal. */
+/** Turn a list name into a safe download-file slug ("Deck: Atraxa" -> "deck-atraxa"). */
+function slugify(value) {
+  return (
+    String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'list'
+  );
+}
+
+/** Export the owned collection, the wishlist or any custom list. */
 export function createExportButton() {
   addButtonToSidebar(
     '📄 Export Cards',
@@ -156,6 +167,15 @@ export function createExportButton() {
           noun: 'wanted',
           emptyMessage: 'Your wishlist is empty.',
         },
+        // Custom lists are exported exactly like the two built-in collections.
+        ...getLists().map((list) => ({
+          id: list.id,
+          label: list.name,
+          cards: getListCards(list.id),
+          filePrefix: `list-${slugify(list.name)}`,
+          noun: 'list',
+          emptyMessage: `“${list.name}” has no cards yet.`,
+        })),
       ];
 
       if (collections.every((collection) => collection.cards.length === 0)) {

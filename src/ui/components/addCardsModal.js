@@ -3,6 +3,7 @@ import { showToast } from './toast.js';
 import {
   addOwnedCards,
   addWantedCards,
+  COLLECTION_TARGETS,
   createCollectionModal,
   createTargetToggle,
   normalizeName,
@@ -14,6 +15,8 @@ import { parseCollection } from '../../utils/collectionFormats.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
+import { addCardsToList, getList, getLists, isInList } from '../../state/listsState.js';
+import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
 
@@ -32,24 +35,69 @@ function buildPrintingIndex() {
 
 /**
  * The combined "Add Cards" modal. Accepts typed names (with autocomplete), a
- * pasted plain list or CSV / Moxfield / Archidekt export, or a file, then marks
- * the not-yet-present matches owned or wanted depending on the target picker.
+ * pasted plain list or CSV / Moxfield / Archidekt export, or a file, then adds
+ * the not-yet-present matches to the picked target: the collection, the
+ * wishlist, or any custom list.
  *
- * @param {{kind?: 'owned'|'wishlist'}} [options] Initial target.
+ * @param {{kind?: string}} [options] Initial target id ('owned', 'wishlist' or a
+ *   custom list id).
  * @returns {{ show: () => void, destroy: () => void }}
  */
 export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   const byPrinting = buildPrintingIndex();
 
-  let isWishlist = initialKind === 'wishlist';
-  let isPresent = isWishlist ? isCardWanted : isCardOwned;
-  let addCards = isWishlist ? addWantedCards : addOwnedCards;
-  let presentLabel = isWishlist ? 'Already wanted' : 'Already owned';
-  let successSuffix = isWishlist ? ' to your wishlist' : '';
+  /**
+   * Resolve a target id to the predicate, action and copy the modal needs.
+   * @param {string} id 'owned', 'wishlist', or a custom list id.
+   */
+  function describeTarget(id) {
+    if (id === 'wishlist') {
+      return {
+        present: isCardWanted,
+        add: addWantedCards,
+        presentLabel: 'Already wanted',
+        skipVerb: 'want',
+        successSuffix: ' to your wishlist',
+        title: 'Add to Wishlist',
+        addLabel: (n) => (n > 0 ? `Add ${n} to wishlist` : 'Add to wishlist'),
+      };
+    }
+    if (id === 'owned') {
+      return {
+        present: isCardOwned,
+        add: addOwnedCards,
+        presentLabel: 'Already owned',
+        skipVerb: 'own',
+        successSuffix: '',
+        title: 'Add Cards',
+        addLabel: (n) => (n > 0 ? `Add ${n} card${n === 1 ? '' : 's'}` : 'Add cards'),
+      };
+    }
+
+    const name = getList(id)?.name || 'list';
+    return {
+      present: (card) => isInList(id, card),
+      add: async (cards, message) => {
+        await addCardsToList(id, cards);
+        showToast(message, 'success');
+        updateAllCardStates();
+      },
+      presentLabel: `Already in “${name}”`,
+      skipVerb: 'have in the list',
+      successSuffix: ` to “${name}”`,
+      title: `Add to “${name}”`,
+      addLabel: (n) => (n > 0 ? `Add ${n} to list` : 'Add to list'),
+    };
+  }
+
+  const listOptions = getLists().map((list) => ({ id: list.id, label: list.name }));
+  const targetOptions = [...COLLECTION_TARGETS, ...listOptions];
+  let targetId = targetOptions.some((option) => option.id === initialKind) ? initialKind : 'owned';
+  let config = describeTarget(targetId);
 
   const { shell, close, contentArea, buttons } = createCollectionModal({
-    title: isWishlist ? 'Add to Wishlist' : 'Add Cards',
-    subtitle: `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${isWishlist ? 'want' : 'own'} are skipped.`,
+    title: config.title,
+    subtitle: `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${config.skipVerb} are skipped.`,
     actions: [
       { id: 'primary', className: 'primary' },
       { id: 'close', text: 'Close' },
@@ -79,8 +127,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   preview.className = 'bulk-preview';
 
   const target = createTargetToggle({
-    initial: isWishlist ? 'wishlist' : 'owned',
-    onChange: applyKind,
+    options: targetOptions,
+    initial: targetId,
+    onChange: applyTarget,
   });
 
   contentArea.append(target.el, toolbar, input.el, preview);
@@ -89,15 +138,11 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   let confirming = false;
 
   /** Switch the target and relabel the modal; the parsed list stays put. */
-  function applyKind(next) {
-    isWishlist = next === 'wishlist';
-    isPresent = isWishlist ? isCardWanted : isCardOwned;
-    addCards = isWishlist ? addWantedCards : addOwnedCards;
-    presentLabel = isWishlist ? 'Already wanted' : 'Already owned';
-    successSuffix = isWishlist ? ' to your wishlist' : '';
-
-    heading.textContent = isWishlist ? 'Add to Wishlist' : 'Add Cards';
-    subtitle.textContent = `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${isWishlist ? 'want' : 'own'} are skipped.`;
+  function applyTarget(next) {
+    targetId = next;
+    config = describeTarget(next);
+    heading.textContent = config.title;
+    subtitle.textContent = `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${config.skipVerb} are skipped.`;
     renderPreview();
   }
 
@@ -123,7 +168,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       if (seen.has(card.id)) continue;
       seen.add(card.id);
 
-      if (isPresent(card)) present.push(card);
+      if (config.present(card)) present.push(card);
       else add.push(card);
     }
 
@@ -132,12 +177,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
   function updatePrimary() {
     const count = categorized.add.length;
-    if (isWishlist) {
-      primaryButton.textContent = count > 0 ? `Add ${count} to wishlist` : 'Add to wishlist';
-    } else {
-      primaryButton.textContent =
-        count > 0 ? `Add ${count} card${count === 1 ? '' : 's'}` : 'Add cards';
-    }
+    primaryButton.textContent = config.addLabel(count);
     primaryButton.disabled = count === 0 || confirming;
   }
 
@@ -154,7 +194,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     preview.innerHTML = `
             <div class="bulk-summary">
                 ${summaryChip('missing', 'Will add', add.length)}
-                ${summaryChip('owned', presentLabel, present.length)}
+                ${summaryChip('owned', config.presentLabel, present.length)}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
@@ -165,7 +205,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
                 )}
                 ${previewGroup(
                   'owned',
-                  presentLabel,
+                  config.presentLabel,
                   present.map((card) => card.name)
                 )}
                 ${previewGroup('unknown', 'Not found', unknown)}
@@ -183,9 +223,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     confirming = true;
     updatePrimary();
     try {
-      await addCards(
+      await config.add(
         add,
-        `Added ${add.length} card${add.length === 1 ? '' : 's'}${successSuffix}.`
+        `Added ${add.length} card${add.length === 1 ? '' : 's'}${config.successSuffix}.`
       );
       // Re-render: the added cards now show up under "Already ...".
       renderPreview();

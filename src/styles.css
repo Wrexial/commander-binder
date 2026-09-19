@@ -3618,11 +3618,14 @@ footer a:focus-visible {
 /* Owned / Wishlist picker shared by the add, export and recent modals. */
 .target-toggle {
   display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-1);
+  scrollbar-width: thin;
 }
 
 .target-toggle-option {
