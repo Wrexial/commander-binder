@@ -73,17 +73,25 @@ export function initSidebar() {
   }
 }
 
-export function addButtonToSidebar(text, onClick, sectionId = 'collection') {
+export function addButtonToSidebar(text, onClick, sectionId = 'collection', order = 0) {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
 
   const button = document.createElement('button');
   button.textContent = text;
+  button.dataset.order = String(order);
   button.addEventListener('click', () => {
     // Choosing an item closes the menu, so the modal it opens is the only thing
     // on screen and a second tap cannot land on the leftover menu.
     closeSidebar();
     onClick();
   });
-  getSectionBody(sidebar, sectionId).appendChild(button);
+
+  // Insert before the first button with a higher order, so callers declare an
+  // order instead of relying on the sequence they happen to run in.
+  const body = getSectionBody(sidebar, sectionId);
+  const next = [...body.querySelectorAll('button')].find(
+    (existing) => Number(existing.dataset.order || 0) > order
+  );
+  body.insertBefore(button, next || null);
 }

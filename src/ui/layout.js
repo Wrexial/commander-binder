@@ -118,17 +118,18 @@ function bindSetTooltipDismissal() {
   window.addEventListener('scroll', hideSetTooltip, { passive: true });
 }
 
-export function createBulkAddButton(onClick) {
-  addButtonToSidebar('➕ Bulk Add', onClick, 'collection');
+/** Add / import cards — the combined Bulk Add + Import Collection modal. */
+export function createAddCardsButton(onClick) {
+  addButtonToSidebar('➕ Add Cards', onClick, 'collection', 20);
 }
 
 /** Jump to a random card the collector is missing. */
 export function createSurpriseButton() {
-  addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse');
+  addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse', 10);
 }
 
 export function createBulkCheckButton(onClick) {
-  addButtonToSidebar('✔️ Bulk Check', onClick, 'collection');
+  addButtonToSidebar('✔️ Bulk Check', onClick, 'collection', 10);
 }
 
 export function createExportOwnedButton() {
@@ -147,7 +148,8 @@ export function createExportOwnedButton() {
       const { createExportModal } = await import('./components/exportModal.js');
       createExportModal(ownedCards).show();
     },
-    'collection'
+    'collection',
+    30
   );
 }
 
@@ -161,21 +163,8 @@ export function createRecentActivityButton() {
       const { createRecentActivityModal } = await import('./components/recentActivityModal.js');
       createRecentActivityModal().show();
     },
-    'browse'
-  );
-}
-
-/** Import is a write action, so it is only offered to signed-in collectors. */
-export function createImportButton() {
-  addButtonToSidebar(
-    '📥 Import Collection',
-    async () => {
-      if (document.querySelector('.list-modal-backdrop')) return;
-
-      const { createImportModal } = await import('./components/importModal.js');
-      createImportModal().show();
-    },
-    'collection'
+    'browse',
+    20
   );
 }
 

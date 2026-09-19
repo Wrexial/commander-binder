@@ -17,9 +17,8 @@ import { initCardInteractions } from './ui/cardInteractions.js';
 import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
 import {
   createExportOwnedButton,
-  createBulkAddButton,
+  createAddCardsButton,
   createBulkCheckButton,
-  createImportButton,
   createRecentActivityButton,
   createSurpriseButton,
   updateAllBinderCounts,
@@ -34,12 +33,12 @@ import { initYearScrubber } from './ui/yearScrubber.js';
 import { mainState } from './state/mainState.js';
 
 /**
- * The bulk and statistics dialogs are the heaviest UI modules (hundreds of
- * lines each), so they are pulled in on demand rather than shipping in the
- * first bundle. Vite emits them as separate chunks.
+ * The card add/check dialogs and the statistics dialog are the heaviest UI
+ * modules (hundreds of lines each), so they are pulled in on demand rather than
+ * shipping in the first bundle. Vite emits them as separate chunks.
  */
-const loadBulkAddModal = async () =>
-  (await import('./ui/components/bulkCardModal.js')).createBulkAddModal();
+const loadAddCardsModal = async () =>
+  (await import('./ui/components/addCardsModal.js')).createAddCardsModal();
 const loadBulkCheckModal = async () =>
   (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
 
@@ -75,7 +74,8 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
         showToast('Could not create a share link.', 'error');
       }
     },
-    'sharing'
+    'sharing',
+    10
   );
 
   addButtonToSidebar(
@@ -89,13 +89,13 @@ function setupAuthenticatedUser(userButtonDiv, clerk) {
         showToast('Could not regenerate the share link.', 'error');
       }
     },
-    'sharing'
+    'sharing',
+    20
   );
 
-  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse');
+  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
 
-  createBulkAddButton(() => showModal(loadBulkAddModal));
-  createImportButton();
+  createAddCardsButton(() => showModal(loadAddCardsModal));
   createSurpriseButton();
   createRecentActivityButton();
 }
@@ -127,7 +127,7 @@ export async function setupUI() {
   if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
-    addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse');
+    addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
     createSurpriseButton();
     createRecentActivityButton();
     appState.isViewOnlyMode = true;

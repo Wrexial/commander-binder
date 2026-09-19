@@ -17,7 +17,7 @@ function exportFileName(format) {
 }
 
 /**
- * Create the "Export Owned Cards" modal, styled like the Bulk Add / Check
+ * Create the "Export Owned Cards" modal, styled like the Add / Bulk Check
  * modals. Lets the collector pick an output format (our CSV, Moxfield, or
  * Archidekt), filter the preview, then copy or download the serialized file.
  *

@@ -12,7 +12,7 @@ vi.mock('../../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
 vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 
-import { createImportModal } from '../importModal.js';
+import { createAddCardsModal } from '../addCardsModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { showToast } from '../toast.js';
@@ -25,10 +25,14 @@ const atraxa = {
   collector_number: '197',
 };
 
+function textArea() {
+  return document.querySelector('.bulk-modal textarea');
+}
+
 function paste(text) {
-  const textArea = document.querySelector('.transfer-textarea');
-  textArea.value = text;
-  textArea.dispatchEvent(new Event('input'));
+  const area = textArea();
+  area.value = text;
+  area.dispatchEvent(new Event('input'));
   vi.advanceTimersByTime(300);
 }
 
@@ -51,26 +55,26 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('importModal', () => {
-  it('shows an empty state before anything is pasted', () => {
-    createImportModal().show();
+describe('addCardsModal', () => {
+  it('shows an empty state before anything is entered', () => {
+    createAddCardsModal().show();
 
     expect(document.querySelector('.bulk-empty')).not.toBeNull();
     expect(primary().disabled).toBe(true);
   });
 
   it('matches pasted cards and flags unknown ones', () => {
-    createImportModal().show();
+    createAddCardsModal().show();
     paste('1 Sol Ring\n1 Nonexistent Card');
 
     const chips = chipTexts();
-    expect(chips[0]).toContain('New');
+    expect(chips[0]).toContain('Will add');
     expect(chips[2]).toContain('Not found');
     expect(primary().disabled).toBe(false);
   });
 
-  it('imports the matched new cards', async () => {
-    createImportModal().show();
+  it('adds the matched new cards', async () => {
+    createAddCardsModal().show();
     paste("Sol Ring\nAtraxa, Praetors' Voice");
 
     primary().click();
@@ -79,18 +83,15 @@ describe('importModal', () => {
     await Promise.resolve();
 
     expect(setCardsOwned).toHaveBeenCalledTimes(1);
-    const [imported, owned] = setCardsOwned.mock.calls[0];
-    expect(imported.map((card) => card.name).sort()).toEqual([
-      "Atraxa, Praetors' Voice",
-      'Sol Ring',
-    ]);
+    const [added, owned] = setCardsOwned.mock.calls[0];
+    expect(added.map((card) => card.name).sort()).toEqual(["Atraxa, Praetors' Voice", 'Sol Ring']);
     expect(owned).toBe(true);
-    expect(showToast).toHaveBeenCalledWith('Imported 2 cards.', 'success');
+    expect(showToast).toHaveBeenCalledWith('Added 2 cards.', 'success');
   });
 
-  it('reports already-owned cards and disables importing them again', () => {
+  it('reports already-owned cards and disables adding them again', () => {
     isCardOwned.mockReturnValue(true);
-    createImportModal().show();
+    createAddCardsModal().show();
     paste('Sol Ring');
 
     expect(chipTexts()[1]).toContain('Already owned');
@@ -98,7 +99,7 @@ describe('importModal', () => {
   });
 
   it('matches an exact printing from a Moxfield CSV', () => {
-    createImportModal().show();
+    createAddCardsModal().show();
     paste(
       [
         'Count,Tradelist Count,Name,Edition,Edition Code,Collector Number,Foil,Text,Condition,Language,Metagame',
@@ -106,6 +107,37 @@ describe('importModal', () => {
       ].join('\r\n')
     );
 
-    expect(primary().textContent).toBe('Import 1 card');
+    expect(primary().textContent).toBe('Add 1 card');
+  });
+
+  it('reads the pasted text from a chosen file', async () => {
+    createAddCardsModal().show();
+
+    const fileInput = document.querySelector('.transfer-file');
+    Object.defineProperty(fileInput, 'files', {
+      value: [{ text: () => Promise.resolve('Sol Ring') }],
+      configurable: true,
+    });
+    fileInput.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(textArea().value).toBe('Sol Ring');
+    expect(primary().textContent).toBe('Add 1 card');
+  });
+
+  it('offers autocomplete suggestions while typing a name', () => {
+    createAddCardsModal().show();
+    const area = textArea();
+    area.value = 'sol';
+    area.dispatchEvent(new KeyboardEvent('keyup', { key: 'l', bubbles: true }));
+
+    const item = [...document.querySelectorAll('.suggestion-item')].find(
+      (el) => el.textContent === 'Sol Ring'
+    );
+    expect(item).toBeTruthy();
+
+    item.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    expect(area.value).toBe('Sol Ring\n');
   });
 });

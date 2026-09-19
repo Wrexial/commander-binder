@@ -43,12 +43,13 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   through.
 - **Three tile layouts** — full artwork, text tiles, or a compact list with inline ownership
   toggles, for marking a whole page quickly.
-- **Bulk add & bulk check** — add many cards at once or check which ones you already own.
+- **Add & bulk check** — type names (with autocomplete), paste a list, or import a CSV / Moxfield
+  / Archidekt file to mark many cards owned at once. Bulk Check tells you which pasted names
+  you own and copies the missing ones.
 - **“Surprise me”** — jump to a random missing card, scroll to it and open its preview.
-- **Import & export** — CSV, [Moxfield](https://moxfield.com/),
-  [Archidekt](https://archidekt.com/), MTG Arena, MTGO and plain-text formats, parsed
-  header-first and tolerant of messy files. The plain-text export is one card name per line, so
-  it feeds straight back into Bulk Add.
+- **Export** — CSV, [Moxfield](https://moxfield.com/),
+  [Archidekt](https://archidekt.com/), MTG Arena, MTGO and plain-text formats. The plain-text
+  export is one card name per line, so it feeds straight back into Add Cards.
 - **Modal card preview** — long-pressing a card (hold the mouse button on desktop, with a
   filling progress ring under the cursor, or press-and-hold on touch) opens a centred preview
   with the full artwork, set/price, an **owned/missing toggle**, and a "Next printing" control;

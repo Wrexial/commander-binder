@@ -7,45 +7,40 @@ import {
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
+import { createCardNameInput } from './cardNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
 
-/** One pass over the store: name -> default printing, and "set:number" -> printing. */
-function buildIndexes() {
-  const byName = new Map();
+/** One pass over the store: "set:number" (lowercase set) -> exact printing. */
+function buildPrintingIndex() {
   const byPrinting = new Map();
-
   for (const card of cardStore.getAll()) {
-    const key = normalizeName(card.name);
-    if (key && !byName.has(key)) byName.set(key, card);
-
     for (const printing of cardStore.getPrintings(card.name)) {
       if (printing.set && printing.collector_number) {
         byPrinting.set(`${printing.set.toLowerCase()}:${printing.collector_number}`, printing);
       }
     }
   }
-
-  return { byName, byPrinting };
+  return byPrinting;
 }
 
 /**
- * Create the "Import Collection" modal. Accepts pasted text or a file from any
- * supported source (our CSV, Moxfield, Archidekt, or a plain name list),
- * matches entries against the loaded collection, and marks the new ones owned.
+ * The "Add Cards" modal: the former Bulk Add and Import Collection in one place.
+ * Accepts typed names (with autocomplete), a pasted plain list or CSV / Moxfield
+ * / Archidekt export, or a file, then marks the not-yet-owned matches owned.
  *
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createImportModal() {
-  const { byName, byPrinting } = buildIndexes();
+export function createAddCardsModal() {
+  const byPrinting = buildPrintingIndex();
 
   const { shell, close, contentArea, buttons } = createCollectionModal({
-    title: 'Import Collection',
+    title: 'Add Cards',
     subtitle:
-      'Paste a CSV, Moxfield, or Archidekt export, or choose a file. Matched cards are marked as owned.',
+      'Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already own are skipped.',
     actions: [
       { id: 'primary', className: 'primary' },
       { id: 'close', text: 'Close' },
@@ -61,27 +56,25 @@ export function createImportModal() {
   fileInput.className = 'transfer-file';
   fileInput.accept = '.csv,.txt,text/csv,text/plain';
   fileInput.setAttribute('aria-label', 'Choose a collection file');
-
   toolbar.appendChild(fileInput);
 
-  const textArea = document.createElement('textarea');
-  textArea.className = 'transfer-textarea';
-  textArea.rows = 7;
-  textArea.placeholder = 'Paste your collection here…';
-  textArea.spellcheck = false;
-  textArea.setAttribute('aria-label', 'Collection text to import');
+  const input = createCardNameInput({
+    placeholder: 'One card name per line, or paste a list (Ctrl+Enter to add)',
+    ariaLabel: 'Cards to add',
+    onChange: () => renderPreview(),
+  });
 
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
 
-  contentArea.append(toolbar, textArea, preview);
+  contentArea.append(toolbar, input.el, preview);
 
   let categorized = { add: [], owned: [], unknown: [] };
   let confirming = false;
 
   /** Resolve parsed entries to store cards, split into new / owned / unknown. */
   function categorize() {
-    const { entries } = parseCollection(textArea.value);
+    const { entries } = parseCollection(input.textArea.value);
     const seen = new Set();
     const add = [];
     const owned = [];
@@ -92,7 +85,7 @@ export function createImportModal() {
       if (entry.setCode && entry.collectorNumber) {
         card = byPrinting.get(`${entry.setCode}:${entry.collectorNumber}`) || null;
       }
-      card ||= byName.get(normalizeName(entry.name)) || null;
+      card ||= input.nameIndex.get(normalizeName(entry.name)) || null;
 
       if (!card) {
         unknown.push(entry.name);
@@ -111,7 +104,7 @@ export function createImportModal() {
   function updatePrimary() {
     const count = categorized.add.length;
     primaryButton.textContent =
-      count > 0 ? `Import ${count} card${count === 1 ? '' : 's'}` : 'Import cards';
+      count > 0 ? `Add ${count} card${count === 1 ? '' : 's'}` : 'Add cards';
     primaryButton.disabled = count === 0 || confirming;
   }
 
@@ -120,21 +113,21 @@ export function createImportModal() {
     const { add, owned, unknown } = categorized;
 
     if (add.length + owned.length + unknown.length === 0) {
-      preview.innerHTML = '<p class="bulk-empty">Nothing to import yet.</p>';
+      preview.innerHTML = '<p class="bulk-empty">Nothing to add yet.</p>';
       updatePrimary();
       return;
     }
 
     preview.innerHTML = `
             <div class="bulk-summary">
-                ${summaryChip('missing', 'New', add.length)}
+                ${summaryChip('missing', 'Will add', add.length)}
                 ${summaryChip('owned', 'Already owned', owned.length)}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
                 ${previewGroup(
                   'missing',
-                  'Will import',
+                  'Will add',
                   add.map((card) => card.name)
                 )}
                 ${previewGroup(
@@ -147,7 +140,7 @@ export function createImportModal() {
     updatePrimary();
   }
 
-  async function handleImport() {
+  async function handleAdd() {
     if (confirming) return;
 
     categorized = categorize();
@@ -157,12 +150,12 @@ export function createImportModal() {
     confirming = true;
     updatePrimary();
     try {
-      await addOwnedCards(add, `Imported ${add.length} card${add.length === 1 ? '' : 's'}.`);
-      // Re-render: the imported cards now show up under "Already owned".
+      await addOwnedCards(add, `Added ${add.length} card${add.length === 1 ? '' : 's'}.`);
+      // Re-render: the added cards now show up under "Already owned".
       renderPreview();
     } catch (err) {
-      console.error('Import failed:', err);
-      showToast('Could not import the collection.', 'error');
+      console.error('Add cards failed:', err);
+      showToast('Could not add the cards.', 'error');
     } finally {
       confirming = false;
       updatePrimary();
@@ -171,25 +164,31 @@ export function createImportModal() {
 
   const runValidation = debounce(renderPreview, PREVIEW_DEBOUNCE_MS);
 
-  textArea.addEventListener('input', runValidation);
+  input.textArea.addEventListener('input', runValidation);
+  input.textArea.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      handleAdd();
+    }
+  });
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
 
     try {
-      textArea.value = await file.text();
+      input.textArea.value = await file.text();
       renderPreview();
     } catch (err) {
-      console.error('Failed to read the import file:', err);
+      console.error('Failed to read the file:', err);
       showToast('Could not read that file.', 'error');
     }
   });
-  primaryButton.addEventListener('click', handleImport);
+  primaryButton.addEventListener('click', handleAdd);
   closeButton.addEventListener('click', close);
 
   function show() {
     shell.show();
-    textArea.focus();
+    input.textArea.focus();
   }
 
   renderPreview();

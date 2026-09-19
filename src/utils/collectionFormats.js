@@ -310,7 +310,7 @@ function serializeMtgo(cards) {
   return cards.map((card) => `1 ${card.name}`).join('\n');
 }
 
-/** Bare names, one per line — feeds straight into the Bulk Add / Check box. */
+/** Bare names, one per line — feeds straight into the Add Cards / Bulk Check box. */
 function serializePlain(cards) {
   return cards.map((card) => card.name).join('\n');
 }

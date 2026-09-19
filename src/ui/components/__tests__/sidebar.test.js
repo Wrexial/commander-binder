@@ -95,4 +95,15 @@ describe('sidebar', () => {
     ].map((button) => button.textContent);
     expect(collectionButtons).toEqual(['Import']);
   });
+
+  it('orders buttons within a section by their order value', () => {
+    addButtonToSidebar('Third', vi.fn(), 'collection', 30);
+    addButtonToSidebar('First', vi.fn(), 'collection', 10);
+    addButtonToSidebar('Second', vi.fn(), 'collection', 20);
+
+    const labels = [...document.querySelectorAll('[data-section="collection"] button')].map(
+      (button) => button.textContent
+    );
+    expect(labels).toEqual(['First', 'Second', 'Third']);
+  });
 });
