@@ -55,17 +55,20 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/main.js` — app entry point; wires up all UI modules.
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
-  auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`). `scryfall.js` is
+  auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
+  guest merge client (`mergeOwned.js`). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
-  `cardStore`, `cardSettings`, `viewState`, `onboarding`, `filters`,
+  `cardStore`, `cardSettings`, `localCollection`, `viewState`, `onboarding`, `filters`,
   `settingsSync`). State is
   plain exported objects, not a framework store. `mainState.js` holds session
   state so `cardState.js` can read it without importing `main.js` (avoids a
-  cycle). `viewState.js` persists the active search, scroll offset and filter
+  cycle). `cardState.js` switches between the device-local `localCollection.js`
+  (signed-out guest) and the server (signed in or share token). `viewState.js`
+  persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
   `filters.js` holds the filter-bar state (including the sort option) and the
@@ -135,7 +138,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
   DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
-  `batch-toggle-cards`, `share-link`, `user-settings`).
+  `batch-toggle-cards`, `merge-owned`, `share-link`, `user-settings`).
+- `netlify/utils/mergeOwned.ts` — validates the `cardIds` payload for
+  `merge-owned` (shape + `MAX_BATCH_SIZE`); the handler union-inserts them into
+  the verified caller's account and ignores `shareToken`.
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
   (exports `getUserId` and `unauthorized`; `verifyToken` is internal).
 - `netlify/utils/ownedCards.ts` — shared add/remove DB logic for the toggle
@@ -151,8 +157,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   app's legendary-creature search (used by `npm run verify:bulk`).
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
-  user's Clerk id is never exposed in the URL. View-only/guest mode blocks
-  ownership edits but still allows view actions such as cycling printings.
+  user's Clerk id is never exposed in the URL. The `?share=` view-only mode blocks
+  ownership edits but still allows view actions such as cycling printings. Plain
+  signed-out visitors are **not** view-only: they track a collection in IndexedDB
+  that is additively merged into their account on sign-in (`merge-owned`). Changing
+  the Clerk user reloads the app so the correct collection mode is applied.
 - Tests are colocated under `__tests__/` folders (`src/__tests__/`,
   `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,
   `src/ui/components/__tests__/`, `src/utils/__tests__/`, `netlify/utils/__tests__/`).

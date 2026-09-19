@@ -23,7 +23,7 @@ export function createGuestWelcome({ onSignIn, onDismiss } = {}) {
 
   const body = document.createElement('p');
   body.textContent =
-    'Sign in to mark the cards you own and follow your completion. You can keep browsing as a guest.';
+    'Mark the cards you own as you browse — they are saved on this device. Sign in to sync your collection everywhere and follow your completion.';
 
   text.append(title, body);
 

@@ -3,7 +3,7 @@ import { appState } from './state/appState.js';
 import { initLazyCards } from './ui/lazyCardLoader.js';
 import { applySort } from './ui/cardFeed.js';
 import { initCardSettings, applySettingsFromStore } from './ui/settingsUI.js';
-import { loadCardStates } from './state/cardState.js';
+import { loadCardStates, mergeLocalCollectionToAccount } from './state/cardState.js';
 import { initSearch, refreshCardFilter } from './ui/search.js';
 import { initFilterBar } from './ui/filterBar.js';
 import { initClerk, getClerk } from './auth/clerk.js';
@@ -123,6 +123,7 @@ export async function setupUI() {
   userActionsContainer.innerHTML = '';
   sidebar.innerHTML = '';
   welcomeMount?.replaceChildren();
+  appState.isViewOnlyMode = false;
 
   if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
@@ -142,7 +143,8 @@ export async function setupUI() {
     const signInButton = createSignInButton(clerk);
     userActionsContainer.appendChild(signInButton);
     mainState.loggedInUserId = undefined;
-    appState.isViewOnlyMode = true;
+    // Signed-out visitors are not view-only: they track a collection on this
+    // device, which is merged into their account on sign-in.
     setHamburgerVisible(openBtn, false);
     renderGuestWelcome(clerk, welcomeMount);
   }
@@ -165,9 +167,32 @@ function renderGuestWelcome(clerk, mount) {
   );
 }
 
+/**
+ * Reload the app when the Clerk user changes so the next boot applies the right
+ * collection mode: a signed-in boot merges any local guest marks into the
+ * account (see the load chain below), while sign-out returns to device-local
+ * tracking. Clerk emits the current state on registration, so the initial id is
+ * captured to ignore that first emission.
+ * @param {object} clerk
+ */
+function watchAuthChanges(clerk) {
+  if (typeof clerk.addListener !== 'function') return;
+
+  let knownUserId = clerk.user?.id ?? null;
+
+  clerk.addListener(({ user }) => {
+    const nextUserId = user?.id ?? null;
+    if (nextUserId === knownUserId) return;
+
+    knownUserId = nextUserId;
+    window.location.reload();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   initSidebar();
   await initClerk();
+  watchAuthChanges(getClerk());
   const urlParams = new URLSearchParams(window.location.search);
   mainState.shareToken = urlParams.get('share');
   const tooltip = document.getElementById('tooltip');
@@ -181,7 +206,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // latency does not delay the first cards. Marks are re-applied here once
   // the owned state arrives (cards may already be rendered).
   loadCardStates()
-    .then(() => {
+    .then(async () => {
+      // A guest's locally-tracked cards are merged into the account the first
+      // time the app boots signed in (and on any retry after a failed merge).
+      // Re-read the server copy so the merged cards render immediately.
+      if (mainState.loggedInUserId) {
+        try {
+          if (await mergeLocalCollectionToAccount()) await loadCardStates();
+        } catch (err) {
+          console.error('Failed to merge the local collection:', err);
+        }
+      }
+
       updateAllCardStates();
       updateAllBinderCounts();
       updateOwnedCounter();

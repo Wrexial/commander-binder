@@ -67,7 +67,9 @@ describe('setupUI', () => {
     await setupUI();
 
     expect(signInButton.createSignInButton).toHaveBeenCalledWith(emptyClerk);
-    expect(appState.isViewOnlyMode).toBe(true);
+    // Signed-out visitors are not view-only: they can track locally, so the
+    // tiles keep their ownership toggle.
+    expect(appState.isViewOnlyMode).toBe(false);
     expect(guestModeText.createGuestModeText).not.toHaveBeenCalled();
     const signIn = document.querySelector('#user-actions').querySelector('button');
     expect(signIn).not.toBeNull();

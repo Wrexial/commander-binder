@@ -17,8 +17,10 @@ unofficial Fan Content, not approved or endorsed by Wizards of the Coast.
 
 - **Release-ordered card feed** of every legendary creature, streamed page by page from
   Scryfall's bulk data for fast first paint.
-- **Ownership tracking** — tap the ownership button on a card to mark it owned. Marks are
-  stored per user in Postgres and persist across devices.
+- **Ownership tracking** — tap the ownership button on a card to mark it owned. Signed-in
+  marks are stored per user in Postgres and persist across devices. Signed-out visitors can
+  track a collection too: it is saved to IndexedDB on this device and additively merged into
+  their account the first time they sign in.
 - **Accounts** via Clerk, with a first-run welcome for signed-out visitors.
 - **Share links** — generate a revocable `?share=<token>` URL that shows your collection in
   view-only guest mode. Rotating the token invalidates old links immediately.
@@ -185,8 +187,10 @@ Tests are colocated in `__tests__/` folders next to the code, with cross-module 
   over the session, so opening someone's link shows _their_ collection. Rotating the token
   (`share-link` with `{ regenerate: true }`) invalidates every old link, and the Clerk user id
   is never exposed in the URL.
-- **Guest mode** blocks ownership edits but still allows view actions such as cycling
-  printings.
+- **Guest mode** comes in two flavours. A `?share=<token>` visitor is **view-only**: they
+  cannot edit the owner's collection, but can still perform view actions such as cycling
+  printings. A plain signed-out visitor is **local**: they can mark cards, which are kept in
+  IndexedDB and merged into their account on sign-in (`merge-owned`).
 - **Bulk data** replaces dozens of paginated search requests with a single download. Because
   only the default order can be streamed, choosing any other sort drops the set tags and
   rebuilds the grid once loaded.
