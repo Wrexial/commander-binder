@@ -197,10 +197,15 @@ function onSwipeMove(event) {
   }
 
   if (swipe.axis === 'x') {
-    // A horizontal drag moves between cards; keep the browser from scrolling
-    // or triggering a back-navigation instead.
+    // A horizontal drag moves between cards: follow the finger so the gesture
+    // reads as "slide to the next/previous card", and keep the browser from
+    // scrolling or triggering a back-navigation instead.
     if (event.cancelable) event.preventDefault();
     swipe.dx = dx;
+    const tooltip = swipe.tooltip;
+    tooltip.classList.add('dragging');
+    tooltip.style.transform = `translateX(${dx}px)`;
+    tooltip.style.opacity = String(Math.max(0.55, 1 - Math.abs(dx) / 400));
     return;
   }
 

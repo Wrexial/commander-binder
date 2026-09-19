@@ -1199,11 +1199,9 @@ body.list-mode .card.list-tile .owned-badge {
   }
 }
 
-/* Swipe-to-dismiss turns off the show/hide transition while the finger is
-   down, so the dialog tracks the gesture instead of lagging behind it. */
-/* Swipe-to-dismiss turns off the show/hide transition while the finger is
-   down, so the dialog tracks the gesture instead of lagging behind it. */
-.tooltip.mobile.dragging {
+/* Follow the finger without the show/hide transition lagging behind it —
+   used by both the swipe-down dismiss and the swipe-left/right navigation. */
+.tooltip.dragging {
   transition: none;
 }
 

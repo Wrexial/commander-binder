@@ -349,6 +349,26 @@ describe('tooltip', () => {
         expect(onNavigate).toHaveBeenCalledWith(-1, expect.anything());
       });
 
+      it('follows the finger sideways while swiping', () => {
+        tooltip.onNavigate = vi.fn();
+
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        tooltip.dispatchEvent(touchAt('touchstart', 300, 200));
+        tooltip.dispatchEvent(touchAt('touchmove', 220, 205));
+
+        expect(tooltip.classList.contains('dragging')).toBe(true);
+        expect(tooltip.style.transform).toBe('translateX(-80px)');
+        expect(Number(tooltip.style.opacity)).toBeLessThan(1);
+
+        tooltip.dispatchEvent(touchAt('touchend', 220, 205));
+
+        // Releasing snaps the preview back before the next card renders.
+        expect(tooltip.classList.contains('dragging')).toBe(false);
+        expect(tooltip.style.transform).toBe('');
+      });
+
       it('ignores a short horizontal drag', () => {
         const onNavigate = vi.fn();
         tooltip.onNavigate = onNavigate;
@@ -433,6 +453,23 @@ describe('tooltip', () => {
       swipe(100, 220);
 
       expect(onNavigate).toHaveBeenCalledWith(-1, expect.anything());
+    });
+
+    it('follows the finger sideways while swiping', () => {
+      tooltip.onNavigate = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      tooltip.dispatchEvent(touchAt('touchstart', 300, 200));
+      tooltip.dispatchEvent(touchAt('touchmove', 220, 205));
+
+      expect(tooltip.classList.contains('dragging')).toBe(true);
+      expect(tooltip.style.transform).toBe('translateX(-80px)');
+      expect(Number(tooltip.style.opacity)).toBeLessThan(1);
+
+      tooltip.dispatchEvent(touchAt('touchend', 220, 205));
+      expect(tooltip.style.transform).toBe('');
     });
 
     it('leaves vertical drags to the page (no dismiss off mobile)', () => {
