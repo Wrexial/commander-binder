@@ -121,10 +121,20 @@ export const COLLECTION_TARGETS = [
  * A small Owned / Wishlist segmented control shared by the collection modals,
  * so the picker and the action always agree on the active target.
  *
- * @param {{options?: {id: string, label: string}[], initial?: string, onChange: (id: string) => void}} config
- * @returns {{el: HTMLElement, getValue: () => string}}
+ * @param {{options?: {id: string, label: string}[], initial?: string, onChange: (id: string) => void, onCreate?: () => void}} config
+ * @returns {{
+ *   el: HTMLElement,
+ *   getValue: () => string,
+ *   addOption: (option: {id: string, label: string}) => void,
+ *   setValue: (id: string) => void,
+ * }}
  */
-export function createTargetToggle({ options = COLLECTION_TARGETS, initial = 'owned', onChange }) {
+export function createTargetToggle({
+  options = COLLECTION_TARGETS,
+  initial = 'owned',
+  onChange,
+  onCreate,
+} = {}) {
   const group = document.createElement('div');
   group.className = 'target-toggle';
   group.setAttribute('role', 'group');
@@ -139,7 +149,7 @@ export function createTargetToggle({ options = COLLECTION_TARGETS, initial = 'ow
     }
   }
 
-  for (const option of options) {
+  function makeOption(option) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'target-toggle-option';
@@ -150,10 +160,43 @@ export function createTargetToggle({ options = COLLECTION_TARGETS, initial = 'ow
       sync();
       onChange(option.id);
     });
+    return button;
+  }
+
+  for (const option of options) {
+    const button = makeOption(option);
     group.appendChild(button);
     buttons.set(option.id, button);
   }
 
+  // Optional "+ New …" action pinned to the end of the row; it is never itself
+  // a selected target.
+  let newButton = null;
+  if (onCreate) {
+    newButton = document.createElement('button');
+    newButton.type = 'button';
+    newButton.className = 'target-toggle-option target-toggle-new';
+    newButton.textContent = '+ New list';
+    newButton.addEventListener('click', () => onCreate());
+    group.appendChild(newButton);
+  }
+
   sync();
-  return { el: group, getValue: () => value };
+
+  return {
+    el: group,
+    getValue: () => value,
+    /** Append a newly created target (before the "+ New" action) and select it. */
+    addOption(option) {
+      if (buttons.has(option.id)) return;
+      const button = makeOption(option);
+      group.insertBefore(button, newButton);
+      buttons.set(option.id, button);
+      sync();
+    },
+    setValue(id) {
+      value = id;
+      sync();
+    },
+  };
 }

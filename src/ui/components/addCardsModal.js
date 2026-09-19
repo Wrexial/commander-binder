@@ -15,7 +15,7 @@ import { parseCollection } from '../../utils/collectionFormats.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
-import { addCardsToList, getList, getLists, isInList } from '../../state/listsState.js';
+import { addCardsToList, createList, getList, getLists, isInList } from '../../state/listsState.js';
 import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -126,13 +126,40 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
 
+  // Inline "create a new list" form, revealed by the picker's "+ New list".
+  const newListForm = document.createElement('form');
+  newListForm.className = 'target-new-list-form';
+  newListForm.hidden = true;
+
+  const newListInput = document.createElement('input');
+  newListInput.type = 'text';
+  newListInput.maxLength = 60;
+  newListInput.placeholder = 'New list name';
+  newListInput.setAttribute('aria-label', 'New list name');
+
+  const newListSave = document.createElement('button');
+  newListSave.type = 'submit';
+  newListSave.className = 'primary';
+  newListSave.textContent = 'Create';
+
+  const newListCancel = document.createElement('button');
+  newListCancel.type = 'button';
+  newListCancel.textContent = 'Cancel';
+
+  newListForm.append(newListInput, newListSave, newListCancel);
+
   const target = createTargetToggle({
     options: targetOptions,
     initial: targetId,
     onChange: applyTarget,
+    onCreate: () => {
+      newListForm.hidden = false;
+      newListInput.value = '';
+      newListInput.focus();
+    },
   });
 
-  contentArea.append(target.el, toolbar, input.el, preview);
+  contentArea.append(target.el, newListForm, toolbar, input.el, preview);
 
   let categorized = { add: [], present: [], unknown: [] };
   let confirming = false;
@@ -144,6 +171,24 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     heading.textContent = config.title;
     subtitle.textContent = `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${config.skipVerb} are skipped.`;
     renderPreview();
+  }
+
+  /** Create a list from the inline form, add it to the picker and select it. */
+  async function handleCreateList(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return;
+
+    try {
+      const list = await createList({ name: trimmed });
+      if (!list) return;
+      target.addOption({ id: list.id, label: list.name });
+      target.setValue(list.id);
+      newListForm.hidden = true;
+      applyTarget(list.id);
+    } catch (err) {
+      console.error('Failed to create the list:', err);
+      showToast(err.message || 'Could not create the list.', 'error');
+    }
   }
 
   /** Resolve parsed entries to store cards, split into new / present / unknown. */
@@ -261,6 +306,14 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   });
   primaryButton.addEventListener('click', handleAdd);
   closeButton.addEventListener('click', close);
+
+  newListForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    handleCreateList(newListInput.value);
+  });
+  newListCancel.addEventListener('click', () => {
+    newListForm.hidden = true;
+  });
 
   function show() {
     shell.show();

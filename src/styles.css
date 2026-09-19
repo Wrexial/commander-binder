@@ -3645,6 +3645,39 @@ footer a:focus-visible {
   color: var(--text);
 }
 
+.target-toggle-new {
+  color: var(--accent-strong);
+}
+
+/* Inline "new list" form revealed by the target picker's "+ New list". */
+.target-new-list-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.target-new-list-form[hidden] {
+  display: none;
+}
+
+.target-new-list-form input {
+  flex: 1;
+  min-width: 140px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.target-new-list-form input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
 .transfer-toolbar {
   display: flex;
   align-items: center;

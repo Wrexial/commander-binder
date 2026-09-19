@@ -16,6 +16,7 @@ vi.mock('../../../state/listsState.js', () => ({
   getList: vi.fn((id) => (id === 'L1' ? { id: 'L1', name: 'Trade pile' } : null)),
   isInList: vi.fn(() => false),
   addCardsToList: vi.fn(() => Promise.resolve()),
+  createList: vi.fn(async ({ name }) => ({ id: 'new-list', name })),
 }));
 vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));

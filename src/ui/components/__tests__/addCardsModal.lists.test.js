@@ -67,6 +67,29 @@ describe('addCardsModal list targets', () => {
     const labels = [...document.querySelectorAll('.target-toggle-option')].map(
       (button) => button.textContent
     );
-    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile']);
+    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile', '+ New list']);
+  });
+
+  it('creates a new list from the picker and targets it', async () => {
+    await loadLists();
+    createAddCardsModal().show();
+
+    document.querySelector('.target-toggle-new').click();
+    const input = document.querySelector('.target-new-list-form input');
+    expect(input).not.toBeNull();
+    input.value = 'Deck: Atraxa';
+    document
+      .querySelector('.target-new-list-form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bulk-modal-header h2').textContent).toBe(
+        'Add to “Deck: Atraxa”'
+      )
+    );
+    const labels = [...document.querySelectorAll('.target-toggle-option')].map(
+      (button) => button.textContent
+    );
+    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile', 'Deck: Atraxa', '+ New list']);
   });
 });
