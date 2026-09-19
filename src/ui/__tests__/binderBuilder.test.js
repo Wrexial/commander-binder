@@ -7,6 +7,7 @@ const pickerState = vi.hoisted(() => ({
   show: vi.fn(),
   close: vi.fn(),
 }));
+const printingState = vi.hoisted(() => ({ options: null, show: vi.fn() }));
 
 vi.mock('../../state/localBinders.js', () => ({
   loadLocalBinders: vi.fn(async () => local.records),
@@ -33,6 +34,10 @@ vi.mock('../../state/cardSettings.js', async (importOriginal) => ({
 vi.mock('../../state/cardStore.js', () => ({
   cardStore: {
     getByPrintingId: vi.fn((id) => (id ? { id, name: `Card ${id}` } : null)),
+    getPrintings: vi.fn((name) => [
+      { id: 'printing-a', name },
+      { id: 'printing-b', name },
+    ]),
   },
 }));
 
@@ -49,6 +54,13 @@ vi.mock('../components/cardPickerModal.js', () => ({
   createCardPickerModal: vi.fn((options) => {
     pickerState.options = options;
     return { show: pickerState.show, close: pickerState.close, destroy: vi.fn() };
+  }),
+}));
+
+vi.mock('../components/printingPickerModal.js', () => ({
+  createPrintingPickerModal: vi.fn((options) => {
+    printingState.options = options;
+    return { show: printingState.show, close: vi.fn(), destroy: vi.fn() };
   }),
 }));
 
@@ -90,6 +102,8 @@ beforeEach(async () => {
   document.body.innerHTML = '<div id="binder-root"></div>';
   pickerState.options = null;
   pickerState.show.mockClear();
+  printingState.options = null;
+  printingState.show.mockClear();
   await resetBinders();
 });
 
@@ -154,6 +168,22 @@ describe('binderBuilder', () => {
       expect(getActiveBinder().slots['0:1:0']).toBe('card-a');
       expect(getActiveBinder().slots['0:0:0']).toBeUndefined();
     });
+  });
+
+  it('opens the printing picker for a pocket and saves the chosen printing', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'printing-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot-printings')).not.toBeNull());
+
+    document.querySelector('.binder-slot-printings').click();
+
+    await vi.waitFor(() => expect(printingState.options).not.toBeNull());
+    expect(printingState.options.currentId).toBe('printing-a');
+    expect(printingState.show).toHaveBeenCalled();
+
+    printingState.options.onPick({ id: 'printing-b' });
+    await vi.waitFor(() => expect(getActiveBinder().slots['0:0:0']).toBe('printing-b'));
   });
 
   it('saves a pocket printing when the shared interactions cycle it', async () => {

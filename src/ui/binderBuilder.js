@@ -33,6 +33,7 @@ import {
 import { createCardElement, updateCardState } from './cards.js';
 import { showToast } from './components/toast.js';
 import { createCardPickerModal } from './components/cardPickerModal.js';
+import { createPrintingPickerModal } from './components/printingPickerModal.js';
 import { ensurePrintingsLoaded, hydrateCardsByIds } from '../api/cardSearch.js';
 
 /** One page is shown at a time so a 200-page binder stays cheap to render. */
@@ -64,10 +65,17 @@ function numberField(labelText, className, { min, max, value }) {
   return { el: label, input };
 }
 
-/** The ⇄ / ✕ controls overlaid on an occupied pocket. */
+/** The ⇄ / ✕ / ≡ controls overlaid on an occupied pocket. */
 function createSlotControls() {
   const wrap = document.createElement('div');
   wrap.className = 'binder-slot-controls';
+
+  const printings = document.createElement('button');
+  printings.type = 'button';
+  printings.className = 'binder-slot-printings';
+  printings.title = 'Choose printing';
+  printings.setAttribute('aria-label', 'Choose printing');
+  printings.textContent = '≡';
 
   const move = document.createElement('button');
   move.type = 'button';
@@ -83,7 +91,7 @@ function createSlotControls() {
   remove.setAttribute('aria-label', 'Remove this card');
   remove.textContent = '✕';
 
-  wrap.append(move, remove);
+  wrap.append(printings, move, remove);
   return wrap;
 }
 
@@ -351,7 +359,39 @@ function handlePrintingChanged(event) {
   assignCardToSlot(binder.id, key, printingId);
 }
 
-/** Delegated pocket clicks: move, remove, or open the picker. */
+/**
+ * Open the scrollable printing picker for a pocket and save the chosen version.
+ * Loads the card's full printing list first, so a card with dozens of printings
+ * shows them all.
+ */
+async function openPrintingPicker(key) {
+  const binder = getActiveBinder();
+  if (!binder) return;
+
+  const printingId = binder.slots[key];
+  const card = printingId ? cardStore.getByPrintingId(printingId) : null;
+  if (!card) return;
+
+  await ensurePrintingsLoaded(card.name);
+  const printings = cardStore.getPrintings(card.name);
+  if (printings.length === 0) {
+    showToast('No printings are available for that card yet.', 'warning');
+    return;
+  }
+
+  const picker = createPrintingPickerModal({
+    card,
+    printings,
+    currentId: printingId,
+    onPick: (printing) => {
+      const current = getActiveBinder();
+      if (current) assignCardToSlot(current.id, key, printing.id);
+    },
+  });
+  picker.show();
+}
+
+/** Delegated pocket clicks: move, remove, choose a printing, or open the picker. */
 function handlePageClick(event) {
   const slot = event.target.closest('.binder-slot');
   if (!slot) return;
@@ -373,6 +413,12 @@ function handlePageClick(event) {
   if (event.target.closest('.binder-slot-remove')) {
     event.preventDefault();
     clearSlot(binder.id, key);
+    return;
+  }
+
+  if (event.target.closest('.binder-slot-printings')) {
+    event.preventDefault();
+    openPrintingPicker(key);
     return;
   }
 
