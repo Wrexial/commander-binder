@@ -60,10 +60,10 @@ function processScryfallData(data) {
 
     if (isNewUniqueCard) {
       appState.seenNames.add(name);
-      // Default to the card's base (oldest) printing so the thumbnail
-      // and its price line up, whatever order the source delivered — unless
-      // the user has saved a preferred printing for this name.
-      newUniqueCards.push(resolveDisplayPrinting(cardStore.getOldestPrinting(name) || card));
+      // Default to the card's cheapest printing (version "1") so the
+      // thumbnail and its price line up, whatever order the source delivered —
+      // unless the user has saved a preferred printing for this name.
+      newUniqueCards.push(resolveDisplayPrinting(name) || card);
     }
     appState.seenSetCodes.add(card.set.toLowerCase());
   }

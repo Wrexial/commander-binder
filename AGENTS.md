@@ -105,8 +105,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   account via the `user-settings` function (best-effort, signed-in only).
   `cardSettings.js` holds the display mode, the price currency
   (EUR/USD/TIX), the swipe-to-dismiss flag and the preferred-printing map; the
-  currency is read by `utils/prices.js` so tiles, the filter bar, search,
-  sort and statistics all agree on one unit.
+  currency is read by `utils/priceFields.js` so tiles, the filter bar, search,
+  sort and statistics all agree on one unit. `preferredPrintings.js` resolves
+  the printing a tile shows: the saved pick, else the cheapest printing.
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `bulkEdit`, `yearScrubber`, `scrollPosition`,
@@ -170,11 +171,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `tooltip.onCycle`/`tooltip.onNavigate`/`tooltip.onToggle` so those controls
   follow the card on screen.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
-  `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
-  `compareCollections`, `sortCards`).
-  `prices.js` is the single place that reads Scryfall's per-currency
+  `html`, `idb`, `prices`, `priceFields`, `printings`, `pointer`, `viewport`,
+  `collectionFormats`, `compareCollections`, `sortCards`).
+  `priceFields.js` is the store-free place that reads Scryfall's per-currency
   `prices.eur`/`usd`/`tix` fields (plus `formatPrice`/`formatPriceRange`), so a
-  currency switch is a settings change rather than a data change.
+  currency switch is a settings change rather than a data change; `prices.js`
+  re-exports it and adds `getCheapestPrice`. `printings.js` owns version
+  ordering: `orderPrintingsByPrice`/`cheapestPrinting` sort by the selected
+  currency (unpriced printings last, release date breaks ties), so the version
+  badge's “1” and the printing cycle are always the cheapest version.
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;

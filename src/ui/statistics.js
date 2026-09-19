@@ -9,7 +9,7 @@ import { updateAllCardStates } from './cards.js';
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { getCheapestPrice, formatPrice, formatPriceRange } from '../utils/prices.js';
-import { nextPrinting } from '../utils/printings.js';
+import { nextPrinting, orderPrintingsByPrice } from '../utils/printings.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 
 /** Canonical display order and labels for the five colors plus colorless. */
@@ -685,7 +685,10 @@ function wireTopCardTooltips(container, tooltip, topCards) {
   const cycleRowPrinting = (row, event) => {
     if (!row.cardData) return;
 
-    const next = nextPrinting(cardStore.getPrintings(row.cardData.name), row.cardData);
+    const next = nextPrinting(
+      orderPrintingsByPrice(cardStore.getPrintings(row.cardData.name)),
+      row.cardData
+    );
     if (!next) return;
 
     // A pick made in the statistics preview follows the card to the grid.

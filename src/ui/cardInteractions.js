@@ -9,7 +9,7 @@ import { updateOwnedCounter } from './components/ownedCounter.js';
 import { adjustBinderOwnedCount } from './layout.js';
 import { cardStore } from '../state/cardStore.js';
 import { preloadCardImages } from '../utils/cardImages.js';
-import { nextPrinting } from '../utils/printings.js';
+import { nextPrinting, orderPrintingsByPrice } from '../utils/printings.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import {
@@ -361,7 +361,7 @@ function cycleCardPrinting(cardElement, event, tooltip, direction = 1) {
   if (!cardElement || !cardElement.cardData) return;
 
   const next = nextPrinting(
-    cardStore.getPrintings(cardElement.cardData.name),
+    orderPrintingsByPrice(cardStore.getPrintings(cardElement.cardData.name)),
     cardElement.cardData,
     direction
   );

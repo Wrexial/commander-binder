@@ -70,5 +70,7 @@ export function surpriseMe() {
     return;
   }
 
-  revealCard(element, target);
+  // Preview the printing the tile is actually showing (its cheapest), not the
+  // store representative the random pick was based on.
+  revealCard(element, element.cardData || target);
 }

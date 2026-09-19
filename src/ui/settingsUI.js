@@ -114,6 +114,9 @@ function createCurrencyPicker() {
 /** Re-render tiles and tell the filter bar the price unit changed. */
 function applyCurrencyChange() {
   applyDisplayMode();
+  // The cheapest printing can change with the currency, so re-resolve the
+  // default art for any card the user has not pinned.
+  applyPreferredPrintings();
   document.dispatchEvent(new CustomEvent('currency:changed'));
 }
 

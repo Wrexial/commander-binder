@@ -1,7 +1,7 @@
 // src/state/preferredPrintings.js
 /**
  * The user's chosen printing for each card, so the grid keeps showing the art
- * they picked instead of resetting to the oldest printing.
+ * they picked instead of resetting to the cheapest printing.
  *
  * Stored as a card-name -> printing-id map, so a card can only ever have one
  * preferred printing (picking a different printing of the same name replaces
@@ -11,6 +11,7 @@
  */
 import { MAX_PREFERRED_PRINTINGS, getSetting, setSetting } from './cardSettings.js';
 import { cardStore, primaryName } from './cardStore.js';
+import { cheapestPrinting } from '../utils/printings.js';
 
 /** The stored name -> printing-id map (defensively copied to a plain object). */
 export function getPreferredPrintings() {
@@ -33,13 +34,20 @@ export function getPreferredPrinting(cardOrName) {
 
 /**
  * The printing the grid should show for a card: the saved one when there is
- * one, otherwise the card itself (used before its full printing list loads).
+ * one, otherwise the cheapest printing (version "1"), falling back to the
+ * passed card before its printing list has loaded.
  *
- * @param {object} card
- * @returns {object}
+ * @param {object|string} cardOrName
+ * @returns {object|null}
  */
-export function resolveDisplayPrinting(card) {
-  return getPreferredPrinting(card) ?? card;
+export function resolveDisplayPrinting(cardOrName) {
+  const preferred = getPreferredPrinting(cardOrName);
+  if (preferred) return preferred;
+
+  const cheapest = cheapestPrinting(cardStore.getPrintings(cardOrName));
+  if (cheapest) return cheapest;
+
+  return typeof cardOrName === 'string' ? null : cardOrName;
 }
 
 /**

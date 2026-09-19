@@ -72,6 +72,31 @@ describe('cardStore', () => {
       });
     });
 
+    it('ranks by price so the cheapest printing is 1', () => {
+      cardStore.add({
+        id: 'pricey',
+        name: 'Card',
+        released_at: '1995-01-01',
+        prices: { eur: '40.00' },
+      });
+      cardStore.add({
+        id: 'mid',
+        name: 'Card',
+        released_at: '2010-01-01',
+        prices: { eur: '10.00' },
+      });
+      cardStore.add({
+        id: 'cheap',
+        name: 'Card',
+        released_at: '2020-01-01',
+        prices: { eur: '2.00' },
+      });
+
+      expect(cardStore.getPrintingPosition(card('cheap', 'Card', '2020-01-01')).index).toBe(1);
+      expect(cardStore.getPrintingPosition(card('mid', 'Card', '2010-01-01')).index).toBe(2);
+      expect(cardStore.getPrintingPosition(card('pricey', 'Card', '1995-01-01')).index).toBe(3);
+    });
+
     it('returns zeroes for a card with no name', () => {
       expect(cardStore.getPrintingPosition(null)).toEqual({ index: 0, total: 0 });
     });

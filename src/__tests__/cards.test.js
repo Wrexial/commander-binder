@@ -13,7 +13,7 @@ import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 import * as cardState from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
-import { getPreferredPrinting } from '../state/preferredPrintings.js';
+import { getPreferredPrinting, resolveDisplayPrinting } from '../state/preferredPrintings.js';
 import { clearSelection, setSelectionMode, toggleSelection } from '../state/selectionState.js';
 
 vi.mock('../state/cardSettings.js', () => ({
@@ -31,6 +31,7 @@ vi.mock('../state/appState.js', () => ({
 
 vi.mock('../state/preferredPrintings.js', () => ({
   getPreferredPrinting: vi.fn(() => null),
+  resolveDisplayPrinting: vi.fn((cardOrName) => cardOrName),
 }));
 
 vi.mock('../state/cardState.js', () => ({
@@ -470,6 +471,8 @@ describe('applyPreferredPrintings', () => {
   beforeEach(() => {
     cardStore.clear();
     getPreferredPrinting.mockReturnValue(null);
+    resolveDisplayPrinting.mockReset();
+    resolveDisplayPrinting.mockImplementation((cardOrName) => cardOrName);
   });
 
   it('switches a mounted tile to the saved printing', () => {
@@ -479,6 +482,7 @@ describe('applyPreferredPrintings', () => {
     cardStore.add(chosen);
     cardState.isCardOwned.mockReturnValue(false);
     getPreferredPrinting.mockReturnValue(chosen);
+    resolveDisplayPrinting.mockReturnValue(chosen);
 
     const element = createCardElement(base, 0);
     document.body.appendChild(element);
@@ -495,6 +499,7 @@ describe('applyPreferredPrintings', () => {
     cardStore.add(base);
     cardStore.add(other);
     cardState.isCardOwned.mockReturnValue(false);
+    resolveDisplayPrinting.mockReturnValue(base);
 
     const element = createCardElement(other, 0);
     document.body.appendChild(element);

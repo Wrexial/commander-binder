@@ -1,4 +1,5 @@
 // src/state/cardStore.js
+import { orderPrintingsByPrice } from '../utils/printings.js';
 
 const cardsByName = new Map();
 const printingIdsByName = new Map();
@@ -73,9 +74,10 @@ export const cardStore = {
 
   /**
    * Position of a printing among all known printings of the same card name:
-   * a 1-based release-ordered index (1 = base printing) plus the total. Shared
-   * by the tile badge and the tooltip so they can never disagree about
-   * "version X of Y".
+   * a 1-based price-ordered index (1 = cheapest) plus the total. Shared by the
+   * tile badge and the tooltip so they can never disagree about "version X of
+   * Y". Prices come from the selected currency, so the order follows a
+   * currency change; ties and unpriced printings fall back to release order.
    * @param {object} card
    * @returns {{ index: number, total: number }}
    */
@@ -83,7 +85,7 @@ export const cardStore = {
     const name = primaryName(card);
     if (!name) return { index: 0, total: 0 };
 
-    const printings = cardsByName.get(name) || [];
+    const printings = orderPrintingsByPrice(cardsByName.get(name) || []);
     const position = printings.findIndex((printing) => printing.id === card.id);
     return { index: position >= 0 ? position + 1 : 1, total: printings.length };
   },
