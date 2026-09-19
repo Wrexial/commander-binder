@@ -527,6 +527,9 @@ describe('showStatisticsModal', () => {
 
     showStatisticsModal();
 
+    // The modal must actually be revealed, not just created hidden.
+    expect(document.querySelector('.list-modal-backdrop').style.display).toBe('block');
+
     const row = document.querySelector('.stats-top-card');
     expect(row).toBeTruthy();
 

@@ -64,10 +64,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   Builder).
 - `src/binderMain.js` + `binder.html` — the separate Binder Builder page. It
   reuses the shell and renders the editor into `#binder-root`. A binder can hold
-  any card, so the page does **not** preload the legendary-creature bulk set:
-  the picker searches Scryfall live and the editor hydrates only the pockets it
-  renders (see `src/api/cardSearch.js`). Vite builds both pages (`vite.config.js`
-  `rollupOptions.input`).
+  any card, so the picker searches Scryfall live and the editor hydrates only the
+  pockets it renders (see `src/api/cardSearch.js`). The legendary-creature bulk
+  set is warmed into `cardStore` afterwards, in the background (non-blocking),
+  because Statistics and Compare Collections label the collection from it. Vite
+  builds both pages (`vite.config.js` `rollupOptions.input`).
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), on-demand card
   lookup (`cardSearch.js`), and

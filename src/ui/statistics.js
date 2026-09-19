@@ -1024,5 +1024,6 @@ export function showStatisticsModal() {
   modal.appendChild(contentArea);
   modal.appendChild(buttonContainer);
 
+  shell.show();
   closeButton.focus();
 }
