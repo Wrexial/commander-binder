@@ -178,13 +178,24 @@ describe('calculateStatistics', () => {
     ]);
 
     expect(stats.priceBuckets).toEqual([
-      { label: '< €1', count: 1 },
-      { label: '€1–5', count: 1 },
-      { label: '€5–20', count: 0 },
-      { label: '€20–50', count: 1 },
-      { label: '€50+', count: 1 },
+      { label: '< €0.25', count: 0, value: 0 },
+      { label: '€0.25–0.5', count: 0, value: 0 },
+      { label: '€0.5–1', count: 1, value: 0.5 },
+      { label: '€1–2', count: 0, value: 0 },
+      { label: '€2–5', count: 1, value: 3 },
+      { label: '€5–10', count: 0, value: 0 },
+      { label: '€10–20', count: 0, value: 0 },
+      { label: '€20–50', count: 1, value: 30 },
+      { label: '€50–100', count: 0, value: 0 },
+      { label: '€100+', count: 1, value: 120 },
     ]);
     expect(stats.medianCardValue).toBe(16.5);
+    expect(stats.minCardValue).toBe(0.5);
+    expect(stats.maxCardValue).toBe(120);
+    expect(stats.pricePercentiles.p25).toBeCloseTo(2.375);
+    expect(stats.pricePercentiles.p90).toBeCloseTo(93);
+    // The single most valuable card (120/153.5) is already ~78% of the value.
+    expect(stats.topDecileValueShare).toBeCloseTo(78.18, 1);
   });
 
   it('sorts the top cards by price and caps the list at five', () => {
@@ -308,6 +319,23 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('Type19');
     expect(html).toContain('stats-bars stats-bars-scroll');
     expect(html).toContain('20 types');
+  });
+
+  it('shows the value and share held by each price bucket', () => {
+    cardStore.getPrintings.mockImplementation((name) => {
+      const prices = { Cheap: '0.50', Grail: '120.00' };
+      return prices[name] ? [{ prices: { eur: prices[name], eur_foil: null } }] : [];
+    });
+    const stats = calculateStatistics([makeCard({ name: 'Cheap' }), makeCard({ name: 'Grail' })]);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).toContain('stats-price-row');
+    expect(html).toContain('stats-price-share');
+    expect(html).toContain('stats-price-value');
+    expect(html).toContain('2 priced cards');
+    expect(html).toContain('stats-price-summary');
+    expect(html).toContain('most valuable');
   });
 
   it('renders combination mana symbols in canonical WUBRG order', () => {

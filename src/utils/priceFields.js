@@ -89,7 +89,9 @@ export function formatPrice(value, { currency = getCurrency(), decimals = 2 } = 
 
 /**
  * Format a price threshold range for the statistics buckets, e.g. "€1–5" or
- * "50+ TIX". A `null` max means "and up".
+ * "50+ TIX". A `null` max means "and up". Boundaries are printed with up to
+ * two decimals and trailing zeros trimmed, so small brackets read cleanly
+ * ("€0.25–0.5").
  *
  * @param {number} min
  * @param {number|null} max
@@ -98,8 +100,20 @@ export function formatPrice(value, { currency = getCurrency(), decimals = 2 } = 
  */
 export function formatPriceRange(min, max, currency = getCurrency()) {
   const config = currencyConfig(currency);
+  const low = priceNumber(min);
   if (max == null) {
-    return config.suffix ? `${min}+ ${config.symbol}` : `${config.symbol}${min}+`;
+    return config.suffix ? `${low}+ ${config.symbol}` : `${config.symbol}${low}+`;
   }
-  return config.suffix ? `${min}–${max} ${config.symbol}` : `${config.symbol}${min}–${max}`;
+  const high = priceNumber(max);
+  return config.suffix ? `${low}–${high} ${config.symbol}` : `${config.symbol}${low}–${high}`;
+}
+
+/**
+ * A number with up to two decimals and trailing zeros trimmed (0.5 -> "0.5",
+ * 5 -> "5"). Used for bracket boundaries only; money values keep two decimals.
+ */
+function priceNumber(value) {
+  return Number(value)
+    .toFixed(2)
+    .replace(/\.?0+$/, '');
 }

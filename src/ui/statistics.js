@@ -35,16 +35,28 @@ const RARITY_LABELS = {
 const MANA_CURVE_LABELS = ['0', '1', '2', '3', '4', '5', '6', '7+'];
 
 /**
- * Price brackets, checked in order. Covers every non-negative price. Labels are
- * built lazily so they follow the selected currency (EUR/USD/TIX).
+ * Price brackets in ascending order, spaced geometrically so a collection that
+ * clusters at the low end (most cards are cheap) still gets detail there
+ * instead of everything landing in one "< €1" bar. Labels are built lazily so
+ * they follow the selected currency (EUR/USD/TIX).
  */
 const PRICE_BUCKETS = [
-  { label: () => `< ${formatPrice(1, { decimals: 0 })}`, test: (price) => price < 1 },
-  { label: () => formatPriceRange(1, 5), test: (price) => price >= 1 && price < 5 },
-  { label: () => formatPriceRange(5, 20), test: (price) => price >= 5 && price < 20 },
-  { label: () => formatPriceRange(20, 50), test: (price) => price >= 20 && price < 50 },
-  { label: () => formatPriceRange(50, null), test: (price) => price >= 50 },
-];
+  { min: 0, max: 0.25 },
+  { min: 0.25, max: 0.5 },
+  { min: 0.5, max: 1 },
+  { min: 1, max: 2 },
+  { min: 2, max: 5 },
+  { min: 5, max: 10 },
+  { min: 10, max: 20 },
+  { min: 20, max: 50 },
+  { min: 50, max: 100 },
+  { min: 100, max: null },
+].map((band) => ({
+  ...band,
+  label: () =>
+    band.min === 0 ? `< ${formatPrice(band.max)}` : formatPriceRange(band.min, band.max),
+  test: (price) => price >= band.min && (band.max == null || price < band.max),
+}));
 
 /** How many sets to list in the per-set completion breakdown. */
 const MAX_SETS_SHOWN = 12;
@@ -115,6 +127,25 @@ function median(values) {
 }
 
 /**
+ * Linear-interpolated percentile (`p` in 0–1) of an unsorted numeric array.
+ * Returns `null` for an empty array.
+ *
+ * @param {number[]} values
+ * @param {number} p
+ * @returns {number|null}
+ */
+function percentile(values, p) {
+  if (values.length === 0) return null;
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = (sorted.length - 1) * p;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return sorted[lower];
+  return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+}
+
+/**
  * Compute the collection statistics shown in the statistics modal.
  *
  * @param {object[]} cards Owned cards to analyze.
@@ -127,6 +158,10 @@ function median(values) {
  *   totalValue: number,
  *   averageCardValue: number,
  *   medianCardValue: number|null,
+ *   minCardValue: number|null,
+ *   maxCardValue: number|null,
+ *   pricePercentiles: { p25: number|null, p50: number|null, p75: number|null, p90: number|null },
+ *   topDecileValueShare: number,
  *   completion: { owned: number, total: number, percent: number },
  *   colors: Record<string, number>,
  *   colorIdentity: Record<string, number>,
@@ -136,7 +171,7 @@ function median(values) {
  *   manaCurve: Record<string, number>,
  *   averageManaValue: number|null,
  *   medianManaValue: number|null,
- *   priceBuckets: { label: string, count: number }[],
+ *   priceBuckets: { label: string, count: number, value: number }[],
  *   top5ValuableCards: { name: string, price: number, card: object }[],
  *   sets: { code: string, name: string, owned: number, total: number, percent: number, missing: string[], wantedMissing: string[] }[],
  *   setsCompleted: number,
@@ -209,11 +244,37 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
   const top5ValuableCards = [...pricedCards].sort((a, b) => b.price - a.price).slice(0, 5);
   const averageCardValue = totalCards > 0 ? totalValue / totalCards : 0;
 
-  const priceBuckets = PRICE_BUCKETS.map((bucket) => ({ label: bucket.label(), count: 0 }));
+  // Per-bucket count *and* total value, so the distribution shows where the
+  // money actually sits rather than only how many cards fall in each range.
+  const priceBuckets = PRICE_BUCKETS.map((bucket) => ({
+    label: bucket.label(),
+    count: 0,
+    value: 0,
+  }));
   for (const { price } of pricedCards) {
     const index = PRICE_BUCKETS.findIndex((bucket) => bucket.test(price));
-    if (index >= 0) priceBuckets[index].count += 1;
+    if (index >= 0) {
+      priceBuckets[index].count += 1;
+      priceBuckets[index].value += price;
+    }
   }
+
+  const pricedValues = pricedCards.map((card) => card.price);
+  const minCardValue = pricedValues.length > 0 ? Math.min(...pricedValues) : null;
+  const maxCardValue = pricedValues.length > 0 ? Math.max(...pricedValues) : null;
+  const pricePercentiles = {
+    p25: percentile(pricedValues, 0.25),
+    p50: percentile(pricedValues, 0.5),
+    p75: percentile(pricedValues, 0.75),
+    p90: percentile(pricedValues, 0.9),
+  };
+
+  // Value concentration: the most valuable tenth of the priced cards can hold
+  // most of the collection's value, which the bands alone don't convey.
+  const descendingValues = [...pricedValues].sort((a, b) => b - a);
+  const topCount = Math.max(1, Math.ceil(descendingValues.length * 0.1));
+  const topValue = descendingValues.slice(0, topCount).reduce((sum, value) => sum + value, 0);
+  const topDecileValueShare = totalValue > 0 ? (topValue / totalValue) * 100 : 0;
 
   const manaSum = manaValues.reduce((sum, value) => sum + value, 0);
 
@@ -290,7 +351,11 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     totalCards,
     totalValue,
     averageCardValue,
-    medianCardValue: median(pricedCards.map((card) => card.price)),
+    medianCardValue: median(pricedValues),
+    minCardValue,
+    maxCardValue,
+    pricePercentiles,
+    topDecileValueShare,
     completion: {
       owned: totalCards,
       total: totalAvailable,
@@ -596,7 +661,8 @@ function renderWishlistTargets(sets) {
   );
 }
 
-function renderPriceDistribution(priceBuckets, medianValue) {
+function renderPriceDistribution(stats) {
+  const { priceBuckets, minCardValue, maxCardValue, pricePercentiles, topDecileValueShare } = stats;
   const total = priceBuckets.reduce((sum, bucket) => sum + bucket.count, 0);
   if (total === 0) {
     return section(
@@ -607,13 +673,42 @@ function renderPriceDistribution(priceBuckets, medianValue) {
 
   const max = Math.max(...priceBuckets.map((bucket) => bucket.count));
   const rows = priceBuckets
-    .map((bucket) => barRow({ label: bucket.label, count: bucket.count, max }))
+    .map((bucket) => {
+      const share = Math.round((bucket.count / total) * 100);
+      const width = max > 0 ? Math.max((bucket.count / max) * 100, 3) : 0;
+      const title =
+        `${bucket.label}: ${bucket.count} card${bucket.count === 1 ? '' : 's'} (${share}%)` +
+        (bucket.count > 0 ? ` · ${formatMoney(bucket.value)}` : '');
+      return `
+        <div class="stats-bar-row stats-price-row" title="${escapeHtml(title)}">
+            <span class="stats-bar-label">${bucket.label}</span>
+            <span class="stats-bar-track"><span class="stats-bar-fill" style="width: ${width}%"></span></span>
+            <span class="stats-bar-count">${bucket.count}<span class="stats-price-share">${share}%</span></span>
+            <span class="stats-price-value">${bucket.count > 0 ? formatMoney(bucket.value) : '—'}</span>
+        </div>`;
+    })
     .join('');
+
+  // Percentile strip: where the bulk of the collection sits, which the bands
+  // alone don't summarise.
+  const summaryItems = [
+    ['Min', minCardValue],
+    ['25th', pricePercentiles.p25],
+    ['Median', pricePercentiles.p50],
+    ['75th', pricePercentiles.p75],
+    ['90th', pricePercentiles.p90],
+    ['Max', maxCardValue],
+  ];
+  const summary = `<dl class="stats-price-summary">${summaryItems
+    .map(([label, value]) => `<div><dt>${label}</dt><dd>${formatMoney(value)}</dd></div>`)
+    .join('')}</dl>`;
+
+  const concentration = `The most valuable <strong>10%</strong> of cards hold <strong>${Math.round(topDecileValueShare)}%</strong> of the value.`;
 
   return section(
     'Price Distribution',
-    `<div class="stats-bars">${rows}</div>`,
-    `median ${formatMoney(medianValue)}`
+    `<div class="stats-bars">${rows}</div>${summary}<p class="stats-price-concentration">${concentration}</p>`,
+    `${total} priced card${total === 1 ? '' : 's'}`
   );
 }
 
@@ -741,7 +836,7 @@ export function createStatisticsHTML(stats) {
             ${renderCreatureTypes(stats.types)}
             ${renderSetCompletion(stats.sets, stats.setsCompleted)}
             ${renderWishlistTargets(stats.sets)}
-            ${renderPriceDistribution(stats.priceBuckets, stats.medianCardValue)}
+            ${renderPriceDistribution(stats)}
         </div>
         ${renderTopCards(stats.top5ValuableCards)}
     `;

@@ -3256,6 +3256,66 @@ footer a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* Price-distribution rows gain a fourth column for the value each band holds. */
+.stats-bar-row.stats-price-row {
+  grid-template-columns: minmax(84px, auto) 1fr auto auto;
+}
+
+.stats-price-share {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.stats-price-value {
+  min-width: 4.5em;
+  text-align: right;
+  color: var(--accent-strong);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-price-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.stats-price-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-price-summary dt {
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stats-price-summary dd {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-price-concentration {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.stats-price-concentration strong {
+  color: var(--accent-strong);
+}
+
 /* Set-completion rows gain a fourth column for the per-set "Copy" button. */
 .stats-bar-row.has-copy {
   grid-template-columns: minmax(84px, auto) 1fr auto auto;
