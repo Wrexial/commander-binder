@@ -875,12 +875,26 @@ async function copyCardNames(names, label) {
  *
  * @returns {void}
  */
-export function showStatisticsModal() {
-  const allCards = cardStore.getAll();
+/**
+ * Open the statistics modal.
+ *
+ * @param {object} [options]
+ * @param {object[]} [options.cards] Cards to report on; defaults to the whole
+ *   loaded collection. The Binder Builder passes the visible binder's cards so
+ *   the view is per-binder.
+ * @param {string} [options.title] Modal heading.
+ * @param {string} [options.emptyMessage] Toast shown when nothing is owned.
+ */
+export function showStatisticsModal({
+  cards = null,
+  title = 'Collection Statistics',
+  emptyMessage = 'No owned cards have been loaded yet. Scroll to load more cards.',
+} = {}) {
+  const allCards = cards || cardStore.getAll();
   const ownedCards = allCards.filter(isCardOwned);
 
   if (ownedCards.length === 0) {
-    showToast('No owned cards have been loaded yet. Scroll to load more cards.', 'warning');
+    showToast(emptyMessage, 'warning');
     return;
   }
 
@@ -895,7 +909,7 @@ export function showStatisticsModal() {
 
   const shell = createModal({
     className: 'statistics-modal',
-    ariaLabel: 'Collection Statistics',
+    ariaLabel: title,
     onClose: () => {
       cleanupTopCardTooltips();
       if (tooltip) {
@@ -914,7 +928,7 @@ export function showStatisticsModal() {
   const headerText = document.createElement('div');
 
   const modalHeader = document.createElement('h2');
-  modalHeader.textContent = 'Collection Statistics';
+  modalHeader.textContent = title;
 
   const subtitle = document.createElement('p');
   subtitle.className = 'statistics-subtitle';

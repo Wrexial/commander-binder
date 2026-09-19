@@ -4712,6 +4712,52 @@ body.selection-mode #results {
   margin-top: 8px;
 }
 
+.binder-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.binder-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.binder-tab {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background-color: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.binder-tab:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.binder-tab.is-active {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
 .binder-builder-toolbar {
   display: flex;
   flex-wrap: wrap;

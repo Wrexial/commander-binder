@@ -510,6 +510,26 @@ describe('createStatisticsHTML', () => {
 });
 
 describe('showStatisticsModal', () => {
+  it('scopes the report to the provided cards and title', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const binderCard = makeCard({ id: 'b1', name: 'Binder Card' });
+    const otherCard = makeCard({ id: 'o1', name: 'Other Card' });
+    cardStore.getAll.mockReturnValue([binderCard, otherCard]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal({
+      cards: [binderCard],
+      title: '“My Binder” Statistics',
+      emptyMessage: 'Nothing owned.',
+    });
+
+    expect(document.querySelector('.statistics-header h2').textContent).toBe(
+      '“My Binder” Statistics'
+    );
+    // Only the binder's single card is counted, not the whole store.
+    expect(document.querySelector('.statistics-subtitle').textContent).toContain('1 owned card');
+  });
+
   it('attaches the card tooltip to the most valuable cards', () => {
     document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
     const card = makeCard({

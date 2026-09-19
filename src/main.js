@@ -25,7 +25,7 @@ function addBinderBuilderLink() {
       window.location.href = `binder.html${window.location.search}`;
     },
     'collection',
-    15
+    90
   );
 }
 

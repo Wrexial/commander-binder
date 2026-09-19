@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = `index.html${window.location.search}`;
     },
     'collection',
-    5
+    90
   );
 
   const root = document.getElementById('binder-root');

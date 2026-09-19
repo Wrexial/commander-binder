@@ -130,16 +130,16 @@ function bindSetTooltipDismissal() {
 
 /** Add / import cards — the combined Bulk Add + Import Collection modal. */
 export function createAddCardsButton(onClick) {
-  addButtonToSidebar('➕ Add Cards', onClick, 'collection', 20);
+  addButtonToSidebar('➕ Add Cards', onClick, 'collection', 10);
 }
 
 /** Jump to a random card the collector is missing. */
 export function createSurpriseButton() {
-  addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse', 10);
+  addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse', 20);
 }
 
 export function createBulkCheckButton(onClick) {
-  addButtonToSidebar('✔️ Bulk Check', onClick, 'collection', 10);
+  addButtonToSidebar('✔️ Bulk Check', onClick, 'collection', 20);
 }
 
 /** Turn a list name into a safe download-file slug ("Deck: Atraxa" -> "deck-atraxa"). */
@@ -243,7 +243,7 @@ export function createRecentActivityButton() {
       createRecentActivityModal().show();
     },
     'browse',
-    20
+    30
   );
 }
 

@@ -17,9 +17,14 @@ import { loadLists, mergeLocalListsToAccount } from '../state/listsState.js';
 import {
   loadBinders,
   mergeLocalBindersToAccount,
+  getActiveBinder,
   getActiveBinderId,
+  getBinderCards,
+  getBinderPrintingIds,
 } from '../state/bindersState.js';
 import { binderTargetId } from '../ui/components/collectionModal.js';
+import { cardStore } from '../state/cardStore.js';
+import { hydrateCardsByIds } from '../api/cardSearch.js';
 import { initClerk, getClerk } from '../auth/clerk.js';
 import { createSignInButton } from '../ui/components/SignInButton.js';
 import { createGuestModeText } from '../ui/components/GuestModeText.js';
@@ -85,8 +90,34 @@ export async function showModal(loadModal) {
 }
 
 /** The statistics dialog is large, so it ships in its own chunk. */
+/**
+ * Show statistics. On the Binder Builder page this is scoped to the binder
+ * currently on screen; everywhere else it covers the whole loaded collection.
+ */
 export async function showStatistics() {
   const { showStatisticsModal } = await import('../ui/statistics.js');
+
+  const binder = isBinderView() ? getActiveBinder() : null;
+  if (binder) {
+    // The binder's non-visible pages may not be hydrated yet, so load them
+    // first or the totals would be short.
+    const missing = getBinderPrintingIds(binder.id).filter((id) => !cardStore.getByPrintingId(id));
+    if (missing.length > 0) {
+      try {
+        await hydrateCardsByIds(missing);
+      } catch (err) {
+        console.error('Failed to load binder cards for statistics:', err);
+      }
+    }
+
+    await showStatisticsModal({
+      cards: getBinderCards(binder.id),
+      title: `“${binder.name}” Statistics`,
+      emptyMessage: `No owned cards are in “${binder.name}” yet.`,
+    });
+    return;
+  }
+
   await showStatisticsModal();
 }
 
@@ -96,14 +127,14 @@ export async function showStatistics() {
  * list keeps the two sidebars in sync.
  */
 function addCollectionTools() {
-  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
+  addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 10);
   // Bulk edit's floating bar is grid-oriented and isn't initialized on the
   // Binder Builder page, so don't offer it there (binder bulk behaviour is a
   // separate, TBD feature).
   if (!isBinderView()) {
-    addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
+    addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 50);
   }
-  addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'collection', 25);
+  addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'collection', 40);
 
   addBulkTools();
   createSurpriseButton();
@@ -180,8 +211,8 @@ export async function setupUI() {
   if (mainState.shareToken) {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
-    addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
-    addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'browse', 35);
+    addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 10);
+    addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'browse', 40);
     createSurpriseButton();
     createRecentActivityButton();
     createCompareButton();

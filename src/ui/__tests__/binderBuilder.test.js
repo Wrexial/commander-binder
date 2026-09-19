@@ -82,6 +82,7 @@ vi.mock('../../api/binders.js', () => ({
 import { initBinderBuilder, teardownBinderBuilder } from '../binderBuilder.js';
 import {
   assignCardToSlot,
+  createBinder,
   getActiveBinder,
   resetBinders,
   updateBinder,
@@ -240,8 +241,21 @@ describe('binderBuilder', () => {
 
     document.querySelector('.bb-new').click();
 
+    await vi.waitFor(() => expect(document.querySelectorAll('.binder-tab')).toHaveLength(2));
+  });
+
+  it('switches the active binder from the top tabs', async () => {
+    await mount();
+    await createBinder({ name: 'Second' });
+
+    await vi.waitFor(() => expect(document.querySelectorAll('.binder-tab')).toHaveLength(2));
+
+    // The first tab is the original "Binder 1"; clicking it makes it active
+    // (the tabs are rebuilt, so re-query rather than holding the old node).
+    document.querySelectorAll('.binder-tab')[0].click();
+
     await vi.waitFor(() =>
-      expect(document.querySelectorAll('.bb-binder-select option')).toHaveLength(2)
+      expect(document.querySelectorAll('.binder-tab')[0].classList.contains('is-active')).toBe(true)
     );
   });
 

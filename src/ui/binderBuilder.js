@@ -99,21 +99,23 @@ function createSlotControls() {
 function buildChrome(root) {
   root.innerHTML = '';
 
+  // Segmented switcher at the very top: one tab per binder.
+  const binderTabs = document.createElement('div');
+  binderTabs.className = 'binder-tabs';
+  binderTabs.setAttribute('role', 'tablist');
+  binderTabs.setAttribute('aria-label', 'Binders');
+
   const toolbar = document.createElement('div');
   toolbar.className = 'binder-builder-toolbar';
-
-  const binderField = document.createElement('label');
-  binderField.className = 'bb-field';
-  binderField.textContent = 'Binder';
-  const binderSelect = document.createElement('select');
-  binderSelect.className = 'bb-binder-select';
-  binderSelect.setAttribute('aria-label', 'Active binder');
-  binderField.appendChild(binderSelect);
 
   const newButton = document.createElement('button');
   newButton.type = 'button';
   newButton.className = 'bb-new';
   newButton.textContent = '+ New';
+
+  const tabsRow = document.createElement('div');
+  tabsRow.className = 'binder-tabs-row';
+  tabsRow.append(binderTabs, newButton);
 
   const nameField = document.createElement('label');
   nameField.className = 'bb-field';
@@ -152,7 +154,7 @@ function buildChrome(root) {
   const pages = numberField('Pages', 'bb-pages', { min: 1, max: MAX_BINDER_PAGES, value: 1 });
   dims.append(columns.el, rows.el, pages.el);
 
-  toolbar.append(binderField, newButton, nameField, deleteButton, publicField, dims);
+  toolbar.append(nameField, deleteButton, publicField, dims);
 
   const nav = document.createElement('div');
   nav.className = 'binder-builder-nav';
@@ -195,10 +197,10 @@ function buildChrome(root) {
   empty.className = 'binder-builder-empty';
   empty.hidden = true;
 
-  root.append(toolbar, nav, status, pageEl, empty, hint);
+  root.append(tabsRow, toolbar, nav, status, pageEl, empty, hint);
 
   refs = {
-    binderSelect,
+    binderTabs,
     newButton,
     nameInput,
     deleteButton,
@@ -225,12 +227,6 @@ function buildChrome(root) {
 function wireChrome() {
   if (!refs || refs.wired) return;
   refs.wired = true;
-
-  refs.binderSelect.addEventListener('change', () => {
-    pendingMove = null;
-    activePage = 0;
-    setActiveBinder(refs.binderSelect.value);
-  });
 
   refs.newButton.addEventListener('click', async () => {
     const current = getActiveBinder();
@@ -500,15 +496,25 @@ export function render() {
 
   activePage = Math.min(binder.pages - 1, Math.max(0, activePage));
 
-  // Binder picker (rebuilt each render so renamed binders stay in sync).
-  refs.binderSelect.replaceChildren();
+  // Binder switcher (rebuilt each render so renamed binders stay in sync).
+  refs.binderTabs.replaceChildren();
+  const activeBinderId = getActiveBinderId();
   for (const item of getBinders()) {
-    const option = document.createElement('option');
-    option.value = item.id;
-    option.textContent = item.name;
-    refs.binderSelect.appendChild(option);
+    const isActive = item.id === activeBinderId;
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = `binder-tab${isActive ? ' is-active' : ''}`;
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-selected', String(isActive));
+    tab.textContent = item.name;
+    tab.addEventListener('click', () => {
+      if (isActive) return;
+      pendingMove = null;
+      activePage = 0;
+      setActiveBinder(item.id);
+    });
+    refs.binderTabs.appendChild(tab);
   }
-  refs.binderSelect.value = getActiveBinderId() || '';
 
   refs.nameInput.value = binder.name;
   refs.columns.value = String(binder.columns);
