@@ -204,6 +204,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       if (entry.setCode && entry.collectorNumber) {
         card = byPrinting.get(`${entry.setCode}:${entry.collectorNumber}`) || null;
       }
+      // Prefer the raw pasted name over the quantity-stripped one, so a card
+      // whose name genuinely starts with a number still matches.
+      card ||= input.nameIndex.get(normalizeName(entry.raw ?? '')) || null;
       card ||= input.nameIndex.get(normalizeName(entry.name)) || null;
 
       if (!card) {

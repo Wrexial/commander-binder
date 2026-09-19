@@ -83,6 +83,32 @@ describe('bulk check modal', () => {
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
+  it('strips quantities and set suffixes from pasted decklists', () => {
+    cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
+    isCardOwned.mockImplementation((card) => card.name === 'Sol Ring');
+
+    createBulkCheckModal().show();
+    typeList(
+      document.querySelector('.bulk-modal textarea'),
+      '1 Sol Ring\n2x Arcane Signet (ELD) 331'
+    );
+
+    expect(groupLabels()).toEqual(['Owned', 'Missing']);
+    expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet']);
+    expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
+  });
+
+  it('keeps a name that starts with a number when it exists verbatim', () => {
+    cardStore.getAll.mockReturnValue([makeCard('1996 World Champion')]);
+    isCardOwned.mockReturnValue(true);
+
+    createBulkCheckModal().show();
+    typeList(document.querySelector('.bulk-modal textarea'), '1996 World Champion');
+
+    expect(groupLabels()).toEqual(['Owned']);
+    expect(rowTexts()).toEqual(['1996 World Champion']);
+  });
+
   it('checks against a custom list', () => {
     cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
     isInList.mockImplementation((id, card) => card.name === 'Sol Ring');

@@ -169,6 +169,17 @@ describe('addCardsModal', () => {
     expect(primary().disabled).toBe(true);
   });
 
+  it('adds a name that starts with a number when it exists verbatim', () => {
+    const weird = { id: 'id-1996', name: '1996 World Champion' };
+    cardStore.getAll.mockReturnValue([weird]);
+    cardStore.getPrintings.mockReturnValue([weird]);
+
+    createAddCardsModal().show();
+    paste('1996 World Champion');
+
+    expect(primary().textContent).toBe('Add 1 card');
+  });
+
   it('matches an exact printing from a Moxfield CSV', () => {
     createAddCardsModal().show();
     paste(

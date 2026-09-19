@@ -170,6 +170,10 @@ function parsePlainList(lines) {
       setCode: (match[3] ?? '').toLowerCase(),
       collectorNumber: match[4] ?? '',
       foil: false,
+      // The pasted line verbatim, so a caller can prefer it over the
+      // quantity-stripped name (e.g. a card literally named "1996 World
+      // Champion").
+      raw: line,
     });
   }
 
@@ -180,7 +184,7 @@ function parsePlainList(lines) {
  * Parse pasted/imported text from any supported source.
  *
  * @param {string} text
- * @returns {{ entries: {name: string, count: number, setCode: string, collectorNumber: string, foil: boolean}[], skipped: string[] }}
+ * @returns {{ entries: {name: string, count: number, setCode: string, collectorNumber: string, foil: boolean, raw?: string}[], skipped: string[] }}
  */
 export function parseCollection(text) {
   const source = String(text ?? '');

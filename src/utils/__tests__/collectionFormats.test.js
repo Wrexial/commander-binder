@@ -116,13 +116,21 @@ describe('parseCollection', () => {
     );
 
     expect(entries).toEqual([
-      { name: 'Sol Ring', count: 1, setCode: 'cmm', collectorNumber: '342', foil: false },
+      {
+        name: 'Sol Ring',
+        count: 1,
+        setCode: 'cmm',
+        collectorNumber: '342',
+        foil: false,
+        raw: '1 Sol Ring (CMM) 342',
+      },
       {
         name: "Atraxa, Praetors' Voice",
         count: 2,
         setCode: '2xm',
         collectorNumber: '197',
         foil: false,
+        raw: "2 Atraxa, Praetors' Voice (2XM) 197",
       },
     ]);
   });

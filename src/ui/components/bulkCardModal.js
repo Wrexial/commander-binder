@@ -8,6 +8,7 @@ import {
   summaryChip,
 } from './collectionModal.js';
 import { createCardNameInput } from './cardNameInput.js';
+import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { getList, getLists, isInList } from '../../state/listsState.js';
@@ -73,7 +74,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   const subtitle = shell.modal.querySelector('.bulk-modal-subtitle');
 
   const input = createCardNameInput({
-    placeholder: 'One card name per line (Ctrl+Enter to copy missing)',
+    placeholder: 'One card name per line — “1 Sol Ring” is fine (Ctrl+Enter to copy missing)',
     ariaLabel: 'Card names, one per line',
     onChange: () => renderPreview(),
   });
@@ -99,21 +100,34 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     renderPreview();
   }
 
-  /** Split the textarea into present / missing / unknown, de-duplicating. */
+  /**
+   * Split the textarea into present / missing / unknown, de-duplicating. Uses
+   * the shared collection parser so pasted decklists with quantities
+   * ("1 Sol Ring", "2x Arcane Signet") or set/collector suffixes
+   * ("1 Sol Ring (CMM) 342") are matched by name.
+   */
   function categorize() {
+    const { entries } = parseCollection(input.textArea.value);
     const seen = new Set();
     const present = [];
     const missing = [];
     const unknown = [];
 
-    for (const line of input.textArea.value.split('\n')) {
-      const key = normalizeName(line);
+    for (const entry of entries) {
+      // Prefer the pasted text verbatim so a card whose name genuinely starts
+      // with a number ("1996 World Champion") still matches; only fall back to
+      // the quantity-stripped name when the raw text isn't a known card.
+      const card =
+        input.nameIndex.get(normalizeName(entry.raw ?? '')) ||
+        input.nameIndex.get(normalizeName(entry.name)) ||
+        null;
+
+      const key = normalizeName(card ? card.name : entry.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
 
-      const card = input.nameIndex.get(key);
       if (!card) {
-        unknown.push(line.trim());
+        unknown.push(entry.name);
       } else if (config.present(card)) {
         present.push(card);
       } else {
