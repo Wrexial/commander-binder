@@ -66,6 +66,21 @@ describe('initCardSettings', () => {
     expect(document.body.classList.contains('list-mode')).toBe(false);
   });
 
+  it('toggles the swipe-to-dismiss-alerts setting', () => {
+    getSetting.mockImplementation((key) => (key === 'swipeDismissToast' ? true : 'images'));
+
+    initCardSettings();
+
+    const toggle = document.querySelector('[data-setting="swipeDismissToast"]');
+    expect(toggle).not.toBeNull();
+    expect(toggle.checked).toBe(true);
+
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change'));
+
+    expect(setSetting).toHaveBeenCalledWith('swipeDismissToast', false);
+  });
+
   it('should not throw if the sidebar is missing', () => {
     document.body.innerHTML = '';
     expect(() => initCardSettings()).not.toThrow();

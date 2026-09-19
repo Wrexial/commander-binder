@@ -25,6 +25,7 @@ describe('cardSettings', () => {
   it('loads the default settings when localStorage is empty', async () => {
     const { cardSettings } = await import('../state/cardSettings.js');
     expect(cardSettings.displayMode).toBe('images');
+    expect(cardSettings.swipeDismissToast).toBe(true);
   });
 
   it('loads stored settings from localStorage', async () => {
@@ -49,7 +50,7 @@ describe('cardSettings', () => {
     saveSettings();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list' })
+      JSON.stringify({ displayMode: 'list', swipeDismissToast: true })
     );
   });
 
@@ -61,7 +62,7 @@ describe('cardSettings', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list' })
+      JSON.stringify({ displayMode: 'list', swipeDismissToast: true })
     );
   });
 
@@ -71,6 +72,10 @@ describe('cardSettings', () => {
     expect(applySettings({ displayMode: 'list', bogus: 1 })).toBe(true);
     expect(cardSettings.displayMode).toBe('list');
     expect(cardSettings.bogus).toBeUndefined();
+
+    // A boolean setting is accepted too.
+    expect(applySettings({ swipeDismissToast: false })).toBe(true);
+    expect(cardSettings.swipeDismissToast).toBe(false);
 
     // An invalid value is ignored, so nothing changes.
     expect(applySettings({ displayMode: 'nope' })).toBe(false);

@@ -215,7 +215,7 @@ body.sidebar-open #sidebar-backdrop {
 }
 
 .sidebar-settings-container::before {
-  content: 'Display';
+  content: 'Settings';
   display: block;
   padding: 0 26px 6px;
   font-family: var(--font-display);

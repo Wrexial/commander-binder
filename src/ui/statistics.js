@@ -153,6 +153,7 @@ function median(values) {
  *   priceBuckets: { label: string, count: number }[],
  *   top5ValuableCards: { name: string, price: number, card: object }[],
  *   sets: { code: string, name: string, owned: number, total: number, percent: number, missing: string[] }[],
+ *   setsCompleted: number,
  *   missingCount: number,
  *   missingNames: string[],
  * }}
@@ -277,6 +278,12 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     .filter((entry) => entry.owned > 0)
     .sort((a, b) => b.percent - a.percent || b.owned - a.owned || a.name.localeCompare(b.name));
 
+  // Fully-collected sets are reported as a count, not mixed into the list of
+  // in-progress sets (which are the useful "what to finish next" ones).
+  const setsCompleted = sets.filter(
+    (entry) => entry.total > 0 && entry.owned >= entry.total
+  ).length;
+
   return {
     totalCards,
     totalValue,
@@ -298,6 +305,7 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
     priceBuckets,
     top5ValuableCards,
     sets,
+    setsCompleted,
     missingCount: missingNames.length,
     missingNames,
   };
@@ -486,12 +494,25 @@ function renderCreatureTypes(types) {
   );
 }
 
-function renderSetCompletion(sets) {
+function renderSetCompletion(sets, setsCompleted) {
+  const meta = `Sets completed: ${setsCompleted}`;
+
   if (sets.length === 0) {
     return section('Set Completion', '<p class="stats-empty">No owned cards yet.</p>');
   }
 
-  const rows = sets
+  // Completed sets are summarised in the meta line; the rows are the sets still
+  // in progress, nearest to completion first.
+  const inProgress = sets.filter((set) => set.total === 0 || set.owned < set.total);
+  if (inProgress.length === 0) {
+    return section(
+      'Set Completion',
+      '<p class="stats-empty">Every set you have started is complete. Nice work!</p>',
+      meta
+    );
+  }
+
+  const rows = inProgress
     .slice(0, MAX_SETS_SHOWN)
     .map(
       (set) => `
@@ -508,11 +529,7 @@ function renderSetCompletion(sets) {
     )
     .join('');
 
-  return section(
-    'Set Completion',
-    `<div class="stats-bars">${rows}</div>`,
-    `${sets.length} set${sets.length === 1 ? '' : 's'}`
-  );
+  return section('Set Completion', `<div class="stats-bars">${rows}</div>`, meta);
 }
 
 function renderPriceDistribution(priceBuckets, medianValue) {
@@ -652,7 +669,7 @@ export function createStatisticsHTML(stats) {
             ${renderManaCurve(stats)}
             ${renderRarities(stats.rarities)}
             ${renderCreatureTypes(stats.types)}
-            ${renderSetCompletion(stats.sets)}
+            ${renderSetCompletion(stats.sets, stats.setsCompleted)}
             ${renderPriceDistribution(stats.priceBuckets, stats.medianCardValue)}
         </div>
         ${renderTopCards(stats.top5ValuableCards)}

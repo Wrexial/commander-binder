@@ -198,6 +198,8 @@ describe('calculateStatistics', () => {
     ]);
     expect(stats.missingCount).toBe(1);
     expect(stats.missingNames).toEqual(['B']);
+    // Core Set 2021 is fully collected, so it counts as completed.
+    expect(stats.setsCompleted).toBe(1);
   });
 
   it('omits sets the collection has no cards in', () => {
@@ -276,8 +278,12 @@ describe('createStatisticsHTML', () => {
   });
 
   it('escapes set names in the completion list', () => {
-    const all = [makeCard({ name: 'A', set: 'x', set_name: '<img src=x onerror=alert(1)>' })];
-    const stats = calculateStatistics(all, 1, all);
+    const all = [
+      makeCard({ name: 'A', set: 'x', set_name: '<img src=x onerror=alert(1)>' }),
+      makeCard({ name: 'B', set: 'x', set_name: '<img src=x onerror=alert(1)>' }),
+    ];
+    // Only one of the two is owned, so the set stays in the in-progress list.
+    const stats = calculateStatistics([all[0]], 2, all);
 
     const html = createStatisticsHTML(stats);
 
@@ -298,7 +304,7 @@ describe('createStatisticsHTML', () => {
     expect(html).toContain('data-set="lea"');
   });
 
-  it('shows a goal badge per set: Complete at 100%, otherwise the next milestone', () => {
+  it('summarises completed sets and lists the near-complete ones', () => {
     const all = [
       makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
       makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
@@ -310,10 +316,26 @@ describe('createStatisticsHTML', () => {
 
     const html = createStatisticsHTML(stats);
 
-    expect(html).toContain('stats-set-goal complete');
-    expect(html).toContain('Complete');
+    expect(stats.setsCompleted).toBe(1);
+    expect(html).toContain('Sets completed: 1');
     expect(html).toContain('stats-set-goal next');
     expect(html).toContain('Next 75%');
+    // The completed set is summarised, not listed among the in-progress rows.
+    expect(html).not.toContain('stats-set-goal complete');
+    expect(html).not.toContain('Limited Edition Alpha');
+  });
+
+  it('celebrates when every started set is complete', () => {
+    const all = [
+      makeCard({ name: 'A', set: 'lea', set_name: 'Limited Edition Alpha' }),
+      makeCard({ name: 'B', set: 'lea', set_name: 'Limited Edition Alpha' }),
+    ];
+    const stats = calculateStatistics(all, 2, all);
+
+    const html = createStatisticsHTML(stats);
+
+    expect(html).toContain('Sets completed: 1');
+    expect(html).toContain('Every set you have started is complete');
   });
 });
 

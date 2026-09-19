@@ -1,6 +1,14 @@
 // src/ui/__tests__/toast.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { showToast, showUndo } from '../toast';
+import { getSetting, setSetting } from '../../../state/cardSettings.js';
+
+/** jsdom has no TouchEvent; build an event carrying `touches`. */
+function touch(type, clientX, clientY, { cancelable = true } = {}) {
+  const event = new Event(type, { bubbles: true, cancelable });
+  event.touches = [{ clientX, clientY }];
+  return event;
+}
 
 describe('toast', () => {
   let toastContainer;
@@ -45,5 +53,53 @@ describe('toast', () => {
     expect(button.textContent).toBe('Undo');
     button.click();
     expect(undoAction).toHaveBeenCalled();
+  });
+
+  it('dismisses the toast after a swipe in any direction', () => {
+    showToast('Hello');
+
+    toastContainer.dispatchEvent(touch('touchstart', 100, 100));
+    toastContainer.dispatchEvent(touch('touchmove', 160, 130));
+
+    expect(toastContainer.classList.contains('dragging')).toBe(true);
+    expect(toastContainer.style.transform).toContain('translate');
+
+    toastContainer.dispatchEvent(touch('touchend', 160, 130));
+    // Animates away, then tears down.
+    vi.advanceTimersByTime(250);
+
+    expect(toastContainer.classList.contains('show')).toBe(false);
+    expect(toastContainer.innerHTML).toBe('');
+  });
+
+  it('springs back when the swipe is too short', () => {
+    showToast('Hello');
+
+    toastContainer.dispatchEvent(touch('touchstart', 100, 100));
+    toastContainer.dispatchEvent(touch('touchmove', 115, 108));
+    toastContainer.dispatchEvent(touch('touchend', 115, 108));
+
+    expect(toastContainer.classList.contains('dragging')).toBe(false);
+    expect(toastContainer.style.transform).toBe('');
+    expect(toastContainer.style.opacity).toBe('');
+    expect(toastContainer.classList.contains('show')).toBe(true);
+
+    vi.runAllTimers();
+  });
+
+  it('ignores swipes when swipe-dismiss is turned off', () => {
+    const original = getSetting('swipeDismissToast');
+    setSetting('swipeDismissToast', false);
+
+    try {
+      showToast('Hello');
+      toastContainer.dispatchEvent(touch('touchstart', 100, 100));
+      toastContainer.dispatchEvent(touch('touchmove', 200, 200));
+
+      expect(toastContainer.classList.contains('dragging')).toBe(false);
+    } finally {
+      setSetting('swipeDismissToast', original);
+      vi.runAllTimers();
+    }
   });
 });

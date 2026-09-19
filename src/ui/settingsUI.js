@@ -9,6 +9,28 @@ const DISPLAY_MODE_OPTIONS = [
 ];
 
 /**
+ * Build a labelled checkbox bound to a stored boolean setting.
+ *
+ * @param {object} config
+ * @param {string} config.setting Key in `cardSettings`.
+ * @param {string} config.label Visible label text.
+ * @returns {{el: HTMLElement, input: HTMLInputElement}}
+ */
+function createSettingToggle({ setting, label }) {
+  const labelEl = document.createElement('label');
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.dataset.setting = setting;
+  checkbox.checked = Boolean(getSetting(setting));
+
+  checkbox.addEventListener('change', (event) => setSetting(setting, event.target.checked));
+
+  labelEl.appendChild(checkbox);
+  labelEl.appendChild(document.createTextNode(label));
+  return { el: labelEl, input: checkbox };
+}
+
+/**
  * The display-mode picker. A `<select>` rather than a checkbox because there
  * are three tile layouts (images, text, list).
  *
@@ -52,8 +74,11 @@ function handleDisplayModeChange(value) {
 
 /** Re-read the stored settings into the controls and re-apply them to the page. */
 function syncControls() {
-  const select = document.querySelector('[data-setting="displayMode"]');
-  if (select) select.value = getSetting('displayMode');
+  const modeSelect = document.querySelector('[data-setting="displayMode"]');
+  if (modeSelect) modeSelect.value = getSetting('displayMode');
+
+  const swipeToggle = document.querySelector('[data-setting="swipeDismissToast"]');
+  if (swipeToggle) swipeToggle.checked = Boolean(getSetting('swipeDismissToast'));
 
   updateCardStyles();
   handleDisplayModeChange(getSetting('displayMode'));
@@ -73,7 +98,14 @@ export function initCardSettings() {
 
   const settingsContainer = document.createElement('div');
   settingsContainer.className = 'sidebar-settings-container';
-  settingsContainer.appendChild(createDisplayModePicker().el);
+
+  const displayModePicker = createDisplayModePicker();
+  const swipeToggle = createSettingToggle({
+    setting: 'swipeDismissToast',
+    label: ' Swipe to dismiss alerts',
+  });
+
+  settingsContainer.append(displayModePicker.el, swipeToggle.el);
   sidebar.appendChild(settingsContainer);
 
   // Apply the stored settings to the page on load.

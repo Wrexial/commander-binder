@@ -2,11 +2,14 @@ const DEFAULT_SETTINGS = {
   // displayMode: 'text' | 'images' | 'list' — names, artwork, or a compact
   // checklist row with an inline ownership toggle.
   displayMode: 'images',
+  // Swipe any direction on a toast (e.g. the undo prompt) to dismiss it early.
+  swipeDismissToast: true,
 };
 
 /** Accepted values per setting, so persisted/synced data can't inject junk. */
 const SETTING_VALIDATORS = {
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
+  swipeDismissToast: (value) => typeof value === 'boolean',
 };
 
 const STORAGE_KEY = 'cardSettings';

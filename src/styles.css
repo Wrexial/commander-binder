@@ -1503,6 +1503,11 @@ body.tooltip-open {
   transform: translateX(-50%) translateY(-6px);
 }
 
+/* Follow the finger while swiping the toast away. */
+.toast.dragging {
+  transition: none;
+}
+
 .toast .toast-action {
   background: var(--accent-soft);
   border: 1px solid rgba(212, 175, 55, 0.4);

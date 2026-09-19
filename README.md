@@ -33,9 +33,10 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   colour in one tap.
 - **Year scrubber** — a draggable rail that jumps to any point in the timeline, with a readout
   that follows the page under your thumb.
-- **Statistics** — a per-set completion breakdown of your collection, with per-set milestone
-  goal badges ("Next 50%" / "Complete"), a one-tap "Copy" for each set's missing cards, and a
-  global "Copy missing" to turn the numbers into a shopping list.
+- **Statistics** — a per-set completion breakdown of your collection. A "Sets completed: N"
+  summary sits up top, and the list below shows the **in-progress** sets nearest to
+  completion (with "Next 50%" goal badges), each with a one-tap "Copy" for its missing cards
+  and a global "Copy missing" to turn the numbers into a shopping list.
 - **Recent additions** — a timeline of when you marked each card owned, built from
   `owned_cards.created_at`.
 - **Binders** — virtual groupings of the feed that make a large collection easier to page
@@ -53,11 +54,13 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   swipe or use the arrows to move between cards.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
   printings on touch, right-click on desktop, and swipe left/right in the card preview to move
-  between cards. Keyboard shortcuts: `/` focuses search, `?` opens the syntax help, `j`/`k`
+  between cards. Alerts (such as the undo prompt) can be swiped away, and the list can be
+  driven entirely from the keyboard: `/` focuses search, `?` opens the syntax help, `j`/`k`
   (or the arrow keys once a card is focused) move between cards, and `Esc` clears the search.
   Hover-only affordances are gated behind `isHoverCapable()`.
-- **Synced preferences** — the display-mode setting follows you across devices through
-  the `user_settings` table (signed-in collectors only; localStorage is the offline fallback).
+- **Synced preferences** — the display-mode and alert settings follow you across devices
+  through the `user_settings` table (signed-in collectors only; localStorage is the offline
+  fallback).
 - **Aggressive caching** — Scryfall responses and images are cached in IndexedDB, and the
   bulk-data subset is reused on a TTL.
 
