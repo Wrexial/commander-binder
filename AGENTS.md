@@ -97,8 +97,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
   and focus restore — the shared collection-modal chrome/helpers
-  `collectionModal.js`, the add/check/export modals (the add and recent-activity
-  modals take a `kind` of `owned` or `wishlist`; plus the shared
+  `collectionModal.js`, the add/check/export modals (the add, export and
+  recent-activity modals share an Owned/Wishlist picker from
+  `collectionModal.js`'s `createTargetToggle`; plus the shared
   `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),

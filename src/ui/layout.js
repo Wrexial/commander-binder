@@ -124,11 +124,6 @@ export function createAddCardsButton(onClick) {
   addButtonToSidebar('➕ Add Cards', onClick, 'collection', 20);
 }
 
-/** Add / import cards straight onto the wishlist. */
-export function createAddWishlistButton(onClick) {
-  addButtonToSidebar('💝 Add to Wishlist', onClick, 'collection', 25);
-}
-
 /** Jump to a random card the collector is missing. */
 export function createSurpriseButton() {
   addButtonToSidebar('🎲 Surprise Me', surpriseMe, 'browse', 10);
@@ -138,70 +133,58 @@ export function createBulkCheckButton(onClick) {
   addButtonToSidebar('✔️ Bulk Check', onClick, 'collection', 10);
 }
 
-export function createExportOwnedButton() {
+/** Export the owned collection or the wishlist through the combined modal. */
+export function createExportButton() {
   addButtonToSidebar(
-    '📄 Export All Owned',
+    '📄 Export Cards',
     async () => {
-      const ownedCards = cardStore.getAll().filter(isCardOwned);
+      const allCards = cardStore.getAll();
+      const collections = [
+        {
+          id: 'owned',
+          label: 'Collection',
+          cards: allCards.filter(isCardOwned),
+          filePrefix: 'owned-cards',
+          noun: 'owned',
+          emptyMessage: 'You don’t own any cards yet.',
+        },
+        {
+          id: 'wishlist',
+          label: 'Wishlist',
+          cards: allCards.filter(isCardWanted),
+          filePrefix: 'wishlist',
+          noun: 'wanted',
+          emptyMessage: 'Your wishlist is empty.',
+        },
+      ];
 
-      if (ownedCards.length === 0) {
-        showToast('No owned cards to export.');
+      if (collections.every((collection) => collection.cards.length === 0)) {
+        showToast('Nothing to export yet.');
         return;
       }
 
       if (document.querySelector('.list-modal-backdrop')) return;
 
       const { createExportModal } = await import('./components/exportModal.js');
-      createExportModal(ownedCards).show();
+      createExportModal({ collections }).show();
     },
     'collection',
     30
   );
 }
 
-/** Export the cards on the collector's wishlist. */
-export function createExportWishlistButton() {
+/** A timeline of recently added owned or wishlist cards. */
+export function createRecentActivityButton() {
   addButtonToSidebar(
-    '💝 Export Wishlist',
-    async () => {
-      const wantedCards = cardStore.getAll().filter(isCardWanted);
-
-      if (wantedCards.length === 0) {
-        showToast('No wishlist cards to export.');
-        return;
-      }
-
-      if (document.querySelector('.list-modal-backdrop')) return;
-
-      const { createExportModal } = await import('./components/exportModal.js');
-      createExportModal(wantedCards, {
-        title: 'Export Wishlist',
-        filePrefix: 'wishlist',
-        noun: 'wanted',
-        emptyMessage: 'Your wishlist is empty.',
-      }).show();
-    },
-    'collection',
-    40
-  );
-}
-
-/**
- * A timeline of recently added cards, for the owned collection by default.
- *
- * @param {{kind?: 'owned'|'wishlist', label?: string, order?: number}} [options]
- */
-export function createRecentActivityButton({ kind = 'owned', label, order = 20 } = {}) {
-  addButtonToSidebar(
-    label || (kind === 'wishlist' ? '🕒 Recent Wishlist' : '🕒 Recent Additions'),
+    '🕒 Recent Additions',
     async () => {
       if (document.querySelector('.list-modal-backdrop')) return;
 
       const { createRecentActivityModal } = await import('./components/recentActivityModal.js');
-      createRecentActivityModal({ kind }).show();
+      createRecentActivityModal().show();
     },
     'browse',
-    order
+    20
   );
 }
 

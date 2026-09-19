@@ -44,6 +44,10 @@ function paste(text) {
 const primary = () => document.querySelector('.modal-button-container .primary');
 const chipTexts = () =>
   [...document.querySelectorAll('.bulk-summary-chip')].map((chip) => chip.textContent);
+const target = (label) =>
+  [...document.querySelectorAll('.target-toggle-option')].find(
+    (button) => button.textContent === label
+  );
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -104,8 +108,9 @@ describe('addCardsModal', () => {
     expect(primary().disabled).toBe(true);
   });
 
-  it('adds matched cards to the wishlist in wishlist mode', async () => {
-    createAddCardsModal({ kind: 'wishlist' }).show();
+  it('switches the target to the wishlist and adds there', async () => {
+    createAddCardsModal().show();
+    target('Wishlist').click();
     expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Add to Wishlist');
 
     paste('Sol Ring');
@@ -121,7 +126,8 @@ describe('addCardsModal', () => {
 
   it('skips cards already on the wishlist', () => {
     isCardWanted.mockReturnValue(true);
-    createAddCardsModal({ kind: 'wishlist' }).show();
+    createAddCardsModal().show();
+    target('Wishlist').click();
     paste('Sol Ring');
 
     expect(chipTexts()[1]).toContain('Already wanted');

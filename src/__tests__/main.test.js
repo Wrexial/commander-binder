@@ -86,10 +86,8 @@ describe('setupUI', () => {
         '📊 Show Statistics',
         '☑️ Bulk Edit',
         '➕ Add Cards',
-        '💝 Add to Wishlist',
         '🎲 Surprise Me',
         '🕒 Recent Additions',
-        '🕒 Recent Wishlist',
       ])
     );
     // Sharing needs an account, so the guest entry opens the sign-in flow.

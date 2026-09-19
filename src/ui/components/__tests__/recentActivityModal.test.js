@@ -120,4 +120,27 @@ describe('createRecentActivityModal', () => {
     );
     expect(document.querySelector('.activity-name').textContent).toBe('Wanted Card');
   });
+
+  it('switches between the owned and wishlist timelines', () => {
+    cardStore.getByPrintingId.mockImplementation((id) => ({
+      id,
+      name: id === 'w' ? 'Wanted Card' : 'Owned Card',
+      set: 'neo',
+    }));
+    getOwnedAddedAt.mockReturnValue(new Map([['o', new Date().toISOString()]]));
+    getWantedAddedAt.mockReturnValue(new Map([['w', new Date().toISOString()]]));
+
+    createRecentActivityModal().show();
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Recent Additions');
+    expect(document.querySelector('.activity-name').textContent).toBe('Owned Card');
+
+    [...document.querySelectorAll('.target-toggle-option')]
+      .find((button) => button.textContent === 'Wishlist')
+      .click();
+
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe(
+      'Recent Wishlist Additions'
+    );
+    expect(document.querySelector('.activity-name').textContent).toBe('Wanted Card');
+  });
 });

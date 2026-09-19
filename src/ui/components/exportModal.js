@@ -1,6 +1,6 @@
 import { escapeHtml } from '../../utils/html.js';
 import { showToast } from './toast.js';
-import { createCollectionModal } from './collectionModal.js';
+import { createCollectionModal, createTargetToggle } from './collectionModal.js';
 import {
   DEFAULT_TRANSFER_FORMAT,
   TEXT_TRANSFER_FORMATS,
@@ -16,30 +16,28 @@ function exportFileName(format, prefix) {
     : `${prefix}-${format}.${extension}`;
 }
 
-/** Defaults for the owned export; the wishlist passes its own labels. */
-const DEFAULT_EXPORT_OPTIONS = {
-  title: 'Export Owned Cards',
-  filePrefix: 'owned-cards',
-  noun: 'owned',
-  emptyMessage: 'You don’t own any cards yet.',
-};
+/** Sort a collection's cards by name without mutating the source array. */
+function sortedByName(cards) {
+  return [...cards].sort((a, b) => a.name.localeCompare(b.name));
+}
 
 /**
- * Create the "Export …" modal, styled like the Add / Bulk Check modals. Lets
- * the collector pick an output format (our CSV, Moxfield, or Archidekt), filter
- * the preview, then copy or download the serialized file.
+ * The combined export modal. Each entry in `collections` is
+ * `{ id, label, cards, filePrefix, noun, emptyMessage }`; the picker switches
+ * the active one and the format/filter controls apply to whichever is active.
  *
- * @param {object[]} cards Scryfall card objects (one per card).
- * @param {object} [options]
+ * @param {{collections: object[], title?: string}} options
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createExportModal(cards, options = {}) {
-  const { title, filePrefix, noun, emptyMessage } = { ...DEFAULT_EXPORT_OPTIONS, ...options };
-  const allCards = [...cards].sort((a, b) => a.name.localeCompare(b.name));
+export function createExportModal({ collections, title = 'Export Cards' }) {
+  // Prefer a collection that actually has cards, so the modal doesn't open on
+  // an empty side when the other one has content.
+  let active = collections.find((collection) => collection.cards.length > 0) || collections[0];
+  let allCards = sortedByName(active.cards);
 
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title,
-    subtitle: `${allCards.length} ${noun} card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`,
+    subtitle: '',
     actions: [
       { id: 'copy', className: 'primary export-copy' },
       { id: 'download', className: 'export-download', text: 'Download' },
@@ -47,6 +45,7 @@ export function createExportModal(cards, options = {}) {
     ],
   });
   const { copy: copyButton, download: downloadButton, close: closeButton } = buttons;
+  const subtitle = shell.modal.querySelector('.bulk-modal-subtitle');
 
   const toolbar = document.createElement('div');
   toolbar.className = 'transfer-toolbar';
@@ -70,25 +69,48 @@ export function createExportModal(cards, options = {}) {
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'bulk-search-input';
-  searchInput.placeholder = `Filter ${noun} cards…`;
-  searchInput.setAttribute('aria-label', `Filter ${noun} cards`);
 
   toolbar.append(formatLabel, searchInput);
 
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
 
-  contentArea.append(toolbar, preview);
+  if (collections.length > 1) {
+    const target = createTargetToggle({
+      options: collections.map((collection) => ({
+        id: collection.id,
+        label: collection.label,
+      })),
+      initial: active.id,
+      onChange: setActive,
+    });
+    contentArea.append(target.el, toolbar, preview);
+  } else {
+    contentArea.append(toolbar, preview);
+  }
 
-  let visible = allCards;
+  function setActive(id) {
+    active = collections.find((collection) => collection.id === id) || active;
+    allCards = sortedByName(active.cards);
+    // A leftover filter would read as "no cards" after switching.
+    searchInput.value = '';
+    render();
+  }
 
   function currentFormat() {
     return formatSelect.value || DEFAULT_TRANSFER_FORMAT;
   }
 
   function render() {
+    const { noun, emptyMessage } = active;
     const query = searchInput.value.trim().toLowerCase();
-    visible = query ? allCards.filter((card) => card.name.toLowerCase().includes(query)) : allCards;
+    const visible = query
+      ? allCards.filter((card) => card.name.toLowerCase().includes(query))
+      : allCards;
+
+    subtitle.textContent = `${allCards.length} ${noun} card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`;
+    searchInput.placeholder = `Filter ${noun} cards…`;
+    searchInput.setAttribute('aria-label', `Filter ${noun} cards`);
 
     if (allCards.length === 0) {
       preview.innerHTML = `<p class="bulk-empty">${emptyMessage}</p>`;
@@ -121,7 +143,7 @@ export function createExportModal(cards, options = {}) {
       await navigator.clipboard.writeText(serializeCollection(allCards, currentFormat()));
       showToast(`Copied ${allCards.length} card${allCards.length === 1 ? '' : 's'}.`, 'success');
     } catch (err) {
-      console.error('Failed to copy owned cards:', err);
+      console.error('Failed to copy cards:', err);
       showToast('Could not copy to the clipboard.', 'error');
     }
   }
@@ -137,7 +159,7 @@ export function createExportModal(cards, options = {}) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = exportFileName(currentFormat(), filePrefix);
+    link.download = exportFileName(currentFormat(), active.filePrefix);
     document.body.appendChild(link);
     link.click();
     link.remove();

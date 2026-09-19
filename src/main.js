@@ -18,10 +18,8 @@ import { initCardInteractions } from './ui/cardInteractions.js';
 import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
 import { initBulkEdit, toggleSelectionMode } from './ui/bulkEdit.js';
 import {
-  createExportOwnedButton,
-  createExportWishlistButton,
+  createExportButton,
   createAddCardsButton,
-  createAddWishlistButton,
   createBulkCheckButton,
   createCompareButton,
   createRecentActivityButton,
@@ -46,8 +44,6 @@ import { initInstallPrompt, mountInstallButton } from './ui/installPrompt.js';
  */
 const loadAddCardsModal = async () =>
   (await import('./ui/components/addCardsModal.js')).createAddCardsModal();
-const loadAddWishlistModal = async () =>
-  (await import('./ui/components/addCardsModal.js')).createAddCardsModal({ kind: 'wishlist' });
 const loadBulkCheckModal = async () =>
   (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
 
@@ -73,10 +69,8 @@ function addCollectionTools() {
   addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
 
   createAddCardsButton(() => showModal(loadAddCardsModal));
-  createAddWishlistButton(() => showModal(loadAddWishlistModal));
   createSurpriseButton();
   createRecentActivityButton();
-  createRecentActivityButton({ kind: 'wishlist', order: 25 });
 }
 
 function setupAuthenticatedUser(userButtonDiv, clerk) {
@@ -152,7 +146,6 @@ export async function setupUI() {
     addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
     createSurpriseButton();
     createRecentActivityButton();
-    createRecentActivityButton({ kind: 'wishlist', order: 25 });
     createCompareButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
@@ -283,8 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initYearScrubber();
   updateAllBinderCounts();
   createBulkCheckButton(() => showModal(loadBulkCheckModal));
-  createExportOwnedButton();
-  createExportWishlistButton();
+  createExportButton();
 
   initCardSettings();
   initViewportMetrics();

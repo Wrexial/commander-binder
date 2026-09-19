@@ -110,3 +110,50 @@ export async function addWantedCards(cards, successMessage) {
   showToast(successMessage, 'success');
   updateAllCardStates();
 }
+
+/** The two collections the add/export/recent modals can target. */
+export const COLLECTION_TARGETS = [
+  { id: 'owned', label: 'Collection' },
+  { id: 'wishlist', label: 'Wishlist' },
+];
+
+/**
+ * A small Owned / Wishlist segmented control shared by the collection modals,
+ * so the picker and the action always agree on the active target.
+ *
+ * @param {{options?: {id: string, label: string}[], initial?: string, onChange: (id: string) => void}} config
+ * @returns {{el: HTMLElement, getValue: () => string}}
+ */
+export function createTargetToggle({ options = COLLECTION_TARGETS, initial = 'owned', onChange }) {
+  const group = document.createElement('div');
+  group.className = 'target-toggle';
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', 'Collection');
+
+  const buttons = new Map();
+  let value = initial;
+
+  function sync() {
+    for (const [id, button] of buttons) {
+      button.setAttribute('aria-pressed', String(id === value));
+    }
+  }
+
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'target-toggle-option';
+    button.textContent = option.label;
+    button.addEventListener('click', () => {
+      if (option.id === value) return;
+      value = option.id;
+      sync();
+      onChange(option.id);
+    });
+    group.appendChild(button);
+    buttons.set(option.id, button);
+  }
+
+  sync();
+  return { el: group, getValue: () => value };
+}

@@ -22,6 +22,38 @@ const cards = [
   },
 ];
 
+const ownedCollection = (ownedCards) => ({
+  id: 'owned',
+  label: 'Collection',
+  cards: ownedCards,
+  filePrefix: 'owned-cards',
+  noun: 'owned',
+  emptyMessage: 'You don’t own any cards yet.',
+});
+
+const wishlistCollection = (wantedCards) => ({
+  id: 'wishlist',
+  label: 'Wishlist',
+  cards: wantedCards,
+  filePrefix: 'wishlist',
+  noun: 'wanted',
+  emptyMessage: 'Your wishlist is empty.',
+});
+
+/** Open the modal with an owned collection, plus a wishlist one when given. */
+function open(ownedCards, wantedCards) {
+  const collections = [ownedCollection(ownedCards)];
+  if (wantedCards) collections.push(wishlistCollection(wantedCards));
+  return createExportModal({ collections });
+}
+
+/** The target-picker button with the given label. */
+function target(label) {
+  return [...document.querySelectorAll('.target-toggle-option')].find(
+    (button) => button.textContent === label
+  );
+}
+
 beforeEach(() => {
   document.body.innerHTML = '';
   showToast.mockClear();
@@ -37,7 +69,7 @@ describe('exportModal', () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText } });
 
-    const modal = createExportModal(cards);
+    const modal = open(cards);
     modal.show();
 
     const rows = [...document.querySelectorAll('.bulk-row')].map((row) => row.textContent);
@@ -59,7 +91,7 @@ describe('exportModal', () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText } });
 
-    const modal = createExportModal(cards);
+    const modal = open(cards);
     modal.show();
 
     const select = document.querySelector('.transfer-format');
@@ -74,7 +106,7 @@ describe('exportModal', () => {
   });
 
   it('filters the visible list while keeping the total', () => {
-    const modal = createExportModal([...cards, { id: 'c', name: 'Mana Crypt' }]);
+    const modal = open([...cards, { id: 'c', name: 'Mana Crypt' }]);
     modal.show();
 
     const input = document.querySelector('.bulk-search-input');
@@ -88,7 +120,7 @@ describe('exportModal', () => {
   });
 
   it('shows an empty state and disables the actions when there is nothing to export', () => {
-    const modal = createExportModal([]);
+    const modal = open([]);
     modal.show();
 
     expect(document.querySelector('.bulk-empty')).not.toBeNull();
@@ -96,21 +128,34 @@ describe('exportModal', () => {
     expect(document.querySelector('.export-download').disabled).toBe(true);
   });
 
-  it('uses the wishlist labels and empty message when provided', () => {
-    const modal = createExportModal([], {
-      title: 'Export Wishlist',
-      filePrefix: 'wishlist',
-      noun: 'wanted',
-      emptyMessage: 'Your wishlist is empty.',
-    });
+  it('switches the labels and empty message to the selected collection', () => {
+    const modal = open([], []);
     modal.show();
+    expect(document.querySelector('.bulk-search-input').placeholder).toBe('Filter owned cards…');
 
-    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Export Wishlist');
+    target('Wishlist').click();
+
     expect(document.querySelector('.bulk-search-input').placeholder).toBe('Filter wanted cards…');
     expect(document.querySelector('.bulk-empty').textContent).toBe('Your wishlist is empty.');
   });
 
-  it('names the downloaded file after the configured prefix', () => {
+  it('exports only the cards of the selected collection', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const modal = open(cards, [{ id: 'w', name: 'Wanted Card', set: 'neo' }]);
+    modal.show();
+
+    target('Wishlist').click();
+    document.querySelector('.export-copy').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(writeText.mock.calls[0][0]).toContain('Wanted Card');
+    expect(writeText.mock.calls[0][0]).not.toContain('Sol Ring');
+  });
+
+  it('names the downloaded file after the active collection prefix', () => {
     URL.createObjectURL = vi.fn(() => 'blob:mock');
     URL.revokeObjectURL = vi.fn();
     let downloaded;
@@ -118,8 +163,10 @@ describe('exportModal', () => {
       downloaded = this.download;
     });
 
-    const modal = createExportModal([cards[0]], { filePrefix: 'wishlist' });
+    const modal = open(cards, [cards[0]]);
     modal.show();
+
+    target('Wishlist').click();
     document.querySelector('.export-download').click();
 
     expect(downloaded).toBe('wishlist.csv');
@@ -132,7 +179,7 @@ describe('exportModal', () => {
     URL.revokeObjectURL = revokeObjectURL;
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-    const modal = createExportModal([cards[0]]);
+    const modal = open([cards[0]]);
     modal.show();
 
     const select = document.querySelector('.transfer-format');
@@ -148,7 +195,7 @@ describe('exportModal', () => {
   });
 
   it('closes on Escape', () => {
-    const modal = createExportModal([cards[0]]);
+    const modal = open([cards[0]]);
     modal.show();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));

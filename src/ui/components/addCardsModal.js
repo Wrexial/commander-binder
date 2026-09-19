@@ -4,6 +4,7 @@ import {
   addOwnedCards,
   addWantedCards,
   createCollectionModal,
+  createTargetToggle,
   normalizeName,
   previewGroup,
   summaryChip,
@@ -30,22 +31,21 @@ function buildPrintingIndex() {
 }
 
 /**
- * The "Add Cards" modal: the former Bulk Add and Import Collection in one place.
- * Accepts typed names (with autocomplete), a pasted plain list or CSV / Moxfield
- * / Archidekt export, or a file, then marks the not-yet-present matches owned —
- * or wanted, when `kind` is `'wishlist'` (the same modal serves both).
+ * The combined "Add Cards" modal. Accepts typed names (with autocomplete), a
+ * pasted plain list or CSV / Moxfield / Archidekt export, or a file, then marks
+ * the not-yet-present matches owned or wanted depending on the target picker.
  *
- * @param {{kind?: 'owned'|'wishlist'}} [options]
+ * @param {{kind?: 'owned'|'wishlist'}} [options] Initial target.
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createAddCardsModal({ kind = 'owned' } = {}) {
+export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   const byPrinting = buildPrintingIndex();
 
-  const isWishlist = kind === 'wishlist';
-  const isPresent = isWishlist ? isCardWanted : isCardOwned;
-  const addCards = isWishlist ? addWantedCards : addOwnedCards;
-  const presentLabel = isWishlist ? 'Already wanted' : 'Already owned';
-  const successSuffix = isWishlist ? ' to your wishlist' : '';
+  let isWishlist = initialKind === 'wishlist';
+  let isPresent = isWishlist ? isCardWanted : isCardOwned;
+  let addCards = isWishlist ? addWantedCards : addOwnedCards;
+  let presentLabel = isWishlist ? 'Already wanted' : 'Already owned';
+  let successSuffix = isWishlist ? ' to your wishlist' : '';
 
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title: isWishlist ? 'Add to Wishlist' : 'Add Cards',
@@ -56,6 +56,8 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
     ],
   });
   const { primary: primaryButton, close: closeButton } = buttons;
+  const heading = shell.modal.querySelector('.bulk-modal-header h2');
+  const subtitle = shell.modal.querySelector('.bulk-modal-subtitle');
 
   const toolbar = document.createElement('div');
   toolbar.className = 'transfer-toolbar';
@@ -76,10 +78,28 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
 
-  contentArea.append(toolbar, input.el, preview);
+  const target = createTargetToggle({
+    initial: isWishlist ? 'wishlist' : 'owned',
+    onChange: applyKind,
+  });
+
+  contentArea.append(target.el, toolbar, input.el, preview);
 
   let categorized = { add: [], present: [], unknown: [] };
   let confirming = false;
+
+  /** Switch the target and relabel the modal; the parsed list stays put. */
+  function applyKind(next) {
+    isWishlist = next === 'wishlist';
+    isPresent = isWishlist ? isCardWanted : isCardOwned;
+    addCards = isWishlist ? addWantedCards : addOwnedCards;
+    presentLabel = isWishlist ? 'Already wanted' : 'Already owned';
+    successSuffix = isWishlist ? ' to your wishlist' : '';
+
+    heading.textContent = isWishlist ? 'Add to Wishlist' : 'Add Cards';
+    subtitle.textContent = `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${isWishlist ? 'want' : 'own'} are skipped.`;
+    renderPreview();
+  }
 
   /** Resolve parsed entries to store cards, split into new / present / unknown. */
   function categorize() {

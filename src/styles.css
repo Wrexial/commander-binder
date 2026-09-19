@@ -3493,6 +3493,33 @@ footer a:focus-visible {
 }
 
 /* Import/export toolbar: format picker + filter, and the import textarea. */
+/* Owned / Wishlist picker shared by the add, export and recent modals. */
+.target-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-1);
+}
+
+.target-toggle-option {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.target-toggle-option[aria-pressed='true'] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
 .transfer-toolbar {
   display: flex;
   align-items: center;
