@@ -78,15 +78,15 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
 
   contentArea.append(toolbar, input.el, preview);
 
-  let categorized = { add: [], owned: [], unknown: [] };
+  let categorized = { add: [], present: [], unknown: [] };
   let confirming = false;
 
-  /** Resolve parsed entries to store cards, split into new / owned / unknown. */
+  /** Resolve parsed entries to store cards, split into new / present / unknown. */
   function categorize() {
     const { entries } = parseCollection(input.textArea.value);
     const seen = new Set();
     const add = [];
-    const owned = [];
+    const present = [];
     const unknown = [];
 
     for (const entry of entries) {
@@ -103,11 +103,11 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
       if (seen.has(card.id)) continue;
       seen.add(card.id);
 
-      if (isPresent(card)) owned.push(card);
+      if (isPresent(card)) present.push(card);
       else add.push(card);
     }
 
-    return { add, owned, unknown };
+    return { add, present, unknown };
   }
 
   function updatePrimary() {
@@ -119,9 +119,9 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
 
   function renderPreview() {
     categorized = categorize();
-    const { add, owned, unknown } = categorized;
+    const { add, present, unknown } = categorized;
 
-    if (add.length + owned.length + unknown.length === 0) {
+    if (add.length + present.length + unknown.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">Nothing to add yet.</p>';
       updatePrimary();
       return;
@@ -130,7 +130,7 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
     preview.innerHTML = `
             <div class="bulk-summary">
                 ${summaryChip('missing', 'Will add', add.length)}
-                ${summaryChip('owned', presentLabel, owned.length)}
+                ${summaryChip('owned', presentLabel, present.length)}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
@@ -142,7 +142,7 @@ export function createAddCardsModal({ kind = 'owned' } = {}) {
                 ${previewGroup(
                   'owned',
                   presentLabel,
-                  owned.map((card) => card.name)
+                  present.map((card) => card.name)
                 )}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;

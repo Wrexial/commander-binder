@@ -71,10 +71,13 @@ async function handleAction(action) {
     return;
   }
 
-  // Marks are stored, so re-sync the tiles and the owned/binder counters.
+  // Marks are stored, so re-sync the tiles. Only the owned actions move the
+  // binder/owned counters; the wishlist has no counter of its own.
   updateAllCardStates();
-  updateAllBinderCounts();
-  updateOwnedCounter();
+  if (action === 'owned' || action === 'missing') {
+    updateAllBinderCounts();
+    updateOwnedCounter();
+  }
   showToast(`${cards.length} card${cards.length === 1 ? '' : 's'} updated.`, 'success');
 }
 

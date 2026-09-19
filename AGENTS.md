@@ -57,7 +57,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
-  guest merge clients (`mergeOwned.js`, `mergeWishlist.js`). `scryfall.js` is
+  guest merge clients (`mergeCollection.js` factory, re-exported as `mergeOwned.js`
+  / `mergeWishlist.js`). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).

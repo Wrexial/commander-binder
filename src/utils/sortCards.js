@@ -156,13 +156,7 @@ function primaryCompare(key, a, b) {
 
 /** Stable order among equal primary keys (the direction must not flip this). */
 function tiebreakCompare(key, a, b) {
-  if (key === 'owned') {
-    return (
-      (a.released_at || '').localeCompare(b.released_at || '') ||
-      (a.name || '').localeCompare(b.name || '')
-    );
-  }
-  if (key === 'wanted') {
+  if (key === 'owned' || key === 'wanted') {
     return (
       (a.released_at || '').localeCompare(b.released_at || '') ||
       (a.name || '').localeCompare(b.name || '')

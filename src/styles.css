@@ -3215,7 +3215,8 @@ footer a:focus-visible {
   grid-template-columns: minmax(84px, auto) 1fr auto auto;
 }
 
-.stats-set-copy {
+.stats-set-copy,
+.stats-wishlist-copy {
   padding: 3px 9px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -3227,12 +3228,15 @@ footer a:focus-visible {
 }
 
 .stats-set-copy:hover,
-.stats-set-copy:focus-visible {
+.stats-set-copy:focus-visible,
+.stats-wishlist-copy:hover,
+.stats-wishlist-copy:focus-visible {
   background: var(--surface-2);
   color: var(--text);
 }
 
-.stats-set-copy:disabled {
+.stats-set-copy:disabled,
+.stats-wishlist-copy:disabled {
   opacity: 0.5;
   cursor: default;
 }
