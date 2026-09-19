@@ -98,18 +98,34 @@ describe('parseBinderSlots', () => {
 describe('parseMergeBinders', () => {
   it('normalizes a payload', () => {
     const result = parseMergeBinders([
-      { name: ' Trade binder ', columns: 4, rows: 4, pages: 2, slots: { '0:0:0': 'a' } },
+      {
+        name: ' Trade binder ',
+        columns: 4,
+        rows: 4,
+        pages: 2,
+        slots: { '0:0:0': 'a' },
+        isPublic: true,
+      },
     ]);
     expect(result).toEqual({
       ok: true,
-      value: [{ name: 'Trade binder', columns: 4, rows: 4, pages: 2, slots: { '0:0:0': 'a' } }],
+      value: [
+        {
+          name: 'Trade binder',
+          columns: 4,
+          rows: 4,
+          pages: 2,
+          slots: { '0:0:0': 'a' },
+          isPublic: true,
+        },
+      ],
     });
   });
 
   it('applies dimension defaults and rejects malformed entries', () => {
     expect(parseMergeBinders([{ name: 'X' }])).toEqual({
       ok: true,
-      value: [{ name: 'X', columns: 3, rows: 3, pages: 1, slots: {} }],
+      value: [{ name: 'X', columns: 3, rows: 3, pages: 1, slots: {}, isPublic: false }],
     });
     expect(parseMergeBinders('x').ok).toBe(false);
     expect(parseMergeBinders([null]).ok).toBe(false);

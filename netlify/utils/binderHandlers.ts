@@ -3,7 +3,7 @@ import type { HandlerEvent } from '@netlify/functions';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { binders } from '../../db/schema';
+import { binders, shareLinks } from '../../db/schema';
 import { getUserId, unauthorized } from './auth';
 import {
   MAX_BINDERS,
@@ -14,6 +14,7 @@ import {
   parseMergeBinders,
   type BinderSlots,
 } from './binders';
+import { parseIsPublic } from './lists';
 import { badRequest, parseJsonBody } from './request';
 
 /** One binder as the client sees it. */
@@ -23,6 +24,7 @@ export type ClientBinder = {
   columns: number;
   rows: number;
   pages: number;
+  isPublic: boolean;
   slots: BinderSlots;
   createdAt: string;
   updatedAt: string;
@@ -38,9 +40,20 @@ function parseStoredSlots(text: string): BinderSlots {
   }
 }
 
-/** Load a user's binders, oldest first (then by name), in one round trip. */
-export async function collectBinders(userId: string): Promise<ClientBinder[]> {
-  const rows = await db.select().from(binders).where(eq(binders.userId, userId));
+/**
+ * Load a user's binders, oldest first (then by name), in one round trip. With
+ * `publicOnly` (a share-link read) only the binders the owner marked public are
+ * returned.
+ */
+export async function collectBinders(
+  userId: string,
+  { publicOnly = false }: { publicOnly?: boolean } = {}
+): Promise<ClientBinder[]> {
+  const where = publicOnly
+    ? and(eq(binders.userId, userId), eq(binders.isPublic, true))
+    : eq(binders.userId, userId);
+
+  const rows = await db.select().from(binders).where(where);
 
   return rows
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.name.localeCompare(b.name))
@@ -50,6 +63,7 @@ export async function collectBinders(userId: string): Promise<ClientBinder[]> {
       columns: row.columns,
       rows: row.rows,
       pages: row.pages,
+      isPublic: row.isPublic,
       slots: parseStoredSlots(row.slots),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -57,16 +71,43 @@ export async function collectBinders(userId: string): Promise<ClientBinder[]> {
 }
 
 /** A successful response carrying the caller's full (fresh) binder set. */
-async function bindersResponse(userId: string) {
-  return { statusCode: 200, body: JSON.stringify({ binders: await collectBinders(userId) }) };
+async function bindersResponse(userId: string, options: { publicOnly?: boolean } = {}) {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ binders: await collectBinders(userId, options) }),
+  };
 }
 
-/** The caller's binders. Binders are private, so there is no share capability. */
+/**
+ * Read the caller's binders, or the owner's public binders for a share link.
+ * Mirrors `readLists`: a share token is a read-only capability.
+ */
 export async function readBinders(event: HandlerEvent) {
-  const userId = await getUserId(event);
+  const parsed = parseJsonBody(event);
+  if (!parsed.ok) return parsed.response;
+
+  const { shareToken } = parsed.value;
+  let userId: string | null;
+  let publicOnly = false;
+
+  if (shareToken) {
+    if (typeof shareToken !== 'string') {
+      return badRequest("'shareToken' must be a string.");
+    }
+    const [row] = await db
+      .select({ userId: shareLinks.userId })
+      .from(shareLinks)
+      .where(eq(shareLinks.token, shareToken));
+    userId = row?.userId ?? null;
+    // A visitor only ever sees the binders the owner marked public.
+    publicOnly = true;
+  } else {
+    userId = await getUserId(event);
+  }
+
   if (!userId) return unauthorized();
 
-  return bindersResponse(userId);
+  return bindersResponse(userId, { publicOnly });
 }
 
 /** The caller's binder with the given name (case-insensitive), if any. */
@@ -102,6 +143,8 @@ export async function createBinder(event: HandlerEvent) {
   if (!dimensions.ok) return badRequest(dimensions.message);
   const slots = parseBinderSlots(parsed.value.slots);
   if (!slots.ok) return badRequest(slots.message);
+  const isPublic = parseIsPublic(parsed.value.isPublic);
+  if (!isPublic.ok) return badRequest(isPublic.message);
 
   const existing = await db
     .select({ id: binders.id })
@@ -123,6 +166,7 @@ export async function createBinder(event: HandlerEvent) {
       columns: dimensions.value.columns,
       rows: dimensions.value.rows,
       pages: dimensions.value.pages,
+      isPublic: isPublic.value,
       slots: JSON.stringify(slots.value),
     })
     .onConflictDoNothing();
@@ -131,9 +175,9 @@ export async function createBinder(event: HandlerEvent) {
 }
 
 /**
- * Rename a binder, change its dimensions and/or replace its slots. The client
- * sends the full binder on every mutation, so a placement, move or clear is the
- * same request.
+ * Rename a binder, change its dimensions and/or replace its slots and
+ * visibility. The client sends the full binder on every mutation, so a
+ * placement, move or clear is the same request.
  */
 export async function updateBinder(event: HandlerEvent) {
   const userId = await getUserId(event);
@@ -149,10 +193,13 @@ export async function updateBinder(event: HandlerEvent) {
   const dimensions = parseBinderDimensions(parsed.value);
   if (!dimensions.ok) return badRequest(dimensions.message);
 
-  // A missing `slots` leaves the stored map untouched.
+  // A missing `slots`/`isPublic` leaves the stored value untouched.
   const hasSlots = parsed.value.slots !== undefined;
   const slots = hasSlots ? parseBinderSlots(parsed.value.slots) : null;
   if (slots && !slots.ok) return badRequest(slots.message);
+  const hasPublic = parsed.value.isPublic !== undefined;
+  const isPublic = hasPublic ? parseIsPublic(parsed.value.isPublic) : null;
+  if (isPublic && !isPublic.ok) return badRequest(isPublic.message);
 
   if (!(await ownsBinder(userId, id.value))) return badRequest('Binder not found.');
 
@@ -169,6 +216,7 @@ export async function updateBinder(event: HandlerEvent) {
     updatedAt: new Date(),
   };
   if (hasSlots && slots?.ok) patch.slots = JSON.stringify(slots.value);
+  if (hasPublic && isPublic?.ok) patch.isPublic = isPublic.value;
 
   await db
     .update(binders)
@@ -198,7 +246,8 @@ export async function deleteBinder(event: HandlerEvent) {
  * Additively merge a guest's device-local binders into their account, unioning
  * by name. A slot already stored on the server is never overwritten, so
  * re-sending after a failure is safe and guest-only placements are preserved.
- * Dimensions grow to the larger of the two so no pocket is hidden.
+ * Dimensions grow to the larger of the two so no pocket is hidden, and a binder
+ * is never silently un-published.
  */
 export async function mergeBinders(event: HandlerEvent) {
   const userId = await getUserId(event);
@@ -219,6 +268,7 @@ export async function mergeBinders(event: HandlerEvent) {
         columns: binder.columns,
         rows: binder.rows,
         pages: binder.pages,
+        isPublic: binder.isPublic,
         slots: binder.slots,
       },
     ])
@@ -239,6 +289,7 @@ export async function mergeBinders(event: HandlerEvent) {
           columns: Math.max(match.columns, binder.columns),
           rows: Math.max(match.rows, binder.rows),
           pages: Math.max(match.pages, binder.pages),
+          isPublic: match.isPublic || binder.isPublic,
           slots: JSON.stringify(mergedSlots),
           updatedAt: new Date(),
         })
@@ -254,6 +305,7 @@ export async function mergeBinders(event: HandlerEvent) {
       columns: binder.columns,
       rows: binder.rows,
       pages: binder.pages,
+      isPublic: binder.isPublic,
       slots: binder.slots,
     });
     await db.insert(binders).values({
@@ -263,6 +315,7 @@ export async function mergeBinders(event: HandlerEvent) {
       columns: binder.columns,
       rows: binder.rows,
       pages: binder.pages,
+      isPublic: binder.isPublic,
       slots: JSON.stringify(binder.slots),
     });
   }

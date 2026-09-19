@@ -27,7 +27,8 @@ function addBinderBuilderLink() {
   addButtonToSidebar(
     '🗂️ Binder Builder',
     () => {
-      window.location.href = 'binder.html';
+      // Preserve `?share=` so a share visitor stays in the owner's view.
+      window.location.href = `binder.html${window.location.search}`;
     },
     'collection',
     15

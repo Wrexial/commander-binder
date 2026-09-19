@@ -1,4 +1,12 @@
-import { pgTable, text, integer, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  uniqueIndex,
+  index,
+} from 'drizzle-orm/pg-core';
 
 // A user-authored Binder Builder layout: a named grid of physical pockets
 // (`columns x rows` per page, `pages` pages). Slots are a sparse
@@ -19,6 +27,8 @@ export const binders = pgTable(
     columns: integer('columns').default(3).notNull(),
     rows: integer('rows').default(3).notNull(),
     pages: integer('pages').default(1).notNull(),
+    // Whether the binder is exposed through the owner's public share link.
+    isPublic: boolean('is_public').default(false).notNull(),
     // JSON object `{ "0:0:0": "<printing id>", ... }`.
     slots: text('slots').default('{}').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),

@@ -1,5 +1,6 @@
 // netlify/utils/binders.ts
 import type { ParseResult } from './lists';
+import { parseIsPublic } from './lists';
 
 /** Upper bound on how many binders one account may hold. */
 export const MAX_BINDERS = 50;
@@ -129,6 +130,7 @@ export type MergeBinder = {
   rows: number;
   pages: number;
   slots: BinderSlots;
+  isPublic: boolean;
 };
 
 /**
@@ -157,6 +159,8 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
     if (!dimensions.ok) return dimensions;
     const slots = parseBinderSlots(record.slots);
     if (!slots.ok) return slots;
+    const isPublic = parseIsPublic(record.isPublic);
+    if (!isPublic.ok) return isPublic;
 
     binders.push({
       name: name.value,
@@ -164,6 +168,7 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
       rows: dimensions.value.rows,
       pages: dimensions.value.pages,
       slots: slots.value,
+      isPublic: isPublic.value,
     });
   }
 

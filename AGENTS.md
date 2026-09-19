@@ -95,13 +95,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   dispatches `lists:changed` on every load/mutation; `main.js` repaints tile
   badges from it and `filterBar.js` refreshes its list dropdown.
   `bindersState.js` is the Binder Builder registry (many user-authored binders,
-  each `{ columns, rows, pages, slots }` where a slot is `"page:row:col" ->
-printingId`). It keeps an in-memory Map as the session source of truth and
-  mirrors the collections/lists split: signed-in callers read/write the server
-  (`binders`/`manage-binder`/`merge-binders`), while signed-out visitors keep
-  device-local binders in `localBinders.js` (one self-contained IndexedDB
-  record) and merge them on sign-in. It dispatches `binders:changed` on every
-  mutation.
+  each `{ columns, rows, pages, isPublic, slots }` where a slot is
+  `"page:row:col" -> printingId`). It keeps an in-memory Map as the session
+  source of truth and mirrors the collections/lists split: signed-in callers
+  read/write the server (`binders`/`manage-binder`/`merge-binders`), signed-out
+  visitors keep device-local binders in `localBinders.js` (one self-contained
+  IndexedDB record) and merge them on sign-in, and a `?share=` visitor reads the
+  owner's public binders read-only (`canEditBinders()` gates every mutation). It
+  dispatches `binders:changed` on every mutation.
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control).
@@ -153,9 +154,11 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   as a collection, so they all work on lists exactly like the built-ins; plus the
   shared
   `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
-  the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation and
-  the add/move/remove controls; it reuses `cards.js` tiles so ownership toggles
-  and the preview keep working) and its card picker `cardPickerModal.js`,
+  the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation, a
+  per-binder Public toggle and the add/move/remove controls; it reuses `cards.js`
+  tiles so ownership toggles and the preview keep working). A share-link view
+  renders it read-only: `canEditBinders()` hides the toolbar edits, the pocket
+  controls and empty-slot adders) and its card picker `cardPickerModal.js`,
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
@@ -253,10 +256,10 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   capability too, but returns only lists marked public.
 - `netlify/utils/binderHandlers.ts` + `netlify/utils/binders.ts` — the Binder
   Builder read/create/update/delete/merge handlers and their payload validation
-  (`MAX_BINDERS`, grid bounds, `MAX_BINDER_SLOTS`/bytes). Binders are private:
-  `readBinders` always requires a verified Clerk id (no share capability), and
+  (`MAX_BINDERS`, grid bounds, `MAX_BINDER_SLOTS`/bytes). `readBinders` takes a
+  `shareToken` as a read capability and returns only binders marked public;
   `mergeBinders` unions guest binders by name without ever overwriting a stored
-  pocket.
+  pocket or un-publishing one.
 - `netlify/utils/userSettings.ts` — load/save a user's JSON settings blob for
   the `user-settings` handler, with a size cap and shape validation.
 - `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
@@ -273,7 +276,9 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
   user's Clerk id is never exposed in the URL. The `?share=` view-only mode blocks
   ownership and wishlist edits but still allows view actions such as cycling
-  printings, and friends see both the owner's collection and wishlist. Share mode
+  printings, and friends see the owner's collection, wishlist and public binders
+  (the Binder Builder link carries the token; binders not marked public are
+  hidden). Share mode
   also offers "Compare Collections" (`components/compareModal.js`), a read-only
   diff of the owner's collection against the visitor's own — the owner's side
   comes from `cardState` (share token) and the visitor's from `compareState`
@@ -331,7 +336,8 @@ printingId`). It keeps an in-memory Map as the session source of truth and
   `owned_cards`/`user_settings`, `0001` adds `share_links`, `0002` adds
   `owned_cards.created_at` for the "Recent additions" log, `0003` adds
   `wishlist_cards`, `0004` adds `card_lists`/`card_list_items` for the custom
-  named lists, `0005` adds `binders` for the Binder Builder layouts). If the Neon
+  named lists, `0005` adds `binders` for the Binder Builder layouts, `0006` adds
+  `binders.is_public` for the share link). If the Neon
   database
   was created outside Drizzle, baseline existing migrations before
   `npm run db:migrate`, otherwise it fails with "table already exists".

@@ -15,6 +15,7 @@ import {
   MAX_BINDER_PAGES,
   MAX_BINDER_ROWS,
   assignCardToSlot,
+  canEditBinders,
   clearPage,
   clearSlot,
   createBinder,
@@ -118,6 +119,17 @@ function buildChrome(root) {
   deleteButton.className = 'bb-delete danger';
   deleteButton.textContent = 'Delete';
 
+  // Whether the binder appears on the owner's public share link.
+  const publicField = document.createElement('label');
+  publicField.className = 'bb-field bb-field-toggle';
+  const publicInput = document.createElement('input');
+  publicInput.type = 'checkbox';
+  publicInput.className = 'bb-public';
+  publicInput.setAttribute('aria-label', 'Show this binder on my share link');
+  const publicText = document.createElement('span');
+  publicText.textContent = 'Public';
+  publicField.append(publicInput, publicText);
+
   const dims = document.createElement('div');
   dims.className = 'bb-dims';
   const columns = numberField('Columns', 'bb-columns', {
@@ -129,7 +141,7 @@ function buildChrome(root) {
   const pages = numberField('Pages', 'bb-pages', { min: 1, max: MAX_BINDER_PAGES, value: 1 });
   dims.append(columns.el, rows.el, pages.el);
 
-  toolbar.append(binderField, newButton, nameField, deleteButton, dims);
+  toolbar.append(binderField, newButton, nameField, deleteButton, publicField, dims);
 
   const nav = document.createElement('div');
   nav.className = 'binder-builder-nav';
@@ -168,13 +180,18 @@ function buildChrome(root) {
   hint.textContent =
     'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Card taps still mark owned.';
 
-  root.append(toolbar, nav, status, pageEl, hint);
+  const empty = document.createElement('p');
+  empty.className = 'binder-builder-empty';
+  empty.hidden = true;
+
+  root.append(toolbar, nav, status, pageEl, empty, hint);
 
   refs = {
     binderSelect,
     newButton,
     nameInput,
     deleteButton,
+    publicInput,
     columns: columns.input,
     rows: rows.input,
     pages: pages.input,
@@ -186,6 +203,8 @@ function buildChrome(root) {
     statusText,
     cancelMove,
     pageEl,
+    hint,
+    empty,
   };
 
   wireChrome();
@@ -240,6 +259,12 @@ function wireChrome() {
     pendingMove = null;
     activePage = 0;
     await deleteBinder(binder.id);
+  });
+
+  refs.publicInput.addEventListener('change', async () => {
+    const binder = getActiveBinder();
+    if (!binder) return;
+    await updateBinder(binder.id, { isPublic: refs.publicInput.checked });
   });
 
   const onDimChange = () => {
@@ -315,6 +340,8 @@ function handlePageClick(event) {
   if (!slot) return;
   const binder = getActiveBinder();
   if (!binder) return;
+  // A share-link view is read-only; card clicks still reach `cardInteractions`.
+  if (!canEditBinders()) return;
   const key = slot.dataset.slot;
 
   if (pendingMove) {
@@ -352,8 +379,13 @@ export function render() {
   const binder = getActiveBinder();
   if (!binder) {
     refs.pageEl.replaceChildren();
+    refs.empty.hidden = false;
+    refs.empty.textContent = canEditBinders()
+      ? 'No binders yet — create one to get started.'
+      : 'No binders have been shared yet.';
     return;
   }
+  refs.empty.hidden = true;
 
   activePage = Math.min(binder.pages - 1, Math.max(0, activePage));
 
@@ -371,9 +403,24 @@ export function render() {
   refs.columns.value = String(binder.columns);
   refs.rows.value = String(binder.rows);
   refs.pages.value = String(binder.pages);
+  refs.publicInput.checked = binder.isPublic;
   refs.pageLabel.textContent = `Page ${activePage + 1} / ${binder.pages}`;
   refs.prevButton.disabled = activePage === 0;
   refs.nextButton.disabled = activePage >= binder.pages - 1;
+
+  // A share-link view hides every editing control and leaves plain pockets.
+  const editable = canEditBinders();
+  refs.newButton.hidden = !editable;
+  refs.deleteButton.hidden = !editable;
+  refs.nameInput.disabled = !editable;
+  refs.columns.disabled = !editable;
+  refs.rows.disabled = !editable;
+  refs.pages.disabled = !editable;
+  refs.publicInput.disabled = !editable;
+  refs.clearButton.hidden = !editable;
+  refs.hint.textContent = editable
+    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Card taps still mark owned.'
+    : 'View only — tap a card to preview it (←/→ or J/K to move through the grid).';
 
   if (pendingMove) {
     refs.status.hidden = false;
@@ -404,7 +451,8 @@ export function render() {
         const tile = createCardElement(card, index);
         tile.dataset.cardIndex = String(index);
         updateCardState(tile);
-        slot.append(tile, createSlotControls());
+        slot.append(tile);
+        if (editable) slot.appendChild(createSlotControls());
       } else if (printingId) {
         // The stored printing is not in the loaded subset (e.g. the bulk data
         // refreshed); keep the pocket visible and removable.
@@ -412,8 +460,9 @@ export function render() {
         const unknown = document.createElement('span');
         unknown.className = 'binder-slot-unknown';
         unknown.textContent = 'Card unavailable';
-        slot.append(unknown, createSlotControls());
-      } else {
+        slot.append(unknown);
+        if (editable) slot.appendChild(createSlotControls());
+      } else if (editable) {
         const add = document.createElement('button');
         add.type = 'button';
         add.className = 'binder-slot-add';

@@ -4763,6 +4763,28 @@ body.selection-mode #results {
   margin-left: auto;
 }
 
+.bb-field-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+}
+
+.bb-field-toggle input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .binder-builder-toolbar button,
 .binder-builder-nav button {
   padding: 8px 14px;
@@ -4955,6 +4977,16 @@ body.selection-mode #results {
   margin: 0;
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.binder-builder-empty {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
 }
 
 @media (max-width: 768px) {

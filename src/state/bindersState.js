@@ -76,9 +76,19 @@ function clampInt(value, min, max, fallback) {
   return Math.min(max, Math.max(min, parsed));
 }
 
-/** Signed-out (or share-link) visitors track binders on this device. */
+/** True on a read-only share-link view. */
+function isShareMode() {
+  return Boolean(mainState.shareToken);
+}
+
+/** Binders can be edited except in a share view. */
+export function canEditBinders() {
+  return !isShareMode();
+}
+
+/** Signed-out visitors track binders on this device. */
 function isLocalMode() {
-  return !mainState.loggedInUserId;
+  return !isShareMode() && !mainState.loggedInUserId;
 }
 
 /** `"page:row:col"` for one pocket. */
@@ -113,6 +123,7 @@ function normalizeBinder(record) {
     columns: clampInt(record.columns, MIN_BINDER_COLUMNS, MAX_BINDER_COLUMNS, 3),
     rows: clampInt(record.rows, MIN_BINDER_ROWS, MAX_BINDER_ROWS, 3),
     pages: clampInt(record.pages, 1, MAX_BINDER_PAGES, 1),
+    isPublic: Boolean(record.isPublic),
     slots: sanitizeSlots(record.slots),
     createdAt: record.createdAt || now,
     updatedAt: record.updatedAt || now,
@@ -127,6 +138,7 @@ function toRecord(binder) {
     columns: binder.columns,
     rows: binder.rows,
     pages: binder.pages,
+    isPublic: binder.isPublic,
     slots: { ...binder.slots },
     createdAt: binder.createdAt,
     updatedAt: binder.updatedAt,
@@ -224,7 +236,15 @@ function uniqueName(base = 'Binder') {
 
 /** Load binders from whichever source applies; seeds one from current settings. */
 export async function loadBinders() {
-  if (isLocalMode()) {
+  if (isShareMode()) {
+    try {
+      applyBinders(await fetchBinders({ shareToken: mainState.shareToken }));
+    } catch (err) {
+      console.error('Failed to load shared binders:', err);
+      binders.clear();
+      initialized = true;
+    }
+  } else if (isLocalMode()) {
     let records;
     try {
       records = await loadLocalBinders();
@@ -254,7 +274,7 @@ export async function loadBinders() {
     activeId = null;
   }
 
-  if (binders.size === 0) {
+  if (binders.size === 0 && canEditBinders()) {
     await createBinder({
       name: 'Binder 1',
       columns: clampInt(getSetting('gridColumns'), 1, MAX_BINDER_COLUMNS, 3),
@@ -275,26 +295,32 @@ export function areBindersLoaded() {
 
 /**
  * Create a binder and make it active.
- * @param {{name?: string, columns?: number, rows?: number, pages?: number, silent?: boolean}} input
+ * @param {{name?: string, columns?: number, rows?: number, pages?: number, isPublic?: boolean, silent?: boolean}} input
  */
 export async function createBinder({
   name,
   columns = 3,
   rows = 3,
   pages = 1,
+  isPublic = false,
   silent = false,
 } = {}) {
+  if (!canEditBinders()) return null;
+
   const nextName = uniqueName(String(name || `Binder ${binders.size + 1}`).trim() || 'Binder');
   const dims = {
     columns: clampInt(columns, MIN_BINDER_COLUMNS, MAX_BINDER_COLUMNS, 3),
     rows: clampInt(rows, MIN_BINDER_ROWS, MAX_BINDER_ROWS, 3),
     pages: clampInt(pages, 1, MAX_BINDER_PAGES, 1),
   };
+  const publicFlag = Boolean(isPublic);
 
   if (!isLocalMode()) {
     let created = null;
     try {
-      applyBinders(await apiCreateBinder({ name: nextName, ...dims, slots: {} }));
+      applyBinders(
+        await apiCreateBinder({ name: nextName, ...dims, isPublic: publicFlag, slots: {} })
+      );
       created = getBinderByName(nextName);
     } catch (err) {
       console.error('Failed to create the binder:', err);
@@ -308,6 +334,7 @@ export async function createBinder({
     id: newId(),
     name: nextName,
     ...dims,
+    isPublic: publicFlag,
     slots: {},
     createdAt: now,
     updatedAt: now,
@@ -320,8 +347,9 @@ export async function createBinder({
   return binder;
 }
 
-/** Patch a binder's name and/or dimensions. Out-of-range slots stay stored. */
+/** Patch a binder's name, dimensions and/or share visibility. */
 export async function updateBinder(id, patch = {}) {
+  if (!canEditBinders()) return null;
   const binder = binders.get(id);
   if (!binder) return null;
 
@@ -346,6 +374,9 @@ export async function updateBinder(id, patch = {}) {
   if (patch.pages != null) {
     binder.pages = clampInt(patch.pages, 1, MAX_BINDER_PAGES, binder.pages);
   }
+  if (patch.isPublic != null) {
+    binder.isPublic = Boolean(patch.isPublic);
+  }
 
   binder.updatedAt = new Date().toISOString();
 
@@ -361,7 +392,7 @@ export async function updateBinder(id, patch = {}) {
 
 /** Delete a binder; a new empty one is seeded when the last is removed. */
 export async function deleteBinder(id) {
-  if (!binders.has(id)) return;
+  if (!canEditBinders() || !binders.has(id)) return;
 
   if (!isLocalMode()) {
     try {
@@ -407,6 +438,7 @@ async function commit(binder, { silent = false } = {}) {
 
 /** Place a printing in a slot (replacing whatever was there). */
 export async function assignCardToSlot(binderId, key, printingId) {
+  if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
   if (!binder || !parseSlotKey(key) || typeof printingId !== 'string' || !printingId) return null;
   binder.slots[key] = printingId;
@@ -415,6 +447,7 @@ export async function assignCardToSlot(binderId, key, printingId) {
 
 /** Empty one slot. */
 export async function clearSlot(binderId, key) {
+  if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
   if (!binder || !(key in binder.slots)) return null;
   delete binder.slots[key];
@@ -423,6 +456,7 @@ export async function clearSlot(binderId, key) {
 
 /** Move a card to another slot, swapping when the target already holds one. */
 export async function moveSlot(binderId, fromKey, toKey) {
+  if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
   if (!binder || fromKey === toKey) return null;
   if (!parseSlotKey(fromKey) || !parseSlotKey(toKey)) return null;
@@ -440,6 +474,7 @@ export async function moveSlot(binderId, fromKey, toKey) {
 
 /** Empty every slot on one page. */
 export async function clearPage(binderId, page) {
+  if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
   if (!binder) return null;
 
@@ -464,7 +499,7 @@ export async function clearPage(binderId, page) {
  * @returns {Promise<boolean>} true when local binders were merged and cleared.
  */
 export async function mergeLocalBindersToAccount() {
-  if (!mainState.loggedInUserId) return false;
+  if (!mainState.loggedInUserId || mainState.shareToken) return false;
 
   const records = await loadLocalBinders();
   if (records.length === 0) return false;

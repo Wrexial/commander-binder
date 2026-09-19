@@ -25,6 +25,7 @@ vi.mock('../cardSettings.js', async (importOriginal) => ({
 
 import {
   assignCardToSlot,
+  canEditBinders,
   createBinder,
   deleteBinder,
   getActiveBinder,
@@ -33,6 +34,7 @@ import {
   mergeLocalBindersToAccount,
   resetBinders,
 } from '../bindersState.js';
+import { mainState } from '../mainState.js';
 import {
   createBinder as apiCreateBinder,
   deleteBinder as apiDeleteBinder,
@@ -58,6 +60,7 @@ function record(overrides = {}) {
 
 beforeEach(async () => {
   localStorage.clear();
+  mainState.shareToken = undefined;
   await resetBinders();
   vi.clearAllMocks();
   fetchBinders.mockResolvedValue([record()]);
@@ -155,5 +158,38 @@ describe('bindersState (server mode)', () => {
 
     expect(await mergeLocalBindersToAccount()).toBe(false);
     expect(apiMergeBinders).not.toHaveBeenCalled();
+  });
+
+  it('loads only the owner\u2019s public binders in share mode', async () => {
+    mainState.shareToken = 'tok';
+    fetchBinders.mockResolvedValue([record({ isPublic: true })]);
+
+    await loadBinders();
+
+    expect(fetchBinders).toHaveBeenCalledWith({ shareToken: 'tok' });
+    expect(canEditBinders()).toBe(false);
+    expect(getBinders()).toHaveLength(1);
+  });
+
+  it('does not seed a binder for a share visitor with nothing public', async () => {
+    mainState.shareToken = 'tok';
+    fetchBinders.mockResolvedValue([]);
+
+    await loadBinders();
+
+    expect(apiCreateBinder).not.toHaveBeenCalled();
+    expect(getBinders()).toHaveLength(0);
+  });
+
+  it('blocks every edit in share mode', async () => {
+    mainState.shareToken = 'tok';
+    fetchBinders.mockResolvedValue([record({ isPublic: true })]);
+    await loadBinders();
+
+    expect(await assignCardToSlot('b1', '0:0:0', 'card-a')).toBeNull();
+    expect(await createBinder({ name: 'X' })).toBeNull();
+    expect(await deleteBinder('b1')).toBeUndefined();
+    expect(apiUpdateBinder).not.toHaveBeenCalled();
+    expect(apiCreateBinder).not.toHaveBeenCalled();
   });
 });

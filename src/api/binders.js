@@ -30,18 +30,26 @@ async function requestBinders(path, body) {
   return Array.isArray(data?.binders) ? data.binders : [];
 }
 
-/** Load the caller's binders. */
-export function fetchBinders() {
-  return requestBinders(READ_PATH, {});
+/** Load the caller's binders, or the owner's public binders for a share token. */
+export function fetchBinders({ shareToken } = {}) {
+  return requestBinders(READ_PATH, shareToken ? { shareToken } : {});
 }
 
 /** Create a binder. */
-export function createBinder({ name, columns, rows, pages, slots }) {
-  return requestBinders(MANAGE_PATH, { action: 'create', name, columns, rows, pages, slots });
+export function createBinder({ name, columns, rows, pages, slots, isPublic }) {
+  return requestBinders(MANAGE_PATH, {
+    action: 'create',
+    name,
+    columns,
+    rows,
+    pages,
+    slots,
+    isPublic,
+  });
 }
 
-/** Rename/edit/re-dimension a binder and/or replace its slots. */
-export function updateBinder(binderId, { name, columns, rows, pages, slots }) {
+/** Rename/edit/re-dimension a binder and/or replace its slots and visibility. */
+export function updateBinder(binderId, { name, columns, rows, pages, slots, isPublic }) {
   return requestBinders(MANAGE_PATH, {
     action: 'update',
     binderId,
@@ -50,6 +58,7 @@ export function updateBinder(binderId, { name, columns, rows, pages, slots }) {
     rows,
     pages,
     slots,
+    isPublic,
   });
 }
 

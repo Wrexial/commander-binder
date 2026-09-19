@@ -54,6 +54,14 @@ vi.mock('../components/cardPickerModal.js', () => ({
 
 vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
 
+vi.mock('../../api/binders.js', () => ({
+  fetchBinders: vi.fn(async () => []),
+  createBinder: vi.fn(),
+  updateBinder: vi.fn(),
+  deleteBinder: vi.fn(),
+  mergeBinders: vi.fn(),
+}));
+
 import { initBinderBuilder, teardownBinderBuilder } from '../binderBuilder.js';
 import {
   assignCardToSlot,
@@ -61,6 +69,8 @@ import {
   resetBinders,
   updateBinder,
 } from '../../state/bindersState.js';
+import { mainState } from '../../state/mainState.js';
+import { fetchBinders } from '../../api/binders.js';
 
 async function mount() {
   const root = document.getElementById('binder-root');
@@ -71,6 +81,7 @@ async function mount() {
 beforeEach(async () => {
   local.records = [];
   localStorage.clear();
+  mainState.shareToken = undefined;
   document.body.innerHTML = '<div id="binder-root"></div>';
   pickerState.options = null;
   pickerState.show.mockClear();
@@ -182,5 +193,48 @@ describe('binderBuilder', () => {
     await vi.waitFor(() =>
       expect(document.querySelectorAll('.bb-binder-select option')).toHaveLength(2)
     );
+  });
+
+  it('renders a read-only view for a share visitor', async () => {
+    mainState.shareToken = 'tok';
+    fetchBinders.mockResolvedValueOnce([
+      {
+        id: 'pub',
+        name: 'Shared binder',
+        columns: 3,
+        rows: 3,
+        pages: 1,
+        isPublic: true,
+        slots: { '0:0:0': 'card-a' },
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+    ]);
+
+    await mount();
+
+    // No editing affordances at all.
+    expect(document.querySelectorAll('.binder-slot-add')).toHaveLength(0);
+    expect(document.querySelector('.bb-new').hidden).toBe(true);
+    expect(document.querySelector('.bb-delete').hidden).toBe(true);
+    expect(document.querySelector('.bb-clear-page').hidden).toBe(true);
+    expect(document.querySelector('.bb-name').disabled).toBe(true);
+    expect(document.querySelector('.bb-public').disabled).toBe(true);
+    expect(document.querySelectorAll('.binder-slot-controls')).toHaveLength(0);
+    expect(document.querySelector('.binder-builder-hint').textContent).toContain('View only');
+
+    // The owner's public binder is visible, with its card.
+    expect(document.querySelector('.binder-slot.is-filled')).not.toBeNull();
+  });
+
+  it('shows an empty state when a share visitor has no public binders', async () => {
+    mainState.shareToken = 'tok';
+    fetchBinders.mockResolvedValueOnce([]);
+
+    await mount();
+
+    const empty = document.querySelector('.binder-builder-empty');
+    expect(empty.hidden).toBe(false);
+    expect(empty.textContent).toContain('shared');
   });
 });

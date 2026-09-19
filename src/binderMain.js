@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   addButtonToSidebar(
     '🔎 Browse Cards',
     () => {
-      window.location.href = 'index.html';
+      // Preserve `?share=` so a share visitor stays in the owner's view.
+      window.location.href = `index.html${window.location.search}`;
     },
     'collection',
     5
