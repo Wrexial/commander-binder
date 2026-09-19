@@ -113,9 +113,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   modal on every viewport — opened by a desktop click, a touch long-press or
   Surprise me — with a floating variant kept only for the statistics hover
   preview. It walks the visible grid on a left/right swipe and dismisses on a
-  downward swipe; the host (`cardInteractions.js`) exposes
-  `tooltip.onCycle`/`tooltip.onNavigate` so the printing-cycle control follows the
-  card on screen.
+  downward swipe, and its owned/missing badge is a toggle button (hidden in
+  view-only mode); the host (`cardInteractions.js`) exposes
+  `tooltip.onCycle`/`tooltip.onNavigate`/`tooltip.onToggle` so those controls
+  follow the card on screen.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `printings`, `pointer`, `viewport`, `collectionFormats`,
   `sortCards`).

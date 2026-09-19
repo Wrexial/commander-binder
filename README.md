@@ -50,8 +50,8 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   header-first and tolerant of messy files. The plain-text export is one card name per line, so
   it feeds straight back into Bulk Add.
 - **Modal card preview** — clicking a card on desktop (or long-pressing on touch) opens a
-  centred preview with the full artwork, set/price, owned status and a "Next printing" control;
-  swipe or use the arrows to move between cards.
+  centred preview with the full artwork, set/price, an **owned/missing toggle**, and a "Next
+  printing" control; swipe left/right (or use the arrows) to move between cards.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
   printings on touch, right-click on desktop, and swipe left/right in the card preview to move
   between cards. Alerts (such as the undo prompt) can be swiped away, and the list can be

@@ -386,6 +386,35 @@ describe('initCardInteractions', () => {
       );
     });
 
+    it('exposes a status toggle for the preview', async () => {
+      initCardInteractions(container, tooltipElement);
+      document.dispatchEvent(
+        new CustomEvent('card:preview', {
+          detail: { element: cardElement, card: cardElement.cardData },
+        })
+      );
+
+      expect(typeof tooltipElement.onToggle).toBe('function');
+
+      await tooltipElement.onToggle();
+
+      expect(cardState.toggleCardOwned).toHaveBeenCalledWith(cardElement.cardData);
+      expect(ownedCounter.updateOwnedCounter).toHaveBeenCalled();
+    });
+
+    it('disables the preview status toggle in view-only mode', () => {
+      appState.isViewOnlyMode = true;
+      initCardInteractions(container, tooltipElement);
+      document.dispatchEvent(
+        new CustomEvent('card:preview', {
+          detail: { element: cardElement, card: cardElement.cardData },
+        })
+      );
+
+      expect(tooltipElement.onToggle).toBeNull();
+      appState.isViewOnlyMode = false;
+    });
+
     it('should revert ownership when undo is clicked', async () => {
       initCardInteractions(container, tooltipElement);
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));

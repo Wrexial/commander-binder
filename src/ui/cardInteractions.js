@@ -46,14 +46,27 @@ function findAdjacentCard(current, direction) {
   return index === -1 ? null : cards[index + direction] || null;
 }
 
+/**
+ * Point the preview's controls (printing cycle, swipe navigation and ownership
+ * toggle) at a card element. `onToggle` is null in view-only mode, so the modal
+ * renders a plain status badge rather than a button.
+ */
+function wireCardControls(cardElement, tooltip) {
+  tooltipCardElement = cardElement;
+  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
+  tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
+  tooltip.onToggle = appState.isViewOnlyMode
+    ? null
+    : () => toggleCardOwnership(cardElement, cardElement.cardData);
+  tooltip.cycleLabel = null;
+}
+
 /** Move the open preview to the adjacent card, so its controls follow it. */
 function navigateTooltip(direction, event, tooltip) {
   const target = findAdjacentCard(tooltipCardElement, direction);
   if (!target || !target.cardData) return;
 
-  tooltipCardElement = target;
-  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(target, cycleEvent, tooltip);
-  tooltip.cycleLabel = null;
+  wireCardControls(target, tooltip);
   preloadCardImages(target.cardData);
   showTooltipCard(target.cardData, tooltip, event);
 }
@@ -63,10 +76,7 @@ function navigateTooltip(direction, event, tooltip) {
  * swipe-navigation controls. Used by desktop clicks and "Surprise me".
  */
 function openPreview(cardElement, card, tooltip, event) {
-  tooltipCardElement = cardElement;
-  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
-  tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
-  tooltip.cycleLabel = null;
+  wireCardControls(cardElement, tooltip);
   preloadCardImages(card);
   showTooltip(event, card, tooltip, { modal: true });
 }
@@ -97,12 +107,7 @@ function handleTouchStart(event, tooltip) {
   // The tooltip owns the cycle action on touch (no right-click). This stays
   // available in view-only/guest mode too: looking at another printing is a
   // view action, not an edit.
-  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
-  tooltip.cycleLabel = null;
-
-  // Swiping the full-screen preview left/right walks the visible grid.
-  tooltipCardElement = cardElement;
-  tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
+  wireCardControls(cardElement, tooltip);
 
   // Touch has no hover phase; start the image early since the preview shows
   // only after a 500ms long-press.
@@ -178,8 +183,22 @@ async function handleContainerClick(event, tooltip) {
 
   if (appState.isViewOnlyMode) return;
 
-  const wasMissing = !isCardOwned(card);
   event.stopPropagation();
+  await toggleCardOwnership(cardElement, card);
+}
+
+/**
+ * Toggle a card's ownership, updating the tile, the global/binder counters and
+ * the undo toast.
+ *
+ * @param {HTMLElement} cardElement
+ * @param {object} card
+ * @returns {Promise<boolean|null>} the new owned state, or null on failure.
+ */
+async function toggleCardOwnership(cardElement, card) {
+  if (!cardElement || !card) return null;
+
+  const wasMissing = !isCardOwned(card);
 
   let isOwned;
   try {
@@ -187,12 +206,11 @@ async function handleContainerClick(event, tooltip) {
   } catch (err) {
     console.error('Failed to update card ownership:', err);
     showToast('Could not update the card. Please try again.', 'error');
-    return;
+    return null;
   }
 
   syncCardOwnedUi(cardElement, isOwned);
-
-  updateOwnedCounter(); // Update global counter
+  updateOwnedCounter();
   adjustBinderOwnedCount(cardElement.closest('.binder'), isOwned ? 1 : -1);
 
   // Undo logic
@@ -208,6 +226,8 @@ async function handleContainerClick(event, tooltip) {
     updateOwnedCounter();
     adjustBinderOwnedCount(cardElement.closest('.binder'), wasMissing ? -1 : 1);
   });
+
+  return isOwned;
 }
 
 /**

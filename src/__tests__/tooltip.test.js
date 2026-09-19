@@ -212,6 +212,37 @@ describe('tooltip', () => {
       expect(tooltip.querySelector('.tooltip-text-container')).toBeNull();
     });
 
+    it('turns the owned/missing badge into a status toggle when the host allows it', async () => {
+      const onToggle = vi.fn().mockResolvedValue(true);
+      tooltip.onToggle = onToggle;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      const badge = tooltip.querySelector('.tooltip-owned-status');
+      expect(badge.tagName).toBe('BUTTON');
+      expect(badge.textContent).toBe('Missing');
+      expect(badge.getAttribute('aria-pressed')).toBe('false');
+
+      badge.click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(onToggle).toHaveBeenCalledTimes(1);
+      expect(badge.textContent).toBe('Owned');
+      expect(badge.classList.contains('owned')).toBe(true);
+      expect(badge.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('keeps the status as a plain badge without a host toggle', () => {
+      delete tooltip.onToggle;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.tooltip-owned-status').tagName).toBe('SPAN');
+    });
+
     it('closes when the backdrop edge is tapped', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();

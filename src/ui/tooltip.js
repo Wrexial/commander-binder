@@ -66,9 +66,11 @@ function getBackdrop() {
  * @param {{index: number, total: number}} version
  * @param {HTMLElement|null} [cycleControl] "Next printing" button to place
  *   beside the owned/missing badge.
+ * @param {HTMLElement} [tooltip] Host element; when it exposes `onToggle`, the
+ *   owned/missing badge becomes a button that flips the status.
  * @returns {HTMLElement}
  */
-function createTooltipDetails(card, version, cycleControl) {
+function createTooltipDetails(card, version, cycleControl, tooltip) {
   const details = document.createElement('div');
   details.className = 'tooltip-card-details';
 
@@ -126,10 +128,25 @@ function createTooltipDetails(card, version, cycleControl) {
     status.appendChild(link);
   }
 
-  const owned = isCardOwned(card);
-  const badge = document.createElement('span');
-  badge.className = `tooltip-owned-status ${owned ? 'owned' : 'missing'}`;
-  badge.textContent = owned ? 'Owned' : 'Missing';
+  const canToggle = typeof tooltip?.onToggle === 'function';
+  const badge = document.createElement(canToggle ? 'button' : 'span');
+  setOwnedStatus(badge, isCardOwned(card));
+
+  if (canToggle) {
+    badge.type = 'button';
+    badge.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      if (badge.disabled) return;
+      badge.disabled = true;
+      try {
+        const next = await tooltip.onToggle();
+        if (typeof next === 'boolean') setOwnedStatus(badge, next);
+      } finally {
+        badge.disabled = false;
+      }
+    });
+  }
+
   status.appendChild(badge);
 
   // The printing-cycle control lives next to the owned/missing badge, so the
@@ -161,6 +178,22 @@ function createCycleButton(tooltip) {
     tooltip.onCycle(clickEvent);
   });
   return button;
+}
+
+/**
+ * Reflect an owned/missing status on the badge (span or button).
+ * @param {HTMLElement} element
+ * @param {boolean} owned
+ */
+function setOwnedStatus(element, owned) {
+  element.className = `tooltip-owned-status ${owned ? 'owned' : 'missing'}`;
+  element.textContent = owned ? 'Owned' : 'Missing';
+
+  if (element.tagName === 'BUTTON') {
+    element.setAttribute('aria-pressed', String(owned));
+    element.title = owned ? 'Mark as missing' : 'Mark as owned';
+    element.setAttribute('aria-label', element.title);
+  }
 }
 
 /**
@@ -347,7 +380,7 @@ function renderTooltipContent(card, tooltip, e, { reposition = true } = {}) {
     position.total > 1 && typeof tooltip.onCycle === 'function' ? createCycleButton(tooltip) : null;
 
   if (modal) {
-    tooltip.appendChild(createTooltipDetails(card, position, cycleControl));
+    tooltip.appendChild(createTooltipDetails(card, position, cycleControl, tooltip));
 
     if (typeof tooltip.onNavigate === 'function') {
       const hint = document.createElement('div');

@@ -1415,6 +1415,27 @@ body.tooltip-open {
   color: var(--muted);
 }
 
+/* In the modal the badge is a button that flips the status. */
+button.tooltip-owned-status {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button.tooltip-owned-status:hover {
+  filter: brightness(1.1);
+}
+
+button.tooltip-owned-status:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+button.tooltip-owned-status:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* Explicit cycle control for touch devices, which have no right-click. */
 .printing-cycle {
   display: inline-block;
