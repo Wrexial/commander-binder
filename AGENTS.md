@@ -4,11 +4,12 @@ Instructions for coding agents working in this repository.
 
 ## Project Overview
 
-A Scryfall-based Magic: The Gathering collection tracker. The frontend is a
-vanilla JavaScript SPA bundled with **Vite** and styled with plain CSS. It is
-deployed on **Netlify**, using Netlify Functions for the backend API and a
-**Neon Postgres** database accessed through **Drizzle ORM**. Authentication is
-handled by **Clerk**. The Scryfall public API provides card data.
+**Legendex** is a Scryfall-based Magic: The Gathering collection tracker. The
+frontend is a vanilla JavaScript SPA bundled with **Vite** and styled with plain
+CSS. It is deployed on **Netlify**, using Netlify Functions for the backend API
+and a **Neon Postgres** database accessed through **Drizzle ORM**.
+Authentication is handled by **Clerk**. The Scryfall public API provides card
+data.
 
 ## Commands
 

@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Legendary Creature Collector",
-  "short_name": "Legendary",
-  "description": "Browse and track your Magic: The Gathering legendary creatures by their first appearance.",
+  "name": "Legendex — Legendary Creature Collector",
+  "short_name": "Legendex",
+  "description": "Legendex — browse and track your Magic: The Gathering legendary creatures by their first appearance.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

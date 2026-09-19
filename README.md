@@ -1,10 +1,10 @@
-# Legendary Creature Collector
+# Legendex
 
 [![CI](https://github.com/Wrexial/commander-binder/actions/workflows/ci.yml/badge.svg)](https://github.com/Wrexial/commander-binder/actions/workflows/ci.yml)
 
-A web app for browsing and tracking a **Magic: The Gathering** collection of legendary
-creatures, ordered by the year they first appeared in the game. Cards stream in oldest-first,
-so your collection reads like a history of Commander.
+Legendex is a web app for browsing and tracking a **Magic: The Gathering** collection of
+legendary creatures, ordered by the year they first appeared in the game. Cards stream in
+oldest-first, so your collection reads like a history of Commander.
 
 **Live site:** <https://commanders-binders.netlify.app/>
 
