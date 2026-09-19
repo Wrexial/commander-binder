@@ -27,7 +27,7 @@ describe('preferredPrintings', () => {
     cardStore.add(printing('p2', 'Card', '2021-01-01'));
 
     expect(preferredPrintings.getPreferredPrinting('Card')).toBeNull();
-    expect(preferredPrintings.getPreferredPrintingIds()).toEqual([]);
+    expect(preferredPrintings.getPreferredPrintings()).toEqual({});
   });
 
   it('remembers and resolves the chosen printing', async () => {
@@ -42,34 +42,49 @@ describe('preferredPrintings', () => {
     expect(preferredPrintings.resolveDisplayPrinting(first)).toBe(second);
   });
 
-  it('moves a re-picked printing to the most-recent position', async () => {
+  it('keeps only one printing per card name', async () => {
+    const { cardStore, preferredPrintings } = await setup();
+    const first = printing('p1', 'Card', '2010-01-01');
+    const second = printing('p2', 'Card', '2021-01-01');
+    cardStore.add(first);
+    cardStore.add(second);
+
+    preferredPrintings.rememberPreferredPrinting(first);
+    preferredPrintings.rememberPreferredPrinting(second);
+
+    expect(Object.keys(preferredPrintings.getPreferredPrintings())).toEqual(['Card']);
+    expect(preferredPrintings.getPreferredPrinting('Card')).toBe(second);
+    expect(preferredPrintings.resolveDisplayPrinting(first)).toBe(second);
+  });
+
+  it('moves a re-picked name to the most-recent position', async () => {
     const { preferredPrintings } = await setup();
 
-    preferredPrintings.rememberPreferredPrinting({ id: 'a' });
-    preferredPrintings.rememberPreferredPrinting({ id: 'b' });
-    preferredPrintings.rememberPreferredPrinting({ id: 'a' });
+    preferredPrintings.rememberPreferredPrinting({ id: 'a-id', name: 'A' });
+    preferredPrintings.rememberPreferredPrinting({ id: 'b-id', name: 'B' });
+    preferredPrintings.rememberPreferredPrinting({ id: 'a2-id', name: 'A' });
 
-    expect(preferredPrintings.getPreferredPrintingIds()).toEqual(['b', 'a']);
+    expect(Object.keys(preferredPrintings.getPreferredPrintings())).toEqual(['B', 'A']);
   });
 
   it('drops the oldest choices once the cap is reached', async () => {
     const { preferredPrintings } = await setup();
 
     for (let i = 0; i < MAX_PREFERRED_PRINTINGS + 5; i++) {
-      preferredPrintings.rememberPreferredPrinting({ id: `p${i}` });
+      preferredPrintings.rememberPreferredPrinting({ id: `id${i}`, name: `Card ${i}` });
     }
 
-    const ids = preferredPrintings.getPreferredPrintingIds();
-    expect(ids).toHaveLength(MAX_PREFERRED_PRINTINGS);
-    expect(ids[0]).toBe('p5');
-    expect(ids[ids.length - 1]).toBe(`p${MAX_PREFERRED_PRINTINGS + 4}`);
+    const keys = Object.keys(preferredPrintings.getPreferredPrintings());
+    expect(keys).toHaveLength(MAX_PREFERRED_PRINTINGS);
+    expect(keys[0]).toBe('Card 5');
+    expect(keys[keys.length - 1]).toBe(`Card ${MAX_PREFERRED_PRINTINGS + 4}`);
   });
 
   it('ignores a card without an id', async () => {
     const { preferredPrintings } = await setup();
 
     expect(preferredPrintings.rememberPreferredPrinting(null)).toBe(false);
-    expect(preferredPrintings.getPreferredPrintingIds()).toEqual([]);
+    expect(preferredPrintings.getPreferredPrintings()).toEqual({});
   });
 
   it('falls back to the card when its chosen printing is not loaded', async () => {
@@ -77,7 +92,7 @@ describe('preferredPrintings', () => {
     const first = printing('p1', 'Card', '2010-01-01');
     cardStore.add(first);
 
-    preferredPrintings.rememberPreferredPrinting({ id: 'not-loaded' });
+    preferredPrintings.rememberPreferredPrinting({ id: 'not-loaded', name: 'Card' });
 
     expect(preferredPrintings.resolveDisplayPrinting(first)).toBe(first);
   });
@@ -89,7 +104,9 @@ describe('preferredPrintings', () => {
       throw new Error('quota exceeded');
     });
 
-    expect(() => preferredPrintings.rememberPreferredPrinting({ id: 'a' })).not.toThrow();
-    expect(preferredPrintings.getPreferredPrintingIds()).toEqual(['a']);
+    expect(() =>
+      preferredPrintings.rememberPreferredPrinting({ id: 'a', name: 'Card' })
+    ).not.toThrow();
+    expect(preferredPrintings.getPreferredPrintings()).toEqual({ Card: 'a' });
   });
 });

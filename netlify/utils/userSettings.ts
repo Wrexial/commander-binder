@@ -2,8 +2,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { userSettings } from '../../db/schema';
 
-/** Largest settings blob we accept, to keep one account from bloating a row. */
-export const MAX_SETTINGS_BYTES = 8 * 1024;
+/**
+ * Largest settings blob we accept, to keep one account from bloating a row.
+ * The preferred-printings map (name -> Scryfall id) is the main consumer; with
+ * `MAX_PREFERRED_PRINTINGS` capped at 150 it stays comfortably under this.
+ */
+export const MAX_SETTINGS_BYTES = 16 * 1024;
 
 /** A settings payload is a plain, non-array object. */
 export function isValidSettings(value: unknown): value is Record<string, unknown> {

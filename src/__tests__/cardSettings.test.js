@@ -50,7 +50,7 @@ describe('cardSettings', () => {
     saveSettings();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: [] })
+      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: {} })
     );
   });
 
@@ -62,25 +62,30 @@ describe('cardSettings', () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'cardSettings',
-      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: [] })
+      JSON.stringify({ displayMode: 'list', swipeDismissToast: true, preferredPrintings: {} })
     );
   });
 
-  it('accepts a printing-id list but drops out-of-cap or malformed values', async () => {
+  it('accepts a name -> id map but drops arrays, malformed values or over-cap maps', async () => {
     const { MAX_PREFERRED_PRINTINGS, cardSettings, applySettings } =
       await import('../state/cardSettings.js');
 
-    expect(applySettings({ preferredPrintings: ['a', 'b'] })).toBe(true);
-    expect(cardSettings.preferredPrintings).toEqual(['a', 'b']);
+    expect(applySettings({ preferredPrintings: { 'Sol Ring': 'a', 'Mana Crypt': 'b' } })).toBe(
+      true
+    );
+    expect(cardSettings.preferredPrintings).toEqual({ 'Sol Ring': 'a', 'Mana Crypt': 'b' });
 
-    // Non-string entries are rejected.
-    expect(applySettings({ preferredPrintings: ['a', 2] })).toBe(false);
-    expect(cardSettings.preferredPrintings).toEqual(['a', 'b']);
+    // A non-string id and the legacy array shape are both rejected.
+    expect(applySettings({ preferredPrintings: { 'Sol Ring': 2 } })).toBe(false);
+    expect(applySettings({ preferredPrintings: ['a'] })).toBe(false);
+    expect(cardSettings.preferredPrintings).toEqual({ 'Sol Ring': 'a', 'Mana Crypt': 'b' });
 
-    // An over-cap list is rejected rather than truncated by the sanitizer.
-    const tooMany = Array.from({ length: MAX_PREFERRED_PRINTINGS + 1 }, (_, i) => `p${i}`);
+    // An over-cap map is rejected rather than truncated by the sanitizer.
+    const tooMany = Object.fromEntries(
+      Array.from({ length: MAX_PREFERRED_PRINTINGS + 1 }, (_, i) => [`Card ${i}`, `p${i}`])
+    );
     expect(applySettings({ preferredPrintings: tooMany })).toBe(false);
-    expect(cardSettings.preferredPrintings).toEqual(['a', 'b']);
+    expect(cardSettings.preferredPrintings).toEqual({ 'Sol Ring': 'a', 'Mana Crypt': 'b' });
   });
 
   it('applies only known, valid settings and reports whether anything changed', async () => {

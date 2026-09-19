@@ -12,10 +12,9 @@ const DEFAULT_SETTINGS = {
   displayMode: 'images',
   // Swipe any direction on a toast (e.g. the undo prompt) to dismiss it early.
   swipeDismissToast: true,
-  // Printing ids the user explicitly chose with the version cycle, oldest
-  // choice first. Ids only (not names) keep the synced blob small; the card
-  // store resolves them to the actual printing at render time.
-  preferredPrintings: [],
+  // Card name -> chosen printing id. One entry per card, so cycling a name a
+  // second time replaces the first pick rather than accumulating printings.
+  preferredPrintings: {},
 };
 
 /** Accepted values per setting, so persisted/synced data can't inject junk. */
@@ -23,9 +22,13 @@ const SETTING_VALIDATORS = {
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
   swipeDismissToast: (value) => typeof value === 'boolean',
   preferredPrintings: (value) =>
-    Array.isArray(value) &&
-    value.length <= MAX_PREFERRED_PRINTINGS &&
-    value.every((id) => typeof id === 'string' && id.length > 0),
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Object.keys(value).length <= MAX_PREFERRED_PRINTINGS &&
+    Object.entries(value).every(
+      ([name, id]) => name.length > 0 && typeof id === 'string' && id.length > 0
+    ),
 };
 
 const STORAGE_KEY = 'cardSettings';

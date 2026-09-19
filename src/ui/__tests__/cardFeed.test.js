@@ -19,6 +19,7 @@ vi.mock('../cards.js', () => ({
   updateCardState: vi.fn(),
   updateAllCardStates: vi.fn(),
   updateCardVersionCounts: vi.fn(),
+  applyPreferredPrintings: vi.fn(),
 }));
 vi.mock('../../state/cardStore.js', () => ({
   primaryName: (cardOrName) =>

@@ -6,6 +6,8 @@ vi.mock('../../state/cardState.js', () => ({
 }));
 
 vi.mock('../../state/cardStore.js', () => ({
+  primaryName: (cardOrName) =>
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
   cardStore: { getPrintings: vi.fn(() => []), getAll: vi.fn(() => []) },
 }));
 
