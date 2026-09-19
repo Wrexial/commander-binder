@@ -510,6 +510,24 @@ describe('applyPreferredPrintings', () => {
     expect(element.cardData).toBe(base);
     document.body.innerHTML = '';
   });
+
+  it('leaves a binder pocket on its exact stored printing', () => {
+    const base = { id: 'base', name: 'Card', released_at: '2010-01-01' };
+    const chosen = { id: 'chosen', name: 'Card', released_at: '2020-01-01' };
+    cardStore.add(base);
+    cardStore.add(chosen);
+    resolveDisplayPrinting.mockReturnValue(chosen);
+
+    const element = createCardElement(base, 0);
+    element.dataset.binderSlot = '0:0:0';
+    document.body.appendChild(element);
+
+    applyPreferredPrintings();
+
+    // The global preference never overrides a pocket's own printing.
+    expect(element.cardData).toBe(base);
+    document.body.innerHTML = '';
+  });
 });
 
 describe('updateCardState', () => {

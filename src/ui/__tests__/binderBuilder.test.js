@@ -156,6 +156,21 @@ describe('binderBuilder', () => {
     });
   });
 
+  it('saves a pocket printing when the shared interactions cycle it', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'printing-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot.is-filled')).not.toBeNull());
+
+    document.dispatchEvent(
+      new CustomEvent('binder:printing-changed', {
+        detail: { slotKey: '0:0:0', printingId: 'printing-b' },
+      })
+    );
+
+    await vi.waitFor(() => expect(getActiveBinder().slots['0:0:0']).toBe('printing-b'));
+  });
+
   it('navigates pages and clears the current page', async () => {
     await mount();
     const binder = getActiveBinder();

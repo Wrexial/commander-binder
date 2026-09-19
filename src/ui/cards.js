@@ -581,6 +581,11 @@ export function applyDisplayMode() {
  */
 export function applyPreferredPrintings() {
   document.querySelectorAll('.card').forEach((cardElement) => {
+    // A Binder Builder pocket stores its own exact printing; the global
+    // preferred printing must never override it (otherwise two pockets holding
+    // the same card both snap to one version).
+    if (cardElement.dataset?.binderSlot) return;
+
     const card = cardElement.cardData;
     if (!card) return;
 

@@ -309,6 +309,26 @@ describe('initCardInteractions', () => {
       expect(rememberPreferredPrinting).toHaveBeenCalledWith(second);
     });
 
+    it('saves a binder pocket printing on its slot instead of the global preference', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = first;
+      cardElement.dataset.binderSlot = '0:0:0';
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      const details = [];
+      document.addEventListener('binder:printing-changed', (event) => details.push(event.detail), {
+        once: true,
+      });
+
+      initCardInteractions(container, tooltipElement);
+      cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+      expect(cardElement.cardData.id).toBe('p2');
+      expect(rememberPreferredPrinting).not.toHaveBeenCalled();
+      expect(details).toEqual([{ slotKey: '0:0:0', printingId: 'p2' }]);
+    });
+
     it('cycles the printing when the version badge is activated, without toggling ownership', async () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };

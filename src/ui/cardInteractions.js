@@ -367,10 +367,22 @@ function cycleCardPrinting(cardElement, event, tooltip, direction = 1) {
   );
   if (!next) return;
 
-  // Remember the pick so the grid keeps showing this printing on later loads.
-  // Persisted from the view-only share path too: choosing art is a view action,
-  // not an ownership edit.
-  rememberPreferredPrinting(next);
+  // A Binder Builder pocket owns its printing per slot. Cycling it must update
+  // that slot (handled by `binderBuilder`) and must NOT change the global
+  // preferred printing, which would move every other pocket (and the grid).
+  const binderSlot = cardElement.dataset?.binderSlot;
+  if (binderSlot) {
+    document.dispatchEvent(
+      new CustomEvent('binder:printing-changed', {
+        detail: { slotKey: binderSlot, printingId: next.id },
+      })
+    );
+  } else {
+    // Remember the pick so the grid keeps showing this printing on later loads.
+    // Persisted from the view-only share path too: choosing art is a view
+    // action, not an ownership edit.
+    rememberPreferredPrinting(next);
+  }
 
   // Cycling rebuilds the tile, which would drop focus on the (replaced) version
   // button; put it back so keyboard users stay on the control they activated.

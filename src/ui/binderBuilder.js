@@ -337,6 +337,20 @@ function openPickerForSlot(key) {
   });
 }
 
+/**
+ * Persist a pocket's printing after the shared card interactions cycled it.
+ * The tile carries `data-binder-slot`; `cardInteractions` does the printing
+ * math (it owns the store order) and emits this so we can save that exact
+ * printing on the slot instead of the global preferred-printing map.
+ */
+function handlePrintingChanged(event) {
+  const { slotKey: key, printingId } = event.detail || {};
+  if (!key || !printingId || !canEditBinders()) return;
+  const binder = getActiveBinder();
+  if (!binder || !binder.slots[key]) return;
+  assignCardToSlot(binder.id, key, printingId);
+}
+
 /** Delegated pocket clicks: move, remove, or open the picker. */
 function handlePageClick(event) {
   const slot = event.target.closest('.binder-slot');
@@ -501,6 +515,9 @@ export function render() {
         const index = activePage * binder.columns * binder.rows + row * binder.columns + col;
         const tile = createCardElement(card, index);
         tile.dataset.cardIndex = String(index);
+        // Marks the tile as owning its exact printing, so the global
+        // preferred-printing pass leaves it alone and cycling updates the slot.
+        tile.dataset.binderSlot = key;
         updateCardState(tile);
         slot.append(tile);
         if (editable) slot.appendChild(createSlotControls());
@@ -544,12 +561,16 @@ export async function initBinderBuilder(root) {
   if (!listening) {
     listening = true;
     document.addEventListener('binders:changed', render);
+    document.addEventListener('binder:printing-changed', handlePrintingChanged);
   }
 }
 
-/** Tear down the document listener (tests). */
+/** Tear down the document listeners (tests). */
 export function teardownBinderBuilder() {
-  if (listening) document.removeEventListener('binders:changed', render);
+  if (listening) {
+    document.removeEventListener('binders:changed', render);
+    document.removeEventListener('binder:printing-changed', handlePrintingChanged);
+  }
   listening = false;
   hydrationInFlight = false;
   refs = null;
