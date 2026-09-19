@@ -150,6 +150,36 @@ describe('bulkData', () => {
     expect(downloadCalls).toHaveLength(1);
   });
 
+  it('does not send custom headers on the bulk download (avoids a rejected CORS preflight)', async () => {
+    const entry = {
+      type: 'default_cards',
+      updated_at: '2026-09-12T21:05:31.691+00:00',
+      jsonl_download_uri: 'https://data.scryfall.io/default-cards/cards.jsonl.gz',
+    };
+    const jsonl = JSON.stringify(makeCard({ name: 'Legend' }));
+    const calls = [];
+
+    global.fetch.mockImplementation(async (url, options) => {
+      calls.push({ url: String(url), options });
+      if (String(url).includes('/bulk-data')) {
+        return { ok: true, json: async () => ({ data: [entry] }) };
+      }
+      return mockResponse({
+        body: streamFromBytes(await gzipBytes(jsonl)),
+        url: entry.jsonl_download_uri,
+        contentType: 'application/gzip',
+      });
+    });
+
+    await getLegendaryCreatures();
+
+    const download = calls.find((c) => c.url.includes('cards.jsonl.gz'));
+    expect(download).toBeDefined();
+    // A `User-Agent` header would make Firefox preflight data.scryfall.io,
+    // which Cloudflare answers with a headerless 403.
+    expect(download.options).toBeUndefined();
+  });
+
   it('serves a repeat request from the subset cache', async () => {
     const entry = {
       type: 'default_cards',

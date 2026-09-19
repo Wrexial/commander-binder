@@ -20,11 +20,15 @@ import { createStore } from '../utils/idb.js';
 
 const BULK_INDEX_URL = 'https://api.scryfall.com/bulk-data';
 
-/** Scryfall asks clients to identify themselves; browsers drop this header. */
-const SCRYFALL_USER_AGENT = 'ScryfallCollectionTracker/1.0';
+/**
+ * `Accept` is a CORS-safelisted header, so this request stays a simple request
+ * (no preflight). Do NOT add a `User-Agent` here: browsers don't let pages set
+ * it meaningfully, and because it is no longer on the forbidden-header list
+ * Firefox turns it into a preflight that the `data.scryfall.io` CDN rejects
+ * with a 403 (breaking bulk downloads).
+ */
 const SCRYFALL_HEADERS = {
   Accept: 'application/json',
-  'User-Agent': SCRYFALL_USER_AGENT,
 };
 
 /** The bulk index changes at most a few times a day; an hour is plenty. */
@@ -236,9 +240,9 @@ export async function* readJsonlLines(response) {
  */
 export async function downloadFilteredBulkCards(type, predicate, options = {}) {
   const entry = options.entry || (await getBulkEntry(type));
-  const res = await fetch(entry.jsonl_download_uri, {
-    headers: { 'User-Agent': SCRYFALL_USER_AGENT },
-  });
+  // No custom headers here: a preflight against data.scryfall.io is rejected
+  // (403, no CORS headers), which used to break the whole bulk download.
+  const res = await fetch(entry.jsonl_download_uri);
   if (!res.ok) throw new Error(`Scryfall bulk download failed: HTTP ${res.status}`);
 
   const cards = [];
