@@ -235,8 +235,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   comes from `cardState` (share token) and the visitor's from `compareState`
   (server when signed in, IndexedDB otherwise), with "Wishlist missing" and
   "Copy names" actions. The same module's `showListCompareModal` diffs one custom
-  list against the viewer's collection (signed in, guest or share view) with
-  "Wishlist missing"/"Copy list". Plain
+  list against the viewer's collection (signed in, guest or share view) into
+  just two buckets — the list cards you have and the ones you don't; cards you
+  own that aren't on the list are ignored — with "Wishlist missing"/"Copy list".
+  Plain
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
   (`merge-owned`/`merge-wishlist`), and they get the same collection sidebar

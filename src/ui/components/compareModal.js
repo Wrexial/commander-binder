@@ -60,6 +60,39 @@ function render(contentArea, modal, diff, labels) {
 }
 
 /**
+ * Paint a list-vs-collection diff: only the two things that matter for a list
+ * are shown — the list cards you have and the ones you don't. Cards in the
+ * collection that aren't on the list are ignored.
+ *
+ * @param {HTMLElement} contentArea
+ * @param {HTMLElement} modal
+ * @param {{ ownerOnly: string[], shared: string[] }} diff
+ */
+function renderListCompare(contentArea, modal, diff) {
+  const missing = sortedLabels(diff.ownerOnly);
+  const have = sortedLabels(diff.shared);
+
+  const subtitle = modal.querySelector('.bulk-modal-subtitle');
+  if (subtitle) subtitle.textContent = `${have.length} you have · ${missing.length} you don't`;
+
+  if (have.length === 0 && missing.length === 0) {
+    contentArea.innerHTML = '<p class="bulk-empty">This list has no cards yet.</p>';
+    return;
+  }
+
+  const summary = `
+    <div class="bulk-summary">
+      ${summaryChip('owned', 'You have', have.length)}
+      ${summaryChip('missing', "You don't have", missing.length)}
+    </div>`;
+
+  const groups =
+    previewGroup('missing', "You don't have", missing) + previewGroup('owned', 'You have', have);
+
+  contentArea.innerHTML = `${summary}<div class="bulk-groups">${groups}</div>`;
+}
+
+/**
  * Open the "Compare Collections" modal: a read-only diff between the shared
  * collection and the viewer's own. Loading the viewer's collection can involve
  * a request, so the modal opens immediately with a loading state.
@@ -167,16 +200,7 @@ export async function showListCompareModal(list) {
   const collectionIds = mainState.shareToken ? await loadViewerCollection() : getOwnedCardIds();
   const diff = diffCollections(listIds, collectionIds, keyFor);
 
-  render(contentArea, shell.modal, diff, {
-    subtitle:
-      `${diff.ownerOnly.length} on the list you don't own · ` +
-      `${diff.viewerOnly.length} you own that aren't on it`,
-    chipLeft: "On the list · you don't own",
-    chipRight: 'In your collection · not on the list',
-    groupLeft: "On the list — you're missing",
-    groupRight: 'In your collection — not on the list',
-    empty: 'Your collection and this list match.',
-  });
+  renderListCompare(contentArea, shell.modal, diff);
 
   // One list printing id per card key, for the wishlist action.
   const listIdByKey = new Map();

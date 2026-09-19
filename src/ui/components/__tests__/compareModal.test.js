@@ -116,14 +116,15 @@ describe('showListCompareModal', () => {
     await showListCompareModal({ id: 'L1', name: 'Trade pile' });
 
     const chips = [...document.querySelectorAll('.bulk-summary-chip')].map((el) => el.textContent);
-    expect(
-      chips.some((text) => text.includes("On the list · you don't own") && text.includes('1'))
-    ).toBe(true);
-    expect(chips.some((text) => text.includes('not on the list') && text.includes('1'))).toBe(true);
+    expect(chips.some((text) => text.includes('You have') && text.includes('1'))).toBe(true);
+    expect(chips.some((text) => text.includes("You don't have") && text.includes('1'))).toBe(true);
 
+    // Only the list's own cards are shown: what you have and what you don't.
+    // Cards you own that aren't on the list are ignored.
     const rows = [...document.querySelectorAll('.bulk-row')].map((el) => el.textContent);
+    expect(rows).toContain('Both Have');
     expect(rows).toContain('Only They Have');
-    expect(rows).toContain('Only I Have');
+    expect(rows).not.toContain('Only I Have');
 
     [...document.querySelectorAll('.modal-button-container button')]
       .find((candidate) => candidate.textContent === 'Wishlist missing')
