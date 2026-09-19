@@ -65,6 +65,14 @@ beforeEach(() => {
 });
 
 describe('addCardsModal binder targets', () => {
+  it('defaults the target to the binder it is opened with', () => {
+    createAddCardsModal({ kind: 'binder:B1' }).show();
+
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe(
+      'Add to “Trade binder”'
+    );
+  });
+
   it('surfaces binders in the target picker', () => {
     createAddCardsModal().show();
 

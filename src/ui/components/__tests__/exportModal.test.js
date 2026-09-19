@@ -234,4 +234,13 @@ describe('exportModal', () => {
 
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();
   });
+
+  it('opens on the requested collection (e.g. the visible binder)', () => {
+    const collections = [ownedCollection(cards), listCollection([cards[0]])];
+
+    createExportModal({ collections, initialId: 'L1' }).show();
+
+    const active = document.querySelector('.target-toggle-option[aria-pressed="true"]');
+    expect(active.textContent).toBe('Trade pile');
+  });
 });

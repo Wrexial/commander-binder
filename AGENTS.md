@@ -59,7 +59,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   the sidebar and its collection tools, the guest welcome/install prompt,
   collection/wishlist/list/binder loading and the guest→account merges, settings
   sync and `setupUI` (binders load without seeding, so the bulk modals can list
-  them on either page). Each page calls `bootShell()` and then mounts its own
+  them on either page). The shell owns the Bulk Add / Bulk Check / Export buttons
+  for both pages; their default target is the _visible binder_ on the Binder
+  Builder page (`defaultTargetId()` reads `getActiveBinderId()` when
+  `#binder-root` exists) and the collection elsewhere. Each page calls
+  `bootShell()` and then mounts its own
   main content (`main.js` = the search/browse grid, `binderMain.js` = the Binder
   Builder).
 - `src/binderMain.js` + `binder.html` — the separate Binder Builder page. It
@@ -82,7 +86,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   Scryfall `default_cards` file once and, in the same pass, keeps the legendary
   subset _and_ builds the all-cards name catalog (`state/cardCatalog.js`) — so
   every card name is available for the picker and compare tools with no extra
-  download. The cached subset is versioned, so a shape change forces one rebuild.
+  download. The cached subset is versioned, so a shape change forces one rebuild;
+  `cardCatalog` also derives a name→id lookup from its id→name map when reading
+  an older cached record that predates that field.
   `cardSearch.js` is the
   Binder Builder's all-cards layer: autocomplete, exact-name printing lists and
   id hydration (added to `cardStore`), all through the same cache/rate limiter.
@@ -131,7 +137,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `compareState.js` loads the viewer's _own_ collection separately from the
   share view's owner collection, so the two can be diffed. `selectionState.js`
   holds the bulk-edit multi-selection (keyed by card name), entered from the
-  sidebar's "☑️ Bulk Edit" button; `bulkEdit.js` renders the floating action bar
+  sidebar's "☑️ Bulk Edit" button (browse view only — the shell omits it on the
+  Binder Builder page, where the grid-oriented bar isn't initialized);
+  `bulkEdit.js` renders the floating action bar
   (hidden until the mode is active) and offers select-all-visible,
   hidden-selection pruning, per-batch undo, an "Add to list" action that opens
   the batch list picker, and Esc to exit; `cards.js` paints
@@ -176,10 +184,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   create form and selects the new
   list, and the export button feeds each list and binder in
   as a collection (hydrating a binder's not-yet-loaded cards first), so they all
-  work on lists and binders exactly like the built-ins. The add/check modals
-  resolve pasted names against the all-cards `cardCatalog` when they are not in
-  `cardStore`, batching a fetch for the missing printings, so _any_ card can be
-  added/checked — not only ones a binder already hydrated; plus the
+  work on lists and binders exactly like the built-ins. The export modal also
+  takes an `initialId`, so on the binder page it opens on the visible binder.
+  The add/check modals resolve pasted names against the all-cards `cardCatalog`
+  when they are not in `cardStore`, batching a fetch for the missing printings,
+  and fall back to a live lookup while the catalog is still loading, so _any_
+  card can be added/checked — not only ones a binder already hydrated; plus the
   shared
   `cardNameInput.js` autocomplete (which suggests names from the catalog too), the share-view `compareModal.js` diff,
   the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation, a

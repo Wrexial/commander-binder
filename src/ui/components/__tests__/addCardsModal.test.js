@@ -24,17 +24,21 @@ vi.mock('../ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
 vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 vi.mock('../../../state/cardCatalog.js', () => ({
   getCatalogNames: vi.fn(() => []),
+  isCardCatalogLoaded: vi.fn(() => true),
   resolveCatalogPrintingId: vi.fn(() => null),
 }));
-vi.mock('../../../api/cardSearch.js', () => ({ hydrateCardsByIds: vi.fn(async () => []) }));
+vi.mock('../../../api/cardSearch.js', () => ({
+  hydrateCardsByIds: vi.fn(async () => []),
+  loadPrintingsForName: vi.fn(async () => []),
+}));
 
 import { createAddCardsModal } from '../addCardsModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
 import { addCardsToList, isInList } from '../../../state/listsState.js';
-import { resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
-import { hydrateCardsByIds } from '../../../api/cardSearch.js';
+import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
+import { hydrateCardsByIds, loadPrintingsForName } from '../../../api/cardSearch.js';
 import { showToast } from '../toast.js';
 
 const solRing = { id: 'id-sol', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
@@ -75,6 +79,8 @@ beforeEach(() => {
   setCardsOwned.mockResolvedValue();
   resolveCatalogPrintingId.mockReturnValue(null);
   hydrateCardsByIds.mockResolvedValue([]);
+  isCardCatalogLoaded.mockReturnValue(true);
+  loadPrintingsForName.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -107,6 +113,26 @@ describe('addCardsModal', () => {
     expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-catalog-sol']);
     expect(chipTexts()[0]).toBe('Will add 1');
     expect(chipTexts()[2]).toBe('Not found 0');
+  });
+
+  it('falls back to a live lookup before the all-cards catalog has loaded', async () => {
+    isCardCatalogLoaded.mockReturnValue(false);
+    cardStore.getAll.mockReturnValue([]);
+    cardStore.getPrintings.mockReturnValue([]);
+    const live = { id: 'id-live', name: 'Live Card' };
+    loadPrintingsForName.mockImplementation(async () => {
+      cardStore.getAll.mockReturnValue([live]);
+      cardStore.getPrintings.mockReturnValue([live]);
+      return [live];
+    });
+
+    createAddCardsModal().show();
+    textArea().value = 'Live Card';
+    textArea().dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(loadPrintingsForName).toHaveBeenCalledWith('Live Card');
+    expect(chipTexts()[0]).toBe('Will add 1');
   });
 
   it('shows an empty state before anything is entered', () => {

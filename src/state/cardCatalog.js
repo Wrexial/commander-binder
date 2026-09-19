@@ -38,6 +38,15 @@ export function setCardCatalog({ cardNames, cardNameById, cardIdByName } = {}) {
   nameById = new Map(Object.entries(cardNameById || {}));
   idByName = new Map(Object.entries(cardIdByName || {}));
 
+  // Subsets cached before `cardIdByName` existed only carry `nameById`; invert
+  // it so name resolution still works without re-downloading the bulk file.
+  if (idByName.size === 0 && nameById.size > 0) {
+    for (const [id, name] of nameById) {
+      const key = name.toLowerCase();
+      if (!idByName.has(key)) idByName.set(key, id);
+    }
+  }
+
   canonicalByName = new Map();
   for (const name of names) canonicalByName.set(name.toLowerCase(), name);
 

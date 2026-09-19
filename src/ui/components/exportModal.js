@@ -26,13 +26,16 @@ function sortedByName(cards) {
  * `{ id, label, cards, filePrefix, noun, emptyMessage }`; the picker switches
  * the active one and the format/filter controls apply to whichever is active.
  *
- * @param {{collections: object[], title?: string}} options
+ * @param {{collections: object[], title?: string, initialId?: string}} options
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createExportModal({ collections, title = 'Export Cards' }) {
-  // Prefer a collection that actually has cards, so the modal doesn't open on
-  // an empty side when the other one has content.
-  let active = collections.find((collection) => collection.cards.length > 0) || collections[0];
+export function createExportModal({ collections, title = 'Export Cards', initialId }) {
+  // Prefer the requested collection (e.g. the binder currently on screen), then
+  // one that actually has cards, so the modal doesn't open on an empty side.
+  let active =
+    collections.find((collection) => collection.id === initialId) ||
+    collections.find((collection) => collection.cards.length > 0) ||
+    collections[0];
   let allCards = sortedByName(active.cards);
 
   const { shell, close, contentArea, buttons } = createCollectionModal({

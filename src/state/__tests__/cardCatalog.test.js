@@ -5,6 +5,7 @@ import {
   rankCatalogNames,
   resetCardCatalog,
   resolveCatalogName,
+  resolveCatalogPrintingId,
   setCardCatalog,
 } from '../cardCatalog.js';
 
@@ -53,6 +54,17 @@ describe('cardCatalog', () => {
     });
 
     expect(rankCatalogNames('forest', 5)).toHaveLength(5);
+  });
+
+  it('derives a name -> id lookup when only the id -> name map is present', () => {
+    // Older cached subsets predate `cardIdByName`; name resolution must still work.
+    setCardCatalog({
+      cardNames: ['Sol Ring'],
+      cardNameById: { 'id-sol-a': 'Sol Ring', 'id-sol-b': 'Sol Ring' },
+    });
+
+    expect(resolveCatalogPrintingId('sol ring')).toBe('id-sol-a');
+    expect(resolveCatalogPrintingId('unknown')).toBeNull();
   });
 
   it('resets', () => {

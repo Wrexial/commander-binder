@@ -14,7 +14,12 @@ import { initCardSettings, applySettingsFromStore } from '../ui/settingsUI.js';
 import { loadCardStates, mergeLocalCollectionToAccount } from '../state/cardState.js';
 import { loadWishlistStates, mergeLocalWishlistToAccount } from '../state/wishlistState.js';
 import { loadLists, mergeLocalListsToAccount } from '../state/listsState.js';
-import { loadBinders, mergeLocalBindersToAccount } from '../state/bindersState.js';
+import {
+  loadBinders,
+  mergeLocalBindersToAccount,
+  getActiveBinderId,
+} from '../state/bindersState.js';
+import { binderTargetId } from '../ui/components/collectionModal.js';
 import { initClerk, getClerk } from '../auth/clerk.js';
 import { createSignInButton } from '../ui/components/SignInButton.js';
 import { createGuestModeText } from '../ui/components/GuestModeText.js';
@@ -24,7 +29,9 @@ import { initSettingsSync, pullSettings } from '../state/settingsSync.js';
 import { updateOwnedCounter } from '../ui/components/ownedCounter.js';
 import {
   createAddCardsButton,
+  createBulkCheckButton,
   createCompareButton,
+  createExportButton,
   createRecentActivityButton,
   createSurpriseButton,
   updateAllBinderCounts,
@@ -38,12 +45,38 @@ import { registerServiceWorker } from '../pwa.js';
 import { initInstallPrompt, mountInstallButton } from '../ui/installPrompt.js';
 
 /** The card add/manager dialogs, pulled in on demand as separate chunks. */
-const loadAddCardsModal = async () =>
-  (await import('../ui/components/addCardsModal.js')).createAddCardsModal();
+const loadAddCardsModal = async (kind) =>
+  (await import('../ui/components/addCardsModal.js')).createAddCardsModal({ kind });
+const loadBulkCheckModal = async (target) =>
+  (await import('../ui/components/bulkCardModal.js')).createBulkCheckModal({ target });
 const loadListsModal = async () =>
   (await import('../ui/components/listsModal.js')).createListsModal();
 const loadSettingsModal = async () =>
   (await import('../ui/components/settingsModal.js')).createSettingsModal();
+
+/** True on the Binder Builder page (vs the browse/collection view). */
+function isBinderView() {
+  return Boolean(document.getElementById('binder-root'));
+}
+
+/**
+ * The default target for the bulk add/check tools: on the Binder Builder page
+ * the binder currently on screen, otherwise the collection.
+ */
+function defaultTargetId() {
+  if (isBinderView()) {
+    const binderId = getActiveBinderId();
+    if (binderId) return binderTargetId(binderId);
+  }
+  return 'owned';
+}
+
+/** The bulk add/check buttons, wired to the current view's default target. */
+function addBulkTools() {
+  createAddCardsButton(() => showModal(() => loadAddCardsModal(defaultTargetId())));
+  createBulkCheckButton(() => showModal(() => loadBulkCheckModal(defaultTargetId())));
+  createExportButton();
+}
 
 /** Open a lazily-loaded modal, when it built successfully. */
 export async function showModal(loadModal) {
@@ -64,10 +97,15 @@ export async function showStatistics() {
  */
 function addCollectionTools() {
   addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
-  addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
+  // Bulk edit's floating bar is grid-oriented and isn't initialized on the
+  // Binder Builder page, so don't offer it there (binder bulk behaviour is a
+  // separate, TBD feature).
+  if (!isBinderView()) {
+    addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
+  }
   addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'collection', 25);
 
-  createAddCardsButton(() => showModal(loadAddCardsModal));
+  addBulkTools();
   createSurpriseButton();
   createRecentActivityButton();
 }
@@ -147,6 +185,9 @@ export async function setupUI() {
     createSurpriseButton();
     createRecentActivityButton();
     createCompareButton();
+    // Read-only bulk tools; "Add Cards" is omitted because it writes.
+    createBulkCheckButton(() => showModal(() => loadBulkCheckModal(defaultTargetId())));
+    createExportButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
   } else if (clerk.user) {

@@ -17,8 +17,8 @@ import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { getList, getLists, isInList } from '../../state/listsState.js';
 import { getBinder, getBinders, isCardInBinder } from '../../state/bindersState.js';
-import { resolveCatalogPrintingId } from '../../state/cardCatalog.js';
-import { hydrateCardsByIds } from '../../api/cardSearch.js';
+import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../state/cardCatalog.js';
+import { hydrateCardsByIds, loadPrintingsForName } from '../../api/cardSearch.js';
 
 const VALIDATION_DEBOUNCE_MS = 250;
 
@@ -31,6 +31,9 @@ const VALIDATION_DEBOUNCE_MS = 250;
  * @returns {{ show: () => void, destroy: () => void }}
  */
 function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
+  /** Names already looked up live, so a typo isn't re-fetched every pass. */
+  const attemptedNames = new Set();
+
   /** Resolve a target id to the predicate and copy the modal needs. */
   function describeTarget(id) {
     if (id === 'wishlist') {
@@ -124,6 +127,8 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   async function resolveCatalogMatches() {
     const { entries } = parseCollection(input.textArea.value);
     const ids = new Set();
+    const namesToLoad = new Set();
+    const catalogReady = isCardCatalogLoaded();
 
     for (const entry of entries) {
       const raw = normalizeName(entry.raw ?? '');
@@ -131,11 +136,26 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
       if (input.nameIndex.has(raw) || input.nameIndex.has(name)) continue;
       const id = resolveCatalogPrintingId(entry.raw ?? '') || resolveCatalogPrintingId(entry.name);
       if (id) ids.add(id);
+      // Before the catalog loads it cannot tell a real name from a typo, so ask
+      // Scryfall directly (once per name) rather than reporting "not found".
+      else if (!catalogReady && entry.name && !attemptedNames.has(entry.name)) {
+        namesToLoad.add(entry.name);
+      }
     }
 
-    if (ids.size === 0) return false;
+    if (ids.size === 0 && namesToLoad.size === 0) return false;
+
     const before = cardStore.getAll().length;
-    await hydrateCardsByIds([...ids]);
+    if (ids.size > 0) await hydrateCardsByIds([...ids]);
+    for (const name of namesToLoad) {
+      attemptedNames.add(name);
+      try {
+        await loadPrintingsForName(name);
+      } catch (err) {
+        console.error('Failed to load printings for', name, err);
+      }
+    }
+
     const changed = cardStore.getAll().length > before;
     if (changed) {
       for (const card of cardStore.getAll()) {

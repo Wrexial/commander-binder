@@ -127,4 +127,26 @@ describe('setupUI', () => {
     );
     expect(sidebarButtons.some((text) => text.includes('Bulk Edit'))).toBe(true);
   });
+
+  it('omits the grid-only Bulk Edit tool on the Binder Builder page', async () => {
+    document.body.innerHTML = `
+      <div id="user-actions"></div>
+      <div id="sidebar"></div>
+      <div id="guest-welcome"></div>
+      <button id="openbtn"></button>
+      <div id="binder-root"></div>
+    `;
+    clerk.getClerk.mockReturnValue({ openSignIn: vi.fn() });
+
+    await setupUI();
+
+    const labels = [...document.querySelectorAll('#sidebar button')].map(
+      (button) => button.textContent
+    );
+    expect(labels.some((text) => text.includes('Bulk Edit'))).toBe(false);
+    // The other collection tools are still offered.
+    expect(labels.some((text) => text.includes('Add Cards'))).toBe(true);
+    expect(labels.some((text) => text.includes('Bulk Check'))).toBe(true);
+    expect(labels.some((text) => text.includes('Export Cards'))).toBe(true);
+  });
 });

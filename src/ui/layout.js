@@ -6,7 +6,12 @@ import { isHoverCapable } from '../utils/pointer.js';
 import { isCardOwned } from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
 import { getListCards, getLists } from '../state/listsState.js';
-import { getBinderCards, getBinderPrintingIds, getBinders } from '../state/bindersState.js';
+import {
+  getBinderCards,
+  getBinderPrintingIds,
+  getBinders,
+  getActiveBinderId,
+} from '../state/bindersState.js';
 import { hydrateCardsByIds } from '../api/cardSearch.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
@@ -213,8 +218,14 @@ export function createExportButton() {
 
       if (document.querySelector('.list-modal-backdrop')) return;
 
+      // On the Binder Builder page, open on the binder that is currently shown.
+      const activeBinderId = document.getElementById('binder-root') ? getActiveBinderId() : null;
+
       const { createExportModal } = await import('./components/exportModal.js');
-      createExportModal({ collections }).show();
+      createExportModal({
+        collections,
+        initialId: activeBinderId ? `binder:${activeBinderId}` : undefined,
+      }).show();
     },
     'collection',
     30

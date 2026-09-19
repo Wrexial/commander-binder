@@ -1,5 +1,5 @@
 // main.js
-import { bootShell, showModal } from './app/shell.js';
+import { bootShell } from './app/shell.js';
 import { initLazyCards } from './ui/lazyCardLoader.js';
 import { applySort } from './ui/cardFeed.js';
 import { initSearch, refreshCardFilter } from './ui/search.js';
@@ -10,17 +10,11 @@ import { initBulkEdit } from './ui/bulkEdit.js';
 import { initScrollPosition } from './ui/scrollPosition.js';
 import { initYearScrubber } from './ui/yearScrubber.js';
 import { initViewportMetrics } from './utils/viewport.js';
-import { createBulkCheckButton, createExportButton, updateAllBinderCounts } from './ui/layout.js';
+import { updateAllBinderCounts } from './ui/layout.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
 
 // setupUI stays importable from here for the existing tests/bootstrap callers.
 export { setupUI } from './app/shell.js';
-
-/**
- * The bulk-check dialog is heavy, so it is pulled in on demand (its own chunk).
- */
-const loadBulkCheckModal = async () =>
-  (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
 
 /** The binder builder is a separate page; this is the link that reaches it. */
 function addBinderBuilderLink() {
@@ -42,8 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initLazyCards(results, tooltip);
   initYearScrubber();
   updateAllBinderCounts();
-  createBulkCheckButton(() => showModal(loadBulkCheckModal));
-  createExportButton();
   addBinderBuilderLink();
 
   initViewportMetrics();

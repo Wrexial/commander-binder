@@ -24,9 +24,13 @@ vi.mock('../../../state/bindersState.js', () => ({
 
 vi.mock('../../../state/cardCatalog.js', () => ({
   getCatalogNames: vi.fn(() => []),
+  isCardCatalogLoaded: vi.fn(() => true),
   resolveCatalogPrintingId: vi.fn(() => null),
 }));
-vi.mock('../../../api/cardSearch.js', () => ({ hydrateCardsByIds: vi.fn(async () => []) }));
+vi.mock('../../../api/cardSearch.js', () => ({
+  hydrateCardsByIds: vi.fn(async () => []),
+  loadPrintingsForName: vi.fn(async () => []),
+}));
 
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []) },
@@ -144,6 +148,15 @@ describe('bulk check modal', () => {
 
     expect(groupLabels()).toEqual(['In “Trade pile”', 'Not in “Trade pile”']);
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
+  });
+
+  it('defaults the target to a binder when opened with it', () => {
+    getBinders.mockReturnValue([{ id: 'B1', name: 'Trade binder' }]);
+    getBinder.mockReturnValue({ id: 'B1', name: 'Trade binder' });
+
+    createBulkCheckModal({ target: 'binder:B1' }).show();
+
+    expect(document.querySelector('.bulk-modal-subtitle').textContent).toContain('Trade binder');
   });
 
   it('checks against a binder', async () => {
