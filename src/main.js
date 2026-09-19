@@ -5,6 +5,7 @@ import { applySort } from './ui/cardFeed.js';
 import { initCardSettings, applySettingsFromStore } from './ui/settingsUI.js';
 import { loadCardStates, mergeLocalCollectionToAccount } from './state/cardState.js';
 import { loadWishlistStates, mergeLocalWishlistToAccount } from './state/wishlistState.js';
+import { loadLists, mergeLocalListsToAccount } from './state/listsState.js';
 import { initSearch, refreshCardFilter } from './ui/search.js';
 import { initFilterBar } from './ui/filterBar.js';
 import { initClerk, getClerk } from './auth/clerk.js';
@@ -46,6 +47,8 @@ const loadAddCardsModal = async () =>
   (await import('./ui/components/addCardsModal.js')).createAddCardsModal();
 const loadBulkCheckModal = async () =>
   (await import('./ui/components/bulkCardModal.js')).createBulkCheckModal();
+const loadListsModal = async () =>
+  (await import('./ui/components/listsModal.js')).createListsModal();
 
 async function showStatistics() {
   const { showStatisticsModal } = await import('./ui/statistics.js');
@@ -67,6 +70,7 @@ async function showModal(loadModal) {
 function addCollectionTools() {
   addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
   addButtonToSidebar('☑️ Bulk Edit', () => toggleSelectionMode(), 'collection', 35);
+  addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'collection', 25);
 
   createAddCardsButton(() => showModal(loadAddCardsModal));
   createSurpriseButton();
@@ -144,6 +148,7 @@ export async function setupUI() {
     const guestModeText = createGuestModeText();
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 30);
+    addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'browse', 35);
     createSurpriseButton();
     createRecentActivityButton();
     createCompareButton();
@@ -238,10 +243,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSettingsSync();
   initScrollPosition();
 
+  // List membership is painted on the tiles, so repaint them whenever lists
+  // load or change (the filter bar has its own listener).
+  document.addEventListener('lists:changed', () => {
+    updateAllCardStates();
+  });
+
   // Load saved marks in parallel with the card grid so Clerk/Netlify/DB
   // latency does not delay the first cards. Marks are re-applied here once
   // the owned/wishlist state arrives (cards may already be rendered).
-  Promise.all([loadCardStates(), loadWishlistStates()])
+  Promise.all([loadCardStates(), loadWishlistStates(), loadLists()])
     .then(async () => {
       // A guest's locally-tracked cards are merged into the account the first
       // time the app boots signed in (and on any retry after a failed merge).
@@ -256,6 +267,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (await mergeLocalWishlistToAccount()) await loadWishlistStates();
         } catch (err) {
           console.error('Failed to merge the local wishlist:', err);
+        }
+        try {
+          await mergeLocalListsToAccount();
+        } catch (err) {
+          console.error('Failed to merge the local lists:', err);
         }
       }
 

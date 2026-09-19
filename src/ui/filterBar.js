@@ -13,6 +13,7 @@ import {
   resetFilters,
 } from '../state/filters.js';
 import { getSavedFilters, saveFilters } from '../state/viewState.js';
+import { getList, getLists } from '../state/listsState.js';
 import { SORT_OPTIONS } from '../utils/sortCards.js';
 
 const PRICE_DEBOUNCE_MS = 300;
@@ -28,6 +29,9 @@ let groupSeq = 0;
  * duplicate listeners.
  */
 let externalFilterHandler = null;
+
+/** The active `lists:changed` listener, replaced on re-init like the above. */
+let listsChangedHandler = null;
 
 function toNumber(value) {
   const number = Number(value);
@@ -163,6 +167,37 @@ function populateSetOptions(select, current) {
 }
 
 /**
+ * Fill the list `<select>` from the user's custom lists. The list ids are not
+ * known until `listsState` loads, which may happen after the bar is built.
+ */
+function populateListOptions(select, current) {
+  select.textContent = '';
+
+  const any = document.createElement('option');
+  any.value = '';
+  any.textContent = 'Any list';
+  select.appendChild(any);
+
+  for (const list of getLists()) {
+    const option = document.createElement('option');
+    option.value = list.id;
+    option.textContent = list.name;
+    select.appendChild(option);
+  }
+
+  // A persisted id whose list has not loaded yet stays selectable, so the
+  // filter isn't silently dropped while lists arrive asynchronously.
+  if (current && !getLists().some((list) => list.id === current)) {
+    const option = document.createElement('option');
+    option.value = current;
+    option.textContent = 'Selected list';
+    select.appendChild(option);
+  }
+
+  select.value = current || '';
+}
+
+/**
  * Wire the filter bar. Restores persisted filters, builds the controls, and
  * calls `onChange` (which re-runs the shared card filter) on every edit.
  *
@@ -218,6 +253,14 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   setSelect.setAttribute('aria-label', 'Filter by set');
   setSelect.addEventListener('change', () => {
     filters.set = setSelect.value;
+    commit();
+  });
+
+  const listSelect = document.createElement('select');
+  listSelect.className = 'filter-select filter-list';
+  listSelect.setAttribute('aria-label', 'Filter by list');
+  listSelect.addEventListener('change', () => {
+    filters.list = listSelect.value || null;
     commit();
   });
 
@@ -295,6 +338,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     for (const color of filters.colors) items.push(labelFor(COLOR_OPTIONS, color));
     for (const rarity of filters.rarities) items.push(labelFor(RARITY_OPTIONS, rarity));
     if (filters.set) items.push(filters.set.toUpperCase());
+    if (filters.list) items.push(getList(filters.list)?.name || 'List');
     if (filters.priceMin != null || filters.priceMax != null) {
       const min = filters.priceMin != null ? `€${filters.priceMin}` : '';
       const max = filters.priceMax != null ? `€${filters.priceMax}` : '';
@@ -330,6 +374,11 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
         filters.set = '';
       });
     }
+    if (filters.list) {
+      actions.push(() => {
+        filters.list = null;
+      });
+    }
     if (filters.priceMin != null || filters.priceMax != null) {
       actions.push(() => {
         filters.priceMin = null;
@@ -363,6 +412,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     group('Colours', colorRow),
     group('Rarity', rarities.el),
     group('Set', setSelect),
+    group('List', listSelect),
     group('Price (€)', priceRow),
     resetButton
   );
@@ -373,6 +423,8 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     colorMode.sync(filters.colorMode);
     rarities.sync(filters.rarities);
     setSelect.value = filters.set;
+    if (filters.list && !getList(filters.list)) filters.list = null;
+    listSelect.value = filters.list || '';
     sortSelect.value = filters.sort;
     priceMin.value = filters.priceMin ?? '';
     priceMax.value = filters.priceMax ?? '';
@@ -405,12 +457,23 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   };
   document.addEventListener('filter:set', externalFilterHandler);
 
+  // Lists can load or change (create/delete/merge) after the bar is built, so
+  // keep the dropdown in step and drop a filter for a list that no longer exists.
+  if (listsChangedHandler) document.removeEventListener('lists:changed', listsChangedHandler);
+  listsChangedHandler = () => {
+    populateListOptions(listSelect, filters.list);
+    syncControls();
+    onChange?.();
+  };
+  document.addEventListener('lists:changed', listsChangedHandler);
+
   function setOpen(open) {
     panel.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
     if (open) {
       // The collection keeps loading, so refresh the set list each time.
       populateSetOptions(setSelect, filters.set);
+      populateListOptions(listSelect, filters.list);
       syncControls();
     }
   }
@@ -424,6 +487,7 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   });
 
   populateSetOptions(setSelect, filters.set);
+  populateListOptions(listSelect, filters.list);
   syncControls();
 
   // Apply restored filters to anything already rendered.

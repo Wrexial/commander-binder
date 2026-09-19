@@ -19,6 +19,14 @@ import {
   syncCardSelection,
 } from './cards.js';
 import { showPressIndicator, hidePressIndicator } from './pressIndicator.js';
+import { createListPicker } from './components/listPicker.js';
+
+/** Lazily-built singleton list picker, shared by every card preview. */
+let listPicker = null;
+function getListPicker() {
+  if (!listPicker) listPicker = createListPicker();
+  return listPicker;
+}
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -71,6 +79,7 @@ function wireCardControls(cardElement, tooltip) {
   tooltip.onWishlistToggle = appState.isViewOnlyMode
     ? null
     : () => toggleWishlist(cardElement, cardElement.cardData);
+  tooltip.onAddToList = () => getListPicker().show(cardElement.cardData);
   tooltip.cycleLabel = null;
 }
 

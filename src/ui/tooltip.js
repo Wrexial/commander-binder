@@ -6,6 +6,7 @@ import { isHoverCapable } from '../utils/pointer.js';
 import { cardStore } from '../state/cardStore.js';
 import { isCardOwned } from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
+import { getListsForCard } from '../state/listsState.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
@@ -172,6 +173,22 @@ function createTooltipDetails(card, version, cycleControl, tooltip) {
   }
 
   status.appendChild(wishlistBadge);
+
+  // Membership in the user's custom lists. The picker also works read-only in a
+  // share view, so a visitor can see which public lists hold the card.
+  if (typeof tooltip?.onAddToList === 'function') {
+    const listButton = document.createElement('button');
+    listButton.type = 'button';
+    listButton.className = 'tooltip-list-button';
+    const listCount = getListsForCard(card).length;
+    listButton.textContent = listCount > 0 ? `\uD83D\uDCCB Lists (${listCount})` : 'Add to list';
+    listButton.title = listCount > 0 ? 'Edit list membership' : 'Add to a list';
+    listButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      tooltip.onAddToList();
+    });
+    status.appendChild(listButton);
+  }
 
   // The printing-cycle control lives next to the owned/missing badge, so the
   // swipe hint below never pushes it off screen.

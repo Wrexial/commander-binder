@@ -58,14 +58,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   (`bulkData.js`), search-response cache (`responseCache.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
   guest merge clients (`mergeCollection.js` factory, re-exported as `mergeOwned.js`
-  / `mergeWishlist.js`). `scryfall.js` is
+  / `mergeWishlist.js`), and the custom-list client (`lists.js` — read,
+  create/update/delete, item add/remove and guest merge). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
-  `localCollection`, `localWishlist`, `compareState`, `selectionState`, `viewState`,
+  `localCollection`, `localWishlist`, `listsState`, `localLists`, `compareState`, `selectionState`, `viewState`,
   `onboarding`,
   `filters`,
   `settingsSync`). State is
@@ -74,7 +75,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   cycle). `cardState.js` and `wishlistState.js` are thin instances of the
   shared `collectionState.js` factory (owned vs wanted), each switching between
   the device-local store (`localCollection.js`/`localWishlist.js`, signed-out
-  guest) and the server (signed in or share token). `preferredPrintings.js`
+  guest) and the server (signed in or share token). `listsState.js` is the
+  custom named-list registry (many lists, each with list-level notes and a
+  public/private flag); unlike the collections it is not a single flat set, so
+  it has its own module, backed by `localLists.js` (IndexedDB, one self-contained
+  record per list) for guests and read-only public lists in a share view. It
+  dispatches `lists:changed` on every load/mutation; `main.js` repaints tile
+  badges from it and `filterBar.js` refreshes its list dropdown.
+  `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control).
   `compareState.js` loads the viewer's _own_ collection separately from the
@@ -88,8 +96,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
-  `filters.js` holds the filter-bar state (including the sort option and the
-  collection lens — All/Owned/Wanted/Missing — plus rarity/colour/set/price
+  `filters.js` holds the filter-bar state (including the sort option, the
+  collection lens — All/Owned/Wanted/Missing — a custom-list lens, plus
+  rarity/colour/set/price
   controls, surfaced as removable chips) and the
   `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
   account via the `user-settings` function (best-effort, signed-in only).
@@ -107,7 +116,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
-  `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`) and their
+  `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
+  custom-list UI (`listsModal.js` — create/rename/notes/public/delete and “add
+  selection”; `listPicker.js` — per-card membership opened from the preview) and
+  their
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks. Statistics includes a "Wishlist Targets" section that
@@ -115,7 +127,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart. `is:wanted`
   reads the wishlist and `is:new` matches cards added to either collection in the
-  last 30 days; `sortCards.js` also offers wanted-first/not-wanted-first orders.
+  last 30 days; `is:listed` matches cards on any custom list and `list:"name"`
+  matches a named one. `sortCards.js` also offers wanted-first/not-wanted-first
+  orders.
   `yearScrubber.js` builds the draggable rail from one mark per _visible_
   section (the section's first visible card, labelled by the active sort —
   release year + sets in the default order, or letter/price/rarity/colour
@@ -163,10 +177,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `sortCards.js` defines the sort options and the pure `sortCards`/`sortMark`
   helpers, including the WUBRG colour order.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`,
-  `wishlistCards.ts`) and DB client (`index.ts`).
+  `wishlistCards.ts`, `cardLists.ts`, `cardListItems.ts`) and DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
   `batch-toggle-cards`, `merge-owned`, `wishlist-cards`, `toggle-wishlist`,
-  `batch-toggle-wishlist`, `merge-wishlist`, `share-link`, `user-settings`).
+  `batch-toggle-wishlist`, `merge-wishlist`, `share-link`, `user-settings`,
+  `lists`, `manage-list`, `list-items`, `merge-lists`).
 - `netlify/utils/mergeOwned.ts` — validates the `cardIds` payload for
   `merge-owned` (shape + `MAX_BATCH_SIZE`); the handler union-inserts them into
   the verified caller's account and ignores `shareToken`.
@@ -178,6 +193,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   by the owned and wishlist function files. `readCollection` accepts a
   `shareToken` as a read-only capability, so a share link exposes the owner's
   wishlist as well as their collection.
+- `netlify/utils/listHandlers.ts` + `netlify/utils/lists.ts` — the custom-list
+  read/create/update/delete/item/merge handlers and their payload validation
+  (`MAX_LISTS`, name/notes caps). `readLists` takes a `shareToken` as a read
+  capability too, but returns only lists marked public.
 - `netlify/utils/userSettings.ts` — load/save a user's JSON settings blob for
   the `user-settings` handler, with a size cap and shape validation.
 - `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
@@ -248,7 +267,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `db/index.ts` (Neon). Migrations live in `migrations/` (`0000` creates
   `owned_cards`/`user_settings`, `0001` adds `share_links`, `0002` adds
   `owned_cards.created_at` for the "Recent additions" log, `0003` adds
-  `wishlist_cards`). If the Neon database
+  `wishlist_cards`, `0004` adds `card_lists`/`card_list_items` for the custom
+  named lists). If the Neon database
   was created outside Drizzle, baseline existing migrations before
   `npm run db:migrate`, otherwise it fails with "table already exists".
 - Keep `drizzle-kit` on the 0.31+ line. `drizzle.config.ts` and the `db:*`

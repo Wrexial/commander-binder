@@ -4,9 +4,16 @@ vi.mock('../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []) },
 }));
 
+vi.mock('../../state/listsState.js', () => ({
+  getLists: vi.fn(() => []),
+  getList: vi.fn(() => null),
+  isInList: vi.fn(() => false),
+}));
+
 import { initFilterBar } from '../filterBar.js';
 import { filters, resetFilters } from '../../state/filters.js';
 import { cardStore } from '../../state/cardStore.js';
+import { getList, getLists } from '../../state/listsState.js';
 
 /** The segment button with `text` inside the filter group labelled `groupLabel`. */
 function segment(groupLabel, text) {
@@ -29,6 +36,8 @@ beforeEach(() => {
   sessionStorage.clear();
   resetFilters();
   document.body.innerHTML = '';
+  getLists.mockReturnValue([]);
+  getList.mockReturnValue(null);
   cardStore.getAll.mockReturnValue([
     { name: 'A', set: 'dom', set_name: 'Dominaria' },
     { name: 'B', set: 'ice', set_name: 'Ice Age' },
@@ -48,7 +57,7 @@ describe('initFilterBar', () => {
     const panel = document.getElementById('filter-panel');
 
     expect(panel.hidden).toBe(true);
-    expect(panel.querySelectorAll('.filter-group')).toHaveLength(6);
+    expect(panel.querySelectorAll('.filter-group')).toHaveLength(7);
 
     toggle.click();
     expect(panel.hidden).toBe(false);
@@ -137,6 +146,27 @@ describe('initFilterBar', () => {
     select.dispatchEvent(new Event('change'));
 
     expect(filters.set).toBe('ice');
+  });
+
+  it('filters by a custom list', () => {
+    getLists.mockReturnValue([{ id: 'L1', name: 'Trade pile' }]);
+    getList.mockImplementation((id) => (id === 'L1' ? { id: 'L1', name: 'Trade pile' } : null));
+
+    const onChange = vi.fn();
+    initFilterBar({ onChange });
+
+    const select = document.querySelector('.filter-list');
+    expect([...select.options].map((option) => option.textContent)).toEqual([
+      'Any list',
+      'Trade pile',
+    ]);
+
+    select.value = 'L1';
+    select.dispatchEvent(new Event('change'));
+
+    expect(filters.list).toBe('L1');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(activeBadgeText()).toBe('1');
   });
 
   it('lists sets newest first, right after "Any set"', () => {

@@ -10,6 +10,7 @@ import { cardStore } from '../state/cardStore.js';
 import { getPreferredPrinting } from '../state/preferredPrintings.js';
 import { isCardWanted } from '../state/wishlistState.js';
 import { isCardSelected, isSelectionMode } from '../state/selectionState.js';
+import { getListsForCard } from '../state/listsState.js';
 
 /**
  * Native browser tooltip hint shown on mouse-driven (PC) layouts, where the
@@ -246,6 +247,32 @@ export function syncCardSelection(cardElement) {
   const card = cardElement.cardData;
   const selected = isSelectionMode() && Boolean(card) && isCardSelected(card);
   cardElement.classList.toggle('selected', selected);
+}
+
+/**
+ * Paint a small badge showing how many custom lists the card belongs to, so
+ * membership is discoverable without opening the preview. Removed when zero.
+ * @param {HTMLElement} cardElement
+ */
+export function syncCardListUi(cardElement) {
+  const card = cardElement.cardData;
+  const count = card ? getListsForCard(card).length : 0;
+  let badge = cardElement.querySelector('.card-lists');
+
+  if (count === 0) {
+    badge?.remove();
+    return;
+  }
+
+  const label = `${count} list${count === 1 ? '' : 's'}`;
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'card-lists';
+    cardElement.appendChild(badge);
+  }
+  badge.textContent = `\uD83D\uDCCB ${count}`;
+  badge.title = `In ${label}`;
+  badge.setAttribute('aria-label', `In ${label}`);
 }
 
 /**
@@ -579,6 +606,7 @@ export function updateCardState(cardElement) {
   // The wishlist is independent of ownership, so it is synced separately.
   syncCardWantedUi(cardElement, isCardWanted(card));
   syncCardSelection(cardElement);
+  syncCardListUi(cardElement);
   // A saved preferred printing gets a small pin on the version badge.
   cardElement.classList.toggle('pinned', Boolean(getPreferredPrinting(card)));
 }

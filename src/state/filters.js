@@ -9,6 +9,7 @@
  */
 import { isCardOwned } from './cardState.js';
 import { isCardWanted } from './wishlistState.js';
+import { isInList } from './listsState.js';
 import { getDisplayedPrice } from '../utils/prices.js';
 
 export const COLOR_OPTIONS = [
@@ -62,6 +63,7 @@ export const COLOR_MODE_OPTIONS = [
 
 export const DEFAULT_FILTERS = {
   collection: 'all', // 'all' | 'owned' | 'wanted' | 'missing'
+  list: null, // a custom list id, or null for any
   colors: [], // subset of COLOR_OPTIONS ids; [] = any
   colorMode: 'exclusive', // one of COLOR_MODE_OPTIONS ids
   rarities: [], // subset of RARITY_OPTIONS ids; [] = any
@@ -116,6 +118,8 @@ export function normalizeFilters(raw) {
     next.rarities = [...new Set(raw.rarities)].filter((rarity) => RARITY_IDS.has(rarity));
   }
   if (typeof raw.set === 'string') next.set = raw.set.toLowerCase();
+  if (typeof raw.list === 'string' && raw.list.length > 0) next.list = raw.list;
+  else next.list = null;
   if (typeof raw.sort === 'string') next.sort = raw.sort;
   next.priceMin = toPrice(raw.priceMin);
   next.priceMax = toPrice(raw.priceMax);
@@ -136,6 +140,7 @@ export function resetFilters() {
 export function activeFilterCount() {
   let count = 0;
   if (filters.collection !== 'all') count++;
+  if (filters.list) count++;
   if (filters.colors.length > 0) count++;
   if (filters.rarities.length > 0) count++;
   if (filters.set) count++;
@@ -173,6 +178,7 @@ export function cardMatchesFilters(card) {
   if (filters.collection === 'owned' && !isCardOwned(card)) return false;
   if (filters.collection === 'missing' && isCardOwned(card)) return false;
   if (filters.collection === 'wanted' && !isCardWanted(card)) return false;
+  if (filters.list && !isInList(filters.list, card)) return false;
 
   if (filters.colors.length > 0 && !matchesColors(card)) return false;
   if (filters.rarities.length > 0 && !filters.rarities.includes(card.rarity)) return false;

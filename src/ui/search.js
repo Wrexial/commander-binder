@@ -5,6 +5,7 @@ import { renderSearchHelp } from './searchHelp.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned, getOwnedAddedAt } from '../state/cardState.js';
 import { isCardWanted, getWantedAddedAt } from '../state/wishlistState.js';
+import { getListByName, getListsForCard, isInList } from '../state/listsState.js';
 import { cardStore } from '../state/cardStore.js';
 import { getSavedSearch, saveSearch } from '../state/viewState.js';
 import { activeFilterCount, cardMatchesFilters } from '../state/filters.js';
@@ -192,6 +193,9 @@ function cardMatchesFilter(card, filter) {
       case 'new':
         match = wasAddedRecently(card.cardData);
         break;
+      case 'listed':
+        match = getListsForCard(card.cardData).length > 0;
+        break;
       case 'colorless':
         match = (card.cardData.color_identity || []).length === 0;
         break;
@@ -202,6 +206,10 @@ function cardMatchesFilter(card, filter) {
         match = Array.isArray(card.cardData.card_faces) && card.cardData.card_faces.length > 0;
         break;
     }
+  } else if (filter.startsWith('list:')) {
+    const listName = getFilterValue(filter, 'list:').toLowerCase();
+    const list = getListByName(listName);
+    match = list ? isInList(list.id, card.cardData) : false;
   } else if (filter.startsWith('price:')) {
     const priceTerm = getFilterValue(filter, 'price:').replace(',', '.');
     const price = parseFloat(card.cardData.prices?.eur);

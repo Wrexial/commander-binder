@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('../cardState.js', () => ({ isCardOwned: vi.fn(() => false) }));
 vi.mock('../wishlistState.js', () => ({ isCardWanted: vi.fn(() => false) }));
+vi.mock('../listsState.js', () => ({ isInList: vi.fn(() => false) }));
 vi.mock('../../utils/prices.js', () => ({ getDisplayedPrice: vi.fn(() => null) }));
 
 import {
@@ -14,6 +15,7 @@ import {
 } from '../filters.js';
 import { isCardOwned } from '../cardState.js';
 import { isCardWanted } from '../wishlistState.js';
+import { isInList } from '../listsState.js';
 import { getDisplayedPrice } from '../../utils/prices.js';
 
 function makeCard(overrides = {}) {
@@ -24,6 +26,7 @@ beforeEach(() => {
   resetFilters();
   isCardOwned.mockReturnValue(false);
   isCardWanted.mockReturnValue(false);
+  isInList.mockReturnValue(false);
   getDisplayedPrice.mockReturnValue(null);
 });
 
@@ -103,6 +106,17 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard({ color_identity: ['G'] }))).toBe(false);
   });
 
+  it('filters by a custom list', () => {
+    const card = makeCard();
+    isInList.mockReturnValue(true);
+    applyFilters({ ...DEFAULT_FILTERS, list: 'L1' });
+    expect(cardMatchesFilters(card)).toBe(true);
+    expect(isInList).toHaveBeenCalledWith('L1', card);
+
+    isInList.mockReturnValue(false);
+    expect(cardMatchesFilters(card)).toBe(false);
+  });
+
   it('filters by rarity and set', () => {
     applyFilters({ ...DEFAULT_FILTERS, rarities: ['mythic'], set: 'dom' });
 
@@ -134,6 +148,9 @@ describe('activeFilterCount', () => {
 
     applyFilters({ ...DEFAULT_FILTERS, collection: 'owned', colors: ['W'], priceMin: 1 });
     expect(activeFilterCount()).toBe(3);
+
+    applyFilters({ ...DEFAULT_FILTERS, list: 'L1' });
+    expect(activeFilterCount()).toBe(1);
 
     applyFilters({ ...DEFAULT_FILTERS, collection: 'wanted' });
     expect(activeFilterCount()).toBe(1);
@@ -182,6 +199,12 @@ describe('normalizeFilters', () => {
 
   it('accepts the exclusive colour mode', () => {
     expect(normalizeFilters({ colorMode: 'exclusive' }).colorMode).toBe('exclusive');
+  });
+
+  it('keeps a list id and drops an empty one', () => {
+    expect(normalizeFilters({ list: 'L1' }).list).toBe('L1');
+    expect(normalizeFilters({ list: '' }).list).toBeNull();
+    expect(normalizeFilters({}).list).toBeNull();
   });
 
   it('migrates the old separate owned/wanted filters into the collection lens', () => {
