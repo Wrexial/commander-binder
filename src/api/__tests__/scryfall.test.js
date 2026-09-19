@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   fetchPage,
+  fetchCardsByIds,
   setBulkCardSource,
   clearBulkCardSource,
   isUsingBulkSource,
@@ -76,5 +77,25 @@ describe('setBulkCardSource', () => {
     expect(setBulkCardSource([])).toBe(false);
     expect(setBulkCardSource(null)).toBe(false);
     expect(isUsingBulkSource()).toBe(false);
+  });
+});
+
+describe('fetchCardsByIds', () => {
+  it('fetches cards by id in one collection request', async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ data: [{ id: 'a' }] }));
+
+    const cards = await fetchCardsByIds(['a', 'b']);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toBe('https://api.scryfall.com/cards/collection');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({ identifiers: [{ id: 'a' }, { id: 'b' }] });
+    expect(cards).toEqual([{ id: 'a' }]);
+  });
+
+  it('is a no-op for an empty id list', async () => {
+    expect(await fetchCardsByIds([])).toEqual([]);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

@@ -33,6 +33,7 @@ import {
 import { createCardElement, updateCardState } from './cards.js';
 import { showToast } from './components/toast.js';
 import { createCardPickerModal } from './components/cardPickerModal.js';
+import { ensurePrintingsLoaded, hydrateCardsByIds } from '../api/cardSearch.js';
 
 /** One page is shown at a time so a 200-page binder stays cheap to render. */
 let activePage = 0;
@@ -41,6 +42,8 @@ let pendingMove = null;
 
 let refs = null;
 let listening = false;
+/** True while a hydration pass is fetching this page's cards. */
+let hydrationInFlight = false;
 
 /** A labelled number input for the toolbar. */
 function numberField(labelText, className, { min, max, value }) {
@@ -373,6 +376,54 @@ function handlePageClick(event) {
   // A click that landed on the card tile is left to `cardInteractions`.
 }
 
+/** The stored printing ids of the current page that need a card object. */
+function visibleSlotIds(binder) {
+  const ids = [];
+  for (let row = 0; row < binder.rows; row++) {
+    for (let col = 0; col < binder.columns; col++) {
+      const id = binder.slots[slotKey(activePage, row, col)];
+      if (id) ids.push(id);
+    }
+  }
+  return ids;
+}
+
+/**
+ * Fetch card objects for the current page's pockets that are not in `cardStore`
+ * (any card, not just the loaded legendary subset) and make sure each card's
+ * printing list is available for cycling. Re-renders when something arrived.
+ */
+async function hydrateVisibleCards() {
+  const binder = getActiveBinder();
+  if (!binder) return;
+
+  const ids = visibleSlotIds(binder);
+  const missing = ids.filter((id) => !cardStore.getByPrintingId(id));
+  if (missing.length > 0) {
+    const added = await hydrateCardsByIds(missing);
+    // Show the newly-available cards right away; printing lists load next.
+    if (added.length > 0) render();
+  }
+
+  const names = new Set();
+  for (const id of ids) {
+    const card = cardStore.getByPrintingId(id);
+    if (card) names.add(card.name);
+  }
+  for (const name of names) await ensurePrintingsLoaded(name);
+}
+
+/** Kick off a hydration pass, coalescing concurrent calls. */
+function scheduleHydration() {
+  if (hydrationInFlight) return;
+  hydrationInFlight = true;
+  hydrateVisibleCards()
+    .catch((err) => console.error('Failed to hydrate binder cards:', err))
+    .finally(() => {
+      hydrationInFlight = false;
+    });
+}
+
 /** Rebuild the toolbar values and the current page's pockets. */
 export function render() {
   if (!refs) return;
@@ -474,6 +525,10 @@ export function render() {
       refs.pageEl.appendChild(slot);
     }
   }
+
+  // Any stored card the loaded subset doesn't cover is fetched in the
+  // background; it renders on the next pass.
+  scheduleHydration();
 }
 
 /**
@@ -496,6 +551,7 @@ export async function initBinderBuilder(root) {
 export function teardownBinderBuilder() {
   if (listening) document.removeEventListener('binders:changed', render);
   listening = false;
+  hydrationInFlight = false;
   refs = null;
   pendingMove = null;
   activePage = 0;

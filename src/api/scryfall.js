@@ -246,3 +246,35 @@ async function fetchScryfallData(url) {
 export async function fetchPage(url) {
   return bulkPager ? bulkPager() : fetchScryfallData(url);
 }
+
+/** Scryfall's collection endpoint accepts at most 75 identifiers per request. */
+export const MAX_COLLECTION_IDENTIFIERS = 75;
+
+/**
+ * Fetch cards by printing id in one rate-limited request (Scryfall's collection
+ * endpoint). Used by the Binder Builder to hydrate pockets whose cards are not
+ * in the loaded subset (e.g. non-legendary cards). The caller chunks the ids to
+ * {@link MAX_COLLECTION_IDENTIFIERS}.
+ *
+ * @param {string[]} ids printing ids
+ * @returns {Promise<object[]>}
+ */
+export async function fetchCardsByIds(ids) {
+  const identifiers = (Array.isArray(ids) ? ids : [])
+    .filter((id) => typeof id === 'string' && id)
+    .slice(0, MAX_COLLECTION_IDENTIFIERS)
+    .map((id) => ({ id }));
+  if (identifiers.length === 0) return [];
+
+  const res = await scheduleNetworkRequest(() =>
+    requestFromNetwork('https://api.scryfall.com/cards/collection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifiers }),
+    })
+  );
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+  const data = await res.json();
+  return Array.isArray(data?.data) ? data.data : [];
+}

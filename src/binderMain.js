@@ -3,36 +3,17 @@
  * Entry point for the Binder Builder page (`binder.html`).
  *
  * Reuses the shared app shell (auth, sidebar, collection/wishlist/lists,
- * settings) and replaces the browse grid with the binder editor. The full
- * legendary-creature collection is loaded into `cardStore` up front so the
- * picker can autocomplete names, occupied pockets can render real card tiles,
- * and the shared ownership/wishlist/preview interactions all work.
+ * settings) and replaces the browse grid with the binder editor. Because a
+ * binder can hold any card, the page does not preload the legendary-creature
+ * bulk set: the picker searches Scryfall live and the editor hydrates only the
+ * cards its pockets actually reference (see `api/cardSearch.js`). This keeps the
+ * page fast and works for the whole card pool.
  */
 import { bootShell } from './app/shell.js';
 import { initBinderBuilder } from './ui/binderBuilder.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initViewportMetrics } from './utils/viewport.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
-import { showToast } from './ui/components/toast.js';
-import { showLoading, hideLoading } from './ui/loadingIndicator.js';
-import { resetCardPickerIndex } from './ui/components/cardPickerModal.js';
-import { cardStore } from './state/cardStore.js';
-import { getLegendaryCreatures } from './api/bulkData.js';
-
-/** Populate `cardStore` from the (cached) Scryfall bulk subset. */
-async function loadCollectionIntoStore() {
-  showLoading();
-  try {
-    const { cards } = await getLegendaryCreatures();
-    for (const card of cards) cardStore.add(card);
-    resetCardPickerIndex();
-  } catch (err) {
-    console.error('Failed to load the card collection:', err);
-    showToast('Could not load card data; the card picker may be empty.', 'error');
-  } finally {
-    hideLoading();
-  }
-}
 
 document.addEventListener('DOMContentLoaded', async () => {
   const { tooltip, statesReady } = await bootShell();
@@ -54,8 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCardInteractions(root, tooltip);
   initViewportMetrics();
 
-  // The editor needs both the card data (for picker names and tiles) and the
-  // saved ownership state (for the owned/missing styling) before it renders.
-  await Promise.all([loadCollectionIntoStore(), statesReady]);
+  // The editor needs the saved ownership state (for the owned/missing styling)
+  // before it renders; its card data is fetched lazily per page.
+  await statesReady;
   await initBinderBuilder(root);
 });

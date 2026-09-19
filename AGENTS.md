@@ -62,17 +62,23 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   content (`main.js` = the search/browse grid, `binderMain.js` = the Binder
   Builder).
 - `src/binderMain.js` + `binder.html` — the separate Binder Builder page. It
-  reuses the shell, loads the full collection into `cardStore`, and renders the
-  editor into `#binder-root`. Vite builds both pages (`vite.config.js`
+  reuses the shell and renders the editor into `#binder-root`. A binder can hold
+  any card, so the page does **not** preload the legendary-creature bulk set:
+  the picker searches Scryfall live and the editor hydrates only the pockets it
+  renders (see `src/api/cardSearch.js`). Vite builds both pages (`vite.config.js`
   `rollupOptions.input`).
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
-  (`bulkData.js`), search-response cache (`responseCache.js`), and
+  (`bulkData.js`), search-response cache (`responseCache.js`), on-demand card
+  lookup (`cardSearch.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
   guest merge clients (`mergeCollection.js` factory, re-exported as `mergeOwned.js`
   / `mergeWishlist.js`), and the custom-list client (`lists.js` — read,
   create/update/delete, item add/remove and guest merge). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
-  `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
+  `fetchPage`, `fetchCardsByIds` (the batched collection endpoint),
+  `setRequestThrottle`, and the bulk-source controls. `cardSearch.js` is the
+  Binder Builder's all-cards layer: autocomplete, exact-name printing lists and
+  id hydration (added to `cardStore`), all through the same cache/rate limiter.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
@@ -158,7 +164,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   per-binder Public toggle and the add/move/remove controls; it reuses `cards.js`
   tiles so ownership toggles and the preview keep working). A share-link view
   renders it read-only: `canEditBinders()` hides the toolbar edits, the pocket
-  controls and empty-slot adders) and its card picker `cardPickerModal.js`,
+  controls and empty-slot adders) and its card picker `cardPickerModal.js`
+  (all-cards search: local matches render instantly, Scryfall autocomplete
+  results merge in, and picking loads the name's printings into `cardStore`),
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
