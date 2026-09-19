@@ -977,6 +977,15 @@ body.images-mode .section {
   flex: 0 0 auto;
 }
 
+.card-footer .card-wishlist {
+  position: static;
+  bottom: auto;
+  right: auto;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 .card-footer .owned-badge {
   position: static;
   padding: 1px 5px;
@@ -1478,6 +1487,47 @@ button.tooltip-owned-status:focus-visible {
 }
 
 button.tooltip-owned-status:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tooltip-wishlist-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.tooltip-wishlist-status.wanted {
+  background: linear-gradient(180deg, #f07a8c, #d64560);
+  color: #fff;
+}
+
+.tooltip-wishlist-status.not-wanted {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+}
+
+button.tooltip-wishlist-status {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button.tooltip-wishlist-status:hover {
+  filter: brightness(1.1);
+}
+
+button.tooltip-wishlist-status:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+button.tooltip-wishlist-status:disabled {
   opacity: 0.6;
   cursor: default;
 }
@@ -2394,6 +2444,95 @@ button.tooltip-owned-status:disabled {
 .card.owned .card-toggle {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(70, 201, 138, 0.75);
+}
+
+/* Wishlist heart, sitting just left of the ownership toggle. */
+.card-wishlist {
+  position: absolute;
+  top: auto;
+  bottom: 6px;
+  right: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 50%;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.08s ease;
+  z-index: 3;
+}
+
+.card-wishlist::after {
+  content: '';
+  width: 11px;
+  height: 11px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' fill='none' stroke='%231a202c' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+/* Filled heart once the card is on the wishlist. */
+.card.wanted .card-wishlist::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' fill='%23e05263'/%3E%3C/svg%3E");
+}
+
+.card:hover .card-wishlist {
+  border-color: rgba(0, 0, 0, 0.32);
+  transform: scale(1.08);
+}
+
+/* List-mode heart joins the inline checklist controls. */
+body.list-mode .card.list-tile .card-wishlist {
+  position: static;
+  flex: 0 0 auto;
+  border-radius: 5px;
+}
+
+@media (max-width: 768px) {
+  .card-wishlist {
+    bottom: 2px;
+    right: 24px;
+    width: 16px;
+    height: 16px;
+    opacity: 0.85;
+  }
+
+  .card-wishlist::after {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+/* Wishlist badge (view-only shares). */
+.wanted-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: linear-gradient(180deg, #f07a8c, #d64560);
+  color: #fff;
+  padding: 2px 6px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 4;
+}
+
+.card-footer .wanted-badge,
+body.list-mode .card.list-tile .wanted-badge {
+  position: static;
+  padding: 1px 5px;
+  font-size: 0.52rem;
 }
 
 /* Owned badge */
@@ -3758,6 +3897,10 @@ footer a:focus-visible {
   }
 
   .card:hover .card-toggle {
+    transform: none;
+  }
+
+  .card:hover .card-wishlist {
     transform: none;
   }
 

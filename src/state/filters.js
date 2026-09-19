@@ -8,6 +8,7 @@
  * `sessionStorage` via `viewState.js`.
  */
 import { isCardOwned } from './cardState.js';
+import { isCardWanted } from './wishlistState.js';
 import { getDisplayedPrice } from '../utils/prices.js';
 
 export const COLOR_OPTIONS = [
@@ -34,6 +35,13 @@ export const OWNED_OPTIONS = [
   { id: 'missing', label: 'Missing' },
 ];
 
+/** The wishlist filter group — independent of the owned/missing one. */
+export const WANTED_OPTIONS = [
+  { id: 'all', label: 'All' },
+  { id: 'wanted', label: 'Wanted' },
+  { id: 'unwanted', label: 'Not wanted' },
+];
+
 /**
  * How the selected colour pips are combined.
  *  - `exclusive` (default) the card's identity uses only the selected colours
@@ -55,6 +63,7 @@ export const COLOR_MODE_OPTIONS = [
 
 export const DEFAULT_FILTERS = {
   owned: 'all', // 'all' | 'owned' | 'missing'
+  wanted: 'all', // 'all' | 'wanted' | 'unwanted'
   colors: [], // subset of COLOR_OPTIONS ids; [] = any
   colorMode: 'exclusive', // one of COLOR_MODE_OPTIONS ids
   rarities: [], // subset of RARITY_OPTIONS ids; [] = any
@@ -67,6 +76,7 @@ export const DEFAULT_FILTERS = {
 const COLOR_IDS = new Set(COLOR_OPTIONS.map((option) => option.id));
 const RARITY_IDS = new Set(RARITY_OPTIONS.map((option) => option.id));
 const OWNED_IDS = new Set(OWNED_OPTIONS.map((option) => option.id));
+const WANTED_IDS = new Set(WANTED_OPTIONS.map((option) => option.id));
 const COLOR_MODES = new Set(COLOR_MODE_OPTIONS.map((option) => option.id));
 
 function cloneFilters(source) {
@@ -94,6 +104,7 @@ export function normalizeFilters(raw) {
   if (!raw || typeof raw !== 'object') return next;
 
   if (OWNED_IDS.has(raw.owned)) next.owned = raw.owned;
+  if (WANTED_IDS.has(raw.wanted)) next.wanted = raw.wanted;
   if (COLOR_MODES.has(raw.colorMode)) {
     next.colorMode = raw.colorMode;
   }
@@ -124,6 +135,7 @@ export function resetFilters() {
 export function activeFilterCount() {
   let count = 0;
   if (filters.owned !== 'all') count++;
+  if (filters.wanted !== 'all') count++;
   if (filters.colors.length > 0) count++;
   if (filters.rarities.length > 0) count++;
   if (filters.set) count++;
@@ -160,6 +172,9 @@ export function cardMatchesFilters(card) {
 
   if (filters.owned === 'owned' && !isCardOwned(card)) return false;
   if (filters.owned === 'missing' && isCardOwned(card)) return false;
+
+  if (filters.wanted === 'wanted' && !isCardWanted(card)) return false;
+  if (filters.wanted === 'unwanted' && isCardWanted(card)) return false;
 
   if (filters.colors.length > 0 && !matchesColors(card)) return false;
   if (filters.rarities.length > 0 && !filters.rarities.includes(card.rarity)) return false;

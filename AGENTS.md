@@ -57,18 +57,22 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
-  guest merge client (`mergeOwned.js`). `scryfall.js` is
+  guest merge clients (`mergeOwned.js`, `mergeWishlist.js`). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `setRequestThrottle`, and the bulk-source controls.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (cards per page, binders, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
-  `cardStore`, `cardSettings`, `localCollection`, `viewState`, `onboarding`, `filters`,
+  `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
+  `localCollection`, `localWishlist`, `viewState`, `onboarding`, `filters`,
   `settingsSync`). State is
   plain exported objects, not a framework store. `mainState.js` holds session
   state so `cardState.js` can read it without importing `main.js` (avoids a
-  cycle). `cardState.js` switches between the device-local `localCollection.js`
-  (signed-out guest) and the server (signed in or share token). `viewState.js`
+  cycle). `cardState.js` and `wishlistState.js` are thin instances of the
+  shared `collectionState.js` factory (owned vs wanted), each switching between
+  the device-local store (`localCollection.js`/`localWishlist.js`, signed-out
+  guest) and the server (signed in or share token). `preferredPrintings.js`
+  remembers the printing the user picked when cycling versions. `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
   first-run flags such as the dismissed guest welcome in `localStorage`;
@@ -136,17 +140,22 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   header-driven and tolerant); and
   `sortCards.js` defines the sort options and the pure `sortCards`/`sortMark`
   helpers, including the WUBRG colour order.
-- `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`) and
-  DB client (`index.ts`).
+- `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`,
+  `wishlistCards.ts`) and DB client (`index.ts`).
 - `netlify/functions/` — HTTP handlers (`owned-cards`, `toggle-card`,
-  `batch-toggle-cards`, `merge-owned`, `share-link`, `user-settings`).
+  `batch-toggle-cards`, `merge-owned`, `wishlist-cards`, `toggle-wishlist`,
+  `batch-toggle-wishlist`, `merge-wishlist`, `share-link`, `user-settings`).
 - `netlify/utils/mergeOwned.ts` — validates the `cardIds` payload for
   `merge-owned` (shape + `MAX_BATCH_SIZE`); the handler union-inserts them into
   the verified caller's account and ignores `shareToken`.
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
   (exports `getUserId` and `unauthorized`; `verifyToken` is internal).
-- `netlify/utils/ownedCards.ts` — shared add/remove DB logic for the toggle
-  handlers.
+- `netlify/utils/collection.ts` — the `owned`/`wishlist` table map and the
+  shared add/remove DB logic used by the toggle handlers.
+- `netlify/utils/collectionHandlers.ts` — read/toggle/batch/merge handlers shared
+  by the owned and wishlist function files. `readCollection` accepts a
+  `shareToken` as a read-only capability, so a share link exposes the owner's
+  wishlist as well as their collection.
 - `netlify/utils/userSettings.ts` — load/save a user's JSON settings blob for
   the `user-settings` handler, with a size cap and shape validation.
 - `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
@@ -162,9 +171,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
   user's Clerk id is never exposed in the URL. The `?share=` view-only mode blocks
-  ownership edits but still allows view actions such as cycling printings. Plain
-  signed-out visitors are **not** view-only: they track a collection in IndexedDB
-  that is additively merged into their account on sign-in (`merge-owned`). Changing
+  ownership and wishlist edits but still allows view actions such as cycling
+  printings, and friends see both the owner's collection and wishlist. Plain
+  signed-out visitors are **not** view-only: they track a collection and wishlist
+  in IndexedDB that are additively merged into their account on sign-in
+  (`merge-owned`/`merge-wishlist`). Changing
   the Clerk user reloads the app so the correct collection mode is applied.
 - Tests are colocated under `__tests__/` folders (`src/__tests__/`,
   `src/api/__tests__/`, `src/state/__tests__/`, `src/ui/__tests__/`,
@@ -207,7 +218,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 - `db/schema.ts` targets Postgres (`pg-core`), matching `drizzle.config.ts` and
   `db/index.ts` (Neon). Migrations live in `migrations/` (`0000` creates
   `owned_cards`/`user_settings`, `0001` adds `share_links`, `0002` adds
-  `owned_cards.created_at` for the "Recent additions" log). If the Neon database
+  `owned_cards.created_at` for the "Recent additions" log, `0003` adds
+  `wishlist_cards`). If the Neon database
   was created outside Drizzle, baseline existing migrations before
   `npm run db:migrate`, otherwise it fails with "table already exists".
 - Keep `drizzle-kit` on the 0.31+ line. `drizzle.config.ts` and the `db:*`

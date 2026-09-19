@@ -96,6 +96,35 @@ describe('exportModal', () => {
     expect(document.querySelector('.export-download').disabled).toBe(true);
   });
 
+  it('uses the wishlist labels and empty message when provided', () => {
+    const modal = createExportModal([], {
+      title: 'Export Wishlist',
+      filePrefix: 'wishlist',
+      noun: 'wanted',
+      emptyMessage: 'Your wishlist is empty.',
+    });
+    modal.show();
+
+    expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Export Wishlist');
+    expect(document.querySelector('.bulk-search-input').placeholder).toBe('Filter wanted cards…');
+    expect(document.querySelector('.bulk-empty').textContent).toBe('Your wishlist is empty.');
+  });
+
+  it('names the downloaded file after the configured prefix', () => {
+    URL.createObjectURL = vi.fn(() => 'blob:mock');
+    URL.revokeObjectURL = vi.fn();
+    let downloaded;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+      downloaded = this.download;
+    });
+
+    const modal = createExportModal([cards[0]], { filePrefix: 'wishlist' });
+    modal.show();
+    document.querySelector('.export-download').click();
+
+    expect(downloaded).toBe('wishlist.csv');
+  });
+
   it('downloads the selected format as a .csv file', () => {
     const createObjectURL = vi.fn(() => 'blob:mock');
     const revokeObjectURL = vi.fn();

@@ -4,6 +4,7 @@ import { initLazyCards } from './ui/lazyCardLoader.js';
 import { applySort } from './ui/cardFeed.js';
 import { initCardSettings, applySettingsFromStore } from './ui/settingsUI.js';
 import { loadCardStates, mergeLocalCollectionToAccount } from './state/cardState.js';
+import { loadWishlistStates, mergeLocalWishlistToAccount } from './state/wishlistState.js';
 import { initSearch, refreshCardFilter } from './ui/search.js';
 import { initFilterBar } from './ui/filterBar.js';
 import { initClerk, getClerk } from './auth/clerk.js';
@@ -17,6 +18,7 @@ import { initCardInteractions } from './ui/cardInteractions.js';
 import { initKeyboardShortcuts } from './ui/keyboardShortcuts.js';
 import {
   createExportOwnedButton,
+  createExportWishlistButton,
   createAddCardsButton,
   createBulkCheckButton,
   createRecentActivityButton,
@@ -212,8 +214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load saved marks in parallel with the card grid so Clerk/Netlify/DB
   // latency does not delay the first cards. Marks are re-applied here once
-  // the owned state arrives (cards may already be rendered).
-  loadCardStates()
+  // the owned/wishlist state arrives (cards may already be rendered).
+  Promise.all([loadCardStates(), loadWishlistStates()])
     .then(async () => {
       // A guest's locally-tracked cards are merged into the account the first
       // time the app boots signed in (and on any retry after a failed merge).
@@ -223,6 +225,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (await mergeLocalCollectionToAccount()) await loadCardStates();
         } catch (err) {
           console.error('Failed to merge the local collection:', err);
+        }
+        try {
+          if (await mergeLocalWishlistToAccount()) await loadWishlistStates();
+        } catch (err) {
+          console.error('Failed to merge the local wishlist:', err);
         }
       }
 
@@ -244,6 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateAllBinderCounts();
   createBulkCheckButton(() => showModal(loadBulkCheckModal));
   createExportOwnedButton();
+  createExportWishlistButton();
 
   initCardSettings();
   initViewportMetrics();

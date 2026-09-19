@@ -4,6 +4,7 @@ import { isHoverCapable } from '../utils/pointer.js';
 import { renderSearchHelp } from './searchHelp.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { isCardOwned } from '../state/cardState.js';
+import { isCardWanted } from '../state/wishlistState.js';
 import { getSavedSearch, saveSearch } from '../state/viewState.js';
 import { activeFilterCount, cardMatchesFilters } from '../state/filters.js';
 
@@ -164,6 +165,9 @@ function cardMatchesFilter(card, filter) {
         break;
       case 'missing':
         match = !isCardOwned(card.cardData);
+        break;
+      case 'wanted':
+        match = isCardWanted(card.cardData);
         break;
       case 'colorless':
         match = (card.cardData.color_identity || []).length === 0;

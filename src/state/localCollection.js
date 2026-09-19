@@ -1,7 +1,8 @@
 /**
- * Persistence for a signed-out visitor's collection. It mirrors the server's
- * `owned_cards` store but lives in IndexedDB so guests can mark cards before
- * they have an account; the records are uploaded (and cleared) on sign-in.
+ * Persistence for a signed-out visitor's collections. Each collection mirrors
+ * the matching server table but lives in IndexedDB so guests can track cards
+ * before they have an account; the records are uploaded (and cleared) on
+ * sign-in.
  *
  * `createStore` resolves `null`/`[]`/`false` when IndexedDB is unavailable
  * (jsdom, private mode), so callers keep an in-memory set as the source of
@@ -9,41 +10,69 @@
  */
 import { createStore } from '../utils/idb.js';
 
-const store = createStore({ dbName: 'owned-cards', storeName: 'owned', keyPath: 'cardId' });
+/**
+ * Build the CRUD surface for one IndexedDB-backed collection.
+ *
+ * @param {{dbName: string, storeName: string}} config
+ */
+export function createLocalCollection({ dbName, storeName }) {
+  const store = createStore({ dbName, storeName, keyPath: 'cardId' });
+
+  /** Every locally-saved record: `{ cardId, addedAt }`. */
+  async function load() {
+    const rows = await store.getAll();
+    if (!Array.isArray(rows)) return [];
+    return rows.filter((row) => row && typeof row.cardId === 'string');
+  }
+
+  return {
+    load,
+
+    /** The locally-tracked printing ids. */
+    async getIds() {
+      return (await load()).map((row) => row.cardId);
+    },
+
+    /**
+     * Save (or refresh) a locally-tracked printing.
+     * @param {string} cardId
+     * @param {string} [addedAt]
+     */
+    async add(cardId, addedAt = new Date().toISOString()) {
+      return store.put({ cardId, addedAt });
+    },
+
+    /**
+     * Remove one or more locally-tracked printings.
+     * @param {Iterable<string>} cardIds
+     */
+    async remove(cardIds) {
+      await Promise.all(Array.from(cardIds, (cardId) => store.remove(cardId)));
+    },
+
+    /** Drop the whole local collection (after a successful merge). */
+    async clear() {
+      return store.clear();
+    },
+  };
+}
+
+const ownedCollection = createLocalCollection({ dbName: 'owned-cards', storeName: 'owned' });
 
 /**
- * Every locally-saved record: `{ cardId, addedAt }`.
+ * Every locally-owned record: `{ cardId, addedAt }`.
  * @returns {Promise<Array<{cardId: string, addedAt?: string}>>}
  */
-export async function loadLocalCollection() {
-  const rows = await store.getAll();
-  if (!Array.isArray(rows)) return [];
-  return rows.filter((row) => row && typeof row.cardId === 'string');
-}
+export const loadLocalCollection = () => ownedCollection.load();
 
 /** The locally-owned printing ids. */
-export async function getLocalCardIds() {
-  return (await loadLocalCollection()).map((row) => row.cardId);
-}
+export const getLocalCardIds = () => ownedCollection.getIds();
 
-/**
- * Save (or refresh) a locally-owned printing.
- * @param {string} cardId
- * @param {string} [addedAt]
- */
-export async function addLocalCard(cardId, addedAt = new Date().toISOString()) {
-  return store.put({ cardId, addedAt });
-}
+/** Save (or refresh) a locally-owned printing. */
+export const addLocalCard = (cardId, addedAt) => ownedCollection.add(cardId, addedAt);
 
-/**
- * Remove one or more locally-owned printings.
- * @param {Iterable<string>} cardIds
- */
-export async function removeLocalCards(cardIds) {
-  await Promise.all(Array.from(cardIds, (cardId) => store.remove(cardId)));
-}
+/** Remove one or more locally-owned printings. */
+export const removeLocalCards = (cardIds) => ownedCollection.remove(cardIds);
 
-/** Drop the whole local collection (after a successful merge). */
-export async function clearLocalCollection() {
-  return store.clear();
-}
+/** Drop the whole local owned collection (after a successful merge). */
+export const clearLocalCollection = () => ownedCollection.clear();

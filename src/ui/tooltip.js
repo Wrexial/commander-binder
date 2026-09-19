@@ -5,6 +5,7 @@ import { getDisplayedPrice } from '../utils/prices.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { cardStore } from '../state/cardStore.js';
 import { isCardOwned } from '../state/cardState.js';
+import { isCardWanted } from '../state/wishlistState.js';
 
 let tooltipTimeout;
 let activeTooltip = null;
@@ -149,6 +150,29 @@ function createTooltipDetails(card, version, cycleControl, tooltip) {
 
   status.appendChild(badge);
 
+  // The wishlist toggle mirrors the owned one, so the heart is reachable on
+  // phones where the image-tile footer (and its inline heart) is hidden.
+  const canWishlist = typeof tooltip?.onWishlistToggle === 'function';
+  const wishlistBadge = document.createElement(canWishlist ? 'button' : 'span');
+  setWishlistStatus(wishlistBadge, isCardWanted(card));
+
+  if (canWishlist) {
+    wishlistBadge.type = 'button';
+    wishlistBadge.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      if (wishlistBadge.disabled) return;
+      wishlistBadge.disabled = true;
+      try {
+        const next = await tooltip.onWishlistToggle();
+        if (typeof next === 'boolean') setWishlistStatus(wishlistBadge, next);
+      } finally {
+        wishlistBadge.disabled = false;
+      }
+    });
+  }
+
+  status.appendChild(wishlistBadge);
+
   // The printing-cycle control lives next to the owned/missing badge, so the
   // swipe hint below never pushes it off screen.
   if (cycleControl) status.appendChild(cycleControl);
@@ -199,6 +223,22 @@ function setOwnedStatus(element, owned) {
   if (element.tagName === 'BUTTON') {
     element.setAttribute('aria-pressed', String(owned));
     element.title = owned ? 'Mark as missing' : 'Mark as owned';
+    element.setAttribute('aria-label', element.title);
+  }
+}
+
+/**
+ * Reflect a wanted/not-wanted status on the badge (span or button).
+ * @param {HTMLElement} element
+ * @param {boolean} wanted
+ */
+function setWishlistStatus(element, wanted) {
+  element.className = `tooltip-wishlist-status ${wanted ? 'wanted' : 'not-wanted'}`;
+  element.textContent = wanted ? 'Wanted' : 'Not wanted';
+
+  if (element.tagName === 'BUTTON') {
+    element.setAttribute('aria-pressed', String(wanted));
+    element.title = wanted ? 'Remove from wishlist' : 'Add to wishlist';
     element.setAttribute('aria-label', element.title);
   }
 }

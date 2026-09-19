@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('../cardState.js', () => ({ isCardOwned: vi.fn(() => false) }));
+vi.mock('../wishlistState.js', () => ({ isCardWanted: vi.fn(() => false) }));
 vi.mock('../../utils/prices.js', () => ({ getDisplayedPrice: vi.fn(() => null) }));
 
 import {
@@ -12,6 +13,7 @@ import {
   resetFilters,
 } from '../filters.js';
 import { isCardOwned } from '../cardState.js';
+import { isCardWanted } from '../wishlistState.js';
 import { getDisplayedPrice } from '../../utils/prices.js';
 
 function makeCard(overrides = {}) {
@@ -21,6 +23,7 @@ function makeCard(overrides = {}) {
 beforeEach(() => {
   resetFilters();
   isCardOwned.mockReturnValue(false);
+  isCardWanted.mockReturnValue(false);
   getDisplayedPrice.mockReturnValue(null);
 });
 
@@ -88,6 +91,16 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard({ color_identity: ['G'] }))).toBe(false);
   });
 
+  it('filters by wanted / not wanted', () => {
+    isCardWanted.mockReturnValue(true);
+
+    applyFilters({ ...DEFAULT_FILTERS, wanted: 'wanted' });
+    expect(cardMatchesFilters(makeCard())).toBe(true);
+
+    applyFilters({ ...DEFAULT_FILTERS, wanted: 'unwanted' });
+    expect(cardMatchesFilters(makeCard())).toBe(false);
+  });
+
   it('filters by rarity and set', () => {
     applyFilters({ ...DEFAULT_FILTERS, rarities: ['mythic'], set: 'dom' });
 
@@ -119,6 +132,9 @@ describe('activeFilterCount', () => {
 
     applyFilters({ ...DEFAULT_FILTERS, owned: 'owned', colors: ['W'], priceMin: 1 });
     expect(activeFilterCount()).toBe(3);
+
+    applyFilters({ ...DEFAULT_FILTERS, wanted: 'wanted' });
+    expect(activeFilterCount()).toBe(1);
   });
 });
 
@@ -136,6 +152,7 @@ describe('normalizeFilters', () => {
 
     expect(result.owned).toBe('all');
     expect(result.colors).toEqual(['W']);
+    expect(result.wanted).toBe('all');
     expect(result.colorMode).toBe('exclusive');
     expect(result.rarities).toEqual(['rare']);
     expect(result.set).toBe('dom');

@@ -40,7 +40,7 @@ describe('initFilterBar', () => {
     const panel = document.getElementById('filter-panel');
 
     expect(panel.hidden).toBe(true);
-    expect(panel.querySelectorAll('.filter-group')).toHaveLength(6);
+    expect(panel.querySelectorAll('.filter-group')).toHaveLength(7);
 
     toggle.click();
     expect(panel.hidden).toBe(false);
@@ -78,15 +78,34 @@ describe('initFilterBar', () => {
     document.querySelector('.filter-pip-W').click();
     expect(filters.colors).toEqual(['U']);
 
-    // The colour-mode control is the second segmented group (after Collection).
-    const modes = document
-      .querySelectorAll('.filter-segmented')[1]
+    // The colour-mode control lives in the "Colours" group, alongside the
+    // colour pips; find it by label so a new group can't shift the index.
+    const colourGroup = [...document.querySelectorAll('.filter-group')].find(
+      (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === 'Colours'
+    );
+    const modes = colourGroup
+      .querySelector('.filter-segmented')
       .querySelectorAll('.filter-segment');
     modes[1].click(); // Exact
     expect(filters.colorMode).toBe('exact');
     modes[0].click(); // Exclusive
     expect(filters.colorMode).toBe('exclusive');
     expect(onChange).toHaveBeenCalled();
+  });
+
+  it('filters by wishlist status', () => {
+    const onChange = vi.fn();
+    initFilterBar({ onChange });
+
+    const wishlistGroup = [...document.querySelectorAll('.filter-group')].find(
+      (groupEl) => groupEl.querySelector('.filter-group-label')?.textContent === 'Wishlist'
+    );
+    const wanted = wishlistGroup.querySelectorAll('.filter-segment')[1]; // Wanted
+    wanted.click();
+
+    expect(filters.wanted).toBe('wanted');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(activeBadgeText()).toBe('1');
   });
 
   it('selects a set from the loaded collection', () => {

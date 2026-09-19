@@ -4,6 +4,7 @@ import * as tooltip from '../ui/tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import * as cardState from '../state/cardState.js';
+import * as wishlistState from '../state/wishlistState.js';
 import * as toast from '../ui/components/toast.js';
 import * as ownedCounter from '../ui/components/ownedCounter.js';
 import * as layout from '../ui/layout.js';
@@ -15,6 +16,11 @@ vi.mock('../ui/tooltip.js');
 vi.mock('../state/cardSettings.js');
 vi.mock('../state/appState.js');
 vi.mock('../state/cardState.js');
+vi.mock('../state/wishlistState.js', () => ({
+  isCardWanted: vi.fn(() => false),
+  toggleCardWanted: vi.fn(() => Promise.resolve(true)),
+  setCardsWanted: vi.fn(() => Promise.resolve()),
+}));
 vi.mock('../ui/components/toast.js');
 vi.mock('../ui/components/ownedCounter.js');
 vi.mock('../ui/layout.js');
@@ -62,6 +68,7 @@ describe('initCardInteractions', () => {
     appState.isViewOnlyMode = false;
     cardState.toggleCardOwned.mockResolvedValue(true); // Assume it becomes owned
     cardState.isCardOwned.mockReturnValue(false); // Assume it was not owned before click
+    wishlistState.isCardWanted.mockReturnValue(false);
     cardStore.getPrintings.mockReturnValue([]);
     tooltip.isTooltipGestureActive.mockReturnValue(false);
   });
@@ -326,6 +333,21 @@ describe('initCardInteractions', () => {
       expect(cardElement.classList.contains('owned')).toBe(true);
       expect(ownedCounter.updateOwnedCounter).toHaveBeenCalled();
       expect(toast.showUndo).toHaveBeenCalled();
+    });
+
+    it('toggles the wishlist from the heart without touching ownership', async () => {
+      cardElement.cardData = { id: 'wish-1', name: 'Wish Card' };
+      const heart = document.createElement('button');
+      heart.className = 'card-wishlist';
+      cardElement.appendChild(heart);
+      wishlistState.toggleCardWanted.mockResolvedValue(true);
+
+      initCardInteractions(container, tooltipElement);
+      await heart.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(wishlistState.toggleCardWanted).toHaveBeenCalledWith(cardElement.cardData);
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      expect(cardElement.classList.contains('wanted')).toBe(true);
     });
 
     it('should update binder counts on click', async () => {

@@ -20,6 +20,12 @@ vi.mock('../state/localCollection.js', () => ({
   removeLocalCards: vi.fn(async () => {}),
   clearLocalCollection: vi.fn(async () => {}),
 }));
+vi.mock('../state/localWishlist.js', () => ({
+  loadLocalWishlist: vi.fn(async () => []),
+  addLocalWishlistCard: vi.fn(async () => true),
+  removeLocalWishlistCards: vi.fn(async () => {}),
+  clearLocalWishlist: vi.fn(async () => {}),
+}));
 
 class MockIntersectionObserver {
   observe() {}

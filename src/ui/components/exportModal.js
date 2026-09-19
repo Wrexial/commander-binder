@@ -8,28 +8,38 @@ import {
   serializeCollection,
 } from '../../utils/collectionFormats.js';
 
-/** "owned-cards.csv" / "owned-cards-arena.txt". */
-function exportFileName(format) {
+/** "owned-cards.csv" / "wishlist-arena.txt". */
+function exportFileName(format, prefix) {
   const extension = TEXT_TRANSFER_FORMATS.has(format) ? 'txt' : 'csv';
   return format === DEFAULT_TRANSFER_FORMAT
-    ? `owned-cards.${extension}`
-    : `owned-cards-${format}.${extension}`;
+    ? `${prefix}.${extension}`
+    : `${prefix}-${format}.${extension}`;
 }
 
+/** Defaults for the owned export; the wishlist passes its own labels. */
+const DEFAULT_EXPORT_OPTIONS = {
+  title: 'Export Owned Cards',
+  filePrefix: 'owned-cards',
+  noun: 'owned',
+  emptyMessage: 'You don’t own any cards yet.',
+};
+
 /**
- * Create the "Export Owned Cards" modal, styled like the Add / Bulk Check
- * modals. Lets the collector pick an output format (our CSV, Moxfield, or
- * Archidekt), filter the preview, then copy or download the serialized file.
+ * Create the "Export …" modal, styled like the Add / Bulk Check modals. Lets
+ * the collector pick an output format (our CSV, Moxfield, or Archidekt), filter
+ * the preview, then copy or download the serialized file.
  *
- * @param {object[]} cards Owned Scryfall card objects (one per card).
+ * @param {object[]} cards Scryfall card objects (one per card).
+ * @param {object} [options]
  * @returns {{ show: () => void, destroy: () => void }}
  */
-export function createExportModal(cards) {
+export function createExportModal(cards, options = {}) {
+  const { title, filePrefix, noun, emptyMessage } = { ...DEFAULT_EXPORT_OPTIONS, ...options };
   const allCards = [...cards].sort((a, b) => a.name.localeCompare(b.name));
 
   const { shell, close, contentArea, buttons } = createCollectionModal({
-    title: 'Export Owned Cards',
-    subtitle: `${allCards.length} owned card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`,
+    title,
+    subtitle: `${allCards.length} ${noun} card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`,
     actions: [
       { id: 'copy', className: 'primary export-copy' },
       { id: 'download', className: 'export-download', text: 'Download' },
@@ -60,8 +70,8 @@ export function createExportModal(cards) {
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'bulk-search-input';
-  searchInput.placeholder = 'Filter owned cards…';
-  searchInput.setAttribute('aria-label', 'Filter owned cards');
+  searchInput.placeholder = `Filter ${noun} cards…`;
+  searchInput.setAttribute('aria-label', `Filter ${noun} cards`);
 
   toolbar.append(formatLabel, searchInput);
 
@@ -81,7 +91,7 @@ export function createExportModal(cards) {
     visible = query ? allCards.filter((card) => card.name.toLowerCase().includes(query)) : allCards;
 
     if (allCards.length === 0) {
-      preview.innerHTML = '<p class="bulk-empty">You don’t own any cards yet.</p>';
+      preview.innerHTML = `<p class="bulk-empty">${emptyMessage}</p>`;
     } else if (visible.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No cards match that filter.</p>';
     } else {
@@ -127,7 +137,7 @@ export function createExportModal(cards) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = exportFileName(currentFormat());
+    link.download = exportFileName(currentFormat(), filePrefix);
     document.body.appendChild(link);
     link.click();
     link.remove();

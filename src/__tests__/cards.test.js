@@ -12,6 +12,7 @@ import { appState } from '../state/appState.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { cardStore } from '../state/cardStore.js';
 import * as cardState from '../state/cardState.js';
+import { isCardWanted } from '../state/wishlistState.js';
 import { getPreferredPrinting } from '../state/preferredPrintings.js';
 
 vi.mock('../state/cardSettings.js', () => ({
@@ -35,6 +36,10 @@ vi.mock('../state/cardState.js', () => ({
   isCardOwned: vi.fn(),
   toggleCardOwned: vi.fn(),
   setCardsOwned: vi.fn(),
+}));
+
+vi.mock('../state/wishlistState.js', () => ({
+  isCardWanted: vi.fn(() => false),
 }));
 
 describe('createCardElement', () => {
@@ -114,6 +119,37 @@ describe('createCardElement', () => {
     const toggleButton = element.querySelector('.card-toggle');
     expect(toggleButton).toBeNull();
     appState.isViewOnlyMode = false; // Reset for other tests
+  });
+});
+
+describe('wishlist heart', () => {
+  const heartCard = { id: 'heart-1', name: 'Heart Card', color_identity: ['W'] };
+
+  beforeEach(() => {
+    cardState.isCardOwned.mockReturnValue(false);
+    isCardWanted.mockReturnValue(false);
+  });
+
+  it('renders a heart and marks the tile when the card is wanted', () => {
+    isCardWanted.mockReturnValue(true);
+
+    const element = createCardElement(heartCard, 0);
+    expect(element.querySelector('.card-wishlist')).not.toBeNull();
+
+    updateCardState(element);
+    expect(element.classList.contains('wanted')).toBe(true);
+    expect(element.querySelector('.card-wishlist').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('shows a read-only badge instead of a heart in view-only mode', () => {
+    isCardWanted.mockReturnValue(true);
+    appState.isViewOnlyMode = true;
+
+    const element = createCardElement(heartCard, 0);
+    expect(element.querySelector('.card-wishlist')).toBeNull();
+    expect(element.querySelector('.wanted-badge')).not.toBeNull();
+
+    appState.isViewOnlyMode = false;
   });
 });
 

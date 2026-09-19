@@ -3,6 +3,7 @@ import { appState } from '../state/appState.js';
 import { positionTooltip } from './tooltip.js';
 import { isHoverCapable } from '../utils/pointer.js';
 import { isCardOwned } from '../state/cardState.js';
+import { isCardWanted } from '../state/wishlistState.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
@@ -150,6 +151,33 @@ export function createExportOwnedButton() {
     },
     'collection',
     30
+  );
+}
+
+/** Export the cards on the collector's wishlist. */
+export function createExportWishlistButton() {
+  addButtonToSidebar(
+    '💝 Export Wishlist',
+    async () => {
+      const wantedCards = cardStore.getAll().filter(isCardWanted);
+
+      if (wantedCards.length === 0) {
+        showToast('No wishlist cards to export.');
+        return;
+      }
+
+      if (document.querySelector('.list-modal-backdrop')) return;
+
+      const { createExportModal } = await import('./components/exportModal.js');
+      createExportModal(wantedCards, {
+        title: 'Export Wishlist',
+        filePrefix: 'wishlist',
+        noun: 'wanted',
+        emptyMessage: 'Your wishlist is empty.',
+      }).show();
+    },
+    'collection',
+    40
   );
 }
 

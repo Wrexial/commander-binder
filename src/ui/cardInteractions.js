@@ -2,6 +2,7 @@
 import { showTooltip, showTooltipCard, isTooltipGestureActive } from './tooltip.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
+import { isCardWanted, toggleCardWanted, setCardsWanted } from '../state/wishlistState.js';
 import { showUndo, showToast } from './components/toast.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { adjustBinderOwnedCount } from './layout.js';
@@ -10,7 +11,7 @@ import { preloadCardImages } from '../utils/cardImages.js';
 import { nextPrinting } from '../utils/printings.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 import { isHoverCapable } from '../utils/pointer.js';
-import { refreshCardElement, syncCardOwnedUi } from './cards.js';
+import { refreshCardElement, syncCardOwnedUi, syncCardWantedUi } from './cards.js';
 import { showPressIndicator, hidePressIndicator } from './pressIndicator.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
@@ -61,6 +62,9 @@ function wireCardControls(cardElement, tooltip) {
   tooltip.onToggle = appState.isViewOnlyMode
     ? null
     : () => toggleCardOwnership(cardElement, cardElement.cardData);
+  tooltip.onWishlistToggle = appState.isViewOnlyMode
+    ? null
+    : () => toggleWishlist(cardElement, cardElement.cardData);
   tooltip.cycleLabel = null;
 }
 
@@ -237,7 +241,51 @@ async function handleContainerClick(event, tooltip) {
   if (appState.isViewOnlyMode) return;
 
   event.stopPropagation();
+
+  // The heart is its own control; a tap must not also toggle ownership.
+  if (event.target.closest('.card-wishlist')) {
+    await toggleWishlist(cardElement, card);
+    return;
+  }
+
   await toggleCardOwnership(cardElement, card);
+}
+
+/**
+ * Add or remove a card from the wishlist, updating the tile and the undo toast.
+ *
+ * @param {HTMLElement} cardElement
+ * @param {object} card
+ * @returns {Promise<boolean|null>} the new wanted state, or null on failure.
+ */
+async function toggleWishlist(cardElement, card) {
+  if (!cardElement || !card) return null;
+
+  const wasWanted = !isCardWanted(card);
+
+  let isWanted;
+  try {
+    isWanted = await toggleCardWanted(card);
+  } catch (err) {
+    console.error('Failed to update the wishlist:', err);
+    showToast('Could not update the wishlist. Please try again.', 'error');
+    return null;
+  }
+
+  syncCardWantedUi(cardElement, isWanted);
+
+  showUndo(isWanted ? 'Added to wishlist' : 'Removed from wishlist', async () => {
+    try {
+      await setCardsWanted([card], !wasWanted);
+    } catch (err) {
+      console.error('Failed to undo wishlist change:', err);
+      showToast('Could not undo the change.', 'error');
+      return;
+    }
+    syncCardWantedUi(cardElement, !wasWanted);
+  });
+
+  return isWanted;
 }
 
 /**

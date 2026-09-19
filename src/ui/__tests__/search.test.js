@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseQuery, evaluateCondition } from '../../ui/search.js';
 import * as cardState from '../../state/cardState.js';
+import * as wishlistState from '../../state/wishlistState.js';
 
 vi.mock('../../state/appState.js', () => ({
   appState: {
@@ -221,6 +222,14 @@ describe('evaluateCondition', () => {
 
     vi.spyOn(cardState, 'isCardOwned').mockReturnValue(true);
     expect(evaluateCondition(card, { type: 'filter', value: 'is:missing' })).toBe(false);
+  });
+
+  it('should handle wishlist filters', () => {
+    vi.spyOn(wishlistState, 'isCardWanted').mockReturnValue(true);
+    expect(evaluateCondition(card, { type: 'filter', value: 'is:wanted' })).toBe(true);
+
+    vi.spyOn(wishlistState, 'isCardWanted').mockReturnValue(false);
+    expect(evaluateCondition(card, { type: 'filter', value: 'is:wanted' })).toBe(false);
   });
 
   it('should handle colourless and multicolour filters', () => {

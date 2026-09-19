@@ -238,6 +238,27 @@ describe('tooltip', () => {
       expect(badge.getAttribute('aria-pressed')).toBe('true');
     });
 
+    it('turns the wishlist badge into a toggle when the host allows it', async () => {
+      const onWishlistToggle = vi.fn().mockResolvedValue(true);
+      tooltip.onWishlistToggle = onWishlistToggle;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      const badge = tooltip.querySelector('.tooltip-wishlist-status');
+      expect(badge.tagName).toBe('BUTTON');
+      expect(badge.textContent).toBe('Not wanted');
+      expect(badge.getAttribute('aria-pressed')).toBe('false');
+
+      badge.click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(onWishlistToggle).toHaveBeenCalledTimes(1);
+      expect(badge.textContent).toBe('Wanted');
+      expect(badge.classList.contains('wanted')).toBe(true);
+    });
+
     it('keeps the status as a plain badge without a host toggle', () => {
       delete tooltip.onToggle;
 

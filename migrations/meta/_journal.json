@@ -22,6 +22,13 @@
       "when": 1789778384831,
       "tag": "0002_red_dark_phoenix",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789833766148,
+      "tag": "0003_whole_dragon_man",
+      "breakpoints": true
     }
   ]
 }
