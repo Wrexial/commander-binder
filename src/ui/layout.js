@@ -6,6 +6,8 @@ import { isHoverCapable } from '../utils/pointer.js';
 import { isCardOwned } from '../state/cardState.js';
 import { isCardWanted } from '../state/wishlistState.js';
 import { getListCards, getLists } from '../state/listsState.js';
+import { getBinderCards, getBinderPrintingIds, getBinders } from '../state/bindersState.js';
+import { hydrateCardsByIds } from '../api/cardSearch.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
 import { addButtonToSidebar } from './components/sidebar.js';
@@ -145,11 +147,27 @@ function slugify(value) {
   );
 }
 
-/** Export the owned collection, the wishlist or any custom list. */
+/** Export the owned collection, the wishlist, any custom list or any binder. */
 export function createExportButton() {
   addButtonToSidebar(
     '📄 Export Cards',
     async () => {
+      const binders = getBinders();
+
+      // A binder can hold any card, including ones the browse feed never
+      // loaded. Fetch those first so the export carries names/sets rather than
+      // bare printing ids.
+      const missing = binders
+        .flatMap((binder) => getBinderPrintingIds(binder.id))
+        .filter((id) => !cardStore.getByPrintingId(id));
+      if (missing.length > 0) {
+        try {
+          await hydrateCardsByIds(missing);
+        } catch (err) {
+          console.error('Failed to load binder cards for export:', err);
+        }
+      }
+
       const allCards = cardStore.getAll();
       const collections = [
         {
@@ -176,6 +194,15 @@ export function createExportButton() {
           filePrefix: `list-${slugify(list.name)}`,
           noun: 'list',
           emptyMessage: `“${list.name}” has no cards yet.`,
+        })),
+        // Binders export their pockets in page/slot order.
+        ...binders.map((binder) => ({
+          id: `binder:${binder.id}`,
+          label: binder.name,
+          cards: getBinderCards(binder.id),
+          filePrefix: `binder-${slugify(binder.name)}`,
+          noun: 'binder',
+          emptyMessage: `“${binder.name}” has no cards yet.`,
         })),
       ];
 

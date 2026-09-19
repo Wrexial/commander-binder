@@ -1,8 +1,11 @@
 import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
 import {
+  binderIdFromTarget,
+  binderTargetId,
   createCollectionModal,
   createTargetToggle,
+  isBinderTargetId,
   normalizeName,
   previewGroup,
   summaryChip,
@@ -12,6 +15,7 @@ import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { getList, getLists, isInList } from '../../state/listsState.js';
+import { getBinder, getBinders, isCardInBinder } from '../../state/bindersState.js';
 
 const VALIDATION_DEBOUNCE_MS = 250;
 
@@ -43,6 +47,17 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
       };
     }
 
+    if (isBinderTargetId(id)) {
+      const binderId = binderIdFromTarget(id);
+      const name = getBinder(binderId)?.name || 'binder';
+      return {
+        present: (card) => isCardInBinder(binderId, card),
+        presentLabel: `In “${name}”`,
+        missingLabel: `Not in “${name}”`,
+        targetNoun: `“${name}”`,
+      };
+    }
+
     const name = getList(id)?.name || 'list';
     return {
       present: (card) => isInList(id, card),
@@ -56,6 +71,10 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     { id: 'owned', label: 'Collection' },
     { id: 'wishlist', label: 'Wishlist' },
     ...getLists().map((list) => ({ id: list.id, label: list.name })),
+    ...getBinders().map((binder) => ({
+      id: binderTargetId(binder.id),
+      label: `Binder: ${binder.name}`,
+    })),
   ];
   let targetId = targetOptions.some((option) => option.id === initialTarget)
     ? initialTarget

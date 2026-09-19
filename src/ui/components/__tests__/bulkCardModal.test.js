@@ -16,6 +16,12 @@ vi.mock('../../../state/listsState.js', () => ({
   isInList: vi.fn(() => false),
 }));
 
+vi.mock('../../../state/bindersState.js', () => ({
+  getBinders: vi.fn(() => []),
+  getBinder: vi.fn(() => null),
+  isCardInBinder: vi.fn(() => false),
+}));
+
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []) },
 }));
@@ -29,6 +35,7 @@ import { createBulkCheckModal } from '../bulkCardModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned } from '../../../state/cardState.js';
 import { isInList } from '../../../state/listsState.js';
+import { getBinder, getBinders, isCardInBinder } from '../../../state/bindersState.js';
 
 function makeCard(name) {
   return { id: name, name, type_line: 'Legendary Creature — Human', colors: [] };
@@ -61,6 +68,9 @@ beforeEach(() => {
   cardStore.getAll.mockReturnValue([]);
   isCardOwned.mockReturnValue(false);
   isInList.mockReturnValue(false);
+  getBinders.mockReturnValue([]);
+  getBinder.mockReturnValue(null);
+  isCardInBinder.mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -118,6 +128,20 @@ describe('bulk check modal', () => {
     typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
 
     expect(groupLabels()).toEqual(['In “Trade pile”', 'Not in “Trade pile”']);
+    expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
+  });
+
+  it('checks against a binder', () => {
+    getBinders.mockReturnValue([{ id: 'B1', name: 'Trade binder' }]);
+    getBinder.mockReturnValue({ id: 'B1', name: 'Trade binder' });
+    isCardInBinder.mockImplementation((id, card) => card.name === 'Sol Ring');
+    cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
+
+    createBulkCheckModal().show();
+    target('Binder: Trade binder').click();
+    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
+
+    expect(groupLabels()).toEqual(['In “Trade binder”', 'Not in “Trade binder”']);
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 

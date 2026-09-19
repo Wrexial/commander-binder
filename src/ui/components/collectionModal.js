@@ -118,6 +118,24 @@ export const COLLECTION_TARGETS = [
 ];
 
 /**
+ * Binder targets are prefixed in the target picker so a binder id can never be
+ * mistaken for a custom-list id (both are UUIDs).
+ */
+export const BINDER_TARGET_PREFIX = 'binder:';
+
+export function binderTargetId(binderId) {
+  return `${BINDER_TARGET_PREFIX}${binderId}`;
+}
+
+export function isBinderTargetId(targetId) {
+  return typeof targetId === 'string' && targetId.startsWith(BINDER_TARGET_PREFIX);
+}
+
+export function binderIdFromTarget(targetId) {
+  return isBinderTargetId(targetId) ? targetId.slice(BINDER_TARGET_PREFIX.length) : null;
+}
+
+/**
  * A small Owned / Wishlist segmented control shared by the collection modals,
  * so the picker and the action always agree on the active target.
  *

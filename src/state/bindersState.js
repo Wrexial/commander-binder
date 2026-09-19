@@ -17,6 +17,7 @@
  */
 import { mainState } from './mainState.js';
 import { getSetting } from './cardSettings.js';
+import { cardStore, primaryName } from './cardStore.js';
 import {
   createBinder as apiCreateBinder,
   deleteBinder as apiDeleteBinder,
@@ -209,6 +210,66 @@ export function getBinderByName(name) {
   return getBinders().find((binder) => binder.name.toLowerCase() === target) || null;
 }
 
+/** True when `binderId` is a real binder the caller can see. */
+export function hasBinder(binderId) {
+  return binders.has(binderId);
+}
+
+/** A binder's slot keys ordered page → row → column. */
+function sortedSlotKeys(binder) {
+  return Object.keys(binder.slots).sort((a, b) => {
+    const pa = parseSlotKey(a);
+    const pb = parseSlotKey(b);
+    if (!pa || !pb) return 0;
+    return pa.page - pb.page || pa.row - pb.row || pa.col - pb.col;
+  });
+}
+
+/** Every printing id stored in a binder, in slot order. */
+export function getBinderPrintingIds(binderId) {
+  const binder = binders.get(binderId);
+  if (!binder) return [];
+  return sortedSlotKeys(binder).map((key) => binder.slots[key]);
+}
+
+/**
+ * The member cards of a binder, one per card name, in slot order. Unloaded
+ * printings fall back to a bare `{ id, name }` so an export never loses a row.
+ *
+ * @param {string} binderId
+ * @returns {Array<{id: string, name: string}>}
+ */
+export function getBinderCards(binderId) {
+  const binder = binders.get(binderId);
+  if (!binder) return [];
+
+  const seen = new Set();
+  const cards = [];
+  for (const key of sortedSlotKeys(binder)) {
+    const printingId = binder.slots[key];
+    const card = cardStore.getByPrintingId(printingId);
+    const name = card ? primaryName(card) : printingId;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    cards.push(card || { id: printingId, name: printingId });
+  }
+  return cards;
+}
+
+/**
+ * True when the shown printing — or any other printing of the same name — sits
+ * in the binder (name-aware, like an owned/list check).
+ */
+export function isCardInBinder(binderId, card) {
+  if (!card) return false;
+  const binder = binders.get(binderId);
+  if (!binder) return false;
+
+  const slotIds = new Set(Object.values(binder.slots));
+  if (slotIds.has(card.id)) return true;
+  return cardStore.getPrintings(card.name).some((printing) => slotIds.has(printing.id));
+}
+
 export function getActiveBinderId() {
   // Fall back to the first binder when the stored selection is gone.
   if (activeId && binders.has(activeId)) return activeId;
@@ -235,7 +296,13 @@ function uniqueName(base = 'Binder') {
 }
 
 /** Load binders from whichever source applies; seeds one from current settings. */
-export async function loadBinders() {
+/**
+ * Load binders from whichever source applies. `seed` creates a default binder
+ * when the caller has none (the Binder Builder page wants one; the browse page's
+ * bulk modals only need to list existing binders).
+ * @param {{seed?: boolean}} [options]
+ */
+export async function loadBinders({ seed = true } = {}) {
   if (isShareMode()) {
     try {
       applyBinders(await fetchBinders({ shareToken: mainState.shareToken }));
@@ -274,7 +341,7 @@ export async function loadBinders() {
     activeId = null;
   }
 
-  if (binders.size === 0 && canEditBinders()) {
+  if (binders.size === 0 && seed && canEditBinders()) {
     await createBinder({
       name: 'Binder 1',
       columns: clampInt(getSetting('gridColumns'), 1, MAX_BINDER_COLUMNS, 3),
@@ -489,6 +556,52 @@ export async function clearPage(binderId, page) {
   if (!changed) return binder;
 
   return commit(binder);
+}
+
+/**
+ * Add a batch of cards to a binder, filling the first empty pockets in slot
+ * order and growing the page count when it runs out of room (up to
+ * `MAX_BINDER_PAGES`). Cards already anywhere in the binder are skipped.
+ *
+ * @param {string} binderId
+ * @param {object[]} cards
+ * @returns {Promise<object|null>} the updated binder
+ */
+export async function addCardsToBinder(binderId, cards) {
+  if (!canEditBinders()) throw new Error('Binders are read-only in a shared view.');
+  const binder = binders.get(binderId);
+  if (!binder) throw new Error('Binder not found.');
+
+  const presentIds = new Set(Object.values(binder.slots));
+  const queue = (Array.isArray(cards) ? cards : [cards]).filter(
+    (card) => card && card.id && !presentIds.has(card.id)
+  );
+  if (queue.length === 0) return binder;
+
+  let page = 0;
+  while (queue.length > 0) {
+    if (page >= binder.pages) {
+      if (binder.pages >= MAX_BINDER_PAGES) break;
+      binder.pages += 1;
+    }
+    for (let row = 0; row < binder.rows && queue.length > 0; row++) {
+      for (let col = 0; col < binder.columns && queue.length > 0; col++) {
+        const key = slotKey(page, row, col);
+        if (binder.slots[key]) continue;
+        binder.slots[key] = queue.shift().id;
+      }
+    }
+    page += 1;
+  }
+
+  binder.updatedAt = new Date().toISOString();
+  if (isLocalMode()) {
+    await persistLocal(binder);
+    announce();
+    return binder;
+  }
+  await pushBinder(binder.id);
+  return binder;
 }
 
 /**

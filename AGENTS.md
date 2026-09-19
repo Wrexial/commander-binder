@@ -57,9 +57,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   of the shared shell.
 - `src/app/shell.js` — the shared boot used by both entry points: Clerk auth,
   the sidebar and its collection tools, the guest welcome/install prompt,
-  collection/wishlist/list loading and the guest→account merges, settings sync
-  and `setupUI`. Each page calls `bootShell()` and then mounts its own main
-  content (`main.js` = the search/browse grid, `binderMain.js` = the Binder
+  collection/wishlist/list/binder loading and the guest→account merges, settings
+  sync and `setupUI` (binders load without seeding, so the bulk modals can list
+  them on either page). Each page calls `bootShell()` and then mounts its own
+  main content (`main.js` = the search/browse grid, `binderMain.js` = the Binder
   Builder).
 - `src/binderMain.js` + `binder.html` — the separate Binder Builder page. It
   reuses the shell and renders the editor into `#binder-root`. A binder can hold
@@ -108,7 +109,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   visitors keep device-local binders in `localBinders.js` (one self-contained
   IndexedDB record) and merge them on sign-in, and a `?share=` visitor reads the
   owner's public binders read-only (`canEditBinders()` gates every mutation). It
-  dispatches `binders:changed` on every mutation.
+  dispatches `binders:changed` on every mutation. `getBinderCards`/
+  `getBinderPrintingIds` return a binder's contents in slot order and
+  `isCardInBinder` is a name-aware membership check, so the bulk add/check/export
+  modals treat binders exactly like lists; `addCardsToBinder` bulk-fills the
+  first empty pockets and grows the page count when needed.
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control).
@@ -154,10 +159,13 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   add/check/export modals (the add, bulk-check, export
   and recent-activity modals share an Owned/Wishlist picker from
   `collectionModal.js`'s `createTargetToggle` (which can also pin a "+ New list"
-  action); the add and bulk-check modals append every custom list as a target,
-  the add modal's "+ New list" reveals an inline create form and selects the new
-  list, and the export button feeds each list in
-  as a collection, so they all work on lists exactly like the built-ins; plus the
+  action); the add and bulk-check modals append every custom list and every
+  binder as a target (binders are prefixed `binder:` so a binder id can never
+  be mistaken for a list id), the add modal's "+ New list" reveals an inline
+  create form and selects the new
+  list, and the export button feeds each list and binder in
+  as a collection (hydrating a binder's not-yet-loaded cards first), so they all
+  work on lists and binders exactly like the built-ins; plus the
   shared
   `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
   the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation, a

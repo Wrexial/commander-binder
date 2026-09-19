@@ -14,7 +14,7 @@ import { initCardSettings, applySettingsFromStore } from '../ui/settingsUI.js';
 import { loadCardStates, mergeLocalCollectionToAccount } from '../state/cardState.js';
 import { loadWishlistStates, mergeLocalWishlistToAccount } from '../state/wishlistState.js';
 import { loadLists, mergeLocalListsToAccount } from '../state/listsState.js';
-import { mergeLocalBindersToAccount } from '../state/bindersState.js';
+import { loadBinders, mergeLocalBindersToAccount } from '../state/bindersState.js';
 import { initClerk, getClerk } from '../auth/clerk.js';
 import { createSignInButton } from '../ui/components/SignInButton.js';
 import { createGuestModeText } from '../ui/components/GuestModeText.js';
@@ -261,7 +261,14 @@ export async function bootShell() {
   // Load saved marks in parallel with the page content so Clerk/Netlify/DB
   // latency does not delay the first paint. Marks are re-applied here once the
   // owned/wishlist state arrives.
-  const statesReady = Promise.all([loadCardStates(), loadWishlistStates(), loadLists()])
+  const statesReady = Promise.all([
+    loadCardStates(),
+    loadWishlistStates(),
+    loadLists(),
+    // Load (but don't seed) binders so the bulk add/export/check modals on
+    // either page can offer them as targets.
+    loadBinders({ seed: false }),
+  ])
     .then(async () => {
       // A guest's locally-tracked cards are merged into the account the first
       // time the app boots signed in (and on any retry after a failed merge).

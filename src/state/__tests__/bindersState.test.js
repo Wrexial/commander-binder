@@ -1,4 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { cardStore } from '../cardStore.js';
 
 /** In-memory stand-in for the IndexedDB-backed local binder store. */
 const local = vi.hoisted(() => ({ records: [] }));
@@ -148,6 +149,64 @@ describe('bindersState', () => {
     await clearPage(id, 0);
     expect(getActiveBinder().slots['0:0:0']).toBeUndefined();
     expect(getActiveBinder().slots['1:0:0']).toBe('page-1-card');
+  });
+
+  it('lists a binder\u2019s cards in slot order, one per name', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, getBinderCards, getBinderPrintingIds } =
+      await load();
+    cardStore.add({ id: 'card-a', name: 'Alpha' });
+    cardStore.add({ id: 'card-b', name: 'Beta' });
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    // Insert out of order to prove the slot sort (page, row, column).
+    await assignCardToSlot(binder.id, '0:1:0', 'card-b');
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    expect(getBinderPrintingIds(binder.id)).toEqual(['card-a', 'card-b']);
+    expect(getBinderCards(binder.id).map((card) => card.name)).toEqual(['Alpha', 'Beta']);
+  });
+
+  it('is name-aware when checking binder membership', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, isCardInBinder } = await load();
+    cardStore.add({ id: 'card-a', name: 'Alpha' });
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    // Another printing of the same name still counts as present.
+    expect(isCardInBinder(binder.id, { id: 'other-printing', name: 'Alpha' })).toBe(true);
+    expect(isCardInBinder(binder.id, { id: 'card-x', name: 'Gamma' })).toBe(false);
+  });
+
+  it('bulk-fills empty pockets and grows the page count when needed', async () => {
+    const { loadBinders, getActiveBinder, updateBinder, addCardsToBinder } = await load();
+    await loadBinders();
+    const binder = getActiveBinder();
+    await updateBinder(binder.id, { columns: 2, rows: 2, pages: 1 }); // 4 pockets
+
+    const cards = Array.from({ length: 6 }, (_, i) => ({ id: `c${i}`, name: `C${i}` }));
+    await addCardsToBinder(binder.id, cards);
+
+    const updated = getActiveBinder();
+    expect([...Object.values(updated.slots)].sort()).toEqual(cards.map((card) => card.id).sort());
+    expect(updated.pages).toBe(2);
+  });
+
+  it('skips cards already in the binder when bulk-filling', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, addCardsToBinder } = await load();
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'c0');
+
+    await addCardsToBinder(binder.id, [
+      { id: 'c0', name: 'C0' },
+      { id: 'c1', name: 'C1' },
+    ]);
+
+    const ids = Object.values(getActiveBinder().slots);
+    expect(ids.filter((id) => id === 'c0')).toHaveLength(1);
+    expect(ids).toContain('c1');
   });
 
   it('refuses to rename a binder to an existing name', async () => {

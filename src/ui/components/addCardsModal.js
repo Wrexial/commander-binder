@@ -3,9 +3,12 @@ import { showToast } from './toast.js';
 import {
   addOwnedCards,
   addWantedCards,
+  binderIdFromTarget,
+  binderTargetId,
   COLLECTION_TARGETS,
   createCollectionModal,
   createTargetToggle,
+  isBinderTargetId,
   normalizeName,
   previewGroup,
   summaryChip,
@@ -16,6 +19,12 @@ import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { addCardsToList, createList, getList, getLists, isInList } from '../../state/listsState.js';
+import {
+  addCardsToBinder,
+  getBinder,
+  getBinders,
+  isCardInBinder,
+} from '../../state/bindersState.js';
 import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -74,6 +83,24 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       };
     }
 
+    if (isBinderTargetId(id)) {
+      const binderId = binderIdFromTarget(id);
+      const name = getBinder(binderId)?.name || 'binder';
+      return {
+        present: (card) => isCardInBinder(binderId, card),
+        add: async (cards, message) => {
+          await addCardsToBinder(binderId, cards);
+          showToast(message, 'success');
+          updateAllCardStates();
+        },
+        presentLabel: `Already in “${name}”`,
+        skipVerb: 'have in the binder',
+        successSuffix: ` to “${name}”`,
+        title: `Add to “${name}”`,
+        addLabel: (n) => (n > 0 ? `Add ${n} to binder` : 'Add to binder'),
+      };
+    }
+
     const name = getList(id)?.name || 'list';
     return {
       present: (card) => isInList(id, card),
@@ -91,7 +118,11 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   }
 
   const listOptions = getLists().map((list) => ({ id: list.id, label: list.name }));
-  const targetOptions = [...COLLECTION_TARGETS, ...listOptions];
+  const binderOptions = getBinders().map((binder) => ({
+    id: binderTargetId(binder.id),
+    label: `Binder: ${binder.name}`,
+  }));
+  const targetOptions = [...COLLECTION_TARGETS, ...listOptions, ...binderOptions];
   let targetId = targetOptions.some((option) => option.id === initialKind) ? initialKind : 'owned';
   let config = describeTarget(targetId);
 
