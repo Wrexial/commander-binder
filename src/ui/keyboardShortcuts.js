@@ -17,7 +17,8 @@ function isEditable(target) {
 }
 
 function isModalOpen() {
-  return Boolean(document.querySelector('.list-modal-backdrop'));
+  // Any dialog owns the keyboard: the app modals and the card preview modal.
+  return Boolean(document.querySelector('.list-modal-backdrop, .tooltip.modal'));
 }
 
 /** Visible cards in grid order (skips anything hidden by search/filter). */

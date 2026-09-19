@@ -129,6 +129,17 @@ describe('initKeyboardShortcuts', () => {
     expect(document.activeElement).not.toBe(searchInput());
   });
 
+  it('ignores shortcuts while the card preview modal is open', () => {
+    const preview = document.createElement('div');
+    preview.className = 'tooltip modal';
+    document.body.appendChild(preview);
+
+    const event = press('/');
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(document.activeElement).not.toBe(searchInput());
+  });
+
   it('ignores shortcuts pressed with a modifier', () => {
     const event = press('j', document.body, { ctrlKey: true });
     expect(event.defaultPrevented).toBe(false);

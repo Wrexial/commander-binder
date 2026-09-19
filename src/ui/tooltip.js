@@ -385,7 +385,9 @@ function renderTooltipContent(card, tooltip, e, { reposition = true } = {}) {
     if (typeof tooltip.onNavigate === 'function') {
       const hint = document.createElement('div');
       hint.className = 'tooltip-swipe-hint';
-      hint.textContent = 'Swipe for previous / next card';
+      hint.textContent = isHoverCapable()
+        ? 'Use \u2190 / \u2192 (or J / K) to change card'
+        : 'Swipe for previous / next card';
       tooltip.appendChild(hint);
     }
   } else if (cycleControl) {
@@ -559,6 +561,28 @@ window.addEventListener(
 
 window.addEventListener('orientationchange', () => {
   if (activeTooltip) {
+    hideTooltip(activeTooltip);
+  }
+});
+
+// Keyboard controls for the modal preview (desktop): arrows or J/K change card,
+// Escape closes. The global shortcuts bail while a modal is open, so these keys
+// belong to the preview.
+document.addEventListener('keydown', (event) => {
+  if (!activeTooltip || !activeTooltip.classList.contains('modal')) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  const key = event.key.toLowerCase();
+  const onNavigate = activeTooltip.onNavigate;
+
+  if ((key === 'arrowright' || key === 'j') && typeof onNavigate === 'function') {
+    event.preventDefault();
+    onNavigate(1, { clientX: 0, clientY: 0 });
+  } else if ((key === 'arrowleft' || key === 'k') && typeof onNavigate === 'function') {
+    event.preventDefault();
+    onNavigate(-1, { clientX: 0, clientY: 0 });
+  } else if (key === 'escape') {
+    event.preventDefault();
     hideTooltip(activeTooltip);
   }
 });

@@ -157,7 +157,11 @@ describe('tooltip', () => {
     beforeEach(() => {
       vi.stubGlobal(
         'matchMedia',
-        vi.fn(() => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+        vi.fn((query) => ({
+          matches: query.includes('max-width'),
+          addEventListener() {},
+          removeEventListener() {},
+        }))
       );
     });
 
@@ -276,6 +280,46 @@ describe('tooltip', () => {
 
       expect(tooltip.style.display).toBe('flex');
       expect(tooltip.classList.contains('modal')).toBe(true);
+    });
+
+    it('shows a swipe hint on a touch device', () => {
+      tooltip.onNavigate = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.tooltip-swipe-hint').textContent).toContain('Swipe');
+    });
+
+    it('navigates with the arrow keys and J/K while open', () => {
+      const onNavigate = vi.fn();
+      tooltip.onNavigate = onNavigate;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+      expect(onNavigate).toHaveBeenCalledWith(-1, expect.anything());
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'j' }));
+      expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k' }));
+      expect(onNavigate).toHaveBeenCalledWith(-1, expect.anything());
+    });
+
+    it('closes the modal on Escape', () => {
+      tooltip.onNavigate = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(tooltip.style.display).toBe('none');
     });
 
     it('keeps a one-tap-away grid click from becoming a card tap', () => {
@@ -551,6 +595,32 @@ describe('tooltip', () => {
       expect(tooltip.style.left).toBe('200px');
       expect(tooltip.style.top).toBe('150px');
       expect(tooltip.currentCard.name).toBe('Another Angel');
+    });
+  });
+
+  describe('keyboard navigation (hover devices)', () => {
+    it('shows keyboard controls and navigates with the arrow keys', () => {
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query) => ({
+          matches: query.includes('hover'),
+          addEventListener() {},
+          removeEventListener() {},
+        }))
+      );
+      const onNavigate = vi.fn();
+      tooltip.onNavigate = onNavigate;
+
+      // Modal forced, as the desktop long-press / Surprise me does.
+      showTooltip(event, card, tooltip, { modal: true });
+      vi.runAllTimers();
+
+      const hint = tooltip.querySelector('.tooltip-swipe-hint');
+      expect(hint.textContent).toContain('←');
+      expect(hint.textContent).toContain('→');
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());
     });
   });
 
