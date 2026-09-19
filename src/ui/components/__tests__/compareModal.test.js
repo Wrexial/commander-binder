@@ -8,11 +8,22 @@ vi.mock('../../../state/cardState.js', () => ({
   getOwnedCardIds: vi.fn(() => new Set()),
   setCardsOwned: vi.fn(),
 }));
+vi.mock('../../../state/listsState.js', () => ({
+  getListCardIds: vi.fn(() => []),
+}));
+vi.mock('../../../state/mainState.js', () => ({ mainState: { shareToken: null } }));
+vi.mock('../../../state/wishlistState.js', () => ({
+  setCardsWanted: vi.fn(() => Promise.resolve()),
+}));
+vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 
-import { showCompareModal } from '../compareModal.js';
+import { showCompareModal, showListCompareModal } from '../compareModal.js';
 import { addToViewerWishlist, loadViewerCollection } from '../../../state/compareState.js';
 import { getOwnedCardIds } from '../../../state/cardState.js';
+import { getListCardIds } from '../../../state/listsState.js';
+import { mainState } from '../../../state/mainState.js';
+import { setCardsWanted } from '../../../state/wishlistState.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { showToast } from '../toast.js';
 
@@ -29,6 +40,8 @@ beforeEach(() => {
   cardStore.add(card('b1', 'Both Have'));
   getOwnedCardIds.mockReturnValue(new Set(['o1', 'b1']));
   loadViewerCollection.mockResolvedValue(new Set(['m1', 'b1']));
+  getListCardIds.mockReturnValue([]);
+  mainState.shareToken = null;
 });
 
 afterEach(() => {
@@ -91,5 +104,52 @@ describe('showCompareModal', () => {
     await Promise.resolve();
 
     expect(writeText).toHaveBeenCalledWith('Only They Have');
+  });
+});
+
+describe('showListCompareModal', () => {
+  it('diffs the list against the collection and wishlists the gaps', async () => {
+    getListCardIds.mockReturnValue(['o1', 'b1']);
+    // o1 is on the list but not owned; m1 is owned but not on the list.
+    getOwnedCardIds.mockReturnValue(new Set(['m1', 'b1']));
+
+    await showListCompareModal({ id: 'L1', name: 'Trade pile' });
+
+    const chips = [...document.querySelectorAll('.bulk-summary-chip')].map((el) => el.textContent);
+    expect(
+      chips.some((text) => text.includes("On the list · you don't own") && text.includes('1'))
+    ).toBe(true);
+    expect(chips.some((text) => text.includes('not on the list') && text.includes('1'))).toBe(true);
+
+    const rows = [...document.querySelectorAll('.bulk-row')].map((el) => el.textContent);
+    expect(rows).toContain('Only They Have');
+    expect(rows).toContain('Only I Have');
+
+    [...document.querySelectorAll('.modal-button-container button')]
+      .find((candidate) => candidate.textContent === 'Wishlist missing')
+      .click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(setCardsWanted).toHaveBeenCalledWith([{ id: 'o1' }], true);
+  });
+
+  it('uses the viewer collection and wishlist in a share view', async () => {
+    getListCardIds.mockReturnValue(['o1']);
+    loadViewerCollection.mockResolvedValue(new Set(['m1']));
+    mainState.shareToken = 'tok';
+
+    await showListCompareModal({ id: 'L1', name: 'Shared pile' });
+
+    expect(loadViewerCollection).toHaveBeenCalled();
+
+    [...document.querySelectorAll('.modal-button-container button')]
+      .find((candidate) => candidate.textContent === 'Wishlist missing')
+      .click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(addToViewerWishlist).toHaveBeenCalledWith(['o1']);
+    expect(setCardsWanted).not.toHaveBeenCalled();
   });
 });

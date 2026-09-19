@@ -123,9 +123,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `sidebar`, `toast`
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
-  custom-list UI (`listsModal.js` — create/rename/notes/public/delete and “add
-  selection”; `listPicker.js` — one card from the preview or the whole bulk
-  selection, with partial-membership state) and their
+  custom-list UI (`listsModal.js` — create/rename/notes/public/delete, the list's
+  member cards with owned/missing status, per-card removal, “add selection”, and
+  a “Compare with my collection” action; `listPicker.js` — one card from the
+  preview or the whole bulk selection, with partial-membership state) and their
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks. Statistics includes a "Wishlist Targets" section that
@@ -233,7 +234,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   diff of the owner's collection against the visitor's own — the owner's side
   comes from `cardState` (share token) and the visitor's from `compareState`
   (server when signed in, IndexedDB otherwise), with "Wishlist missing" and
-  "Copy names" actions. Plain
+  "Copy names" actions. The same module's `showListCompareModal` diffs one custom
+  list against the viewer's collection (signed in, guest or share view) with
+  "Wishlist missing"/"Copy list". Plain
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
   (`merge-owned`/`merge-wishlist`), and they get the same collection sidebar

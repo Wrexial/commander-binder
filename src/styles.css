@@ -4377,9 +4377,78 @@ body.selection-mode #results {
 }
 
 .lists-count {
-  margin: 10px 0 0;
+  margin: 0 0 8px;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.lists-compare {
+  align-self: flex-start;
+  margin-top: 12px;
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background-color: var(--accent-soft);
+}
+
+.lists-cards {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.lists-cards-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* Long lists scroll inside the editor card rather than growing the modal. */
+.lists-cards-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.lists-card-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.lists-card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.lists-card-status {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+.lists-card-status.is-owned {
+  color: var(--success);
+}
+
+.lists-card-remove {
+  padding: 2px 9px;
+  line-height: 1;
 }
 
 /* Per-card picker. */

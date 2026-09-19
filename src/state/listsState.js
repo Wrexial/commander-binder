@@ -14,7 +14,7 @@
  * without importing this module's internals.
  */
 import { mainState } from './mainState.js';
-import { cardStore } from './cardStore.js';
+import { cardStore, primaryName } from './cardStore.js';
 import {
   addListItems as apiAddListItems,
   createList as apiCreateList,
@@ -133,6 +133,31 @@ export function getListsCount() {
 /** Every printing id that belongs to a list (used by export/share code). */
 export function getListCardIds(id) {
   return [...(lists.get(id)?.cardIds || [])];
+}
+
+/**
+ * The member cards of a list, one per card name, sorted by name. Unloaded
+ * printings fall back to a bare `{ id, name }` so a shared list never loses a
+ * row. Used by the lists manager and the compare modal.
+ *
+ * @param {string} id
+ * @returns {Array<{id: string, name: string}>}
+ */
+export function getListCards(id) {
+  const list = lists.get(id);
+  if (!list) return [];
+
+  const seen = new Set();
+  const cards = [];
+  for (const printingId of list.cardIds) {
+    const card = cardStore.getByPrintingId(printingId);
+    const key = card ? primaryName(card) : printingId;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cards.push(card || { id: printingId, name: printingId });
+  }
+
+  return cards.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 
 /** The ids of the lists a card belongs to (name-aware, like an owned check). */

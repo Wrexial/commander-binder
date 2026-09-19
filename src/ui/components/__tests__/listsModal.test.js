@@ -6,13 +6,16 @@ vi.mock('../../../state/listsState.js', () => ({
   canEditLists: vi.fn(() => state.canEdit),
   getLists: vi.fn(() => state.lists),
   getList: vi.fn((id) => state.lists.find((list) => list.id === id) || null),
+  getListCards: vi.fn(() => []),
   loadLists: vi.fn(async () => {}),
   createList: vi.fn(async () => state.lists[0] || null),
   updateList: vi.fn(async () => {}),
   deleteList: vi.fn(async () => {}),
   addCardsToList: vi.fn(async () => {}),
+  removeCardsFromList: vi.fn(async () => {}),
 }));
 
+vi.mock('../../../state/cardState.js', () => ({ isCardOwned: vi.fn(() => false) }));
 vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../../../state/selectionState.js', () => ({
   getSelectedCards: vi.fn(() => []),
@@ -22,6 +25,7 @@ vi.mock('../../../state/selectionState.js', () => ({
 
 import { createListsModal } from '../listsModal.js';
 import * as listsState from '../../../state/listsState.js';
+import { isCardOwned } from '../../../state/cardState.js';
 
 function makeList(overrides = {}) {
   return {
@@ -39,6 +43,8 @@ beforeEach(() => {
   state.lists = [makeList()];
   document.body.innerHTML = '';
   vi.clearAllMocks();
+  listsState.getListCards.mockReturnValue([]);
+  isCardOwned.mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -107,6 +113,36 @@ describe('listsModal', () => {
     confirm.click();
 
     await vi.waitFor(() => expect(listsState.deleteList).toHaveBeenCalledWith('L1'));
+  });
+
+  it('lists the cards in the selected list and removes one', async () => {
+    listsState.getListCards.mockReturnValue([
+      { id: 'a', name: 'Atraxa' },
+      { id: 'b', name: 'Sol Ring' },
+    ]);
+    isCardOwned.mockImplementation((card) => card.name === 'Atraxa');
+
+    createListsModal().show();
+
+    const rows = [...document.querySelectorAll('.lists-card-row')];
+    expect(rows.map((row) => row.querySelector('.lists-card-name').textContent)).toEqual([
+      'Atraxa',
+      'Sol Ring',
+    ]);
+    expect(rows[0].querySelector('.lists-card-status').textContent).toBe('Owned');
+    expect(rows[1].querySelector('.lists-card-status').textContent).toBe('Missing');
+
+    rows[1].querySelector('.lists-card-remove').click();
+    await vi.waitFor(() =>
+      expect(listsState.removeCardsFromList).toHaveBeenCalledWith('L1', [
+        { id: 'b', name: 'Sol Ring' },
+      ])
+    );
+  });
+
+  it('offers to compare the list with the collection', () => {
+    createListsModal().show();
+    expect(document.querySelector('.lists-compare')).not.toBeNull();
   });
 
   it('renders read-only in a share view', () => {

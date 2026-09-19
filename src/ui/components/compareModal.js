@@ -1,7 +1,11 @@
 import { getOwnedCardIds } from '../../state/cardState.js';
 import { addToViewerWishlist, loadViewerCollection } from '../../state/compareState.js';
 import { cardStore, primaryName } from '../../state/cardStore.js';
+import { getListCardIds } from '../../state/listsState.js';
+import { mainState } from '../../state/mainState.js';
+import { setCardsWanted } from '../../state/wishlistState.js';
 import { diffCollections } from '../../utils/compareCollections.js';
+import { updateAllCardStates } from '../cards.js';
 import { createCollectionModal, previewGroup, summaryChip } from './collectionModal.js';
 import { showToast } from './toast.js';
 
@@ -27,28 +31,32 @@ function sortedLabels(keys) {
   return keys.map(labelFor).sort((a, b) => a.localeCompare(b));
 }
 
-function render(contentArea, modal, diff) {
+/**
+ * Paint a two-sided diff into a collection modal.
+ *
+ * @param {HTMLElement} contentArea
+ * @param {HTMLElement} modal
+ * @param {{ ownerOnly: string[], viewerOnly: string[], shared: string[] }} diff
+ * @param {{subtitle: string, chipLeft: string, chipRight: string, groupLeft: string, groupRight: string, empty: string}} labels
+ */
+function render(contentArea, modal, diff, labels) {
   const subtitle = modal.querySelector('.bulk-modal-subtitle');
-  if (subtitle) {
-    subtitle.textContent =
-      `${diff.ownerOnly.length} they have that you're missing · ` +
-      `${diff.viewerOnly.length} you have that they're missing`;
-  }
+  if (subtitle) subtitle.textContent = labels.subtitle;
 
   const summary = `
     <div class="bulk-summary">
-      ${summaryChip('missing', "They have · you're missing", diff.ownerOnly.length)}
-      ${summaryChip('owned', "You have · they're missing", diff.viewerOnly.length)}
+      ${summaryChip('missing', labels.chipLeft, diff.ownerOnly.length)}
+      ${summaryChip('owned', labels.chipRight, diff.viewerOnly.length)}
       <span class="bulk-summary-chip">In both <strong>${diff.shared.length}</strong></span>
     </div>`;
 
   const groups =
-    previewGroup('missing', "They have — you're missing", sortedLabels(diff.ownerOnly)) +
-    previewGroup('owned', "You have — they're missing", sortedLabels(diff.viewerOnly));
+    previewGroup('missing', labels.groupLeft, sortedLabels(diff.ownerOnly)) +
+    previewGroup('owned', labels.groupRight, sortedLabels(diff.viewerOnly));
 
   contentArea.innerHTML = groups
     ? `${summary}<div class="bulk-groups">${groups}</div>`
-    : `${summary}<p class="bulk-empty">You both have the same cards.</p>`;
+    : `${summary}<p class="bulk-empty">${labels.empty}</p>`;
 }
 
 /**
@@ -78,7 +86,16 @@ export async function showCompareModal() {
   const viewerIds = await loadViewerCollection();
   const diff = diffCollections(ownerIds, viewerIds, keyFor);
 
-  render(contentArea, shell.modal, diff);
+  render(contentArea, shell.modal, diff, {
+    subtitle:
+      `${diff.ownerOnly.length} they have that you're missing · ` +
+      `${diff.viewerOnly.length} you have that they're missing`,
+    chipLeft: "They have · you're missing",
+    chipRight: "You have · they're missing",
+    groupLeft: "They have — you're missing",
+    groupRight: "You have — they're missing",
+    empty: 'You both have the same cards.',
+  });
 
   // One owner printing id per card they have that the viewer lacks.
   const ownerIdByKey = new Map();
@@ -114,6 +131,92 @@ export async function showCompareModal() {
       );
     } catch (err) {
       console.error('Failed to copy card names:', err);
+      showToast('Could not copy to the clipboard.', 'error');
+    }
+  });
+}
+
+/**
+ * Compare a custom list against the viewer's own collection: what is on the
+ * list but missing from the collection, and what is in the collection but not
+ * on the list. Works signed in, signed out and in a share view (where the
+ * viewer's own collection is loaded separately from the owner's).
+ *
+ * @param {{ id: string, name: string }} list
+ */
+export async function showListCompareModal(list) {
+  const listIds = getListCardIds(list.id);
+
+  const { shell, close, contentArea, buttons } = createCollectionModal({
+    title: `Compare “${list.name}”`,
+    subtitle: 'Loading your collection…',
+    actions: [
+      { id: 'wishlist', className: 'primary', text: 'Wishlist missing' },
+      { id: 'copy', text: 'Copy list' },
+      { id: 'close', text: 'Close' },
+    ],
+  });
+  buttons.close.addEventListener('click', close);
+  buttons.wishlist.disabled = true;
+  buttons.copy.disabled = true;
+  contentArea.innerHTML = '<p class="bulk-empty">Loading your collection…</p>';
+  shell.show();
+
+  // In a share view `cardState` is the owner, so the viewer's own collection
+  // has to be fetched separately; otherwise it already is the current user's.
+  const collectionIds = mainState.shareToken ? await loadViewerCollection() : getOwnedCardIds();
+  const diff = diffCollections(listIds, collectionIds, keyFor);
+
+  render(contentArea, shell.modal, diff, {
+    subtitle:
+      `${diff.ownerOnly.length} on the list you don't own · ` +
+      `${diff.viewerOnly.length} you own that aren't on it`,
+    chipLeft: "On the list · you don't own",
+    chipRight: 'In your collection · not on the list',
+    groupLeft: "On the list — you're missing",
+    groupRight: 'In your collection — not on the list',
+    empty: 'Your collection and this list match.',
+  });
+
+  // One list printing id per card key, for the wishlist action.
+  const listIdByKey = new Map();
+  for (const id of listIds) listIdByKey.set(keyFor(id), id);
+  const missingIds = diff.ownerOnly.map((key) => listIdByKey.get(key)).filter(Boolean);
+
+  buttons.wishlist.disabled = missingIds.length === 0;
+  buttons.copy.disabled = listIds.length === 0;
+
+  buttons.wishlist.addEventListener('click', async () => {
+    buttons.wishlist.disabled = true;
+    try {
+      if (mainState.shareToken) {
+        await addToViewerWishlist(missingIds);
+      } else {
+        // The viewer *is* the current user, so update the live wishlist too.
+        await setCardsWanted(
+          missingIds.map((id) => ({ id })),
+          true
+        );
+        updateAllCardStates();
+      }
+      buttons.wishlist.textContent = 'Wishlisted';
+      showToast(
+        `Added ${missingIds.length} card${missingIds.length === 1 ? '' : 's'} to your wishlist.`,
+        'success'
+      );
+    } catch (err) {
+      buttons.wishlist.disabled = false;
+      console.error('Failed to wishlist the list:', err);
+      showToast('Could not update your wishlist.', 'error');
+    }
+  });
+
+  buttons.copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(sortedLabels(listIds.map(keyFor)).join('\n'));
+      showToast(`Copied ${listIds.length} name${listIds.length === 1 ? '' : 's'}.`, 'success');
+    } catch (err) {
+      console.error('Failed to copy the list names:', err);
       showToast('Could not copy to the clipboard.', 'error');
     }
   });

@@ -7,10 +7,13 @@ import {
   createList,
   deleteList,
   getList,
+  getListCards,
   getLists,
   loadLists,
+  removeCardsFromList,
   updateList,
 } from '../../state/listsState.js';
+import { isCardOwned } from '../../state/cardState.js';
 import { getSelectedCards, getSelectedCount, isSelectionMode } from '../../state/selectionState.js';
 import { updateAllCardStates } from '../cards.js';
 
@@ -116,6 +119,76 @@ export function createListsModal() {
     label.textContent = labelText;
     wrapper.append(label, control);
     return wrapper;
+  }
+
+  /** A button that opens the list/collection diff in its own modal. */
+  function createCompareButton(list) {
+    const compare = document.createElement('button');
+    compare.type = 'button';
+    compare.className = 'lists-compare';
+    compare.textContent = 'Compare with my collection';
+    compare.addEventListener('click', async () => {
+      const { showListCompareModal } = await import('./compareModal.js');
+      showListCompareModal(list);
+    });
+    return compare;
+  }
+
+  /** The list's member cards, each with its owned status and a remove control. */
+  function renderCards(list) {
+    const memberCards = getListCards(list.id);
+    const wrap = document.createElement('div');
+    wrap.className = 'lists-cards';
+
+    const count = document.createElement('p');
+    count.className = 'lists-count';
+    count.textContent = `${list.cardIds.size} card${list.cardIds.size === 1 ? '' : 's'} in this list`;
+    wrap.appendChild(count);
+
+    if (memberCards.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'lists-cards-empty';
+      empty.textContent =
+        'No cards yet — add some from a card preview, or add your bulk selection.';
+      wrap.appendChild(empty);
+      return wrap;
+    }
+
+    const rows = document.createElement('div');
+    rows.className = 'lists-cards-rows';
+
+    for (const card of memberCards) {
+      const owned = isCardOwned(card);
+      const row = document.createElement('div');
+      row.className = 'lists-card-row';
+
+      const name = document.createElement('span');
+      name.className = 'lists-card-name';
+      name.textContent = card.name;
+      name.title = card.name;
+
+      const status = document.createElement('span');
+      status.className = `lists-card-status${owned ? ' is-owned' : ''}`;
+      status.textContent = owned ? 'Owned' : 'Missing';
+
+      row.append(name, status);
+
+      if (canEditLists()) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'lists-card-remove';
+        remove.textContent = '×';
+        remove.title = `Remove ${card.name} from this list`;
+        remove.setAttribute('aria-label', remove.title);
+        remove.addEventListener('click', () => handleRemoveCard(list.id, card));
+        row.appendChild(remove);
+      }
+
+      rows.appendChild(row);
+    }
+
+    wrap.appendChild(rows);
+    return wrap;
   }
 
   function renderEditor() {
@@ -263,10 +336,8 @@ export function createListsModal() {
       editor.appendChild(addSelected);
     }
 
-    editor.insertAdjacentHTML(
-      'beforeend',
-      `<p class="lists-count">${list.cardIds.size} card${list.cardIds.size === 1 ? '' : 's'} in this list</p>`
-    );
+    editor.appendChild(createCompareButton(list));
+    editor.appendChild(renderCards(list));
   }
 
   async function handleCreate(name, notes, isPublic) {
@@ -329,6 +400,21 @@ export function createListsModal() {
     } catch (err) {
       console.error('Failed to add selected cards:', err);
       showToast(err.message || 'Could not add the selected cards.', 'error');
+    } finally {
+      busy = false;
+      render();
+    }
+  }
+
+  async function handleRemoveCard(listId, card) {
+    if (busy) return;
+    busy = true;
+    try {
+      await removeCardsFromList(listId, [card]);
+      updateAllCardStates();
+    } catch (err) {
+      console.error('Failed to remove the card from the list:', err);
+      showToast(err.message || 'Could not update the list.', 'error');
     } finally {
       busy = false;
       render();
