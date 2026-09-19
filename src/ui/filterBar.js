@@ -6,7 +6,6 @@ import {
   COLOR_OPTIONS,
   OWNED_OPTIONS,
   RARITY_OPTIONS,
-  TRADE_OPTIONS,
   WANTED_OPTIONS,
   activeFilterCount,
   applyFilters,
@@ -189,11 +188,6 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     commit();
   });
 
-  const trade = segmented(TRADE_OPTIONS, (id) => {
-    filters.trade = id;
-    commit();
-  });
-
   const colors = toggleButtons(
     COLOR_OPTIONS.map((color) => ({
       id: color.id,
@@ -305,7 +299,6 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     const items = [];
     if (filters.owned !== 'all') items.push(labelFor(OWNED_OPTIONS, filters.owned));
     if (filters.wanted !== 'all') items.push(labelFor(WANTED_OPTIONS, filters.wanted));
-    if (filters.trade !== 'all') items.push(labelFor(TRADE_OPTIONS, filters.trade));
     for (const color of filters.colors) items.push(labelFor(COLOR_OPTIONS, color));
     for (const rarity of filters.rarities) items.push(labelFor(RARITY_OPTIONS, rarity));
     if (filters.set) items.push(filters.set.toUpperCase());
@@ -332,11 +325,6 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     if (filters.wanted !== 'all') {
       actions.push(() => {
         filters.wanted = 'all';
-      });
-    }
-    if (filters.trade !== 'all') {
-      actions.push(() => {
-        filters.trade = 'all';
       });
     }
     for (const color of [...filters.colors]) {
@@ -385,7 +373,6 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
     group('Sort by', sortSelect),
     group('Collection', owned.el),
     group('Wishlist', wanted.el),
-    group('Trade', trade.el),
     group('Colours', colorRow),
     group('Rarity', rarities.el),
     group('Set', setSelect),
@@ -396,7 +383,6 @@ export function initFilterBar({ onChange, onSortChange } = {}) {
   function syncControls() {
     owned.sync(filters.owned);
     wanted.sync(filters.wanted);
-    trade.sync(filters.trade);
     colors.sync(filters.colors);
     colorMode.sync(filters.colorMode);
     rarities.sync(filters.rarities);

@@ -48,7 +48,7 @@ describe('initFilterBar', () => {
     const panel = document.getElementById('filter-panel');
 
     expect(panel.hidden).toBe(true);
-    expect(panel.querySelectorAll('.filter-group')).toHaveLength(8);
+    expect(panel.querySelectorAll('.filter-group')).toHaveLength(7);
 
     toggle.click();
     expect(panel.hidden).toBe(false);
@@ -107,16 +107,6 @@ describe('initFilterBar', () => {
     expect(filters.wanted).toBe('wanted');
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(activeBadgeText()).toBe('1');
-  });
-
-  it('applies a trade preset', () => {
-    const onChange = vi.fn();
-    initFilterBar({ onChange });
-
-    segment('Trade', 'Duplicates').click();
-
-    expect(filters.trade).toBe('duplicates');
-    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('shows a removable chip for each active filter', () => {

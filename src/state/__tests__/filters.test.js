@@ -101,24 +101,6 @@ describe('cardMatchesFilters', () => {
     expect(cardMatchesFilters(makeCard())).toBe(false);
   });
 
-  it('applies the trade presets', () => {
-    isCardOwned.mockReturnValue(true);
-    isCardWanted.mockReturnValue(true);
-
-    applyFilters({ ...DEFAULT_FILTERS, trade: 'duplicates' });
-    expect(cardMatchesFilters(makeCard())).toBe(true);
-
-    applyFilters({ ...DEFAULT_FILTERS, trade: 'trade' });
-    expect(cardMatchesFilters(makeCard())).toBe(false);
-
-    isCardWanted.mockReturnValue(false);
-    applyFilters({ ...DEFAULT_FILTERS, trade: 'trade' });
-    expect(cardMatchesFilters(makeCard())).toBe(true);
-
-    applyFilters({ ...DEFAULT_FILTERS, trade: 'wants' });
-    expect(cardMatchesFilters(makeCard())).toBe(false);
-  });
-
   it('filters by rarity and set', () => {
     applyFilters({ ...DEFAULT_FILTERS, rarities: ['mythic'], set: 'dom' });
 
@@ -161,7 +143,6 @@ describe('normalizeFilters', () => {
     const result = normalizeFilters({
       owned: 'bogus',
       wanted: 'bogus',
-      trade: 'bogus',
       colors: ['W', 'X'],
       colorMode: 'weird',
       rarities: ['rare', 'nope'],
@@ -173,7 +154,6 @@ describe('normalizeFilters', () => {
     expect(result.owned).toBe('all');
     expect(result.colors).toEqual(['W']);
     expect(result.wanted).toBe('all');
-    expect(result.trade).toBe('all');
     expect(result.colorMode).toBe('exclusive');
     expect(result.rarities).toEqual(['rare']);
     expect(result.set).toBe('dom');
