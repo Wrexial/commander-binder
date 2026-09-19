@@ -15,6 +15,13 @@ describe('nextPrinting', () => {
     expect(nextPrinting([a, b, c], c)).toBe(a);
   });
 
+  it('steps backwards when the direction is negative', () => {
+    expect(nextPrinting([a, b, c], b, -1)).toBe(a);
+    expect(nextPrinting([a, b, c], c, -1)).toBe(b);
+    // Wraps from the first back to the last.
+    expect(nextPrinting([a, b, c], a, -1)).toBe(c);
+  });
+
   it('returns null for a single printing or a missing card', () => {
     expect(nextPrinting([a], a)).toBeNull();
     expect(nextPrinting([a, b], null)).toBeNull();

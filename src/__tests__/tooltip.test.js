@@ -322,6 +322,20 @@ describe('tooltip', () => {
       expect(tooltip.style.display).toBe('none');
     });
 
+    it('changes the printing with the up/down keys', () => {
+      const onCycle = vi.fn();
+      tooltip.onCycle = onCycle;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      expect(onCycle).toHaveBeenCalledWith(expect.anything(), 1);
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+      expect(onCycle).toHaveBeenCalledWith(expect.anything(), -1);
+    });
+
     it('keeps a one-tap-away grid click from becoming a card tap', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
@@ -610,6 +624,8 @@ describe('tooltip', () => {
       );
       const onNavigate = vi.fn();
       tooltip.onNavigate = onNavigate;
+      tooltip.onCycle = vi.fn();
+      cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
 
       // Modal forced, as the desktop long-press / Surprise me does.
       showTooltip(event, card, tooltip, { modal: true });
@@ -618,6 +634,9 @@ describe('tooltip', () => {
       const hint = tooltip.querySelector('.tooltip-swipe-hint');
       expect(hint.textContent).toContain('←');
       expect(hint.textContent).toContain('→');
+      // A multi-printing card also advertises the up/down printing keys.
+      expect(hint.textContent).toContain('↑');
+      expect(hint.textContent).toContain('↓');
 
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
       expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());

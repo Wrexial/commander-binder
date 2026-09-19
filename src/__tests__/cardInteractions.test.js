@@ -211,6 +211,22 @@ describe('initCardInteractions', () => {
       appState.isViewOnlyMode = false;
     });
 
+    it('cycles to the previous printing when asked for a negative direction', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      cardElement.cardData = second;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      initCardInteractions(container, tooltipElement);
+      document.dispatchEvent(
+        new CustomEvent('card:preview', { detail: { element: cardElement, card: second } })
+      );
+
+      tooltipElement.onCycle(new Event('click'), -1);
+
+      expect(cardElement.cardData.id).toBe('p1');
+    });
+
     it('still suppresses the browser menu on right-click', () => {
       initCardInteractions(container, tooltipElement);
       const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });

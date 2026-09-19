@@ -172,7 +172,14 @@ function createCycleButton(tooltip) {
   // Hosts can override the label (the statistics preview asks for the
   // right-click wording); default to the plain button label.
   button.textContent = (isHoverCapable() && tooltip.cycleLabel) || 'Next printing';
-  button.title = 'Show the next printing (right-click also works)';
+  const hover = isHoverCapable();
+  const inModal = tooltip.classList.contains('modal');
+  button.title =
+    inModal && hover
+      ? 'Show the next printing (\u2193 or right-click)'
+      : hover
+        ? 'Show the next printing (right-click also works)'
+        : 'Show the next printing';
   button.addEventListener('click', (clickEvent) => {
     clickEvent.stopPropagation();
     tooltip.onCycle(clickEvent);
@@ -385,9 +392,14 @@ function renderTooltipContent(card, tooltip, e, { reposition = true } = {}) {
     if (typeof tooltip.onNavigate === 'function') {
       const hint = document.createElement('div');
       hint.className = 'tooltip-swipe-hint';
-      hint.textContent = isHoverCapable()
-        ? 'Use \u2190 / \u2192 (or J / K) to change card'
-        : 'Swipe for previous / next card';
+      if (isHoverCapable()) {
+        const canCycle = typeof tooltip.onCycle === 'function' && position.total > 1;
+        hint.textContent = canCycle
+          ? '\u2190 / \u2192 change card \u00b7 \u2191 / \u2193 change printing'
+          : '\u2190 / \u2192 change card';
+      } else {
+        hint.textContent = 'Swipe for previous / next card';
+      }
       tooltip.appendChild(hint);
     }
   } else if (cycleControl) {
@@ -581,6 +593,12 @@ document.addEventListener('keydown', (event) => {
   } else if ((key === 'arrowleft' || key === 'k') && typeof onNavigate === 'function') {
     event.preventDefault();
     onNavigate(-1, { clientX: 0, clientY: 0 });
+  } else if (key === 'arrowdown' && typeof activeTooltip.onCycle === 'function') {
+    event.preventDefault();
+    activeTooltip.onCycle(event, 1);
+  } else if (key === 'arrowup' && typeof activeTooltip.onCycle === 'function') {
+    event.preventDefault();
+    activeTooltip.onCycle(event, -1);
   } else if (key === 'escape') {
     event.preventDefault();
     hideTooltip(activeTooltip);

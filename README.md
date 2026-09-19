@@ -52,15 +52,15 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
 - **Modal card preview** — long-pressing a card (hold the mouse button on desktop, with a
   filling progress ring under the cursor, or press-and-hold on touch) opens a centred preview
   with the full artwork, set/price, an **owned/missing toggle**, and a "Next printing" control;
-  swipe left/right on touch, or press `←`/`→` (or `J`/`K`) on desktop, to move between cards
-  (`Esc` closes). A normal click still toggles owned/missing.
+  swipe left/right on touch, or press `←`/`→` (or `J`/`K`) on desktop, to move between cards, and
+  `↑`/`↓` to change printing (`Esc` closes). A normal click still toggles owned/missing.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
   printings on touch, right-click on desktop, and swipe left/right in the card preview to move
   between cards. Alerts (such as the undo prompt) can be swiped away, and the list can be
   driven entirely from the keyboard: `/` focuses search, `?` opens the syntax help, `j`/`k`
   (or the arrow keys once a card is focused) move between cards, and `Esc` clears the search.
-  With the card preview open, `←`/`→` (or `J`/`K`) change card and `Esc` closes it. Hover-only
-  affordances are gated behind `isHoverCapable()`.
+  With the card preview open, `←`/`→` (or `J`/`K`) change card, `↑`/`↓` change printing, and
+  `Esc` closes it. Hover-only affordances are gated behind `isHoverCapable()`.
 - **Synced preferences** — the display-mode and alert settings follow you across devices
   through the `user_settings` table (signed-in collectors only; localStorage is the offline
   fallback).

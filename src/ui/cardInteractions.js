@@ -54,7 +54,8 @@ function findAdjacentCard(current, direction) {
  */
 function wireCardControls(cardElement, tooltip) {
   tooltipCardElement = cardElement;
-  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
+  tooltip.onCycle = (cycleEvent, direction) =>
+    cycleCardPrinting(cardElement, cycleEvent, tooltip, direction);
   tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
   tooltip.onToggle = appState.isViewOnlyMode
     ? null
@@ -282,15 +283,17 @@ async function toggleCardOwnership(cardElement, card) {
 }
 
 /**
- * Advance a tile to its next printing and refresh it. Desktop right-click and
- * the tooltip's "Next printing" button (touch) both route through here.
+ * Advance a tile to its next (or previous) printing and refresh it. Desktop
+ * right-click, the tooltip's "Next printing" button and the modal's ↑/↓ keys all
+ * route through here.
  */
-function cycleCardPrinting(cardElement, event, tooltip) {
+function cycleCardPrinting(cardElement, event, tooltip, direction = 1) {
   if (!cardElement || !cardElement.cardData) return;
 
   const next = nextPrinting(
     cardStore.getPrintings(cardElement.cardData.name),
-    cardElement.cardData
+    cardElement.cardData,
+    direction
   );
   if (!next) return;
 

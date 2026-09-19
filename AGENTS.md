@@ -114,7 +114,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   filling progress ring under the cursor on desktop) or Surprise me — with a
   floating variant kept only for the statistics hover preview. It walks the
   visible grid on a left/right swipe (touch) or `←`/`→` / `J`/`K` (desktop, `Esc`
-  closes) and dismisses on a downward swipe; the hint text is device-aware. Its
+  closes), changes printing on `↑`/`↓`, and dismisses on a downward swipe; the hint
+  text is device-aware. Its
   owned/missing badge is a toggle button (hidden in view-only mode); the host
   (`cardInteractions.js`) exposes
   `tooltip.onCycle`/`tooltip.onNavigate`/`tooltip.onToggle` so those controls
