@@ -531,7 +531,10 @@ export function positionTooltip(e, tooltip) {
 window.addEventListener(
   'scroll',
   () => {
-    if (activeTooltip) {
+    // The modal is centred with the page locked, so scrolling underneath it must
+    // not close it — this also lets "Surprise me" smooth-scroll to a card while
+    // its preview opens. Only the floating hover preview follows the page.
+    if (activeTooltip && !activeTooltip.classList.contains('modal')) {
       hideTooltip(activeTooltip);
     }
   },

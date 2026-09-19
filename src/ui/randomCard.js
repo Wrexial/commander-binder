@@ -36,7 +36,10 @@ function findCardElement(card) {
 function revealCard(element, card) {
   element.closest('.section')?.classList.remove('collapsed');
   element.closest('.binder')?.classList.remove('collapsed');
-  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Instant, not smooth: the modal locks page scrolling, so a smooth scroll
+  // would be cut short before reaching the card. Jumping first keeps the grid
+  // centred on the card for when the preview closes.
+  element.scrollIntoView({ block: 'center' });
 
   element.classList.add('card-surprise');
   window.setTimeout(() => element.classList.remove('card-surprise'), HIGHLIGHT_MS);

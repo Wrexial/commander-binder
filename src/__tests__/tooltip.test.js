@@ -268,6 +268,16 @@ describe('tooltip', () => {
       expect(document.body.classList.contains('tooltip-open')).toBe(false);
     });
 
+    it('stays open when the page scrolls (e.g. Surprise me scrolling to a card)', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      window.dispatchEvent(new Event('scroll'));
+
+      expect(tooltip.style.display).toBe('flex');
+      expect(tooltip.classList.contains('modal')).toBe(true);
+    });
+
     it('keeps a one-tap-away grid click from becoming a card tap', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
@@ -545,6 +555,17 @@ describe('tooltip', () => {
   });
 
   describe('dismissing a desktop-style tooltip on touch', () => {
+    it('hides a floating preview when the page scrolls', () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+      expect(tooltip.classList.contains('modal')).toBe(false);
+      expect(tooltip.style.display).toBe('flex');
+
+      window.dispatchEvent(new Event('scroll'));
+
+      expect(tooltip.style.display).toBe('none');
+    });
+
     it('hides on a tap outside and swallows the trailing click', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
