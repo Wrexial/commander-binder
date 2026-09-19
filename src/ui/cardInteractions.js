@@ -1,5 +1,5 @@
 // src/ui/cardInteractions.js
-import { showTooltip, isTooltipGestureActive } from './tooltip.js';
+import { showTooltip, showTooltipCard, isTooltipGestureActive } from './tooltip.js';
 import { cardSettings } from '../state/cardSettings.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
@@ -19,6 +19,43 @@ function getState(el) {
     elementState.set(el, {});
   }
   return elementState.get(el);
+}
+
+/** Card currently shown in the full-screen preview, for swipe navigation. */
+let tooltipCardElement = null;
+
+/** True when a card (or an ancestor) is hidden by the active search/filter. */
+function isHiddenByFilter(element) {
+  for (let node = element; node; node = node.parentElement) {
+    if (node.hidden || node.style?.display === 'none') return true;
+  }
+  return false;
+}
+
+/**
+ * The neighbouring card in the on-screen order, skipping cards hidden by the
+ * active search/filter. `direction` is +1 for next, -1 for previous.
+ */
+function findAdjacentCard(current, direction) {
+  if (!current) return null;
+
+  const cards = Array.from(document.querySelectorAll('.card')).filter(
+    (card) => !isHiddenByFilter(card)
+  );
+  const index = cards.indexOf(current);
+  return index === -1 ? null : cards[index + direction] || null;
+}
+
+/** Move the open preview to the adjacent card, so its controls follow it. */
+function navigateTooltip(direction, event, tooltip) {
+  const target = findAdjacentCard(tooltipCardElement, direction);
+  if (!target || !target.cardData) return;
+
+  tooltipCardElement = target;
+  tooltip.onCycle = (cycleEvent) => cycleCardPrinting(target, cycleEvent, tooltip);
+  tooltip.cycleLabel = null;
+  preloadCardImages(target.cardData);
+  showTooltipCard(target.cardData, tooltip, event);
 }
 
 // --- Delegated Event Handlers ---
@@ -49,6 +86,10 @@ function handleTouchStart(event, tooltip) {
   // view action, not an edit.
   tooltip.onCycle = (cycleEvent) => cycleCardPrinting(cardElement, cycleEvent, tooltip);
   tooltip.cycleLabel = null;
+
+  // Swiping the full-screen preview left/right walks the visible grid.
+  tooltipCardElement = cardElement;
+  tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
 
   // Touch has no hover phase; start the image early since the tooltip shows
   // only after a 500ms long-press.

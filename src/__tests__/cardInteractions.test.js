@@ -99,6 +99,86 @@ describe('initCardInteractions', () => {
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
+    /** Add a card tile with `cardData` to the binder and return it. */
+    function addCard(id, name) {
+      const tile = document.createElement('div');
+      tile.className = 'card';
+      tile.cardData = { id, name };
+      container.querySelector('.binder').appendChild(tile);
+      return tile;
+    }
+
+    it('exposes a navigation handler that walks the visible grid', () => {
+      container.querySelector('.binder').innerHTML = '';
+      const first = addCard('c1', 'First');
+      const second = addCard('c2', 'Second');
+      const third = addCard('c3', 'Third');
+
+      initCardInteractions(container, tooltipElement);
+      startTouch(second);
+
+      expect(typeof tooltipElement.onNavigate).toBe('function');
+
+      tooltipElement.onNavigate(1, { clientX: 0, clientY: 0 });
+      expect(tooltip.showTooltipCard).toHaveBeenLastCalledWith(
+        third.cardData,
+        tooltipElement,
+        expect.anything()
+      );
+
+      // At the end of the grid there is nowhere further to go.
+      tooltipElement.onNavigate(1, { clientX: 0, clientY: 0 });
+      expect(tooltip.showTooltipCard).toHaveBeenCalledTimes(1);
+
+      // Swiping back walks one card at a time from wherever we are now.
+      tooltipElement.onNavigate(-1, { clientX: 0, clientY: 0 });
+      expect(tooltip.showTooltipCard).toHaveBeenLastCalledWith(
+        second.cardData,
+        tooltipElement,
+        expect.anything()
+      );
+
+      tooltipElement.onNavigate(-1, { clientX: 0, clientY: 0 });
+      expect(tooltip.showTooltipCard).toHaveBeenLastCalledWith(
+        first.cardData,
+        tooltipElement,
+        expect.anything()
+      );
+
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
+    it('skips cards hidden by the active filter when navigating', () => {
+      const hidden = addCard('c-hidden', 'Hidden');
+      hidden.style.display = 'none';
+      const shown = addCard('c-shown', 'Shown');
+
+      initCardInteractions(container, tooltipElement);
+      startTouch(cardElement);
+
+      tooltipElement.onNavigate(1, { clientX: 0, clientY: 0 });
+
+      expect(tooltip.showTooltipCard).toHaveBeenCalledWith(
+        shown.cardData,
+        tooltipElement,
+        expect.anything()
+      );
+
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
+    it('does not navigate past the ends of the grid', () => {
+      initCardInteractions(container, tooltipElement);
+      startTouch(cardElement);
+
+      // cardElement is the only visible card.
+      tooltipElement.onNavigate(-1, { clientX: 0, clientY: 0 });
+      tooltipElement.onNavigate(1, { clientX: 0, clientY: 0 });
+
+      expect(tooltip.showTooltipCard).not.toHaveBeenCalled();
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
     it('exposes the printing-cycle handler in view-only (guest) mode', () => {
       appState.isViewOnlyMode = true;
       initCardInteractions(container, tooltipElement);

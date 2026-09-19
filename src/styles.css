@@ -1174,6 +1174,11 @@ body.list-mode .card.list-tile .owned-badge {
   opacity: 1;
 }
 
+/* Swipe-enabled previews (touch devices) must receive the touch events. */
+.tooltip.swipe-nav.show {
+  pointer-events: auto;
+}
+
 /* Mobile: a fixed, centred, full-screen dialog instead of a box that chases the
    pointer. The dimmed backdrop blocks the page; tapping its edges closes. */
 @media (max-width: 768px) {
@@ -1358,6 +1363,16 @@ body.tooltip-open {
   justify-content: center;
   gap: 10px;
   margin-top: 6px;
+}
+
+/* Swipe hint under the details in the full-screen card preview. */
+.tooltip-swipe-hint {
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  pointer-events: none;
 }
 
 .tooltip-edhrec-link {

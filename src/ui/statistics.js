@@ -678,6 +678,9 @@ export function showStatisticsModal() {
   // collection UI tracks (the search's apiTotalCards counts printings).
   const stats = calculateStatistics(ownedCards, allCards.length, allCards);
   const tooltip = document.getElementById('tooltip');
+  // The stats preview is hover-driven; make sure it never inherits the grid's
+  // swipe-navigation handler.
+  if (tooltip) tooltip.onNavigate = null;
   let cleanupTopCardTooltips = () => {};
 
   const shell = createModal({
@@ -687,6 +690,7 @@ export function showStatisticsModal() {
       cleanupTopCardTooltips();
       if (tooltip) {
         tooltip.onCycle = null;
+        tooltip.onNavigate = null;
         tooltip.cycleLabel = null;
         hideTooltip(tooltip);
       }

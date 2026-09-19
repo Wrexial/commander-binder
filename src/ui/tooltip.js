@@ -13,6 +13,13 @@ let activeTooltip = null;
 // Drag further than this (in CSS px) to dismiss the mobile dialog.
 const SWIPE_DISMISS_DISTANCE = 90;
 
+// Horizontal drag needed to move to the previous / next card.
+const SWIPE_NAVIGATE_DISTANCE = 60;
+
+// Movement before a gesture commits to an axis, so a diagonal drag can never
+// both navigate and dismiss.
+const SWIPE_AXIS_LOCK = 12;
+
 // How long a dismissing tap keeps the grid from treating the trailing
 // synthesized click as a card tap of its own.
 const DISMISS_CLICK_GRACE_MS = 400;
@@ -164,8 +171,15 @@ function resetSwipe() {
 function onSwipeStart(event) {
   const tooltip = event.currentTarget;
   const touch = event.touches[0];
-  if (!touch || !tooltip.classList.contains('mobile')) return;
-  swipe = { tooltip, startY: touch.clientY, dy: 0 };
+  if (!touch) return;
+  swipe = {
+    tooltip,
+    startX: touch.clientX,
+    startY: touch.clientY,
+    dx: 0,
+    dy: 0,
+    axis: null,
+  };
 }
 
 function onSwipeMove(event) {
@@ -173,32 +187,62 @@ function onSwipeMove(event) {
   const touch = event.touches[0];
   if (!touch) return;
 
+  const dx = touch.clientX - swipe.startX;
   const dy = touch.clientY - swipe.startY;
-  // Upward drags (and drags while the content is scrolled) are scrolling.
-  if (dy <= 0 || swipe.tooltip.scrollTop > 0) {
+
+  // Lock to one axis on the first meaningful movement.
+  if (!swipe.axis) {
+    if (Math.abs(dx) < SWIPE_AXIS_LOCK && Math.abs(dy) < SWIPE_AXIS_LOCK) return;
+    swipe.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  }
+
+  if (swipe.axis === 'x') {
+    // A horizontal drag moves between cards; keep the browser from scrolling
+    // or triggering a back-navigation instead.
+    if (event.cancelable) event.preventDefault();
+    swipe.dx = dx;
+    return;
+  }
+
+  const tooltip = swipe.tooltip;
+  // Only the full-screen dialog dismisses on a downward drag; the floating
+  // tooltip leaves vertical movement to the page scroll.
+  if (!tooltip.classList.contains('mobile') || dy <= 0 || tooltip.scrollTop > 0) {
     resetSwipe();
     return;
   }
 
   if (event.cancelable) event.preventDefault();
   swipe.dy = dy;
-  swipe.tooltip.classList.add('dragging');
-  swipe.tooltip.style.transform = `translateY(${dy}px)`;
-  swipe.tooltip.style.opacity = String(Math.max(0.3, 1 - dy / 320));
+  tooltip.classList.add('dragging');
+  tooltip.style.transform = `translateY(${dy}px)`;
+  tooltip.style.opacity = String(Math.max(0.3, 1 - dy / 320));
 }
 
-function onSwipeEnd() {
+function onSwipeEnd(event) {
   if (!swipe) return;
-  const { tooltip, dy } = swipe;
+  const { tooltip, dx, dy, axis } = swipe;
   resetSwipe();
+
+  // A cancelled gesture (system swipe, interrupted touch) does neither.
+  if (event?.type === 'touchcancel') return;
+
+  if (axis === 'x') {
+    if (Math.abs(dx) >= SWIPE_NAVIGATE_DISTANCE && typeof tooltip.onNavigate === 'function') {
+      // Swipe left -> next card, swipe right -> previous card.
+      tooltip.onNavigate(dx < 0 ? 1 : -1, { clientX: 0, clientY: 0 });
+    }
+    return;
+  }
+
   if (dy > SWIPE_DISMISS_DISTANCE) hideTooltip(tooltip);
 }
 
-function bindSwipeToDismiss(tooltip) {
+function bindSwipeGestures(tooltip) {
   if (swipeBound.has(tooltip)) return;
   swipeBound.add(tooltip);
   tooltip.addEventListener('touchstart', onSwipeStart, { passive: true });
-  // Not passive: a downward drag must not also scroll the dialog.
+  // Not passive: a horizontal drag must not also scroll the page.
   tooltip.addEventListener('touchmove', onSwipeMove, { passive: false });
   tooltip.addEventListener('touchend', onSwipeEnd);
   tooltip.addEventListener('touchcancel', onSwipeEnd);
@@ -212,6 +256,7 @@ export function showTooltip(e, card, tooltip) {
 
   hideTooltip(tooltip);
   activeTooltip = tooltip;
+  tooltip.currentCard = card;
 
   // Choose the layout up front. On phones the tooltip becomes a fixed,
   // centred full-screen dialog, and the class must be set before the long-press
@@ -221,90 +266,126 @@ export function showTooltip(e, card, tooltip) {
   if (mobile) {
     tooltip.style.left = '';
     tooltip.style.top = '';
-    bindSwipeToDismiss(tooltip);
     getBackdrop().classList.add('visible');
     document.body.classList.add('tooltip-open');
   }
 
-  tooltipTimeout = setTimeout(() => {
-    tooltip.innerHTML = ''; // Clear existing content
+  // Swipe gestures: the full-screen dialog always supports them (swipe down to
+  // dismiss, left/right to change card). The floating desktop-style tooltip —
+  // which is what wide touch screens get — supports left/right navigation too,
+  // but needs pointer events so the touch actually reaches it.
+  const swipeNav = typeof tooltip.onNavigate === 'function';
+  if (mobile || swipeNav) bindSwipeGestures(tooltip);
+  tooltip.classList.toggle('swipe-nav', !mobile && swipeNav);
 
-    if (mobile) tooltip.appendChild(createCloseButton(tooltip));
+  tooltipTimeout = setTimeout(() => renderTooltipContent(card, tooltip, e), 200);
+}
 
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'tooltip-image-container';
-    imageContainer.innerHTML = `<div class="loading">Loading...</div>`;
-    tooltip.appendChild(imageContainer);
+/**
+ * Swap the open tooltip to another card without closing it. The mobile swipe
+ * gesture calls this after the host has pointed `onCycle`/`onNavigate` at the
+ * new card. Assumes the tooltip is already open.
+ *
+ * @param {object} card
+ * @param {HTMLElement} tooltip
+ * @param {{clientX: number, clientY: number}} e Synthetic pointer event.
+ */
+export function showTooltipCard(card, tooltip, e) {
+  if (activeTooltip !== tooltip) return;
+  clearTimeout(tooltipTimeout);
+  tooltip.currentCard = card;
+  // Keep the floating tooltip where it is; only the first open positions it.
+  renderTooltipContent(card, tooltip, e, { reposition: false });
+}
 
-    const position = cardStore.getPrintingPosition(card);
+/** Build (or rebuild) the tooltip's contents for `card`. */
+function renderTooltipContent(card, tooltip, e, { reposition = true } = {}) {
+  const mobile = tooltip.classList.contains('mobile');
 
-    // Phones hide the tile footer (too cramped at 3 columns), so the tooltip
-    // carries the card's details instead.
-    if (mobile) {
-      tooltip.appendChild(createTooltipDetails(card, position));
+  tooltip.innerHTML = ''; // Clear existing content
+
+  if (mobile) tooltip.appendChild(createCloseButton(tooltip));
+
+  const imageContainer = document.createElement('div');
+  imageContainer.className = 'tooltip-image-container';
+  imageContainer.innerHTML = `<div class="loading">Loading...</div>`;
+  tooltip.appendChild(imageContainer);
+
+  const position = cardStore.getPrintingPosition(card);
+
+  // Phones hide the tile footer (too cramped at 3 columns), so the tooltip
+  // carries the card's details instead.
+  if (mobile) {
+    tooltip.appendChild(createTooltipDetails(card, position));
+
+    if (typeof tooltip.onNavigate === 'function') {
+      const hint = document.createElement('div');
+      hint.className = 'tooltip-swipe-hint';
+      hint.textContent = 'Swipe for previous / next card';
+      tooltip.appendChild(hint);
     }
+  }
 
-    // The tooltip also carries the explicit cycle control that touch devices
-    // need (they have no right-click).
-    if (position.total > 1 && typeof tooltip.onCycle === 'function') {
-      const textContainer = document.createElement('div');
-      textContainer.className = 'tooltip-text-container';
+  // The tooltip also carries the explicit cycle control that touch devices
+  // need (they have no right-click).
+  if (position.total > 1 && typeof tooltip.onCycle === 'function') {
+    const textContainer = document.createElement('div');
+    textContainer.className = 'tooltip-text-container';
 
-      const cycleBtn = document.createElement('button');
-      cycleBtn.type = 'button';
-      cycleBtn.className = 'printing-cycle';
-      // Hosts can override the label (e.g. the PC statistics modal asks for
-      // "Right-click for next printing"), but on touch devices right-click does
-      // not exist, so always fall back to the plain wording there.
-      const showRightClickLabel = !mobile && isHoverCapable();
-      cycleBtn.textContent = (showRightClickLabel && tooltip.cycleLabel) || 'Next printing';
-      cycleBtn.title = 'Show the next printing (right-click also works)';
-      cycleBtn.addEventListener('click', (clickEvent) => {
-        clickEvent.stopPropagation();
-        tooltip.onCycle(clickEvent);
-      });
-      textContainer.appendChild(cycleBtn);
-      tooltip.appendChild(textContainer);
+    const cycleBtn = document.createElement('button');
+    cycleBtn.type = 'button';
+    cycleBtn.className = 'printing-cycle';
+    // Hosts can override the label (e.g. the PC statistics modal asks for
+    // "Right-click for next printing"), but on touch devices right-click does
+    // not exist, so always fall back to the plain wording there.
+    const showRightClickLabel = !mobile && isHoverCapable();
+    cycleBtn.textContent = (showRightClickLabel && tooltip.cycleLabel) || 'Next printing';
+    cycleBtn.title = 'Show the next printing (right-click also works)';
+    cycleBtn.addEventListener('click', (clickEvent) => {
+      clickEvent.stopPropagation();
+      tooltip.onCycle(clickEvent);
+    });
+    textContainer.appendChild(cycleBtn);
+    tooltip.appendChild(textContainer);
+  }
+
+  tooltip.style.display = 'flex';
+
+  const images = getCardImages(card)
+    .map(({ url, key }) => {
+      const img = getImage(url);
+      if (img) img.alt = card.name || key;
+      return img;
+    })
+    .filter(Boolean);
+
+  // Wait for every image so the tooltip can size itself correctly. Images
+  // already decoded won't fire `load`, so handle that case directly.
+  let loaded = 0;
+  const onImageSettled = () => {
+    loaded++;
+    if (loaded === images.length) finishTooltip(images, tooltip, e, reposition);
+  };
+
+  images.forEach((img) => {
+    if (img.complete && img.naturalWidth > 0) {
+      onImageSettled();
+    } else {
+      img.addEventListener('load', onImageSettled, { once: true });
+      img.addEventListener('error', onImageSettled, { once: true });
     }
+  });
 
-    tooltip.style.display = 'flex';
+  if (reposition) positionTooltip(e, tooltip);
 
-    const images = getCardImages(card)
-      .map(({ url, key }) => {
-        const img = getImage(url);
-        if (img) img.alt = card.name || key;
-        return img;
-      })
-      .filter(Boolean);
-
-    // Wait for every image so the tooltip can size itself correctly. Images
-    // already decoded won't fire `load`, so handle that case directly.
-    let loaded = 0;
-    const onImageSettled = () => {
-      loaded++;
-      if (loaded === images.length) finishTooltip(images, tooltip, e);
-    };
-
-    images.forEach((img) => {
-      if (img.complete && img.naturalWidth > 0) {
-        onImageSettled();
-      } else {
-        img.addEventListener('load', onImageSettled, { once: true });
-        img.addEventListener('error', onImageSettled, { once: true });
-      }
-    });
-
-    positionTooltip(e, tooltip);
-
-    requestAnimationFrame(() => {
-      tooltip.classList.add('show');
-      positionTooltip(e, tooltip);
-    });
-  }, 200);
+  requestAnimationFrame(() => {
+    tooltip.classList.add('show');
+    if (reposition) positionTooltip(e, tooltip);
+  });
 }
 
 // ---------------- Render Tooltip ----------------
-function finishTooltip(images, tooltip, event) {
+function finishTooltip(images, tooltip, event, reposition = true) {
   const imageContainer = tooltip.querySelector('.tooltip-image-container');
   if (!imageContainer) return;
 
@@ -335,7 +416,7 @@ function finishTooltip(images, tooltip, event) {
   // After adding images to tooltip
   tooltip.classList.toggle('mdfc', images.length > 1);
 
-  positionTooltip(event, tooltip);
+  if (reposition) positionTooltip(event, tooltip);
 }
 
 // ---------------- Hide Tooltip ----------------
@@ -347,6 +428,7 @@ export function hideTooltip(tooltip) {
   if (tooltip.classList.contains('mobile')) lastDismissAt = Date.now();
   tooltip.classList.remove('show');
   tooltip.classList.remove('mobile');
+  tooltip.classList.remove('swipe-nav');
   tooltip.style.display = 'none';
   activeTooltip = null;
   tooltip.innerHTML = '';

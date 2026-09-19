@@ -47,8 +47,8 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   header-first and tolerant of messy files. The plain-text export is one card name per line, so
   it feeds straight back into Bulk Add.
 - **Responsive, keyboard- and touch-friendly UI** — real buttons for card actions, long-press
-  printings on touch, right-click on desktop, hover-only affordances gated behind
-  `isHoverCapable()`.
+  printings on touch, right-click on desktop, and swipe left/right in the card preview to move
+  between cards. Hover-only affordances are gated behind `isHoverCapable()`.
 - **Aggressive caching** — Scryfall responses and images are cached in IndexedDB, and the
   bulk-data subset is reused on a TTL.
 

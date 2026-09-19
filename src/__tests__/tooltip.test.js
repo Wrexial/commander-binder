@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   showTooltip,
+  showTooltipCard,
   hideTooltip,
   positionTooltip,
   isTooltipGestureActive,
@@ -305,6 +306,175 @@ describe('tooltip', () => {
         expect(tooltip.style.display).toBe('flex');
         expect(tooltip.classList.contains('dragging')).toBe(false);
       });
+    });
+
+    describe('swipe to navigate', () => {
+      // jsdom has no TouchEvent, so build a plain event carrying `touches`.
+      function touchAt(type, clientX, clientY, { cancelable = true } = {}) {
+        const touchEvent = new Event(type, { bubbles: true, cancelable });
+        touchEvent.touches = [{ clientX, clientY }];
+        return touchEvent;
+      }
+
+      function swipe(fromX, toX) {
+        tooltip.dispatchEvent(touchAt('touchstart', fromX, 200));
+        tooltip.dispatchEvent(touchAt('touchmove', toX, 205));
+        tooltip.dispatchEvent(touchAt('touchend', toX, 205));
+      }
+
+      it('asks for the next card on a left swipe', () => {
+        const onNavigate = vi.fn();
+        tooltip.onNavigate = onNavigate;
+
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        swipe(300, 200);
+
+        expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());
+        // Navigating keeps the preview open.
+        expect(tooltip.style.display).toBe('flex');
+        expect(document.body.classList.contains('tooltip-open')).toBe(true);
+      });
+
+      it('asks for the previous card on a right swipe', () => {
+        const onNavigate = vi.fn();
+        tooltip.onNavigate = onNavigate;
+
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        swipe(100, 220);
+
+        expect(onNavigate).toHaveBeenCalledWith(-1, expect.anything());
+      });
+
+      it('ignores a short horizontal drag', () => {
+        const onNavigate = vi.fn();
+        tooltip.onNavigate = onNavigate;
+
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        swipe(200, 230);
+
+        expect(onNavigate).not.toHaveBeenCalled();
+        expect(tooltip.style.display).toBe('flex');
+      });
+
+      it('does nothing when no navigation handler is registered', () => {
+        tooltip.onNavigate = null;
+
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        swipe(300, 200);
+
+        // A no-op, not a dismissal.
+        expect(tooltip.style.display).toBe('flex');
+      });
+
+      it('does not also dismiss on a horizontal drag', () => {
+        const onNavigate = vi.fn();
+        tooltip.onNavigate = onNavigate;
+
+        showTooltip(event, card, tooltip);
+        vi.runAllTimers();
+
+        // A long drag that combines both axes must not dismiss once locked to x.
+        tooltip.dispatchEvent(touchAt('touchstart', 300, 200));
+        tooltip.dispatchEvent(touchAt('touchmove', 150, 260));
+        tooltip.dispatchEvent(touchAt('touchend', 150, 260));
+
+        expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());
+        expect(tooltip.style.display).toBe('flex');
+      });
+    });
+  });
+
+  describe('floating tooltip swipe navigation', () => {
+    // jsdom has no TouchEvent, so build a plain event carrying `touches`.
+    function touchAt(type, clientX, clientY, { cancelable = true } = {}) {
+      const touchEvent = new Event(type, { bubbles: true, cancelable });
+      touchEvent.touches = [{ clientX, clientY }];
+      return touchEvent;
+    }
+
+    function swipe(fromX, toX, y = 200) {
+      tooltip.dispatchEvent(touchAt('touchstart', fromX, y));
+      tooltip.dispatchEvent(touchAt('touchmove', toX, y + 5));
+      tooltip.dispatchEvent(touchAt('touchend', toX, y + 5));
+    }
+
+    it('enables swipe navigation and moves next on a left swipe', () => {
+      const onNavigate = vi.fn();
+      tooltip.onNavigate = onNavigate;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.classList.contains('mobile')).toBe(false);
+      expect(tooltip.classList.contains('swipe-nav')).toBe(true);
+      expect(tooltip.style.display).toBe('flex');
+
+      swipe(300, 200);
+
+      expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());
+      expect(tooltip.style.display).toBe('flex');
+    });
+
+    it('moves to the previous card on a right swipe', () => {
+      const onNavigate = vi.fn();
+      tooltip.onNavigate = onNavigate;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      swipe(100, 220);
+
+      expect(onNavigate).toHaveBeenCalledWith(-1, expect.anything());
+    });
+
+    it('leaves vertical drags to the page (no dismiss off mobile)', () => {
+      tooltip.onNavigate = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      tooltip.dispatchEvent(touchAt('touchstart', 200, 200));
+      tooltip.dispatchEvent(touchAt('touchmove', 200, 320));
+      tooltip.dispatchEvent(touchAt('touchend', 200, 320));
+
+      expect(tooltip.style.display).toBe('flex');
+      expect(tooltip.classList.contains('dragging')).toBe(false);
+    });
+
+    it('does not enable swipe navigation without a handler', () => {
+      tooltip.onNavigate = null;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.classList.contains('swipe-nav')).toBe(false);
+    });
+
+    it('keeps the floating tooltip anchored when swapping cards', () => {
+      tooltip.onNavigate = vi.fn();
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      tooltip.style.left = '200px';
+      tooltip.style.top = '150px';
+
+      showTooltipCard({ ...card, name: 'Another Angel' }, tooltip, {
+        clientX: 0,
+        clientY: 0,
+      });
+
+      expect(tooltip.style.left).toBe('200px');
+      expect(tooltip.style.top).toBe('150px');
+      expect(tooltip.currentCard.name).toBe('Another Angel');
     });
   });
 
