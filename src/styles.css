@@ -4350,6 +4350,15 @@ body.selection-mode #results {
   background-color: var(--accent-soft);
 }
 
+.list-picker-row.is-partial {
+  border-color: var(--accent-strong);
+  background-color: rgba(212, 175, 55, 0.08);
+}
+
+.list-picker-row.is-partial .list-picker-check {
+  color: var(--accent-strong);
+}
+
 .list-picker-check {
   width: 1.1em;
   color: var(--accent-strong);

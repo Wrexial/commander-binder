@@ -14,6 +14,7 @@ import { updateAllCardStates } from './cards.js';
 import { updateAllBinderCounts } from './layout.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { showToast, showUndo } from './components/toast.js';
+import { showListPicker } from './components/listPicker.js';
 
 let bar = null;
 let countEl = null;
@@ -50,6 +51,7 @@ function buildBar() {
       <button type="button" data-action="missing">Mark missing</button>
       <button type="button" data-action="want">Want</button>
       <button type="button" data-action="unwant">Unwant</button>
+      <button type="button" data-action="list">Add to list</button>
       <button type="button" data-action="clear">Clear</button>
       <button type="button" data-action="done" class="primary">Done</button>
     </div>`;
@@ -130,6 +132,19 @@ async function handleAction(action) {
   }
 
   const cards = getSelectedCards();
+
+  // Lists have their own picker (and no undo snapshot): the picker toggles the
+  // whole selection, then repaints the tiles. The selection is preserved so the
+  // user can keep working with it afterwards.
+  if (action === 'list') {
+    if (cards.length === 0) {
+      showToast('Select at least one card first.', 'warning');
+      return;
+    }
+    showListPicker(cards);
+    return;
+  }
+
   if (cards.length === 0) {
     showToast('Select at least one card first.', 'warning');
     return;

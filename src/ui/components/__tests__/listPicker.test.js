@@ -5,12 +5,18 @@ const state = vi.hoisted(() => ({ lists: [], members: new Set(), canEdit: true }
 vi.mock('../../../state/listsState.js', () => ({
   canEditLists: vi.fn(() => state.canEdit),
   getLists: vi.fn(() => state.lists),
-  isInList: vi.fn((id) => state.members.has(id)),
+  isInList: vi.fn((id, card) => state.members.has(`${id}:${card.id}`)),
   createList: vi.fn(async ({ name }) => ({ id: 'new-list', name })),
-  toggleCardInList: vi.fn(async (id) => {
-    if (state.members.has(id)) state.members.delete(id);
-    else state.members.add(id);
-    return state.members.has(id);
+  addCardsToList: vi.fn(async (id, cards) => {
+    for (const card of cards) state.members.add(`${id}:${card.id}`);
+  }),
+  toggleCardsInList: vi.fn(async (id, cards) => {
+    const all = cards.every((card) => state.members.has(`${id}:${card.id}`));
+    for (const card of cards) {
+      if (all) state.members.delete(`${id}:${card.id}`);
+      else state.members.add(`${id}:${card.id}`);
+    }
+    return !all;
   }),
 }));
 
@@ -38,7 +44,7 @@ afterEach(() => {
 });
 
 describe('listPicker', () => {
-  it('lists every list and toggles membership', async () => {
+  it('lists every list and toggles membership for the batch', async () => {
     createListPicker().show(CARD);
 
     const rows = [...document.querySelectorAll('.list-picker-row')];
@@ -48,8 +54,20 @@ describe('listPicker', () => {
     ]);
 
     rows[0].click();
-    await vi.waitFor(() => expect(listsState.toggleCardInList).toHaveBeenCalledWith('L1', CARD));
+    await vi.waitFor(() => expect(listsState.toggleCardsInList).toHaveBeenCalledWith('L1', [CARD]));
     expect(updateAllCardStates).toHaveBeenCalled();
+  });
+
+  it('toggles a whole selection and marks partial membership', async () => {
+    state.members = new Set(['L1:p1']);
+    createListPicker().show([CARD, { id: 'p2', name: 'Sol Ring' }]);
+
+    expect(document.querySelector('.list-picker-row.is-partial')).not.toBeNull();
+    expect(document.querySelector('.list-picker-row.is-member')).toBeNull();
+
+    document.querySelector('.list-picker-row').click();
+    await vi.waitFor(() => expect(listsState.toggleCardsInList).toHaveBeenCalled());
+    expect(listsState.toggleCardsInList.mock.calls[0][1]).toHaveLength(2);
   });
 
   it('creates a list and adds the card in one step', async () => {
@@ -63,7 +81,7 @@ describe('listPicker', () => {
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 
     await vi.waitFor(() => expect(listsState.createList).toHaveBeenCalled());
-    expect(listsState.toggleCardInList).toHaveBeenCalledWith('new-list', CARD);
+    expect(listsState.addCardsToList).toHaveBeenCalledWith('new-list', [CARD]);
   });
 
   it('disables toggles in a read-only share view', () => {

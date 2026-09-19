@@ -1,5 +1,5 @@
 // src/ui/cardInteractions.js
-import { showTooltip, showTooltipCard, isTooltipGestureActive } from './tooltip.js';
+import { showTooltip, showTooltipCard, hideTooltip, isTooltipGestureActive } from './tooltip.js';
 import { appState } from '../state/appState.js';
 import { isCardOwned, toggleCardOwned, setCardsOwned } from '../state/cardState.js';
 import { isCardWanted, toggleCardWanted, setCardsWanted } from '../state/wishlistState.js';
@@ -19,14 +19,7 @@ import {
   syncCardSelection,
 } from './cards.js';
 import { showPressIndicator, hidePressIndicator } from './pressIndicator.js';
-import { createListPicker } from './components/listPicker.js';
-
-/** Lazily-built singleton list picker, shared by every card preview. */
-let listPicker = null;
-function getListPicker() {
-  if (!listPicker) listPicker = createListPicker();
-  return listPicker;
-}
+import { showListPicker } from './components/listPicker.js';
 
 // Use a WeakMap to associate state with an element without memory leaks or polluting the DOM
 const elementState = new WeakMap();
@@ -79,7 +72,12 @@ function wireCardControls(cardElement, tooltip) {
   tooltip.onWishlistToggle = appState.isViewOnlyMode
     ? null
     : () => toggleWishlist(cardElement, cardElement.cardData);
-  tooltip.onAddToList = () => getListPicker().show(cardElement.cardData);
+  tooltip.onAddToList = () => {
+    // The preview is a modal with its own focus trap; close it before opening
+    // the picker so the two never fight over focus or z-order.
+    hideTooltip(tooltip);
+    showListPicker(cardElement.cardData);
+  };
   tooltip.cycleLabel = null;
 }
 

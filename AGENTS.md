@@ -90,7 +90,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   holds the bulk-edit multi-selection (keyed by card name), entered from the
   sidebar's "☑️ Bulk Edit" button; `bulkEdit.js` renders the floating action bar
   (hidden until the mode is active) and offers select-all-visible,
-  hidden-selection pruning, per-batch undo and Esc to exit; `cards.js` paints
+  hidden-selection pruning, per-batch undo, an "Add to list" action that opens
+  the batch list picker, and Esc to exit; `cards.js` paints
   the selected tiles.
   `viewState.js`
   persists the active search, scroll offset and filter
@@ -118,8 +119,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
   custom-list UI (`listsModal.js` — create/rename/notes/public/delete and “add
-  selection”; `listPicker.js` — per-card membership opened from the preview) and
-  their
+  selection”; `listPicker.js` — one card from the preview or the whole bulk
+  selection, with partial-membership state) and their
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks. Statistics includes a "Wishlist Targets" section that

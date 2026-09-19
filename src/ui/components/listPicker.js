@@ -1,20 +1,23 @@
 import { createModal } from './modal.js';
 import { showToast } from './toast.js';
 import {
+  addCardsToList,
   canEditLists,
   createList,
   getLists,
   isInList,
-  toggleCardInList,
+  toggleCardsInList,
 } from '../../state/listsState.js';
 import { updateAllCardStates } from '../cards.js';
 
 /**
- * Per-card list membership picker, opened from the card preview. Each list is a
- * toggle row; a card can belong to any number of lists. A new list can be
- * created inline and the card added to it in one step.
+ * List membership picker, opened from the card preview (one card) or the bulk
+ * edit bar (the whole selection). Each list is a toggle row: a card can belong
+ * to any number of lists, and a batch toggles as a unit (all-in removes, any
+ * missing adds). A new list can be created inline and the cards added in one
+ * step.
  *
- * @returns {{ show: (card: object) => void }}
+ * @returns {{ show: (cards: object | object[]) => void }}
  */
 export function createListPicker() {
   const shell = createModal({ className: 'list-picker', ariaLabel: 'Add to list' });
@@ -45,14 +48,23 @@ export function createListPicker() {
 
   modal.append(header, content, footer);
 
-  /** The card currently being edited. */
-  let card = null;
+  /** The card(s) currently being edited. */
+  let cards = [];
   let creating = false;
   let busy = false;
 
+  /** Whether every / some of the current cards belong to `listId`. */
+  function memberState(listId) {
+    const present = cards.filter((card) => isInList(listId, card));
+    return {
+      all: cards.length > 0 && present.length === cards.length,
+      some: present.length > 0 && present.length < cards.length,
+    };
+  }
+
   function render() {
     content.textContent = '';
-    subtitle.textContent = card ? card.name : '';
+    subtitle.textContent = cards.length === 1 ? cards[0].name : `${cards.length} selected cards`;
 
     const lists = getLists();
 
@@ -67,17 +79,17 @@ export function createListPicker() {
     rows.className = 'list-picker-rows';
 
     for (const list of lists) {
-      const member = card ? isInList(list.id, card) : false;
+      const { all, some } = memberState(list.id);
 
       const row = document.createElement('button');
       row.type = 'button';
-      row.className = `list-picker-row${member ? ' is-member' : ''}`;
-      row.setAttribute('aria-pressed', String(member));
+      row.className = `list-picker-row${all ? ' is-member' : ''}${some ? ' is-partial' : ''}`;
+      row.setAttribute('aria-pressed', all ? 'true' : some ? 'mixed' : 'false');
       row.disabled = !canEditLists() || busy;
 
       const check = document.createElement('span');
       check.className = 'list-picker-check';
-      check.textContent = member ? '✓' : '';
+      check.textContent = all ? '✓' : some ? '–' : '';
 
       const name = document.createElement('span');
       name.className = 'list-picker-name';
@@ -141,10 +153,10 @@ export function createListPicker() {
   }
 
   async function toggle(list) {
-    if (!card || busy) return;
+    if (cards.length === 0 || busy) return;
     busy = true;
     try {
-      await toggleCardInList(list.id, card);
+      await toggleCardsInList(list.id, cards);
       updateAllCardStates();
     } catch (err) {
       console.error('Failed to update list membership:', err);
@@ -156,14 +168,14 @@ export function createListPicker() {
   }
 
   async function createAndAdd(name) {
-    if (!card || busy) return;
+    if (cards.length === 0 || busy) return;
     const trimmed = String(name || '').trim();
     if (!trimmed) return;
 
     busy = true;
     try {
       const list = await createList({ name: trimmed });
-      if (list) await toggleCardInList(list.id, card);
+      if (list) await addCardsToList(list.id, cards);
       creating = false;
       updateAllCardStates();
     } catch (err) {
@@ -175,8 +187,8 @@ export function createListPicker() {
     }
   }
 
-  function show(nextCard) {
-    card = nextCard;
+  function show(nextCards) {
+    cards = (Array.isArray(nextCards) ? nextCards : [nextCards]).filter(Boolean);
     creating = false;
     busy = false;
     render();
@@ -184,4 +196,15 @@ export function createListPicker() {
   }
 
   return { show };
+}
+
+/**
+ * Open the list picker for one card or a selection. A picker is a single-use
+ * modal (closing removes it), so each open builds a fresh one; the guard keeps
+ * a second click from stacking a duplicate.
+ * @param {object|object[]} cards
+ */
+export function showListPicker(cards) {
+  if (document.querySelector('.list-modal.list-picker')) return;
+  createListPicker().show(cards);
 }

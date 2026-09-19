@@ -12,6 +12,7 @@ vi.mock('../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../components/ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
 vi.mock('../components/toast.js', () => ({ showToast: vi.fn(), showUndo: vi.fn() }));
+vi.mock('../components/listPicker.js', () => ({ showListPicker: vi.fn() }));
 
 import { initBulkEdit, toggleSelectionMode } from '../bulkEdit.js';
 import { updateAllCardStates } from '../cards.js';
@@ -24,6 +25,7 @@ import {
   toggleSelection,
 } from '../../state/selectionState.js';
 import { showToast, showUndo } from '../components/toast.js';
+import { showListPicker } from '../components/listPicker.js';
 
 const bar = () => document.querySelector('.bulk-edit-bar');
 const action = (name) => document.querySelector(`button[data-action="${name}"]`);
@@ -87,6 +89,28 @@ describe('bulkEdit', () => {
     await Promise.resolve();
 
     expect(setCardsWanted).toHaveBeenCalledWith([{ id: 'w', name: 'Wanted' }], true);
+  });
+
+  it('opens the list picker for the whole selection', () => {
+    toggleSelectionMode();
+    toggleSelection({ id: 'a', name: 'Alpha' });
+    toggleSelection({ id: 'b', name: 'Beta' });
+
+    action('list').click();
+
+    expect(showListPicker).toHaveBeenCalledWith([
+      { id: 'a', name: 'Alpha' },
+      { id: 'b', name: 'Beta' },
+    ]);
+  });
+
+  it('does not open the list picker for an empty selection', () => {
+    toggleSelectionMode();
+
+    action('list').click();
+
+    expect(showToast).toHaveBeenCalledWith('Select at least one card first.', 'warning');
+    expect(showListPicker).not.toHaveBeenCalled();
   });
 
   it('warns instead of calling the server when nothing is selected', () => {

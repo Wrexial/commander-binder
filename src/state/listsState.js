@@ -328,12 +328,26 @@ export async function removeCardsFromList(id, cards) {
   applyLists(await apiRemoveListItems(id, cardIds));
 }
 
-/** Flip a card's membership in one list; returns the new membership state. */
+/**
+ * Flip membership for a batch of cards. When every card is already in the list
+ * the whole batch is removed; otherwise the missing ones are added, so a mixed
+ * selection converges on "in the list".
+ *
+ * @returns {Promise<boolean>} whether the cards are now in the list.
+ */
+export async function toggleCardsInList(id, cards) {
+  const batch = (Array.isArray(cards) ? cards : [cards]).filter(Boolean);
+  if (batch.length === 0) return false;
+
+  const allPresent = batch.every((card) => isInList(id, card));
+  if (allPresent) await removeCardsFromList(id, batch);
+  else await addCardsToList(id, batch);
+  return !allPresent;
+}
+
+/** Flip a single card's membership in one list; returns the new state. */
 export async function toggleCardInList(id, card) {
-  const wasPresent = isInList(id, card);
-  if (wasPresent) await removeCardsFromList(id, [card]);
-  else await addCardsToList(id, [card]);
-  return !wasPresent;
+  return toggleCardsInList(id, [card]);
 }
 
 /**
