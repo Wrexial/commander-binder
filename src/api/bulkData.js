@@ -310,7 +310,11 @@ export function verifyBulkCoverage(
 /** Publish a subset's all-cards name catalog for the picker/compare tools. */
 function publishCardCatalog(subset) {
   if (!subset) return;
-  setCardCatalog({ cardNames: subset.cardNames, cardNameById: subset.cardNameById });
+  setCardCatalog({
+    cardNames: subset.cardNames,
+    cardNameById: subset.cardNameById,
+    cardIdByName: subset.cardIdByName,
+  });
 }
 
 /**
@@ -364,6 +368,7 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
 
   const cardNames = new Set();
   const cardNameById = {};
+  const cardIdByName = {};
   const { updatedAt, cards } = await downloadFilteredBulkCards(type, isPlayableLegendaryCreature, {
     entry,
     // Every card in the file contributes its front-face name, not just the
@@ -373,7 +378,11 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
       const front = card.name.split(' // ')[0];
       if (!front) return;
       cardNames.add(front);
-      if (typeof card.id === 'string' && card.id) cardNameById[card.id] = front;
+      const id = typeof card.id === 'string' ? card.id : null;
+      if (!id) return;
+      cardNameById[id] = front;
+      const key = front.toLowerCase();
+      if (!(key in cardIdByName)) cardIdByName[key] = id;
     },
   });
   cards.sort((a, b) => String(a.released_at || '').localeCompare(String(b.released_at || '')));
@@ -385,6 +394,7 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
     cards,
     cardNames: [...cardNames].sort((a, b) => a.localeCompare(b)),
     cardNameById,
+    cardIdByName,
   };
   await writeSubset(cacheKey, subset);
   publishCardCatalog(subset);

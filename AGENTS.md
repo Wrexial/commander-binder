@@ -172,9 +172,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   create form and selects the new
   list, and the export button feeds each list and binder in
   as a collection (hydrating a binder's not-yet-loaded cards first), so they all
-  work on lists and binders exactly like the built-ins; plus the
+  work on lists and binders exactly like the built-ins. The add/check modals
+  resolve pasted names against the all-cards `cardCatalog` when they are not in
+  `cardStore`, batching a fetch for the missing printings, so _any_ card can be
+  added/checked — not only ones a binder already hydrated; plus the
   shared
-  `cardNameInput.js` autocomplete), the share-view `compareModal.js` diff,
+  `cardNameInput.js` autocomplete (which suggests names from the catalog too), the share-view `compareModal.js` diff,
   the Binder Builder editor `binderBuilder.js` (pocket grid, page navigation, a
   per-binder Public toggle and the add/move/remove controls; it reuses `cards.js`
   tiles so ownership toggles and the preview keep working). A share-link view

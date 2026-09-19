@@ -12,10 +12,13 @@ import {
 } from './collectionModal.js';
 import { createCardNameInput } from './cardNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
+import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { getList, getLists, isInList } from '../../state/listsState.js';
 import { getBinder, getBinders, isCardInBinder } from '../../state/bindersState.js';
+import { resolveCatalogPrintingId } from '../../state/cardCatalog.js';
+import { hydrateCardsByIds } from '../../api/cardSearch.js';
 
 const VALIDATION_DEBOUNCE_MS = 250;
 
@@ -110,6 +113,38 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   contentArea.append(target.el, input.el, preview);
 
   let categorized = { present: [], missing: [], unknown: [] };
+
+  /**
+   * Resolve pasted names that aren't in the loaded store but are known to the
+   * all-cards catalog, fetching their printings in one batched request so the
+   * check covers every card, not just the legendary subset.
+   *
+   * @returns {Promise<boolean>} whether new cards were loaded
+   */
+  async function resolveCatalogMatches() {
+    const { entries } = parseCollection(input.textArea.value);
+    const ids = new Set();
+
+    for (const entry of entries) {
+      const raw = normalizeName(entry.raw ?? '');
+      const name = normalizeName(entry.name);
+      if (input.nameIndex.has(raw) || input.nameIndex.has(name)) continue;
+      const id = resolveCatalogPrintingId(entry.raw ?? '') || resolveCatalogPrintingId(entry.name);
+      if (id) ids.add(id);
+    }
+
+    if (ids.size === 0) return false;
+    const before = cardStore.getAll().length;
+    await hydrateCardsByIds([...ids]);
+    const changed = cardStore.getAll().length > before;
+    if (changed) {
+      for (const card of cardStore.getAll()) {
+        const key = normalizeName(card.name);
+        if (key && !input.nameIndex.has(key)) input.nameIndex.set(key, card);
+      }
+    }
+    return changed;
+  }
 
   /** Switch the target and relabel the modal; the pasted list stays put. */
   function applyTarget(next) {
@@ -213,9 +248,17 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     }
   }
 
-  const runValidation = debounce(renderPreview, VALIDATION_DEBOUNCE_MS);
+  // The immediate render uses whatever is already loaded; the debounced pass
+  // then resolves any all-cards catalog names and re-renders.
+  const runValidation = debounce(async () => {
+    await resolveCatalogMatches();
+    renderPreview();
+  }, VALIDATION_DEBOUNCE_MS);
 
-  input.textArea.addEventListener('input', runValidation);
+  input.textArea.addEventListener('input', () => {
+    renderPreview();
+    runValidation();
+  });
   input.textArea.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();

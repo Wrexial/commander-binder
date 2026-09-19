@@ -5,6 +5,7 @@
  * ranked list of matches from the loaded collection.
  */
 import { cardStore } from '../../state/cardStore.js';
+import { getCatalogNames } from '../../state/cardCatalog.js';
 import { normalizeName } from './collectionModal.js';
 
 const MAX_SUGGESTIONS = 6;
@@ -54,9 +55,11 @@ function findSuggestions(names, query) {
  */
 export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
   const nameIndex = buildNameIndex();
-  const allNames = [...nameIndex.values()]
-    .map((card) => card.name)
-    .sort((a, b) => a.localeCompare(b));
+  // Suggest every known card name, not just the legendary cards loaded into
+  // `cardStore`, so all-cards entries autocomplete too.
+  const allNames = [
+    ...new Set([...[...nameIndex.values()].map((card) => card.name), ...getCatalogNames()]),
+  ].sort((a, b) => a.localeCompare(b));
 
   const el = document.createElement('div');
   el.className = 'bulk-input-wrapper';

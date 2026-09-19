@@ -16,6 +16,8 @@ import {
 import { createCardNameInput } from './cardNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { cardStore } from '../../state/cardStore.js';
+import { resolveCatalogPrintingId } from '../../state/cardCatalog.js';
+import { hydrateCardsByIds } from '../../api/cardSearch.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { addCardsToList, createList, getList, getLists, isInList } from '../../state/listsState.js';
@@ -54,6 +56,55 @@ function buildPrintingIndex() {
  */
 export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   const byPrinting = buildPrintingIndex();
+
+  /**
+   * Merge cards loaded after the index was built (e.g. the all-cards catalog
+   * resolving a non-legendary name) into the lookup structures.
+   */
+  function refreshIndexes() {
+    for (const [key, printing] of buildPrintingIndex()) {
+      if (!byPrinting.has(key)) byPrinting.set(key, printing);
+    }
+    for (const card of cardStore.getAll()) {
+      const key = normalizeName(card.name);
+      if (key && !input.nameIndex.has(key)) input.nameIndex.set(key, card);
+    }
+  }
+
+  /**
+   * Resolve pasted names that aren't in the loaded store but are known to the
+   * all-cards catalog, fetching their printings in one batched request. This is
+   * what lets the modal add any card, not just ones a binder already hydrated.
+   *
+   * @returns {Promise<boolean>} whether new cards were loaded
+   */
+  async function resolveCatalogMatches() {
+    const { entries } = parseCollection(input.textArea.value);
+    const ids = new Set();
+
+    for (const entry of entries) {
+      const raw = normalizeName(entry.raw ?? '');
+      const name = normalizeName(entry.name);
+      if (input.nameIndex.has(raw) || input.nameIndex.has(name)) continue;
+      if (
+        entry.setCode &&
+        entry.collectorNumber &&
+        byPrinting.has(`${entry.setCode}:${entry.collectorNumber}`)
+      ) {
+        continue;
+      }
+      const id = resolveCatalogPrintingId(entry.raw ?? '') || resolveCatalogPrintingId(entry.name);
+      if (id) ids.add(id);
+    }
+
+    if (ids.size === 0) return false;
+
+    const before = cardStore.getAll().length;
+    await hydrateCardsByIds([...ids]);
+    const changed = cardStore.getAll().length > before;
+    if (changed) refreshIndexes();
+    return changed;
+  }
 
   /**
    * Resolve a target id to the predicate, action and copy the modal needs.
@@ -295,6 +346,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   async function handleAdd() {
     if (confirming) return;
 
+    await resolveCatalogMatches();
     categorized = categorize();
     const { add } = categorized;
     if (add.length === 0) return;
@@ -317,9 +369,17 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     }
   }
 
-  const runValidation = debounce(renderPreview, PREVIEW_DEBOUNCE_MS);
+  // The immediate render uses whatever is already loaded; the debounced pass
+  // then resolves any all-cards catalog names and re-renders.
+  const runValidation = debounce(async () => {
+    await resolveCatalogMatches();
+    renderPreview();
+  }, PREVIEW_DEBOUNCE_MS);
 
-  input.textArea.addEventListener('input', runValidation);
+  input.textArea.addEventListener('input', () => {
+    renderPreview();
+    runValidation();
+  });
   input.textArea.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();

@@ -22,12 +22,19 @@ vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
 vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
+vi.mock('../../../state/cardCatalog.js', () => ({
+  getCatalogNames: vi.fn(() => []),
+  resolveCatalogPrintingId: vi.fn(() => null),
+}));
+vi.mock('../../../api/cardSearch.js', () => ({ hydrateCardsByIds: vi.fn(async () => []) }));
 
 import { createAddCardsModal } from '../addCardsModal.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
 import { addCardsToList, isInList } from '../../../state/listsState.js';
+import { resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
+import { hydrateCardsByIds } from '../../../api/cardSearch.js';
 import { showToast } from '../toast.js';
 
 const solRing = { id: 'id-sol', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
@@ -66,6 +73,8 @@ beforeEach(() => {
   isCardOwned.mockReturnValue(false);
   isInList.mockReturnValue(false);
   setCardsOwned.mockResolvedValue();
+  resolveCatalogPrintingId.mockReturnValue(null);
+  hydrateCardsByIds.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -75,6 +84,31 @@ afterEach(() => {
 });
 
 describe('addCardsModal', () => {
+  it('resolves all-cards catalog names that are not in the loaded store', async () => {
+    // The store only knows Atraxa, but the catalog knows Sol Ring too.
+    const catalogSolRing = { id: 'id-catalog-sol', name: 'Sol Ring' };
+    cardStore.getAll.mockReturnValue([atraxa]);
+    cardStore.getPrintings.mockReturnValue([]);
+    resolveCatalogPrintingId.mockReturnValue('id-catalog-sol');
+    hydrateCardsByIds.mockImplementation(async () => {
+      cardStore.getAll.mockReturnValue([atraxa, catalogSolRing]);
+      cardStore.getPrintings.mockImplementation((name) =>
+        name === 'Sol Ring' ? [catalogSolRing] : []
+      );
+      return [catalogSolRing];
+    });
+
+    createAddCardsModal().show();
+    textArea().value = 'Sol Ring';
+    textArea().dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(resolveCatalogPrintingId).toHaveBeenCalledWith('Sol Ring');
+    expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-catalog-sol']);
+    expect(chipTexts()[0]).toBe('Will add 1');
+    expect(chipTexts()[2]).toBe('Not found 0');
+  });
+
   it('shows an empty state before anything is entered', () => {
     createAddCardsModal().show();
 

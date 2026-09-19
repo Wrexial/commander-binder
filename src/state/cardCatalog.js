@@ -9,6 +9,9 @@
  *                   tools can label a collection id that isn't in `cardStore`
  *                   (e.g. a non-legendary card added to a binder) instead of
  *                   showing a raw Scryfall UUID.
+ *  - `idByName`   — front-face name → one printing id, so the bulk add/check
+ *                   modals can resolve *any* named card in a batched request
+ *                   instead of one search per name.
  *
  * The catalog is populated as a side effect of loading the bulk set, so it is
  * available on both pages without any extra download.
@@ -18,6 +21,10 @@
 let names = [];
 /** @type {Map<string, string>} */
 let nameById = new Map();
+/** @type {Map<string, string>} lowercased front name -> one printing id */
+let idByName = new Map();
+/** @type {Map<string, string>} lowercased front name -> canonical name */
+let canonicalByName = new Map();
 let loaded = false;
 
 /** True once a bulk stream has published the catalog (even if empty). */
@@ -26,10 +33,37 @@ export function isCardCatalogLoaded() {
 }
 
 /** Publish (or replace) the catalog from a bulk subset record. */
-export function setCardCatalog({ cardNames, cardNameById } = {}) {
+export function setCardCatalog({ cardNames, cardNameById, cardIdByName } = {}) {
   names = Array.isArray(cardNames) ? cardNames : [];
   nameById = new Map(Object.entries(cardNameById || {}));
-  loaded = names.length > 0 || nameById.size > 0;
+  idByName = new Map(Object.entries(cardIdByName || {}));
+
+  canonicalByName = new Map();
+  for (const name of names) canonicalByName.set(name.toLowerCase(), name);
+
+  loaded = names.length > 0 || nameById.size > 0 || idByName.size > 0;
+}
+
+/** The canonical front-face name for a (case-insensitive) query, or null. */
+export function findCatalogName(name) {
+  return (
+    canonicalByName.get(
+      String(name || '')
+        .trim()
+        .toLowerCase()
+    ) || null
+  );
+}
+
+/** One printing id for a (case-insensitive) card name, or null when unknown. */
+export function resolveCatalogPrintingId(name) {
+  return (
+    idByName.get(
+      String(name || '')
+        .trim()
+        .toLowerCase()
+    ) || null
+  );
 }
 
 /** The front-face name for a printing id, or null when unknown. */
@@ -74,5 +108,7 @@ export function rankCatalogNames(query, limit = 30) {
 export function resetCardCatalog() {
   names = [];
   nameById = new Map();
+  idByName = new Map();
+  canonicalByName = new Map();
   loaded = false;
 }

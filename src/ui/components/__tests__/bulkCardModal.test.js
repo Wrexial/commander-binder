@@ -22,6 +22,12 @@ vi.mock('../../../state/bindersState.js', () => ({
   isCardInBinder: vi.fn(() => false),
 }));
 
+vi.mock('../../../state/cardCatalog.js', () => ({
+  getCatalogNames: vi.fn(() => []),
+  resolveCatalogPrintingId: vi.fn(() => null),
+}));
+vi.mock('../../../api/cardSearch.js', () => ({ hydrateCardsByIds: vi.fn(async () => []) }));
+
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []) },
 }));
@@ -36,15 +42,19 @@ import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned } from '../../../state/cardState.js';
 import { isInList } from '../../../state/listsState.js';
 import { getBinder, getBinders, isCardInBinder } from '../../../state/bindersState.js';
+import { resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
+import { hydrateCardsByIds } from '../../../api/cardSearch.js';
 
 function makeCard(name) {
   return { id: name, name, type_line: 'Legendary Creature — Human', colors: [] };
 }
 
-function typeList(textarea, value) {
+async function typeList(textarea, value) {
   textarea.value = value;
   textarea.dispatchEvent(new Event('input'));
-  vi.advanceTimersByTime(300);
+  // The preview resolves catalog matches asynchronously, so flush those
+  // microtasks along with the debounce timer.
+  await vi.advanceTimersByTimeAsync(300);
 }
 
 function rowTexts() {
@@ -71,6 +81,8 @@ beforeEach(() => {
   getBinders.mockReturnValue([]);
   getBinder.mockReturnValue(null);
   isCardInBinder.mockReturnValue(false);
+  resolveCatalogPrintingId.mockReturnValue(null);
+  hydrateCardsByIds.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -85,7 +97,10 @@ describe('bulk check modal', () => {
     isCardOwned.mockImplementation((card) => card.name === 'Sol Ring');
 
     createBulkCheckModal().show();
-    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet\nFake Card');
+    await typeList(
+      document.querySelector('.bulk-modal textarea'),
+      'Sol Ring\nArcane Signet\nFake Card'
+    );
 
     expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet', 'Fake Card']);
 
@@ -93,12 +108,12 @@ describe('bulk check modal', () => {
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
-  it('strips quantities and set suffixes from pasted decklists', () => {
+  it('strips quantities and set suffixes from pasted decklists', async () => {
     cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
     isCardOwned.mockImplementation((card) => card.name === 'Sol Ring');
 
     createBulkCheckModal().show();
-    typeList(
+    await typeList(
       document.querySelector('.bulk-modal textarea'),
       '1 Sol Ring\n2x Arcane Signet (ELD) 331'
     );
@@ -108,30 +123,30 @@ describe('bulk check modal', () => {
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
-  it('keeps a name that starts with a number when it exists verbatim', () => {
+  it('keeps a name that starts with a number when it exists verbatim', async () => {
     cardStore.getAll.mockReturnValue([makeCard('1996 World Champion')]);
     isCardOwned.mockReturnValue(true);
 
     createBulkCheckModal().show();
-    typeList(document.querySelector('.bulk-modal textarea'), '1996 World Champion');
+    await typeList(document.querySelector('.bulk-modal textarea'), '1996 World Champion');
 
     expect(groupLabels()).toEqual(['Owned']);
     expect(rowTexts()).toEqual(['1996 World Champion']);
   });
 
-  it('checks against a custom list', () => {
+  it('checks against a custom list', async () => {
     cardStore.getAll.mockReturnValue([makeCard('Sol Ring'), makeCard('Arcane Signet')]);
     isInList.mockImplementation((id, card) => card.name === 'Sol Ring');
 
     createBulkCheckModal().show();
     target('Trade pile').click();
-    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
+    await typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
 
     expect(groupLabels()).toEqual(['In “Trade pile”', 'Not in “Trade pile”']);
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
-  it('checks against a binder', () => {
+  it('checks against a binder', async () => {
     getBinders.mockReturnValue([{ id: 'B1', name: 'Trade binder' }]);
     getBinder.mockReturnValue({ id: 'B1', name: 'Trade binder' });
     isCardInBinder.mockImplementation((id, card) => card.name === 'Sol Ring');
@@ -139,10 +154,26 @@ describe('bulk check modal', () => {
 
     createBulkCheckModal().show();
     target('Binder: Trade binder').click();
-    typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
+    await typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
 
     expect(groupLabels()).toEqual(['In “Trade binder”', 'Not in “Trade binder”']);
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
+  });
+
+  it('resolves all-cards catalog names that are not in the loaded store', async () => {
+    cardStore.getAll.mockReturnValue([]);
+    isCardOwned.mockReturnValue(true);
+    resolveCatalogPrintingId.mockReturnValue('id-sol');
+    hydrateCardsByIds.mockImplementation(async () => {
+      cardStore.getAll.mockReturnValue([makeCard('Sol Ring')]);
+      return [makeCard('Sol Ring')];
+    });
+
+    createBulkCheckModal().show();
+    await typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring');
+
+    expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-sol']);
+    expect(groupLabels()).toEqual(['Owned']);
   });
 
   it('copies missing names to the clipboard', async () => {
@@ -151,7 +182,7 @@ describe('bulk check modal', () => {
     Object.assign(navigator, { clipboard: { writeText } });
 
     createBulkCheckModal().show();
-    typeList(document.querySelector('.bulk-modal textarea'), 'Arcane Signet');
+    await typeList(document.querySelector('.bulk-modal textarea'), 'Arcane Signet');
 
     document.querySelector('.bulk-modal .primary').click();
     await Promise.resolve();
