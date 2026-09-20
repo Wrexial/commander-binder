@@ -4009,6 +4009,7 @@ footer a:focus-visible {
   border: none;
   display: flex;
   flex-direction: column;
+  gap: 12px;
   min-height: 0;
   /* The preview list owns the scroll below, so the name autocomplete (which is
      absolutely positioned) is never clipped by this scroll container. */
@@ -4037,54 +4038,74 @@ footer a:focus-visible {
 }
 
 /* Import/export toolbar: format picker + filter, and the import textarea. */
-/* Owned / Wishlist picker shared by the add, export and recent modals. */
+/* Owned / Wishlist / list / binder picker shared by the add, export and recent
+   modals. Chips wrap instead of scrolling, so every target stays visible. */
 .target-toggle {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  max-width: 100%;
   min-width: 0;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-1);
-  overflow: hidden;
+  max-width: 100%;
 }
 
-/* The options scroll while the pinned "+ New" action stays put. */
 .target-toggle-options {
   display: flex;
-  align-items: center;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: 6px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
 }
 
 .target-toggle-option {
-  padding: 4px 12px;
-  border: 0;
+  display: inline-block;
+  max-width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: transparent;
+  background: var(--surface-2);
   color: var(--muted);
   font: inherit;
   font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.target-toggle-option[aria-pressed='true'] {
+.target-toggle-option:hover {
   background: var(--surface-3);
+  border-color: var(--border-strong);
   color: var(--text);
 }
 
-.target-toggle-new {
-  flex: 0 0 auto;
-  margin-left: 2px;
-  border-left: 1px solid var(--border);
-  border-radius: 0 999px 999px 0;
+.target-toggle-option[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
   color: var(--accent-strong);
+}
+
+/* "+ New list" is an action, not a target: dashed outline so it never reads as
+   one of the selectable chips. */
+.target-toggle-new {
+  border-style: dashed;
+  background: transparent;
+  color: var(--accent-strong);
+}
+
+.target-toggle-new:hover {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* The Recent Additions modal renders the picker inside the header, below the
+   subtitle, so it needs a little breathing room the content-area gap gives the
+   other modals for free. */
+.bulk-modal-header .target-toggle {
+  margin-top: 10px;
 }
 
 /* Inline "new list" form revealed by the target picker's "+ New list". */
@@ -4092,7 +4113,6 @@ footer a:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
 }
 
 .target-new-list-form[hidden] {
@@ -4121,7 +4141,6 @@ footer a:focus-visible {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
 }
 
 .transfer-format-label {
@@ -4154,8 +4173,45 @@ footer a:focus-visible {
 }
 
 .transfer-file {
+  max-width: 100%;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+/* The native file control is the one piece of browser chrome in these modals;
+   style it to match the rest of the buttons. */
+.transfer-file::file-selector-button {
+  margin-right: 10px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.transfer-file::file-selector-button:hover {
+  background: var(--button-bg-hover);
+  border-color: var(--accent);
+}
+
+.transfer-file::-webkit-file-upload-button {
+  margin-right: 10px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .transfer-textarea {
@@ -4183,8 +4239,10 @@ footer a:focus-visible {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  margin-top: 14px;
   font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .bulk-empty {
@@ -4197,7 +4255,6 @@ footer a:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
 .bulk-summary-chip {
@@ -4362,6 +4419,9 @@ footer a:focus-visible {
 .activity-content {
   max-height: 60vh;
   overflow-y: auto;
+  /* The generic modal body uses `white-space: pre`; this view is regular HTML,
+     so opt back out or the markup's indentation renders as blank lines. */
+  white-space: normal;
 }
 
 .activity-list {

@@ -66,7 +66,7 @@ describe('summaryChip / previewGroup', () => {
 });
 
 describe('createTargetToggle', () => {
-  it('keeps the + New action outside the scrolling options', () => {
+  it('keeps the + New action last, after the selectable targets', () => {
     const toggle = createTargetToggle({
       options: [{ id: 'owned', label: 'Collection' }],
       initial: 'owned',
@@ -77,12 +77,12 @@ describe('createTargetToggle', () => {
 
     const optionsRow = toggle.el.querySelector('.target-toggle-options');
     const newButton = toggle.el.querySelector('.target-toggle-new');
-    expect(optionsRow.contains(newButton)).toBe(false);
+    expect(optionsRow.contains(newButton)).toBe(true);
+    expect(optionsRow.lastElementChild).toBe(newButton);
     expect(optionsRow.querySelector('.target-toggle-option').textContent).toBe('Collection');
   });
 
-  it('scrolls the active option into view when it changes', () => {
-    const scrollIntoView = vi.fn();
+  it('marks the active option as pressed when it changes', () => {
     const toggle = createTargetToggle({
       options: [
         { id: 'a', label: 'A' },
@@ -92,11 +92,29 @@ describe('createTargetToggle', () => {
       onChange: vi.fn(),
     });
     document.body.appendChild(toggle.el);
-    toggle.el.querySelectorAll('.target-toggle-option')[1].scrollIntoView = scrollIntoView;
+    const [first, second] = toggle.el.querySelectorAll('.target-toggle-option');
+    expect(first.getAttribute('aria-pressed')).toBe('true');
 
     toggle.setValue('b');
 
-    expect(scrollIntoView).toHaveBeenCalled();
+    expect(first.getAttribute('aria-pressed')).toBe('false');
+    expect(second.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('keeps a newly created option before the + New action', () => {
+    const toggle = createTargetToggle({
+      options: [{ id: 'owned', label: 'Collection' }],
+      initial: 'owned',
+      onChange: vi.fn(),
+      onCreate: vi.fn(),
+    });
+    document.body.appendChild(toggle.el);
+
+    toggle.addOption({ id: 'l1', label: 'Trade Binder' });
+
+    const optionsRow = toggle.el.querySelector('.target-toggle-options');
+    const labels = [...optionsRow.children].map((child) => child.textContent);
+    expect(labels).toEqual(['Collection', 'Trade Binder', '+ New list']);
   });
 });
 

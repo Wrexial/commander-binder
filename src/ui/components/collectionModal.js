@@ -165,27 +165,19 @@ export function createTargetToggle({
   group.setAttribute('role', 'group');
   group.setAttribute('aria-label', 'Collection');
 
-  // The options scroll horizontally while the optional "+ New" action stays
-  // pinned, so it can never be scrolled out of reach.
+  // The options wrap onto as many rows as needed so every target stays visible
+  // (and reachable) no matter how many custom lists and binders exist.
   const optionsRow = document.createElement('div');
   optionsRow.className = 'target-toggle-options';
 
   const buttons = new Map();
   let value = initial;
-
-  /** Keep the active pill in view when the row is wider than its container. */
-  function scrollActiveIntoView() {
-    const button = buttons.get(value);
-    if (button && typeof button.scrollIntoView === 'function') {
-      button.scrollIntoView({ inline: 'nearest', block: 'nearest' });
-    }
-  }
+  let newButton = null;
 
   function sync() {
     for (const [id, button] of buttons) {
       button.setAttribute('aria-pressed', String(id === value));
     }
-    scrollActiveIntoView();
   }
 
   function makeOption(option) {
@@ -210,15 +202,15 @@ export function createTargetToggle({
   }
   group.appendChild(optionsRow);
 
-  // Optional "+ New …" action pinned to the end of the row; it is never itself
-  // a selected target.
+  // Optional "+ New …" action, kept at the end of the row but styled as an
+  // action rather than a selectable target.
   if (onCreate) {
-    const newButton = document.createElement('button');
+    newButton = document.createElement('button');
     newButton.type = 'button';
     newButton.className = 'target-toggle-option target-toggle-new';
     newButton.textContent = '+ New list';
     newButton.addEventListener('click', () => onCreate());
-    group.appendChild(newButton);
+    optionsRow.appendChild(newButton);
   }
 
   sync();
@@ -226,11 +218,12 @@ export function createTargetToggle({
   return {
     el: group,
     getValue: () => value,
-    /** Append a newly created target and select it. */
+    /** Append a newly created target (keeping "+ New" last) and select it. */
     addOption(option) {
       if (buttons.has(option.id)) return;
       const button = makeOption(option);
-      optionsRow.appendChild(button);
+      if (newButton) optionsRow.insertBefore(button, newButton);
+      else optionsRow.appendChild(button);
       buttons.set(option.id, button);
       sync();
     },
