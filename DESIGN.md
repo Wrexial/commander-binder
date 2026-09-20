@@ -51,7 +51,7 @@ All tokens live in `:root` in `src/styles.css`. Use them — avoid raw hex.
 | `--accent-strong` | `#f0cd6b`              | Accent text / hover                     |
 | `--accent-soft`   | `rgba(212,175,55,.14)` | Accent-filled backgrounds               |
 | `--success`       | `#46c98a`              | Owned, success toast                    |
-| `--danger`        | `#e06060`              | Destructive, error toast                |
+| `--danger`        | `#e87f7f`              | Destructive, error toast                |
 | `--focus`         | `#7cc4ff`              | Focus ring (never remove)               |
 
 MTG identity colours (`--mtg-W/U/B/R/G`, `--colorless`) are for card data, not

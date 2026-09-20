@@ -74,7 +74,7 @@ label,
   --accent-border: rgba(212, 175, 55, 0.35);
   --accent-border-strong: rgba(212, 175, 55, 0.5);
   --success: #46c98a;
-  --danger: #e06060;
+  --danger: #e87f7f;
 
   /* Shape & depth */
   --radius-xs: 6px;
@@ -5346,7 +5346,7 @@ body.selection-mode #results {
 }
 
 .list-modal .danger:hover {
-  background: rgba(224, 96, 96, 0.12);
+  background: rgba(232, 127, 127, 0.12);
 }
 
 .lists-add-selected {
@@ -5691,7 +5691,7 @@ body.selection-mode #results {
 }
 
 .binder-builder-toolbar .danger:hover {
-  background: rgba(224, 96, 96, 0.12);
+  background: rgba(232, 127, 127, 0.12);
 }
 
 .binder-builder-nav {
