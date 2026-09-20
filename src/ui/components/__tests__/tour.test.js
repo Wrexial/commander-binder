@@ -77,6 +77,16 @@ describe('startTour', () => {
     expect(popoverText()).toContain('Present');
   });
 
+  it('skips an anchor that is hidden', () => {
+    document.body.innerHTML = '<div id="anchor"></div><div id="hidden" hidden></div>';
+    startTour([
+      { target: () => document.getElementById('hidden'), title: 'Hidden' },
+      { target: anchor, title: 'Present' },
+    ]);
+
+    expect(popoverText()).toContain('Present');
+  });
+
   it('finishes from the Skip control', () => {
     const onFinish = vi.fn();
     startTour([{ target: anchor, title: 'One' }], { onFinish });
@@ -115,6 +125,19 @@ describe('startFirstRunTour', () => {
     // The only anchor present is the first step, so Next finishes the tour.
     document.querySelector('.tour-next').click();
 
-    expect(markTourDone).toHaveBeenCalled();
+    expect(markTourDone).toHaveBeenCalledWith('browse');
+  });
+
+  it('runs the binder tour and remembers it separately on the binder page', () => {
+    document.body.innerHTML = '<div id="binder-root"><div class="binder-tabs"></div></div>';
+
+    const tour = startFirstRunTour({ force: true });
+    expect(tour).not.toBeNull();
+    expect(popoverText()).toContain('Your binders');
+
+    // Only the tabs exist, so Next skips the remaining steps and finishes.
+    document.querySelector('.tour-next').click();
+
+    expect(markTourDone).toHaveBeenCalledWith('binder');
   });
 });

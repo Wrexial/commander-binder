@@ -5,7 +5,16 @@
  * the guest welcome simply shows again next visit.
  */
 const GUEST_WELCOME_KEY = 'guestWelcomeDismissed';
-const TOUR_KEY = 'appTourDone';
+
+/** The first-run tour is tracked per page, since each page is a different tour. */
+const TOUR_KEYS = {
+  browse: 'appTourDone',
+  binder: 'binderTourDone',
+};
+
+function tourKey(tour) {
+  return TOUR_KEYS[tour] || TOUR_KEYS.browse;
+}
 
 export function isGuestWelcomeDismissed() {
   try {
@@ -23,19 +32,19 @@ export function dismissGuestWelcome() {
   }
 }
 
-/** True once the first-run tour has been finished or skipped. */
-export function isTourDone() {
+/** True once the given page's first-run tour has been finished or skipped. */
+export function isTourDone(tour = 'browse') {
   try {
-    return localStorage.getItem(TOUR_KEY) === '1';
+    return localStorage.getItem(tourKey(tour)) === '1';
   } catch {
     return false;
   }
 }
 
-/** Remember that the tour is no longer needed (finished or skipped). */
-export function markTourDone() {
+/** Remember that the given page's tour is no longer needed. */
+export function markTourDone(tour = 'browse') {
   try {
-    localStorage.setItem(TOUR_KEY, '1');
+    localStorage.setItem(tourKey(tour), '1');
   } catch {
     /* storage unavailable — the tour may reappear next visit */
   }

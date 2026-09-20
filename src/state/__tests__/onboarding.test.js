@@ -49,6 +49,13 @@ describe('first-run tour onboarding flag', () => {
     expect(isTourDone()).toBe(true);
   });
 
+  it('tracks the binder tour separately from the browse tour', () => {
+    markTourDone('binder');
+
+    expect(isTourDone('binder')).toBe(true);
+    expect(isTourDone('browse')).toBe(false);
+  });
+
   it('stays best-effort when storage is unavailable', () => {
     const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');

@@ -200,9 +200,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   currency, grid columns/rows, pages per binder, swipe-to-dismiss and the
   preferred-printings reset — with a live miniature of the grid page that
   updates as columns/rows change; the sidebar's “⚙️ Settings” entry opens it),
-  the first-run tour `tour.js` (a spotlight/popover walk over the search,
-  filters, a card and the menu; auto-started once for signed-in visitors, offered
-  from the guest welcome and replayable from the sidebar's “❓ App Tour”), the
+  the first-run tour `tour.js` (a spotlight/popover walk that is page-aware:
+  browse covers the search, filters, a card and the menu, while the Binder
+  Builder covers the binder tabs, size/sharing toolbar, page nav, pockets and
+  menu; each page auto-starts its own tour once for signed-in visitors, offers it
+  from the guest welcome and replays it from the sidebar's “❓ App Tour”.
+  Completion is tracked per page in `state/onboarding.js` — `appTourDone` and
+  `binderTourDone` — so seeing one does not suppress the other; anchors that are
+  missing or hidden are skipped), the
   add/check/export modals (the add, export and recent-activity modals share an
   Owned/Wishlist picker from `collectionModal.js`'s `createTargetToggle`, which
   can also pin a "+ New list" action; the bulk-check modal instead checks _every_

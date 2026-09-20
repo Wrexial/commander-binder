@@ -15,7 +15,9 @@ import { initBinderBuilder } from './ui/binderBuilder.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initViewportMetrics } from './utils/viewport.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
+import { startFirstRunTour } from './ui/components/tour.js';
 import { cardStore } from './state/cardStore.js';
+import { isTourDone } from './state/onboarding.js';
 import { getLegendaryCreatures } from './api/bulkData.js';
 
 /**
@@ -30,6 +32,33 @@ async function warmCollectionStore() {
   } catch (err) {
     console.error('Failed to load the card collection:', err);
   }
+}
+
+/** Replay entry point, always available from the sidebar. */
+function addTourLink() {
+  addButtonToSidebar('❓ App Tour', () => startFirstRunTour({ force: true }), 'settings', 20);
+}
+
+/**
+ * Auto-run the binder tour on a first visit, once the editor has mounted and
+ * there is an anchor to point at. Guests still looking at the welcome panel get
+ * the panel's own tour button instead of a second overlay on top of it.
+ */
+function scheduleFirstRunTour() {
+  if (isTourDone('binder')) return;
+  if (document.querySelector('.guest-welcome, .guest-mode-container')) return;
+
+  const waitForEditor = (attempt = 0) => {
+    const anchor = document.querySelector(
+      '#binder-root .binder-tab, #binder-root .binder-slot, #binder-root .binder-tabs'
+    );
+    if (anchor || attempt >= 20) {
+      startFirstRunTour();
+      return;
+    }
+    window.setTimeout(() => waitForEditor(attempt + 1), 250);
+  };
+  window.setTimeout(waitForEditor, 500);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -51,11 +80,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // wishlist, add-to-list) work inside the pockets too.
   initCardInteractions(root, tooltip);
   initViewportMetrics();
+  addTourLink();
+
+  // The guest welcome's "Take a quick tour" button, and any other entry point
+  // that does not want to import the tour module directly.
+  document.addEventListener('tour:start', () => startFirstRunTour({ force: true }));
 
   // The editor needs the saved ownership state (for the owned/missing styling)
   // before it renders; its card data is fetched lazily per page.
   await statesReady;
   await initBinderBuilder(root);
+
+  scheduleFirstRunTour();
 
   // Background enrichment for the collection-wide tools.
   warmCollectionStore();

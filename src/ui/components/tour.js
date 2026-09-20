@@ -20,10 +20,23 @@ const VIEWPORT_MARGIN = 12;
 /** The currently running tour, so a replay replaces rather than stacks. */
 let activeTour = null;
 
+/** True when an element (or an ancestor) is not rendered. */
+function isHidden(element) {
+  for (let node = element; node instanceof HTMLElement; node = node.parentElement) {
+    if (node.hidden) return true;
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden') return true;
+  }
+  return false;
+}
+
 function resolveTarget(step) {
   if (!step?.target) return null;
   const element = typeof step.target === 'function' ? step.target() : step.target;
-  return element && element.isConnected ? element : null;
+  if (!element || !element.isConnected) return null;
+  // A hidden anchor (e.g. the binder editor's edit controls in a share view)
+  // would otherwise get a zero-size spotlight; skip it instead.
+  return isHidden(element) ? null : element;
 }
 
 function clamp(value, min, max) {
@@ -278,11 +291,54 @@ const DEFAULT_STEPS = [
   },
 ];
 
+/** The Binder Builder page's tour. Anchors only exist after the editor mounts,
+ *  so missing steps are skipped while it is still loading. */
+const BINDER_STEPS = [
+  {
+    target: () => document.querySelector('.binder-tabs'),
+    title: 'Your binders',
+    body: 'Each tab is one physical binder. Tap a tab to switch, or use “+ New” to start another.',
+  },
+  {
+    target: () => document.querySelector('.binder-builder-toolbar'),
+    title: 'Name, size & sharing',
+    body: 'Rename the binder, set its columns, rows and pages, mark it public for your share link, or delete it. Resizing shifts cards instead of dropping them.',
+  },
+  {
+    target: () => document.querySelector('.binder-builder-nav'),
+    title: 'Page through the binder',
+    body: 'Move between pages with Prev/Next, or clear the page you are on.',
+  },
+  {
+    target: () => document.querySelector('#binder-root .binder-page'),
+    title: 'Fill the pockets',
+    body: 'Tap an empty pocket to search for a card. Use ⇄ to move a pocket’s card and ✕ to empty it — a card tap still marks it owned.',
+  },
+  {
+    target: () => document.getElementById('openbtn'),
+    title: 'All your tools',
+    body: 'Statistics for this binder, sharing, settings and the rest of your collection live in the menu.',
+  },
+];
+
+/** True on the Binder Builder page (it mounts the editor into `#binder-root`). */
+function isBinderPage() {
+  return Boolean(document.getElementById('binder-root'));
+}
+
+/** The steps and completion flag that match the page the app is on. */
+function currentTour() {
+  return isBinderPage()
+    ? { id: 'binder', steps: BINDER_STEPS }
+    : { id: 'browse', steps: DEFAULT_STEPS };
+}
+
 /**
- * Start the first-run tour unless it has already been completed. Pass
+ * Start the page's first-run tour unless it has already been completed. Pass
  * `{ force: true }` to replay it from the sidebar.
  */
 export function startFirstRunTour({ force = false } = {}) {
-  if (!force && isTourDone()) return null;
-  return startTour(DEFAULT_STEPS, { onFinish: markTourDone });
+  const { id, steps } = currentTour();
+  if (!force && isTourDone(id)) return null;
+  return startTour(steps, { onFinish: () => markTourDone(id) });
 }
