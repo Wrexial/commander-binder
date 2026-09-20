@@ -16,7 +16,7 @@ export const MAX_BINDER_PAGES = 200;
 /** A binder can't hold more occupied pockets than this (payload guard). */
 export const MAX_BINDER_SLOTS = 10000;
 /** Serialized slots size cap, so one binder can't bloat a request/row. */
-export const MAX_BINDER_SLOTS_BYTES = 1024 * 1024;
+const MAX_BINDER_SLOTS_BYTES = 1024 * 1024;
 
 /** `"page:row:col"` for one pocket. */
 const SLOT_KEY = /^\d+:\d+:\d+$/;

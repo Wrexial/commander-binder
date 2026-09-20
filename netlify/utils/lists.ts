@@ -11,7 +11,7 @@ export const MAX_LIST_NAME_LENGTH = 60;
 export const MAX_LIST_NOTES_LENGTH = 2000;
 
 /** A single add/remove request never carries more card ids than a batch toggle. */
-export const MAX_LIST_ITEMS = MAX_BATCH_SIZE;
+const MAX_LIST_ITEMS = MAX_BATCH_SIZE;
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; message: string };
 

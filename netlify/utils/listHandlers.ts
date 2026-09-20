@@ -31,7 +31,7 @@ export type ClientList = {
  * Load a user's lists (optionally only the public ones) together with their
  * membership, in one round trip. The client mirrors this shape into its state.
  */
-export async function collectLists(
+async function collectLists(
   userId: string,
   { publicOnly = false }: { publicOnly?: boolean } = {}
 ): Promise<ClientList[]> {

@@ -4375,26 +4375,6 @@ footer a:focus-visible {
   cursor: pointer;
 }
 
-.transfer-textarea {
-  width: 100%;
-  min-height: 150px;
-  resize: vertical;
-  padding: 10px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: #f7f9fc;
-  color: #10141c;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
-.transfer-textarea:focus {
-  outline: none;
-  border-color: var(--focus);
-  box-shadow: var(--focus-shadow);
-}
-
 .bulk-preview {
   flex: 1 1 auto;
   min-height: 0;

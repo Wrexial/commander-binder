@@ -45,7 +45,7 @@ function parseStoredSlots(text: string): BinderSlots {
  * `publicOnly` (a share-link read) only the binders the owner marked public are
  * returned.
  */
-export async function collectBinders(
+async function collectBinders(
   userId: string,
   { publicOnly = false }: { publicOnly?: boolean } = {}
 ): Promise<ClientBinder[]> {

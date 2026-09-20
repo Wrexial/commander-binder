@@ -1,0 +1,4 @@
+# Keep line endings identical in the repo and the working tree so Prettier
+# (which expects LF) and `npm run format:check` pass on Windows and CI alike.
+# `text=auto` still lets Git detect binary files.
+* text=auto eol=lf
