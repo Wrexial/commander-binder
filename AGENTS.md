@@ -297,7 +297,11 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   (`onNavigate` too); only the printing picker stays wired.
   Statistics includes a
   "Wishlist Targets" section that
-  ranks sets by how many of their missing cards are on the wishlist; money
+  ranks sets by how many of their missing cards are on the wishlist; related
+  sections share one header (via `sectionGroup`/`groupCard` in `statistics.js`)
+  while keeping their own cards, so Card Colors and Color Identity, Rarity and
+  Creature Types, and Set Completion and Wishlist Targets each render as a
+  labelled row under a single heading. Money
   metrics value each card at its `resolveDisplayPrinting` printing (the pinned
   or cheapest one) on the grid, so the totals match the tile prices.
   `searchHelp.js` owns the syntax reference as data (rendered into

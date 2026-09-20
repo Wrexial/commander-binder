@@ -315,16 +315,25 @@ describe('createStatisticsHTML', () => {
       'Average Card Value',
       'Completion',
       'Colors',
+      'Card Colors',
+      'Color Identity',
       'Color Combinations',
       'Mana Value Curve',
+      'Rarity &amp; Type',
       'Rarities',
       'Creature Types',
+      'Sets',
       'Set Completion',
+      'Wishlist Targets',
       'Price Distribution',
       'Top 5 Most Valuable Cards',
     ]) {
       expect(html).toContain(heading);
     }
+
+    // The colors sit in separate cards under one shared header.
+    const colors = html.slice(html.indexOf('class="stats-group-title">Colors'));
+    expect(colors).toContain('class="stats-group-card"');
 
     expect(html).toContain('card-symbols/U.svg');
     expect(html).toContain('stat-rarity-rare');
@@ -737,15 +746,15 @@ describe('showStatisticsModal', () => {
 
     const chips = [...document.querySelectorAll('.stats-nav-chip')].map((chip) => chip.textContent);
     expect(chips[0]).toBe('Summary');
-    expect(chips).toEqual(
-      expect.arrayContaining(['Colors', 'Set Completion', 'Top 5 Most Valuable Cards'])
-    );
+    expect(chips).toEqual(expect.arrayContaining(['Colors', 'Sets', 'Top 5 Most Valuable Cards']));
 
     // Every jump target carries the id its chip points at.
     expect(document.querySelector('.stats-summary').id).toBeTruthy();
     expect(document.querySelector('.stats-section').id).toBeTruthy();
     const chipCount = document.querySelectorAll('.stats-nav-chip').length;
-    const targetCount = document.querySelectorAll('.stats-summary, .stats-section').length;
+    const targetCount = document.querySelectorAll(
+      '.stats-summary, .stats-section, .stats-section-group'
+    ).length;
     expect(chipCount).toBe(targetCount);
   });
 

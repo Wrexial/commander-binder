@@ -493,6 +493,31 @@ function section(title, body, meta) {
         </section>`;
 }
 
+/** A card inside a {@link sectionGroup}: same chrome, but an `h4` label. */
+function groupCard(title, body, meta) {
+  return `
+        <section class="stats-group-card">
+            <h4>${title}${meta ? `<span class="stats-section-total">${meta}</span>` : ''}</h4>
+            ${body}
+        </section>`;
+}
+
+/**
+ * A row of related cards sharing one header. The header spans every column of
+ * `.stats-grid` so the group starts a fresh row, and the member cards sit side
+ * by side inside it.
+ *
+ * @param {string} title Shared header text (may contain HTML).
+ * @param {string[]} cards `groupCard(...)` markup.
+ */
+function sectionGroup(title, cards) {
+  return `
+        <section class="stats-section-group">
+            <h3 class="stats-group-title">${title}</h3>
+            <div class="stats-group-cards">${cards.join('')}</div>
+        </section>`;
+}
+
 function barRow({ label, count, max, className = '', symbol = '' }) {
   const percent = max > 0 ? Math.max((count / max) * 100, 3) : 0;
   return `
@@ -570,36 +595,6 @@ function renderColorBars(colors) {
   return `<div class="stats-bars">${rows}</div>`;
 }
 
-/** True when any color (including colorless) has a count. */
-function hasColorData(colors) {
-  return COLOR_ORDER.some((color) => colors[color] > 0);
-}
-
-/**
- * Card colors and color identity are the same color breakdown shown two ways,
- * so they share one section (and one header) instead of rendering two cards
- * side by side whose headers sit at the same height.
- */
-function renderColors(colors, colorIdentity) {
-  if (!hasColorData(colors) && !hasColorData(colorIdentity)) {
-    return section('Colors', '<p class="stats-empty">No color data.</p>');
-  }
-
-  return section(
-    'Colors',
-    `<div class="stats-color-groups">
-      <div class="stats-color-group">
-        <h4>Cards</h4>
-        ${renderColorBars(colors)}
-      </div>
-      <div class="stats-color-group">
-        <h4>Color identity</h4>
-        ${renderColorBars(colorIdentity)}
-      </div>
-    </div>`
-  );
-}
-
 function renderColorCombinations(combinations) {
   const entries = entriesByCount(combinations);
   if (entries.length === 0) {
@@ -647,10 +642,10 @@ function renderManaCurve(stats) {
   return section('Mana Value Curve', `<div class="stats-curve">${columns}</div>`, meta);
 }
 
-function renderRarities(rarities) {
+function rarityBars(rarities) {
   const entries = entriesByCount(rarities);
   if (entries.length === 0) {
-    return section('Rarities', '<p class="stats-empty">No rarity data.</p>');
+    return '<p class="stats-empty">No rarity data.</p>';
   }
 
   const max = entries[0][1];
@@ -665,43 +660,41 @@ function renderRarities(rarities) {
     )
     .join('');
 
-  return section('Rarities', `<div class="stats-bars">${rows}</div>`);
+  return `<div class="stats-bars">${rows}</div>`;
 }
 
-function renderCreatureTypes(types) {
+function creatureTypeBars(types) {
   const entries = entriesByCount(types);
   if (entries.length === 0) {
-    return section('Creature Types', '<p class="stats-empty">No type data.</p>');
+    return { body: '<p class="stats-empty">No type data.</p>', meta: '' };
   }
 
   const max = entries[0][1];
   const rows = entries.map(([type, count]) => barRow({ label: type, count, max })).join('');
 
-  return section(
-    'Creature Types',
+  return {
     // All types are rendered; the list scrolls inside its card so a collection
     // with hundreds of creature types can't stretch the whole modal.
-    `<div class="stats-bars stats-bars-scroll">${rows}</div>`,
-    `${entries.length} type${entries.length === 1 ? '' : 's'}`
-  );
+    body: `<div class="stats-bars stats-bars-scroll">${rows}</div>`,
+    meta: `${entries.length} type${entries.length === 1 ? '' : 's'}`,
+  };
 }
 
-function renderSetCompletion(sets, setsCompleted) {
+function setCompletionBody(sets, setsCompleted) {
   const meta = `Sets completed: ${setsCompleted}`;
 
   if (sets.length === 0) {
-    return section('Set Completion', '<p class="stats-empty">No owned cards yet.</p>');
+    return { body: '<p class="stats-empty">No owned cards yet.</p>', meta: '' };
   }
 
   // Completed sets are summarised in the meta line; the rows are the sets still
   // in progress, nearest to completion first.
   const inProgress = sets.filter((set) => set.total === 0 || set.owned < set.total);
   if (inProgress.length === 0) {
-    return section(
-      'Set Completion',
-      '<p class="stats-empty">Every set you have started is complete. Nice work!</p>',
-      meta
-    );
+    return {
+      body: '<p class="stats-empty">Every set you have started is complete. Nice work!</p>',
+      meta,
+    };
   }
 
   const rows = inProgress
@@ -725,7 +718,7 @@ function renderSetCompletion(sets, setsCompleted) {
     })
     .join('');
 
-  return section('Set Completion', `<div class="stats-bars">${rows}</div>`, meta);
+  return { body: `<div class="stats-bars">${rows}</div>`, meta };
 }
 
 /**
@@ -733,17 +726,17 @@ function renderSetCompletion(sets, setsCompleted) {
  * collector can see which set to chase next. Only *missing* cards count: a
  * wanted card already owned is not a target.
  */
-function renderWishlistTargets(sets) {
+function wishlistTargetsBody(sets) {
   const targets = sets
     .filter((set) => set.wantedMissing.length > 0)
     .sort((a, b) => b.wantedMissing.length - a.wantedMissing.length || a.name.localeCompare(b.name))
     .slice(0, MAX_SETS_SHOWN);
 
   if (targets.length === 0) {
-    return section(
-      'Wishlist Targets',
-      '<p class="stats-empty">No missing cards on your wishlist.</p>'
-    );
+    return {
+      body: '<p class="stats-empty">No missing cards on your wishlist.</p>',
+      meta: '',
+    };
   }
 
   const rows = targets
@@ -759,11 +752,10 @@ function renderWishlistTargets(sets) {
     })
     .join('');
 
-  return section(
-    'Wishlist Targets',
-    `<div class="stats-bars">${rows}</div>`,
-    `${targets.length} set${targets.length === 1 ? '' : 's'}`
-  );
+  return {
+    body: `<div class="stats-bars">${rows}</div>`,
+    meta: `${targets.length} set${targets.length === 1 ? '' : 's'}`,
+  };
 }
 
 function renderPriceDistribution(stats) {
@@ -924,17 +916,28 @@ function wireTopCardTooltips(container, tooltip, topCards) {
  * @returns {string}
  */
 export function createStatisticsHTML(stats, { extra = '' } = {}) {
+  const types = creatureTypeBars(stats.types);
+  const setCompletion = setCompletionBody(stats.sets, stats.setsCompleted);
+  const wishlistTargets = wishlistTargetsBody(stats.sets);
+
   return `
         ${renderSummary(stats)}
         ${extra}
         <div class="stats-grid">
-            ${renderColors(stats.colors, stats.colorIdentity)}
+            ${sectionGroup('Colors', [
+              groupCard('Card Colors', renderColorBars(stats.colors)),
+              groupCard('Color Identity', renderColorBars(stats.colorIdentity)),
+            ])}
             ${renderColorCombinations(stats.colorCombinations)}
             ${renderManaCurve(stats)}
-            ${renderRarities(stats.rarities)}
-            ${renderCreatureTypes(stats.types)}
-            ${renderSetCompletion(stats.sets, stats.setsCompleted)}
-            ${renderWishlistTargets(stats.sets)}
+            ${sectionGroup('Rarity &amp; Type', [
+              groupCard('Rarities', rarityBars(stats.rarities)),
+              groupCard('Creature Types', types.body, types.meta),
+            ])}
+            ${sectionGroup('Sets', [
+              groupCard('Set Completion', setCompletion.body, setCompletion.meta),
+              groupCard('Wishlist Targets', wishlistTargets.body, wishlistTargets.meta),
+            ])}
             ${renderPriceDistribution(stats)}
         </div>
         ${renderTopCards(stats.top5ValuableCards)}
@@ -1076,14 +1079,21 @@ export function showStatisticsModal({
     navItems = [];
 
     const summary = contentArea.querySelector('.stats-summary');
-    const targets = [summary, ...contentArea.querySelectorAll('.stats-section')].filter(Boolean);
+    const targets = [
+      summary,
+      ...contentArea.querySelectorAll('.stats-section-group, .stats-section'),
+    ].filter(Boolean);
 
     targets.forEach((target, index) => {
       if (!target.id) target.id = `stats-section-${index}`;
+      const isGroup = target.classList.contains('stats-section-group');
       const title =
         target === summary
           ? 'Summary'
-          : target.querySelector('h3')?.firstChild?.textContent?.trim() || `Section ${index + 1}`;
+          : isGroup
+            ? target.querySelector('.stats-group-title')?.textContent?.trim() ||
+              `Section ${index + 1}`
+            : target.querySelector('h3')?.firstChild?.textContent?.trim() || `Section ${index + 1}`;
 
       const chip = document.createElement('button');
       chip.type = 'button';
