@@ -4,18 +4,23 @@
  * "Bulk check" modals. Typing two or more characters on a line shows a short,
  * ranked list of matches from the loaded collection.
  */
-import { cardStore } from '../../state/cardStore.js';
+import { cardStore, primaryName } from '../../state/cardStore.js';
 import { getCatalogNames } from '../../state/cardCatalog.js';
 import { normalizeName } from './collectionModal.js';
 
 const MAX_SUGGESTIONS = 6;
 
-/** One pass over the store: lowercase name -> card. */
+/**
+ * One pass over the store: lowercase name -> card. Indexed by the front-face
+ * name the app tracks cards by (`primaryName`) *and* the full printed name, so
+ * a paste of either "Front" or "Front // Back" resolves.
+ */
 function buildNameIndex() {
   const index = new Map();
   for (const card of cardStore.getAll()) {
-    const key = normalizeName(card.name);
-    if (key && !index.has(key)) index.set(key, card);
+    for (const key of new Set([normalizeName(primaryName(card)), normalizeName(card.name)])) {
+      if (key && !index.has(key)) index.set(key, card);
+    }
   }
   return index;
 }
@@ -56,9 +61,10 @@ function findSuggestions(names, query) {
 export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
   const nameIndex = buildNameIndex();
   // Suggest every known card name, not just the legendary cards loaded into
-  // `cardStore`, so all-cards entries autocomplete too.
+  // `cardStore`, so all-cards entries autocomplete too. Front-face names keep
+  // suggestions aligned with the catalog and with how cards are tracked.
   const allNames = [
-    ...new Set([...[...nameIndex.values()].map((card) => card.name), ...getCatalogNames()]),
+    ...new Set([...[...nameIndex.values()].map((card) => primaryName(card)), ...getCatalogNames()]),
   ].sort((a, b) => a.localeCompare(b));
 
   const el = document.createElement('div');

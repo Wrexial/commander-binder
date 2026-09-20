@@ -5,7 +5,7 @@
  * all-cards catalog (batched) or, before the catalog has loaded, a live
  * Scryfall lookup — so *any* card is detected, not just the legendary subset.
  */
-import { cardStore } from '../../state/cardStore.js';
+import { cardStore, primaryName } from '../../state/cardStore.js';
 import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../state/cardCatalog.js';
 import { hydrateCardsByIds, loadPrintingsForName } from '../../api/cardSearch.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
@@ -24,11 +24,15 @@ export function buildPrintingIndex() {
   return byPrinting;
 }
 
-/** Add every card now in the store to a normalized-name -> card index. */
+/**
+ * Add every card now in the store to a normalized-name -> card index, under
+ * both its front-face name and its full printed name.
+ */
 function refreshNameIndex(nameIndex) {
   for (const card of cardStore.getAll()) {
-    const key = normalizeName(card.name);
-    if (key && !nameIndex.has(key)) nameIndex.set(key, card);
+    for (const key of new Set([normalizeName(primaryName(card)), normalizeName(card.name)])) {
+      if (key && !nameIndex.has(key)) nameIndex.set(key, card);
+    }
   }
 }
 

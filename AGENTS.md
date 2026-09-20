@@ -206,7 +206,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   loading, so _any_ card can be added/checked — not only ones a binder already
   hydrated; plus the
   shared
-  `cardNameInput.js` autocomplete (which suggests names from the catalog too), the share-view `compareModal.js` diff,
+  `cardNameInput.js` autocomplete (which suggests names from the catalog too and
+  indexes cards under both their front-face and full printed names, so a
+  multi-face card matches either way), the share-view `compareModal.js` diff,
   the Binder Builder editor `binderBuilder.js` (a top binder-tab switcher, pocket
   grid, page navigation, a
   per-binder Public toggle and the add/move/remove controls plus a `≡` choose
@@ -235,7 +237,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
 title, emptyMessage }`, so the shell scopes it to the visible binder on the
   Binder Builder page (hydrating that binder's pockets first, `countAll: true`
   so every pocket — duplicate or unowned, legendary or not — is counted) and to
-  the whole owned collection elsewhere. Statistics includes a "Wishlist Targets" section that
+  the whole owned collection elsewhere. Its hover preview clears the grid's
+  `onToggle`/`onWishlistToggle`/`onAddToList` handlers on open (`onNavigate` too),
+  so the read-only preview can only cycle printings. Statistics includes a
+  "Wishlist Targets" section that
   ranks sets by how many of their missing cards are on the wishlist; money
   metrics value each card at its `resolveDisplayPrinting` printing (the pinned
   or cheapest one), so the totals match the tile prices.

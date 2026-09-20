@@ -530,6 +530,22 @@ describe('showStatisticsModal', () => {
     expect(document.querySelector('.statistics-subtitle').textContent).toContain('1 owned card');
   });
 
+  it('clears the grid card actions from the hover preview on open', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const tooltip = document.getElementById('tooltip');
+    tooltip.onToggle = () => {};
+    tooltip.onWishlistToggle = () => {};
+    tooltip.onAddToList = () => {};
+    cardStore.getAll.mockReturnValue([makeCard({ id: 'a', name: 'A' })]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal();
+
+    expect(tooltip.onToggle).toBeNull();
+    expect(tooltip.onWishlistToggle).toBeNull();
+    expect(tooltip.onAddToList).toBeNull();
+  });
+
   it('counts every provided card and duplicate when countAll is set', () => {
     document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
     const card = makeCard({ id: 'c1', name: 'Sol Ring' });

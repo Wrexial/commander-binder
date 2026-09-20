@@ -887,6 +887,20 @@ async function copyCardNames(names, label) {
  * @param {string} [options.title] Modal heading.
  * @param {string} [options.emptyMessage] Toast shown when there is nothing to report.
  */
+/**
+ * Drop the grid's card-specific actions from the shared hover preview. The
+ * statistics preview is read-only (it only cycles printings), so leaving the
+ * grid's owned/wishlist/list handlers wired would fire them against whichever
+ * tile was last previewed rather than the hovered row.
+ */
+function resetTooltipCardActions(tooltip) {
+  if (!tooltip) return;
+  tooltip.onNavigate = null;
+  tooltip.onToggle = null;
+  tooltip.onWishlistToggle = null;
+  tooltip.onAddToList = null;
+}
+
 export function showStatisticsModal({
   cards = null,
   countAll = false,
@@ -906,8 +920,8 @@ export function showStatisticsModal({
   let stats = calculateStatistics(countedCards, allCards.length, allCards);
   const tooltip = document.getElementById('tooltip');
   // The stats preview is hover-driven; make sure it never inherits the grid's
-  // swipe-navigation handler.
-  if (tooltip) tooltip.onNavigate = null;
+  // swipe-navigation or card-action handlers.
+  resetTooltipCardActions(tooltip);
   let cleanupTopCardTooltips = () => {};
 
   const shell = createModal({
@@ -917,8 +931,8 @@ export function showStatisticsModal({
       cleanupTopCardTooltips();
       if (tooltip) {
         tooltip.onCycle = null;
-        tooltip.onNavigate = null;
         tooltip.cycleLabel = null;
+        resetTooltipCardActions(tooltip);
         hideTooltip(tooltip);
       }
     },

@@ -34,6 +34,8 @@ vi.mock('../../../api/cardSearch.js', () => ({
 
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []) },
+  primaryName: (cardOrName) =>
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
 }));
 
 vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));

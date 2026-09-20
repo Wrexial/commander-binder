@@ -10,6 +10,8 @@ vi.mock('../../../state/wishlistState.js', () => ({
 }));
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []), getPrintings: vi.fn(() => []) },
+  primaryName: (cardOrName) =>
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
 }));
 vi.mock('../../../state/listsState.js', () => ({
   getLists: vi.fn(() => [{ id: 'L1', name: 'Trade pile' }]),
@@ -150,6 +152,18 @@ describe('addCardsModal', () => {
     expect(chips[0]).toContain('Will add');
     expect(chips[2]).toContain('Not found');
     expect(primary().disabled).toBe(false);
+  });
+
+  it('matches a multi-face card by its front-face name', () => {
+    const dfc = { id: 'id-dfc', name: 'Front Face // Back Face' };
+    cardStore.getAll.mockReturnValue([dfc]);
+    cardStore.getPrintings.mockReturnValue([dfc]);
+
+    createAddCardsModal().show();
+    paste('Front Face');
+
+    expect(chipTexts()[0]).toBe('Will add 1');
+    expect(chipTexts()[2]).toBe('Not found 0');
   });
 
   it('adds the matched new cards', async () => {
