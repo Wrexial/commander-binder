@@ -191,6 +191,7 @@ export function syncCardOwnedUi(cardElement, owned) {
  */
 function createOwnedToggle(owned) {
   const toggle = document.createElement('button');
+  toggle.type = 'button';
   toggle.className = 'card-toggle';
   toggle.title = ownedToggleLabel(owned);
   toggle.setAttribute('aria-label', ownedToggleLabel(owned));
@@ -212,6 +213,7 @@ function wishlistToggleLabel(wanted) {
  */
 function createWishlistToggle(wanted) {
   const toggle = document.createElement('button');
+  toggle.type = 'button';
   toggle.className = 'card-wishlist';
   toggle.title = wishlistToggleLabel(wanted);
   toggle.setAttribute('aria-label', wishlistToggleLabel(wanted));

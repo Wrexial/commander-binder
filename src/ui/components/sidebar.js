@@ -79,6 +79,7 @@ export function addButtonToSidebar(text, onClick, sectionId = 'collection', orde
   if (!sidebar) return;
 
   const button = document.createElement('button');
+  button.type = 'button';
   button.textContent = text;
   button.dataset.order = String(order);
   button.addEventListener('click', () => {

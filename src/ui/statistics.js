@@ -1226,6 +1226,7 @@ export function showStatisticsModal({
   );
 
   const closeButton = document.createElement('button');
+  closeButton.type = 'button';
   closeButton.textContent = 'Close';
   closeButton.addEventListener('click', close);
   buttonContainer.append(copyMissingButton, closeButton);

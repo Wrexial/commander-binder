@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../state/cardStore.js', () => ({
   cardStore: { getAll: vi.fn(() => []) },
   primaryName: (cardOrName) =>
-    typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '',
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
 }));
 vi.mock('../../../state/cardCatalog.js', () => ({
   getCatalogNames: vi.fn(() => []),
@@ -27,6 +27,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   cardStore.getAll.mockReturnValue([]);
   getCatalogNames.mockReturnValue([]);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('createCardNameInput', () => {
@@ -68,5 +72,118 @@ describe('createCardNameInput', () => {
       .dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 
     expect(input.textArea.value).toBe('Sol Ring\n');
+  });
+
+  it('ranks prefix matches before word-start and substring matches', () => {
+    getCatalogNames.mockReturnValue(['Boring Card', 'Sol Ring', 'Ring of Three']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+
+    type(input, 'ring');
+
+    expect(suggestionTexts()).toEqual(['Ring of Three', 'Sol Ring', 'Boring Card']);
+  });
+
+  it('caps the suggestion list', () => {
+    getCatalogNames.mockReturnValue(
+      Array.from({ length: 9 }, (_, i) => `Ring ${String(i).padStart(2, '0')}`)
+    );
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+
+    type(input, 'ring');
+
+    expect(suggestionTexts()).toHaveLength(6);
+  });
+
+  it('shows nothing for a one-character query', () => {
+    getCatalogNames.mockReturnValue(['Sol Ring']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+
+    type(input, 's');
+
+    expect(suggestionTexts()).toEqual([]);
+  });
+
+  it('navigates with the arrow keys and inserts the active match on Enter', () => {
+    getCatalogNames.mockReturnValue(['Alpaca', 'Alpha', 'Alpine']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+    type(input, 'alp');
+    const items = [...document.querySelectorAll('.suggestion-item')];
+
+    const press = (key) =>
+      input.textArea.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    press('ArrowDown');
+    expect(items[0].classList.contains('active')).toBe(true);
+    press('ArrowDown');
+    expect(items[1].classList.contains('active')).toBe(true);
+
+    press('Enter');
+    expect(input.textArea.value).toBe('Alpha\n');
+  });
+
+  it('selects the last suggestion when ArrowUp is pressed from a fresh list', () => {
+    getCatalogNames.mockReturnValue(['Alpaca', 'Alpha', 'Alpine']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+    type(input, 'alp');
+    const items = [...document.querySelectorAll('.suggestion-item')];
+
+    input.textArea.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+
+    expect(items[items.length - 1].classList.contains('active')).toBe(true);
+  });
+
+  it('hides the list on Escape', () => {
+    getCatalogNames.mockReturnValue(['Sol Ring']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+    type(input, 'sol');
+    expect(suggestionTexts()).toContain('Sol Ring');
+
+    input.textArea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(suggestionTexts()).toEqual([]);
+  });
+
+  it('keeps the lines after the cursor and moves the caret past the pick', () => {
+    getCatalogNames.mockReturnValue(['Sol Ring']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+    input.textArea.value = 'sol\nArcane Signet';
+    input.textArea.setSelectionRange(3, 3);
+    input.textArea.dispatchEvent(new Event('input'));
+
+    document
+      .querySelector('.suggestion-item')
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+
+    expect(input.textArea.value).toBe('Sol Ring\nArcane Signet');
+    expect(input.textArea.selectionStart).toBe('Sol Ring\n'.length);
+  });
+
+  it('indexes a multi-face card under its front and full printed names', () => {
+    cardStore.getAll.mockReturnValue([{ id: 'a', name: 'Front // Back' }]);
+
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+
+    expect(input.nameIndex.get('front')).toEqual({ id: 'a', name: 'Front // Back' });
+    expect(input.nameIndex.get('front // back')).toEqual({ id: 'a', name: 'Front // Back' });
+  });
+
+  it('hides the list shortly after blur', () => {
+    vi.useFakeTimers();
+    getCatalogNames.mockReturnValue(['Sol Ring']);
+    const input = createCardNameInput({ placeholder: 'p', ariaLabel: 'a' });
+    document.body.appendChild(input.el);
+    type(input, 'sol');
+    expect(suggestionTexts()).toContain('Sol Ring');
+
+    input.textArea.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(120);
+
+    expect(suggestionTexts()).toEqual([]);
   });
 });

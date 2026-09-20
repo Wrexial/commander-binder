@@ -106,6 +106,7 @@ export function showToast(message, options = {}) {
 
   if (actionText && typeof action === 'function') {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'toast-action';
     btn.textContent = actionText;
     btn.addEventListener('click', () => {

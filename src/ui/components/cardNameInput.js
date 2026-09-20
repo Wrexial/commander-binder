@@ -184,7 +184,10 @@ export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
       }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+        // From nothing selected, Up lands on the last suggestion rather than
+        // one short of it.
+        activeSuggestionIndex =
+          activeSuggestionIndex <= 0 ? items.length - 1 : activeSuggestionIndex - 1;
         updateActiveSuggestion(items);
         return;
       }
