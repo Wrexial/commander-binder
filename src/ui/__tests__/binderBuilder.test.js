@@ -84,7 +84,10 @@ import {
   assignCardToSlot,
   createBinder,
   getActiveBinder,
+  getActiveBinderId,
+  getBinder,
   resetBinders,
+  setActiveBinder,
   updateBinder,
 } from '../../state/bindersState.js';
 import { mainState } from '../../state/mainState.js';
@@ -200,6 +203,32 @@ describe('binderBuilder', () => {
     );
 
     await vi.waitFor(() => expect(getActiveBinder().slots['0:0:0']).toBe('printing-b'));
+  });
+
+  it('moves a card to another binder when switching tabs during a move', async () => {
+    await mount();
+    const first = getActiveBinder();
+    await assignCardToSlot(first.id, '0:0:0', 'card-a');
+
+    const second = await createBinder({ name: 'Second' });
+    setActiveBinder(first.id);
+
+    await vi.waitFor(() => expect(document.querySelectorAll('.binder-tab')).toHaveLength(2));
+
+    // Enter move mode on the first binder's card.
+    document.querySelector('.binder-slot[data-slot="0:0:0"] .binder-slot-move').click();
+    await vi.waitFor(() => expect(document.querySelector('.bb-status').hidden).toBe(false));
+
+    // Switching to "Second" drops the card in its first empty pocket.
+    [...document.querySelectorAll('.binder-tab')]
+      .find((tab) => tab.textContent === 'Second')
+      .click();
+
+    await vi.waitFor(() => {
+      expect(getActiveBinderId()).toBe(second.id);
+      expect(getBinder(second.id).slots['0:0:0']).toBe('card-a');
+      expect(getBinder(first.id).slots['0:0:0']).toBeUndefined();
+    });
   });
 
   it('navigates pages and clears the current page', async () => {

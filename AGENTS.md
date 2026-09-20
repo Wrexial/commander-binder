@@ -128,7 +128,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   kept (used by per-binder statistics);
   `isCardInBinder` is a name-aware membership check, so the bulk add/check/export
   modals treat binders exactly like lists; `addCardsToBinder` bulk-fills the
-  first empty pockets and grows the page count when needed.
+  first empty pockets and grows the page count when needed, and
+  `moveCardToFirstEmptySlot` moves a pocket's card into another binder's first
+  empty pocket (growing it if full), powering the builder's "switch binder while
+  moving" flow.
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control). Binder pockets opt out:
@@ -198,7 +201,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   grid, page navigation, a
   per-binder Public toggle and the add/move/remove controls plus a `≡` choose
   printing control that opens the scrollable `printingPickerModal.js` (filterable
-  by set code, set name, collector number or year); it reuses
+  by set code, set name, collector number or year); while a move is pending,
+  clicking another binder tab sends the card to that binder's first empty pocket;
+  it reuses
   `cards.js` tiles so ownership toggles and the preview keep working, and each
   pocket pins its own exact printing). A share-link view
   renders it read-only: `canEditBinders()` hides the toolbar edits, the pocket

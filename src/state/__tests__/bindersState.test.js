@@ -138,6 +138,52 @@ describe('bindersState', () => {
     expect(getActiveBinder().slots['0:1:0']).toBe('card-b');
   });
 
+  it('moves a card to the first empty pocket of another binder', async () => {
+    const {
+      loadBinders,
+      getActiveBinder,
+      getBinder,
+      createBinder,
+      assignCardToSlot,
+      moveCardToFirstEmptySlot,
+    } = await load();
+    await loadBinders();
+    const first = getActiveBinder();
+    const second = await createBinder({ name: 'Second', columns: 2, rows: 2, pages: 1 });
+
+    await assignCardToSlot(first.id, '0:0:0', 'card-a');
+    // Occupy the destination's first pocket so the card lands in the next one.
+    await assignCardToSlot(second.id, '0:0:0', 'card-z');
+
+    await moveCardToFirstEmptySlot(first.id, '0:0:0', second.id);
+
+    expect(getBinder(first.id).slots['0:0:0']).toBeUndefined();
+    expect(getBinder(second.id).slots['0:0:0']).toBe('card-z');
+    expect(getBinder(second.id).slots['0:0:1']).toBe('card-a');
+  });
+
+  it('grows the destination binder when it is full', async () => {
+    const {
+      loadBinders,
+      getActiveBinder,
+      getBinder,
+      createBinder,
+      assignCardToSlot,
+      moveCardToFirstEmptySlot,
+    } = await load();
+    await loadBinders();
+    const first = getActiveBinder();
+    const second = await createBinder({ name: 'Tiny', columns: 1, rows: 1, pages: 1 });
+
+    await assignCardToSlot(first.id, '0:0:0', 'card-a');
+    await assignCardToSlot(second.id, '0:0:0', 'filler');
+
+    await moveCardToFirstEmptySlot(first.id, '0:0:0', second.id);
+
+    expect(getBinder(second.id).pages).toBe(2);
+    expect(getBinder(second.id).slots['1:0:0']).toBe('card-a');
+  });
+
   it('clears only the requested page', async () => {
     const { loadBinders, getActiveBinder, assignCardToSlot, clearPage } = await load();
     await loadBinders();

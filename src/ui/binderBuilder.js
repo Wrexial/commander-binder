@@ -24,6 +24,7 @@ import {
   getActiveBinderId,
   getBinders,
   loadBinders,
+  moveCardToFirstEmptySlot,
   moveSlot,
   parseSlotKey,
   setActiveBinder,
@@ -509,9 +510,15 @@ export function render() {
     tab.textContent = item.name;
     tab.addEventListener('click', () => {
       if (isActive) return;
+      const sourceBinderId = getActiveBinderId();
+      const movingFrom = pendingMove;
       pendingMove = null;
       activePage = 0;
       setActiveBinder(item.id);
+      // While moving, switching binder drops the card in its first empty pocket.
+      if (movingFrom && sourceBinderId) {
+        moveCardToFirstEmptySlot(sourceBinderId, movingFrom, item.id);
+      }
     });
     refs.binderTabs.appendChild(tab);
   }
@@ -541,7 +548,8 @@ export function render() {
 
   if (pendingMove) {
     refs.status.hidden = false;
-    refs.statusText.textContent = 'Choose the destination pocket.';
+    refs.statusText.textContent =
+      'Choose a pocket, or switch binder to drop it in the first empty one.';
   } else {
     refs.status.hidden = true;
   }

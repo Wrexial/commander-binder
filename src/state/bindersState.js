@@ -556,6 +556,63 @@ export async function moveSlot(binderId, fromKey, toKey) {
   return commit(binder);
 }
 
+/** The first empty `page:row:col` key, or null when every pocket is taken. */
+function firstEmptySlotKey(binder) {
+  for (let page = 0; page < binder.pages; page++) {
+    for (let row = 0; row < binder.rows; row++) {
+      for (let col = 0; col < binder.columns; col++) {
+        const key = slotKey(page, row, col);
+        if (!binder.slots[key]) return key;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Move a card from one binder to the first empty pocket of another, growing the
+ * destination when it is full. Used by the builder's "switch binder while
+ * moving" flow.
+ *
+ * @returns {Promise<object|null>} the destination binder
+ */
+export async function moveCardToFirstEmptySlot(fromBinderId, fromKey, toBinderId) {
+  if (!canEditBinders()) return null;
+  if (fromBinderId === toBinderId) return null;
+
+  const from = binders.get(fromBinderId);
+  const to = binders.get(toBinderId);
+  if (!from || !to || !parseSlotKey(fromKey)) return null;
+
+  const printingId = from.slots[fromKey];
+  if (!printingId) return null;
+
+  let targetKey = firstEmptySlotKey(to);
+  if (!targetKey) {
+    if (to.pages >= MAX_BINDER_PAGES) return null;
+    to.pages += 1;
+    targetKey = slotKey(to.pages - 1, 0, 0);
+  }
+
+  delete from.slots[fromKey];
+  to.slots[targetKey] = printingId;
+
+  const now = new Date().toISOString();
+  from.updatedAt = now;
+  to.updatedAt = now;
+
+  if (isLocalMode()) {
+    await persistLocal(from);
+    await persistLocal(to);
+    announce();
+    return to;
+  }
+
+  // Server mode: push both sides; the queue keeps the writes ordered.
+  await Promise.all([pushBinder(from.id), pushBinder(to.id)]);
+  return to;
+}
+
 /** Empty every slot on one page. */
 export async function clearPage(binderId, page) {
   if (!canEditBinders()) return null;
