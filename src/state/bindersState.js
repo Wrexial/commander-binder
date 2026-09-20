@@ -233,6 +233,23 @@ export function getBinderPrintingIds(binderId) {
 }
 
 /**
+ * Every pocket's card, one entry per slot and in slot order — duplicates
+ * included. Statistics uses this so three Sol Rings count as three cards.
+ *
+ * @param {string} binderId
+ * @returns {Array<{id: string, name: string}>}
+ */
+export function getBinderSlotCards(binderId) {
+  const binder = binders.get(binderId);
+  if (!binder) return [];
+
+  return sortedSlotKeys(binder).map((key) => {
+    const printingId = binder.slots[key];
+    return cardStore.getByPrintingId(printingId) || { id: printingId, name: printingId };
+  });
+}
+
+/**
  * The member cards of a binder, one per card name, in slot order. Unloaded
  * printings fall back to a bare `{ id, name }` so an export never loses a row.
  *

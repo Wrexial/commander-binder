@@ -880,27 +880,30 @@ async function copyCardNames(names, label) {
  *
  * @param {object} [options]
  * @param {object[]} [options.cards] Cards to report on; defaults to the whole
- *   loaded collection. The Binder Builder passes the visible binder's cards so
- *   the view is per-binder.
+ *   loaded collection. The Binder Builder passes the visible binder's pockets.
+ * @param {boolean} [options.countAll] Report every provided card instead of only
+ *   the owned subset. The binder scope uses this so unowned non-legendary
+ *   pockets and duplicates still count.
  * @param {string} [options.title] Modal heading.
- * @param {string} [options.emptyMessage] Toast shown when nothing is owned.
+ * @param {string} [options.emptyMessage] Toast shown when there is nothing to report.
  */
 export function showStatisticsModal({
   cards = null,
+  countAll = false,
   title = 'Collection Statistics',
   emptyMessage = 'No owned cards have been loaded yet. Scroll to load more cards.',
 } = {}) {
   const allCards = cards || cardStore.getAll();
-  const ownedCards = allCards.filter(isCardOwned);
+  const countedCards = countAll ? allCards : allCards.filter(isCardOwned);
 
-  if (ownedCards.length === 0) {
+  if (countedCards.length === 0) {
     showToast(emptyMessage, 'warning');
     return;
   }
 
   // Completion is measured against unique card names, which is what the
   // collection UI tracks (the search's apiTotalCards counts printings).
-  let stats = calculateStatistics(ownedCards, allCards.length, allCards);
+  let stats = calculateStatistics(countedCards, allCards.length, allCards);
   const tooltip = document.getElementById('tooltip');
   // The stats preview is hover-driven; make sure it never inherits the grid's
   // swipe-navigation handler.
@@ -943,11 +946,14 @@ export function showStatisticsModal({
 
   /** Recompute and repaint after a wishlist change. */
   function renderContent() {
-    stats = calculateStatistics(ownedCards, allCards.length, allCards);
+    stats = calculateStatistics(countedCards, allCards.length, allCards);
 
     const cardWord = stats.totalCards === 1 ? 'card' : 'cards';
+    const ownershipWord = countAll ? '' : 'owned ';
     const wishlistSuffix = stats.wishlist.wanted > 0 ? ` · ${stats.wishlist.wanted} wanted` : '';
-    subtitle.textContent = `${stats.totalCards} owned ${cardWord} · ${formatMoney(stats.totalValue)} total value${wishlistSuffix}`;
+    // The binder scope counts every pocket, so still report how many are owned.
+    const ownedSuffix = countAll ? ` · ${allCards.filter(isCardOwned).length} owned` : '';
+    subtitle.textContent = `${stats.totalCards} ${ownershipWord}${cardWord} · ${formatMoney(stats.totalValue)} total value${wishlistSuffix}${ownedSuffix}`;
 
     contentArea.innerHTML = createStatisticsHTML(stats);
     wireStatisticsActions();

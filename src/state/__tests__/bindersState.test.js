@@ -167,6 +167,18 @@ describe('bindersState', () => {
     expect(getBinderCards(binder.id).map((card) => card.name)).toEqual(['Alpha', 'Beta']);
   });
 
+  it('lists one card per pocket, keeping duplicates, in slot order', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, getBinderSlotCards } = await load();
+    cardStore.add({ id: 'card-a', name: 'Alpha' });
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    await assignCardToSlot(binder.id, '0:0:1', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    expect(getBinderSlotCards(binder.id).map((card) => card.id)).toEqual(['card-a', 'card-a']);
+  });
+
   it('is name-aware when checking binder membership', async () => {
     const { loadBinders, getActiveBinder, assignCardToSlot, isCardInBinder } = await load();
     cardStore.add({ id: 'card-a', name: 'Alpha' });

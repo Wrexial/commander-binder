@@ -530,6 +530,23 @@ describe('showStatisticsModal', () => {
     expect(document.querySelector('.statistics-subtitle').textContent).toContain('1 owned card');
   });
 
+  it('counts every provided card and duplicate when countAll is set', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const card = makeCard({ id: 'c1', name: 'Sol Ring' });
+    // Not owned — the binder scope still counts it.
+    isCardOwned.mockReturnValue(false);
+
+    showStatisticsModal({
+      cards: [card, card, card],
+      countAll: true,
+      title: '“Binder” Statistics',
+    });
+
+    const subtitle = document.querySelector('.statistics-subtitle').textContent;
+    expect(subtitle).toContain('3 cards');
+    expect(subtitle).not.toContain('3 owned');
+  });
+
   it('attaches the card tooltip to the most valuable cards', () => {
     document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
     const card = makeCard({

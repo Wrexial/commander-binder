@@ -19,8 +19,8 @@ import {
   mergeLocalBindersToAccount,
   getActiveBinder,
   getActiveBinderId,
-  getBinderCards,
   getBinderPrintingIds,
+  getBinderSlotCards,
 } from '../state/bindersState.js';
 import { binderTargetId } from '../ui/components/collectionModal.js';
 import { cardStore } from '../state/cardStore.js';
@@ -111,9 +111,10 @@ export async function showStatistics() {
     }
 
     await showStatisticsModal({
-      cards: getBinderCards(binder.id),
+      cards: getBinderSlotCards(binder.id),
+      countAll: true,
       title: `“${binder.name}” Statistics`,
-      emptyMessage: `No owned cards are in “${binder.name}” yet.`,
+      emptyMessage: `“${binder.name}” is empty.`,
     });
     return;
   }

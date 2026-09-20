@@ -123,7 +123,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   IndexedDB record) and merge them on sign-in, and a `?share=` visitor reads the
   owner's public binders read-only (`canEditBinders()` gates every mutation). It
   dispatches `binders:changed` on every mutation. `getBinderCards`/
-  `getBinderPrintingIds` return a binder's contents in slot order and
+  `getBinderPrintingIds` return a binder's contents in slot order (one per name /
+  every id) and `getBinderSlotCards` returns one card per pocket with duplicates
+  kept (used by per-binder statistics);
   `isCardInBinder` is a name-aware membership check, so the bulk add/check/export
   modals treat binders exactly like lists; `addCardsToBinder` bulk-fills the
   first empty pockets and grows the page count when needed.
@@ -213,10 +215,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   preview or the whole bulk selection, with partial-membership state) and their
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
-  ship as separate chunks. Statistics takes an optional `{ cards, title,
-emptyMessage }`, so the shell scopes it to the visible binder on the Binder
-  Builder page (hydrating that binder's cards first) and to the whole collection
-  elsewhere. Statistics includes a "Wishlist Targets" section that
+  ship as separate chunks. Statistics takes an optional `{ cards, countAll,
+title, emptyMessage }`, so the shell scopes it to the visible binder on the
+  Binder Builder page (hydrating that binder's pockets first, `countAll: true`
+  so every pocket — duplicate or unowned, legendary or not — is counted) and to
+  the whole owned collection elsewhere. Statistics includes a "Wishlist Targets" section that
   ranks sets by how many of their missing cards are on the wishlist; money
   metrics value each card at its `resolveDisplayPrinting` printing (the pinned
   or cheapest one), so the totals match the tile prices.
