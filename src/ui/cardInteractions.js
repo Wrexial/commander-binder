@@ -7,11 +7,10 @@ import { isSelectionMode, toggleSelection } from '../state/selectionState.js';
 import { showUndo, showToast } from './components/toast.js';
 import { updateOwnedCounter } from './components/ownedCounter.js';
 import { adjustBinderOwnedCount } from './layout.js';
-import { cardStore } from '../state/cardStore.js';
 import { preloadCardImages } from '../utils/cardImages.js';
-import { nextPrinting, orderPrintingsByPrice } from '../utils/printings.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 import { isHoverCapable } from '../utils/pointer.js';
+import { openPrintingPicker } from './components/printingPickerModal.js';
 import {
   refreshCardElement,
   syncCardOwnedUi,
@@ -57,25 +56,25 @@ function findAdjacentCard(current, direction) {
 }
 
 /**
- * Whether a tile's printing may be cycled. Binder pockets in a share/guest view
- * are strictly read-only: changing the printing there would look editable but
- * could never be saved, so block it at the source.
+ * Whether a tile's printing may be changed. Binder pockets in a share/guest
+ * view are strictly read-only: changing the printing there would look editable
+ * but could never be saved, so block it at the source.
  * @param {HTMLElement} cardElement
  */
-function canCyclePrinting(cardElement) {
+function canChoosePrinting(cardElement) {
   if (!cardElement?.dataset?.binderSlot) return true;
   return !appState.isViewOnlyMode;
 }
 
 /**
- * Point the preview's controls (printing cycle, swipe navigation and ownership
- * toggle) at a card element. `onToggle`/`onCycle` are null in view-only mode, so
- * the modal renders a plain status badge rather than a button.
+ * Point the preview's controls (printing picker, swipe navigation and ownership
+ * toggle) at a card element. `onToggle`/`onChoosePrinting` are null in view-only
+ * mode, so the modal renders a plain status badge rather than a button.
  */
 function wireCardControls(cardElement, tooltip) {
   tooltipCardElement = cardElement;
-  tooltip.onCycle = canCyclePrinting(cardElement)
-    ? (cycleEvent, direction) => cycleCardPrinting(cardElement, cycleEvent, tooltip, direction)
+  tooltip.onChoosePrinting = canChoosePrinting(cardElement)
+    ? (chooseEvent) => openCardPrintingPicker(cardElement, chooseEvent, tooltip)
     : null;
   tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
   tooltip.onToggle = appState.isViewOnlyMode
@@ -90,7 +89,6 @@ function wireCardControls(cardElement, tooltip) {
     hideTooltip(tooltip);
     showListPicker(cardElement.cardData);
   };
-  tooltip.cycleLabel = null;
 }
 
 /** Move the open preview to the adjacent card, so its controls follow it. */
@@ -240,12 +238,12 @@ async function handleContainerClick(event, tooltip) {
   const cardElement = event.target.closest('.card');
   if (!cardElement) return;
 
-  // The printing-count badge is its own control: it cycles the printing (the
-  // keyboard path is Enter/Space on the button) and must never fall through to
-  // the ownership toggle below.
+  // The printing-count badge is its own control: it opens the printing picker
+  // (the keyboard path is Enter/Space on the button) and must never fall through
+  // to the ownership toggle below.
   if (event.target.closest('.card-versions')) {
     event.stopPropagation();
-    cycleCardPrinting(cardElement, event, tooltip);
+    openCardPrintingPicker(cardElement, event, tooltip);
     return;
   }
 
@@ -365,55 +363,57 @@ async function toggleCardOwnership(cardElement, card) {
 }
 
 /**
- * Advance a tile to its next (or previous) printing and refresh it. Desktop
- * right-click, the tooltip's "Next printing" button and the modal's ↑/↓ keys all
- * route through here.
+ * Show a chosen printing on a tile. The printing picker supplies the exact
+ * printing, so there is no next/previous cycling anywhere.
  */
-function cycleCardPrinting(cardElement, event, tooltip, direction = 1) {
-  if (!cardElement || !cardElement.cardData) return;
-  if (!canCyclePrinting(cardElement)) return;
+function chooseCardPrinting(cardElement, printing, event, tooltip) {
+  if (!cardElement || !cardElement.cardData || !printing) return;
+  if (!canChoosePrinting(cardElement)) return;
 
-  const next = nextPrinting(
-    orderPrintingsByPrice(cardStore.getPrintings(cardElement.cardData.name)),
-    cardElement.cardData,
-    direction
-  );
-  if (!next) return;
-
-  // A Binder Builder pocket owns its printing per slot. Cycling it must update
+  // A Binder Builder pocket owns its printing per slot. Choosing one must update
   // that slot (handled by `binderBuilder`) and must NOT change the global
   // preferred printing, which would move every other pocket (and the grid).
   const binderSlot = cardElement.dataset?.binderSlot;
   if (binderSlot) {
     document.dispatchEvent(
       new CustomEvent('binder:printing-changed', {
-        detail: { slotKey: binderSlot, printingId: next.id },
+        detail: { slotKey: binderSlot, printingId: printing.id },
       })
     );
   } else {
     // Remember the pick so the grid keeps showing this printing on later loads.
     // Persisted from the view-only share path too: choosing art is a view
     // action, not an ownership edit.
-    rememberPreferredPrinting(next);
+    rememberPreferredPrinting(printing);
   }
 
-  // Cycling rebuilds the tile, which would drop focus on the (replaced) version
-  // button; put it back so keyboard users stay on the control they activated.
-  const restoreFocus = document.activeElement?.classList.contains('card-versions');
-
-  cardElement.cardData = next;
+  cardElement.cardData = printing;
 
   // Keep the tile in sync with the newly displayed printing (matters in image
   // mode, where the artwork, price and version badge differ per printing).
   refreshCardElement(cardElement);
-  if (restoreFocus) cardElement.querySelector('.card-versions')?.focus();
 
   // Only refresh the tooltip when it is actually open (touch long-press).
   // `showTooltip` sets display to 'flex'; it starts empty and 'none' when
   // hidden, so check for the open value explicitly.
   if (tooltip && tooltip.style.display === 'flex') {
-    showTooltip(event, next, tooltip, { modal: true });
+    showTooltip(event, printing, tooltip, { modal: true });
   }
+}
+
+/**
+ * Open the printing picker for a tile. The version badge, right-click and the
+ * preview's "Choose printing" button all route through here.
+ */
+function openCardPrintingPicker(cardElement, event, tooltip) {
+  if (!cardElement || !cardElement.cardData) return;
+  if (!canChoosePrinting(cardElement)) return;
+
+  openPrintingPicker({
+    card: cardElement.cardData,
+    currentId: cardElement.cardData.id,
+    onPick: (printing) => chooseCardPrinting(cardElement, printing, event, tooltip),
+  });
 }
 
 function handleContextMenu(event, tooltip) {
@@ -427,7 +427,7 @@ function handleContextMenu(event, tooltip) {
   // already open. One gesture, one action.
   if (touchSequenceActive || isTooltipGestureActive()) return;
 
-  cycleCardPrinting(cardElement, event, tooltip);
+  openCardPrintingPicker(cardElement, event, tooltip);
 }
 
 // --- Main Initialization ---

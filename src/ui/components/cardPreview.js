@@ -37,14 +37,13 @@ function resolveCard(row) {
   return null;
 }
 
-/** Make the shared tooltip a read-only preview (no toggle/cycle/navigation). */
+/** Make the shared tooltip a read-only preview (no toggle/printing/navigation). */
 function wireReadOnly(tooltip) {
-  tooltip.onCycle = null;
+  tooltip.onChoosePrinting = null;
   tooltip.onNavigate = null;
   tooltip.onToggle = null;
   tooltip.onWishlistToggle = null;
   tooltip.onAddToList = null;
-  tooltip.cycleLabel = null;
 }
 
 /**

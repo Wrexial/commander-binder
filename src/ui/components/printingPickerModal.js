@@ -8,6 +8,8 @@
  */
 import { getCardImageUrls } from '../../utils/cardImages.js';
 import { getDisplayedPrice, formatPrice } from '../../utils/prices.js';
+import { orderPrintingsByPrice } from '../../utils/printings.js';
+import { cardStore } from '../../state/cardStore.js';
 import { createModal } from './modal.js';
 
 /** "CMM · Commander Masters" (falls back to just the code). */
@@ -184,4 +186,32 @@ export function createPrintingPickerModal({ card, printings, currentId, onPick }
     close,
     destroy: close,
   };
+}
+
+/**
+ * Open the printing picker for a card, listing every known printing of its
+ * name. This is the single "change printing" affordance for the grid, the
+ * preview and the statistics hover preview (no more next/previous cycling).
+ *
+ * @param {object} config
+ * @param {object} config.card The currently shown printing.
+ * @param {string} [config.currentId] Printing id to mark as current (defaults to `card.id`).
+ * @param {(printing: object) => void} config.onPick
+ * @returns {{show: () => void, close: () => void, destroy: () => void} | null}
+ *   null when the card has no alternative printing.
+ */
+export function openPrintingPicker({ card, currentId, onPick }) {
+  if (!card?.name) return null;
+
+  const printings = orderPrintingsByPrice(cardStore.getPrintings(card.name));
+  if (printings.length <= 1) return null;
+
+  const picker = createPrintingPickerModal({
+    card,
+    printings,
+    currentId: currentId || card.id,
+    onPick,
+  });
+  picker.show();
+  return picker;
 }

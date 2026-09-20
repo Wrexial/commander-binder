@@ -329,12 +329,6 @@ export async function bootShell() {
   initCardSettings();
   initSettingsSync();
 
-  // List membership is painted on the tiles, so repaint them whenever lists
-  // load or change (the filter bar has its own listener).
-  document.addEventListener('lists:changed', () => {
-    updateAllCardStates();
-  });
-
   // Load saved marks in parallel with the page content so Clerk/Netlify/DB
   // latency does not delay the first paint. Marks are re-applied here once the
   // owned/wishlist state arrives.

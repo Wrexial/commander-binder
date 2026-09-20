@@ -116,8 +116,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   public/private flag); unlike the collections it is not a single flat set, so
   it has its own module, backed by `localLists.js` (IndexedDB, one self-contained
   record per list) for guests and read-only public lists in a share view. It
-  dispatches `lists:changed` on every load/mutation; `main.js` repaints tile
-  badges from it and `filterBar.js` refreshes its list dropdown.
+  dispatches `lists:changed` on every load/mutation; `filterBar.js` refreshes its
+  list dropdown from it. List membership is shown only in the card preview
+  modal (via `getListsForCard`), not as a tile badge.
   `bindersState.js` is the Binder Builder registry (many user-authored binders,
   each `{ columns, rows, pages, isPublic, slots }` where a slot is
   `"page:row:col" -> printingId`). It keeps an in-memory Map as the session
@@ -146,14 +147,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `localStorage` never keeps a deleted binder; the builder resolves the target
   from the active tab's `data-binder-id` and toasts the deleted binder's name.
   `preferredPrintings.js`
-  remembers the printing the user picked when cycling versions (saved tiles
+  remembers the printing the user picked in the printing picker (saved tiles
   show a pin; the sidebar settings has a reset control). Binder pockets opt out:
   a tile carries `data-binder-slot`, so `applyPreferredPrintings()` skips it and
-  cycling emits `binder:printing-changed` to save that exact printing on the
-  pocket instead of the global preference (two pockets of the same card keep
-  their own versions). In a share/guest view `canCyclePrinting()` blocks cycling
-  on binder pockets entirely (it would look editable but could never save); the
-  browse grid still allows cycling as a view action.
+  picking a printing emits `binder:printing-changed` to save that exact printing
+  on the pocket instead of the global preference (two pockets of the same card
+  keep their own versions). In a share/guest view `canChoosePrinting()` blocks
+  the picker on binder pockets entirely (it would look editable but could never
+  save); the browse grid still allows choosing as a view action.
   `compareState.js` loads the viewer's _own_ collection separately from the
   share view's owner collection, so the two can be diffed. `selectionState.js`
   holds the bulk-edit multi-selection (keyed by card name), entered from the
@@ -253,7 +254,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   pocket pins its own exact printing). A share-link view
   render it read-only: `canEditBinders()` hides the toolbar edits, the pocket
   controls and empty-slot adders, and binder pockets can't have their printing
-  cycled either) and its card picker `cardPickerModal.js`
+  changed either) and its card picker `cardPickerModal.js`
   (all-cards search: the `cardCatalog` name list answers instantly with no
   network, and only while it is still loading does the picker fall back to
   Scryfall autocomplete; picking loads the name's printings into `cardStore`),
@@ -280,7 +281,7 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   `state/collectionHistory.js`; scoped binder reports and view-only share views
   are never recorded. Its hover preview clears
   the grid's `onToggle`/`onWishlistToggle`/`onAddToList` handlers on open
-  (`onNavigate` too), so the read-only preview can only cycle printings.
+  (`onNavigate` too); only the printing picker stays wired.
   Statistics includes a
   "Wishlist Targets" section that
   ranks sets by how many of their missing cards are on the wishlist; money
@@ -322,11 +323,11 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   filling progress ring under the cursor on desktop) or Surprise me — with a
   floating variant kept only for the statistics hover preview. It walks the
   visible grid on a left/right swipe (touch) or `←`/`→` / `J`/`K` (desktop, `Esc`
-  closes), changes printing on `↑`/`↓`, and dismisses on a downward swipe; the hint
+  closes), and dismisses on a downward swipe; the hint
   text is device-aware. Its
   owned/missing badge is a toggle button (hidden in view-only mode); the host
   (`cardInteractions.js`) exposes
-  `tooltip.onCycle`/`tooltip.onNavigate`/`tooltip.onToggle` so those controls
+  `tooltip.onChoosePrinting`/`tooltip.onNavigate`/`tooltip.onToggle` so those controls
   follow the card on screen.
 - `src/utils/` — small helpers (`colors`, `debounce`, `cardImages`, `imageCache`,
   `html`, `idb`, `prices`, `priceFields`, `printings`, `pointer`, `viewport`,
@@ -337,7 +338,8 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   re-exports it and adds `getCheapestPrice`. `printings.js` owns version
   ordering: `orderPrintingsByPrice`/`cheapestPrinting` sort by the selected
   currency (unpriced printings last, release date breaks ties), so the version
-  badge's “1” and the printing cycle are always the cheapest version.
+  badge's “1” and the printing picker's order always lead with the cheapest
+  version.
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;
@@ -391,8 +393,8 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
 - Share links use `?share=<token>` backed by the `share_links` table. Rotating the
   token (`share-link` with `{ regenerate: true }`) invalidates old links; the
   user's Clerk id is never exposed in the URL. The `?share=` view-only mode blocks
-  ownership and wishlist edits but still allows view actions such as cycling
-  printings, and friends see the owner's collection, wishlist and public binders
+  ownership and wishlist edits but still allows view actions such as choosing a
+  printing, and friends see the owner's collection, wishlist and public binders
   (the Binder Builder link carries the token; binders not marked public are
   hidden). Share mode
   also offers "Compare Collections" (`components/compareModal.js`), a read-only
@@ -429,9 +431,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   affordances behind `isHoverCapable()` (`src/utils/pointer.js`), and make sure a
   long-press swallows the click the browser still fires on release.
 - Card actions must be keyboard-reachable: ownership is the `.card-toggle` button
-  and the printing cycle is the `.card-versions` button (pointer paths are
-  right-click and touch). Keep new card controls real `<button>`s so they land in
-  the tab order.
+  and the printing picker opens from the `.card-versions` button (pointer paths
+  are right-click and the preview's “Choose printing” control). Keep new card
+  controls real `<button>`s so they land in the tab order.
 - Vanilla JS/DOM for the frontend — no React/Vue. Prefer existing component
   factory patterns (e.g. `createXModal()` returning `{ show }`).
 - Escape untrusted strings with `escapeHtml` from `src/utils/html.js` before

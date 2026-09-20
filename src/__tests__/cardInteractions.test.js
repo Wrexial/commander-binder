@@ -12,6 +12,19 @@ import * as layout from '../ui/layout.js';
 import { cardStore } from '../state/cardStore.js';
 import { rememberPreferredPrinting } from '../state/preferredPrintings.js';
 
+// The printing picker is mocked so tests can assert it opens and then simulate a
+// pick without building the whole modal.
+const printingPicker = vi.hoisted(() => ({ openPrintingPicker: vi.fn() }));
+vi.mock('../ui/components/printingPickerModal.js', () => ({
+  openPrintingPicker: printingPicker.openPrintingPicker,
+}));
+
+/** Simulate the user choosing a printing in the (mocked) picker. */
+function choosePrinting(printing) {
+  const config = printingPicker.openPrintingPicker.mock.calls.at(-1)?.[0];
+  config?.onPick?.(printing);
+}
+
 // Mock all dependencies
 vi.mock('../ui/tooltip.js');
 vi.mock('../state/cardSettings.js');
@@ -74,6 +87,7 @@ describe('initCardInteractions', () => {
     wishlistState.isCardWanted.mockReturnValue(false);
     cardStore.getPrintings.mockReturnValue([]);
     tooltip.isTooltipGestureActive.mockReturnValue(false);
+    printingPicker.openPrintingPicker.mockReset();
   });
 
   describe('Card tooltip (touch only)', () => {
@@ -110,23 +124,23 @@ describe('initCardInteractions', () => {
       }
     });
 
-    it('exposes a printing-cycle handler when a touch begins', () => {
+    it('exposes a printing-picker handler when a touch begins', () => {
       initCardInteractions(container, tooltipElement);
       startTouch(cardElement);
 
-      expect(typeof tooltipElement.onCycle).toBe('function');
+      expect(typeof tooltipElement.onChoosePrinting).toBe('function');
       // Cancel the pending long-press timer.
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
-    it('does not wire a printing-cycle handler for a binder pocket in a guest view', () => {
+    it('does not wire a printing-picker handler for a binder pocket in a guest view', () => {
       appState.isViewOnlyMode = true;
       cardElement.dataset.binderSlot = '0:0:0';
 
       initCardInteractions(container, tooltipElement);
       startTouch(cardElement);
 
-      expect(tooltipElement.onCycle).toBeNull();
+      expect(tooltipElement.onChoosePrinting).toBeNull();
       // Cancel the pending long-press timer.
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
@@ -211,46 +225,35 @@ describe('initCardInteractions', () => {
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
-    it('exposes the printing-cycle handler in view-only (guest) mode', () => {
+    it('exposes the printing-picker handler in view-only (guest) mode', () => {
       appState.isViewOnlyMode = true;
       initCardInteractions(container, tooltipElement);
       startTouch(cardElement);
 
-      expect(typeof tooltipElement.onCycle).toBe('function');
+      expect(typeof tooltipElement.onChoosePrinting).toBe('function');
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
       appState.isViewOnlyMode = false;
     });
 
-    it('cycles the printing from the tooltip in view-only (guest) mode', () => {
+    it('opens the printing picker from the tooltip and applies the pick', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       cardElement.cardData = first;
-      cardStore.getPrintings.mockReturnValue([first, second]);
       appState.isViewOnlyMode = true;
 
       initCardInteractions(container, tooltipElement);
       startTouch(cardElement);
-      tooltipElement.onCycle(new Event('click'));
+      tooltipElement.onChoosePrinting(new Event('click'));
 
-      expect(cardElement.cardData.id).toBe('p2');
-      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
-      appState.isViewOnlyMode = false;
-    });
-
-    it('cycles to the previous printing when asked for a negative direction', () => {
-      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
-      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
-      cardElement.cardData = second;
-      cardStore.getPrintings.mockReturnValue([first, second]);
-
-      initCardInteractions(container, tooltipElement);
-      document.dispatchEvent(
-        new CustomEvent('card:preview', { detail: { element: cardElement, card: second } })
+      expect(printingPicker.openPrintingPicker).toHaveBeenCalledWith(
+        expect.objectContaining({ card: first, currentId: 'p1' })
       );
 
-      tooltipElement.onCycle(new Event('click'), -1);
+      choosePrinting(second);
+      expect(cardElement.cardData.id).toBe('p2');
 
-      expect(cardElement.cardData.id).toBe('p1');
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+      appState.isViewOnlyMode = false;
     });
 
     it('still suppresses the browser menu on right-click', () => {
@@ -262,7 +265,7 @@ describe('initCardInteractions', () => {
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
 
-    it('does not cycle the printing when a long press fires contextmenu', () => {
+    it('does not open the printing picker when a long press fires contextmenu', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       cardElement.cardData = first;
@@ -276,12 +279,13 @@ describe('initCardInteractions', () => {
       cardElement.dispatchEvent(event);
 
       expect(event.defaultPrevented).toBe(true);
+      expect(printingPicker.openPrintingPicker).not.toHaveBeenCalled();
       expect(cardElement.cardData.id).toBe('p1');
 
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
-    it('cycles again once the touch sequence has finished', () => {
+    it('opens the picker again once the touch sequence has finished', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       cardElement.cardData = first;
@@ -293,10 +297,12 @@ describe('initCardInteractions', () => {
 
       cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
-      expect(cardElement.cardData.id).toBe('p2');
+      expect(printingPicker.openPrintingPicker).toHaveBeenCalledWith(
+        expect.objectContaining({ card: first })
+      );
     });
 
-    it('cycles the printing on right-click without opening the tooltip', () => {
+    it('opens the printing picker on right-click without opening the tooltip', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       cardElement.cardData = first;
@@ -305,7 +311,9 @@ describe('initCardInteractions', () => {
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
-      expect(cardElement.cardData.id).toBe('p2');
+      expect(printingPicker.openPrintingPicker).toHaveBeenCalledWith(
+        expect.objectContaining({ card: first, currentId: 'p1' })
+      );
       expect(tooltip.showTooltip).not.toHaveBeenCalled();
     });
 
@@ -317,6 +325,7 @@ describe('initCardInteractions', () => {
 
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+      choosePrinting(second);
 
       expect(rememberPreferredPrinting).toHaveBeenCalledWith(second);
     });
@@ -335,13 +344,14 @@ describe('initCardInteractions', () => {
 
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+      choosePrinting(second);
 
       expect(cardElement.cardData.id).toBe('p2');
       expect(rememberPreferredPrinting).not.toHaveBeenCalled();
       expect(details).toEqual([{ slotKey: '0:0:0', printingId: 'p2' }]);
     });
 
-    it('does not cycle a binder pocket in a share/guest view', () => {
+    it('does not open the picker for a binder pocket in a share/guest view', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       appState.isViewOnlyMode = true;
@@ -352,11 +362,12 @@ describe('initCardInteractions', () => {
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
+      expect(printingPicker.openPrintingPicker).not.toHaveBeenCalled();
       expect(cardElement.cardData.id).toBe('p1');
       expect(rememberPreferredPrinting).not.toHaveBeenCalled();
     });
 
-    it('still cycles a grid tile in a share/guest view', () => {
+    it('still opens the picker for a grid tile in a share/guest view', () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       appState.isViewOnlyMode = true;
@@ -366,10 +377,12 @@ describe('initCardInteractions', () => {
       initCardInteractions(container, tooltipElement);
       cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
 
+      expect(printingPicker.openPrintingPicker).toHaveBeenCalled();
+      choosePrinting(second);
       expect(cardElement.cardData.id).toBe('p2');
     });
 
-    it('cycles the printing when the version badge is activated, without toggling ownership', async () => {
+    it('opens the printing picker when the version badge is activated, without toggling ownership', async () => {
       const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
       const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
       cardElement.cardData = first;
@@ -382,7 +395,9 @@ describe('initCardInteractions', () => {
       initCardInteractions(container, tooltipElement);
       badge.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-      expect(cardElement.cardData.id).toBe('p2');
+      expect(printingPicker.openPrintingPicker).toHaveBeenCalledWith(
+        expect.objectContaining({ card: first, currentId: 'p1' })
+      );
       expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
     });
   });

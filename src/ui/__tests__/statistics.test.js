@@ -18,6 +18,11 @@ vi.mock('../../state/cardStore.js', async (importOriginal) => ({
 
 vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
 
+const printingPicker = vi.hoisted(() => ({ openPrintingPicker: vi.fn() }));
+vi.mock('../components/printingPickerModal.js', () => ({
+  openPrintingPicker: printingPicker.openPrintingPicker,
+}));
+
 vi.mock('../tooltip.js', () => ({
   showTooltip: vi.fn(),
   hideTooltip: vi.fn(),
@@ -620,15 +625,17 @@ describe('showStatisticsModal', () => {
 
     expect(showTooltip).toHaveBeenCalledTimes(1);
     expect(showTooltip.mock.calls[0][1]).toMatchObject({ name: 'Grail' });
-    // The modal advertises the right-click shortcut rather than touch wording.
-    expect(document.getElementById('tooltip').cycleLabel).toBe('Right-click for next printing');
 
     // The row starts on the printing the grid shows (the cheapest, since
-    // nothing is pinned), then right-click cycles to the next one by price.
+    // nothing is pinned); right-click opens the printing picker instead of
+    // cycling.
     expect(row.cardData.id).toBe('printing-2');
     row.dispatchEvent(new MouseEvent('contextmenu', { clientX: 10, clientY: 10 }));
-    expect(showTooltip).toHaveBeenCalledTimes(2);
-    expect(row.cardData.id).toBe('printing-1');
+    expect(printingPicker.openPrintingPicker).toHaveBeenCalledWith(
+      expect.objectContaining({ card: expect.objectContaining({ id: 'printing-2' }) })
+    );
+    // The tooltip itself is not rebuilt by the picker opening.
+    expect(showTooltip).toHaveBeenCalledTimes(1);
 
     document.querySelector('.statistics-close').click();
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();

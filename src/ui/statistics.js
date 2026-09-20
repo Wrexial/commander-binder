@@ -9,8 +9,8 @@ import { updateAllCardStates } from './cards.js';
 import { showTooltip, hideTooltip, positionTooltip } from './tooltip.js';
 import { preloadCardImages } from '../utils/cardImages.js';
 import { getDisplayedPrice, formatPrice, formatPriceRange } from '../utils/prices.js';
-import { nextPrinting, orderPrintingsByPrice } from '../utils/printings.js';
 import { rememberPreferredPrinting, resolveDisplayPrinting } from '../state/preferredPrintings.js';
+import { openPrintingPicker } from './components/printingPickerModal.js';
 import { recordSnapshot } from '../state/collectionHistory.js';
 
 /** Canonical display order and labels for the five colors plus colorless. */
@@ -838,10 +838,7 @@ function wireTopCardTooltips(container, tooltip, topCards) {
   const handleEnter = (event) => {
     const row = event.currentTarget;
     if (!row.cardData) return;
-    tooltip.onCycle = (cycleEvent) => cycleRowPrinting(row, cycleEvent);
-    // The statistics modal is mouse-driven, so spell out the right-click
-    // shortcut instead of the generic touch wording.
-    tooltip.cycleLabel = 'Right-click for next printing';
+    tooltip.onChoosePrinting = (chooseEvent) => openRowPrintingPicker(row, chooseEvent);
     preloadCardImages(row.cardData);
     row.setAttribute('aria-describedby', 'tooltip');
     showTooltip(event, row.cardData, tooltip);
@@ -854,34 +851,31 @@ function wireTopCardTooltips(container, tooltip, topCards) {
   };
 
   const handleLeave = (event) => {
-    tooltip.onCycle = null;
-    tooltip.cycleLabel = null;
+    tooltip.onChoosePrinting = null;
     event.currentTarget.removeAttribute('aria-describedby');
     hideTooltip(tooltip);
   };
 
-  // Match the main grid: advance a row to its next printing. Right-click does
-  // this on desktop; the tooltip's "Next printing" button covers touch.
-  const cycleRowPrinting = (row, event) => {
+  // Open the printing picker for a statistics row; the pick follows the card to
+  // the grid. Right-click and the preview's "Choose printing" button both do it.
+  const openRowPrintingPicker = (row, event) => {
     if (!row.cardData) return;
-
-    const next = nextPrinting(
-      orderPrintingsByPrice(cardStore.getPrintings(row.cardData.name)),
-      row.cardData
-    );
-    if (!next) return;
-
-    // A pick made in the statistics preview follows the card to the grid.
-    rememberPreferredPrinting(next);
-
-    row.cardData = next;
-    showTooltip(event, row.cardData, tooltip);
+    const current = row.cardData;
+    openPrintingPicker({
+      card: current,
+      currentId: current.id,
+      onPick: (printing) => {
+        rememberPreferredPrinting(printing);
+        row.cardData = printing;
+        showTooltip(event, row.cardData, tooltip);
+      },
+    });
   };
 
   const handleContextMenu = (event) => {
     event.preventDefault();
     if (tooltip.style.display === 'none') return;
-    cycleRowPrinting(event.currentTarget, event);
+    openRowPrintingPicker(event.currentTarget, event);
   };
 
   rows.forEach((row) => {
@@ -1022,8 +1016,7 @@ export function showStatisticsModal({
     onClose: () => {
       cleanupTopCardTooltips();
       if (tooltip) {
-        tooltip.onCycle = null;
-        tooltip.cycleLabel = null;
+        tooltip.onChoosePrinting = null;
         resetTooltipCardActions(tooltip);
         hideTooltip(tooltip);
       }

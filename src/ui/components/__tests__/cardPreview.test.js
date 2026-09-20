@@ -44,7 +44,7 @@ describe('attachCardPreview', () => {
     const list = mountRows();
     const tooltip = document.getElementById('tooltip');
     tooltip.onToggle = () => {};
-    tooltip.onCycle = () => {};
+    tooltip.onChoosePrinting = () => {};
 
     list
       .querySelector('[data-card-id="a"]')
@@ -52,7 +52,7 @@ describe('attachCardPreview', () => {
 
     expect(showTooltip).toHaveBeenCalledTimes(1);
     expect(tooltip.onToggle).toBeNull();
-    expect(tooltip.onCycle).toBeNull();
+    expect(tooltip.onChoosePrinting).toBeNull();
     expect(tooltip.onNavigate).toBeNull();
   });
 

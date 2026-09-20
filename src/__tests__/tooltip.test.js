@@ -88,63 +88,39 @@ describe('tooltip', () => {
     });
   });
 
-  describe('printing cycle control', () => {
-    it('renders a Next printing button that calls the host handler', () => {
+  describe('printing picker control', () => {
+    it('renders a Choose printing button that calls the host handler', () => {
       cardStore.getPrintingPosition.mockReturnValue({ index: 2, total: 5 });
-      tooltip.onCycle = vi.fn();
+      tooltip.onChoosePrinting = vi.fn();
 
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
       // The printing count now lives in the tile footer, so the tooltip only
-      // shows the cycle control on touch-capable hosts.
+      // shows the picker control on touch-capable hosts.
       expect(tooltip.querySelector('.printing-indicator')).toBeNull();
 
       const button = tooltip.querySelector('.printing-cycle');
       expect(button).not.toBeNull();
-      expect(button.textContent).toBe('Next printing');
+      expect(button.textContent).toBe('Choose printing');
 
       button.click();
-      expect(tooltip.onCycle).toHaveBeenCalledTimes(1);
+      expect(tooltip.onChoosePrinting).toHaveBeenCalledTimes(1);
     });
 
-    it('uses a host-provided cycle label on hover-capable devices', () => {
-      vi.stubGlobal('matchMedia', (query) => ({
-        matches: query.includes('hover'),
-        addEventListener() {},
-        removeEventListener() {},
-      }));
+    it('always labels the control "Choose printing"', () => {
       cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
-      tooltip.onCycle = vi.fn();
-      tooltip.cycleLabel = 'Right-click for next printing';
+      tooltip.onChoosePrinting = vi.fn();
 
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
 
-      expect(tooltip.querySelector('.printing-cycle').textContent).toBe(
-        'Right-click for next printing'
-      );
+      expect(tooltip.querySelector('.printing-cycle').textContent).toBe('Choose printing');
     });
 
-    it('falls back to touch wording when the device cannot hover', () => {
-      vi.stubGlobal('matchMedia', () => ({
-        matches: false,
-        addEventListener() {},
-        removeEventListener() {},
-      }));
+    it('omits the button when the host provides no printing handler', () => {
       cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
-      tooltip.onCycle = vi.fn();
-      tooltip.cycleLabel = 'Right-click for next printing';
-
-      showTooltip(event, card, tooltip);
-      vi.runAllTimers();
-
-      expect(tooltip.querySelector('.printing-cycle').textContent).toBe('Next printing');
-    });
-
-    it('omits the button when the host provides no cycle handler', () => {
-      cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
-      tooltip.onCycle = undefined;
+      tooltip.onChoosePrinting = undefined;
 
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
@@ -202,9 +178,9 @@ describe('tooltip', () => {
       expect(details.querySelector('.tooltip-owned-status')).not.toBeNull();
     });
 
-    it('places the printing-cycle button next to the owned/missing badge', () => {
+    it('places the printing picker button next to the owned/missing badge', () => {
       cardStore.getPrintingPosition.mockReturnValue({ index: 2, total: 5 });
-      tooltip.onCycle = vi.fn();
+      tooltip.onChoosePrinting = vi.fn();
 
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
@@ -341,20 +317,6 @@ describe('tooltip', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
       expect(tooltip.style.display).toBe('none');
-    });
-
-    it('changes the printing with the up/down keys', () => {
-      const onCycle = vi.fn();
-      tooltip.onCycle = onCycle;
-
-      showTooltip(event, card, tooltip);
-      vi.runAllTimers();
-
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
-      expect(onCycle).toHaveBeenCalledWith(expect.anything(), 1);
-
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
-      expect(onCycle).toHaveBeenCalledWith(expect.anything(), -1);
     });
 
     it('keeps a one-tap-away grid click from becoming a card tap', () => {
@@ -645,7 +607,6 @@ describe('tooltip', () => {
       );
       const onNavigate = vi.fn();
       tooltip.onNavigate = onNavigate;
-      tooltip.onCycle = vi.fn();
       cardStore.getPrintingPosition.mockReturnValue({ index: 1, total: 3 });
 
       // Modal forced, as the desktop long-press / Surprise me does.
@@ -655,9 +616,9 @@ describe('tooltip', () => {
       const hint = tooltip.querySelector('.tooltip-swipe-hint');
       expect(hint.textContent).toContain('←');
       expect(hint.textContent).toContain('→');
-      // A multi-printing card also advertises the up/down printing keys.
-      expect(hint.textContent).toContain('↑');
-      expect(hint.textContent).toContain('↓');
+      // Printing is chosen from the picker control, not a keyboard shortcut.
+      expect(hint.textContent).not.toContain('↑');
+      expect(hint.textContent).not.toContain('↓');
 
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
       expect(onNavigate).toHaveBeenCalledWith(1, expect.anything());

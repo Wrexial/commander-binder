@@ -256,7 +256,7 @@ describe('version badge', () => {
     expect(badge.querySelector('.card-versions-short').textContent).toBe('1/3');
     expect(badge.tagName).toBe('BUTTON');
     expect(badge.type).toBe('button');
-    expect(badge.getAttribute('aria-label')).toBe('Show next printing (1/3 printings)');
+    expect(badge.getAttribute('aria-label')).toBe('Choose a printing (1/3 printings)');
   });
 
   it('reflects the index of the printing being displayed', () => {
@@ -286,19 +286,19 @@ describe('version badge', () => {
     expect(element.querySelector('.card-versions')).toBeNull();
   });
 
-  it('hints at right-click cycling for multi-printing cards', () => {
+  it('hints at choosing a printing for multi-printing cards', () => {
     cardStore.add(base);
     cardStore.add(reprint('v2', '2000-01-01'));
 
     const element = createCardElement(base, 0);
-    expect(element.title).toBe('Right-click for next printing');
-    expect(element.querySelector('.card-name').title).toBe('Right-click for next printing');
-    expect(element.querySelector('.card-versions').title).toContain(
-      'right-click for next printing'
+    expect(element.title).toBe('Click the version badge to choose a printing');
+    expect(element.querySelector('.card-name').title).toBe(
+      'Click the version badge to choose a printing'
     );
+    expect(element.querySelector('.card-versions').title).toContain('choose a printing');
   });
 
-  it('does not hint at right-click cycling for a single printing', () => {
+  it('does not hint at choosing a printing for a single printing', () => {
     cardStore.add(base);
     const element = createCardElement(base, 0);
     expect(element.hasAttribute('title')).toBe(false);
@@ -314,7 +314,7 @@ describe('version badge', () => {
     updateCardVersionCounts();
 
     expect(element.querySelector('.card-versions-full').textContent).toBe('1/2 printings');
-    expect(element.title).toBe('Right-click for next printing');
+    expect(element.title).toBe('Click the version badge to choose a printing');
   });
 });
 

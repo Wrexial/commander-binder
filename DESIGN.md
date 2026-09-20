@@ -175,7 +175,7 @@ left border; optional action uses `.toast-action`; dismiss is `.toast-close`
 
 ### 3.7 Card controls
 
-Ownership (`.card-toggle`), wishlist (`.card-wishlist`), printing cycle
+Ownership (`.card-toggle`), wishlist (`.card-wishlist`), the printing picker
 (`.card-versions`) and the EDHREC link are real buttons so they land in the tab
 order. Hover-only affordances sit behind `isHoverCapable()`.
 

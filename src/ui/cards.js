@@ -9,24 +9,24 @@ import { cardStore } from '../state/cardStore.js';
 import { getPreferredPrinting, resolveDisplayPrinting } from '../state/preferredPrintings.js';
 import { isCardWanted } from '../state/wishlistState.js';
 import { isCardSelected, isSelectionMode } from '../state/selectionState.js';
-import { getListsForCard } from '../state/listsState.js';
 
 /**
  * Native browser tooltip hint shown on mouse-driven (PC) layouts, where the
- * custom hover preview is disabled. Right-click cycling is otherwise invisible.
+ * custom hover preview is disabled. Choosing a printing from the version badge
+ * is otherwise invisible.
  */
-const NEXT_PRINTING_HINT = 'Right-click for next printing';
+const PRINTING_HINT = 'Click the version badge to choose a printing';
 
 /**
- * Apply/remove the native right-click hint on a tile and its media element.
+ * Apply/remove the native printing hint on a tile and its media element.
  * @param {HTMLElement} cardElement
  * @param {HTMLElement|null} mediaEl
  * @param {boolean} enabled
  */
-function applyNextPrintingHint(cardElement, mediaEl, enabled) {
+function applyPrintingHint(cardElement, mediaEl, enabled) {
   if (enabled) {
-    cardElement.title = NEXT_PRINTING_HINT;
-    if (mediaEl) mediaEl.title = NEXT_PRINTING_HINT;
+    cardElement.title = PRINTING_HINT;
+    if (mediaEl) mediaEl.title = PRINTING_HINT;
   } else {
     cardElement.removeAttribute('title');
     if (mediaEl) mediaEl.removeAttribute('title');
@@ -47,7 +47,7 @@ function getVersionInfo(card) {
 /**
  * Printing-count control reading "2/5 printings" (desktop) or "2/5" (mobile;
  * the long label is hidden by CSS). It is a button so keyboard users have a
- * reachable way to cycle printings (the pointer paths are right-click / touch).
+ * reachable way to open the printing picker.
  * @param {{index: number, total: number}} version
  * @returns {HTMLButtonElement}
  */
@@ -55,8 +55,8 @@ function createVersionBadge({ index, total }) {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = 'card-versions';
-  el.title = `${total} printings — ${NEXT_PRINTING_HINT.toLowerCase()}`;
-  el.setAttribute('aria-label', `Show next printing (${index}/${total} printings)`);
+  el.title = `${total} printings — choose a printing`;
+  el.setAttribute('aria-label', `Choose a printing (${index}/${total} printings)`);
 
   const full = document.createElement('span');
   full.className = 'card-versions-full';
@@ -246,32 +246,6 @@ export function syncCardSelection(cardElement) {
   const card = cardElement.cardData;
   const selected = isSelectionMode() && Boolean(card) && isCardSelected(card);
   cardElement.classList.toggle('selected', selected);
-}
-
-/**
- * Paint a small badge showing how many custom lists the card belongs to, so
- * membership is discoverable without opening the preview. Removed when zero.
- * @param {HTMLElement} cardElement
- */
-function syncCardListUi(cardElement) {
-  const card = cardElement.cardData;
-  const count = card ? getListsForCard(card).length : 0;
-  let badge = cardElement.querySelector('.card-lists');
-
-  if (count === 0) {
-    badge?.remove();
-    return;
-  }
-
-  const label = `${count} list${count === 1 ? '' : 's'}`;
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'card-lists';
-    cardElement.appendChild(badge);
-  }
-  badge.textContent = `\uD83D\uDCCB ${count}`;
-  badge.title = `In ${label}`;
-  badge.setAttribute('aria-label', `In ${label}`);
 }
 
 /**
@@ -470,7 +444,7 @@ function populateListCard(div, card, cardIndex) {
 
   applyCardColors(div, card);
   div.style.setProperty('--card-text', '#111111');
-  applyNextPrintingHint(div, nameEl, version.total > 1);
+  applyPrintingHint(div, nameEl, version.total > 1);
 
   return div;
 }
@@ -513,7 +487,7 @@ function populateCard(div, card, cardIndex) {
   // Discoverability for right-click cycling on PC (native title tooltip; touch
   // devices never render it). Set it on the media element too so hovering the
   // artwork (which fills the tile) shows the hint rather than the image alt.
-  applyNextPrintingHint(div, mediaEl, version.total > 1);
+  applyPrintingHint(div, mediaEl, version.total > 1);
 
   // Image tiles gather everything into a single footer strip so the artwork
   // stays legible instead of carrying half a dozen floating badges.
@@ -610,7 +584,6 @@ export function updateCardState(cardElement) {
   // The wishlist is independent of ownership, so it is synced separately.
   syncCardWantedUi(cardElement, isCardWanted(card));
   syncCardSelection(cardElement);
-  syncCardListUi(cardElement);
   // A saved preferred printing gets a small pin on the version badge.
   cardElement.classList.toggle('pinned', Boolean(getPreferredPrinting(card)));
 }
@@ -644,11 +617,11 @@ export function updateCardVersionCounts() {
 
     if (version.total <= 1) {
       if (badge) badge.remove();
-      applyNextPrintingHint(cardElement, mediaEl, false);
+      applyPrintingHint(cardElement, mediaEl, false);
       return;
     }
 
-    applyNextPrintingHint(cardElement, mediaEl, true);
+    applyPrintingHint(cardElement, mediaEl, true);
 
     if (!badge) {
       const newBadge = createVersionBadge(version);
@@ -665,10 +638,10 @@ export function updateCardVersionCounts() {
     badge.querySelector('.card-versions-full').textContent =
       `${version.index}/${version.total} printings`;
     badge.querySelector('.card-versions-short').textContent = `${version.index}/${version.total}`;
-    badge.title = `${version.total} printings — ${NEXT_PRINTING_HINT.toLowerCase()}`;
+    badge.title = `${version.total} printings — choose a printing`;
     badge.setAttribute(
       'aria-label',
-      `Show next printing (${version.index}/${version.total} printings)`
+      `Choose a printing (${version.index}/${version.total} printings)`
     );
   });
 }

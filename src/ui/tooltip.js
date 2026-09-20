@@ -66,13 +66,13 @@ function getBackdrop() {
  *
  * @param {object} card
  * @param {{index: number, total: number}} version
- * @param {HTMLElement|null} [cycleControl] "Next printing" button to place
+ * @param {HTMLElement|null} [printingControl] "Choose printing" button to place
  *   beside the owned/missing badge.
  * @param {HTMLElement} [tooltip] Host element; when it exposes `onToggle`, the
  *   owned/missing badge becomes a button that flips the status.
  * @returns {HTMLElement}
  */
-function createTooltipDetails(card, version, cycleControl, tooltip) {
+function createTooltipDetails(card, version, printingControl, tooltip) {
   const details = document.createElement('div');
   details.className = 'tooltip-card-details';
 
@@ -192,7 +192,7 @@ function createTooltipDetails(card, version, cycleControl, tooltip) {
 
   // The printing-cycle control lives next to the owned/missing badge, so the
   // swipe hint below never pushes it off screen.
-  if (cycleControl) status.appendChild(cycleControl);
+  if (printingControl) status.appendChild(printingControl);
 
   details.appendChild(status);
 
@@ -200,30 +200,21 @@ function createTooltipDetails(card, version, cycleControl, tooltip) {
 }
 
 /**
- * The explicit "next printing" control. Placed beside the owned/missing badge
+ * The explicit "choose printing" control. Placed beside the owned/missing badge
  * in the modal preview, or on its own row in the floating hover preview.
  *
  * @param {HTMLElement} tooltip
  * @returns {HTMLButtonElement}
  */
-function createCycleButton(tooltip) {
+function createPrintingButton(tooltip) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'printing-cycle';
-  // Hosts can override the label (the statistics preview asks for the
-  // right-click wording); default to the plain button label.
-  button.textContent = (isHoverCapable() && tooltip.cycleLabel) || 'Next printing';
-  const hover = isHoverCapable();
-  const inModal = tooltip.classList.contains('modal');
-  button.title =
-    inModal && hover
-      ? 'Show the next printing (\u2193 or right-click)'
-      : hover
-        ? 'Show the next printing (right-click also works)'
-        : 'Show the next printing';
+  button.textContent = 'Choose printing';
+  button.title = 'Choose a printing';
   button.addEventListener('click', (clickEvent) => {
     clickEvent.stopPropagation();
-    tooltip.onCycle(clickEvent);
+    tooltip.onChoosePrinting(clickEvent);
   });
   return button;
 }
@@ -408,8 +399,8 @@ export function showTooltip(e, card, tooltip, { modal = isMobileLayout() } = {})
 
 /**
  * Swap the open tooltip to another card without closing it. The mobile swipe
- * gesture calls this after the host has pointed `onCycle`/`onNavigate` at the
- * new card. Assumes the tooltip is already open.
+ * gesture calls this after the host has pointed `onChoosePrinting`/`onNavigate`
+ * at the new card. Assumes the tooltip is already open.
  *
  * @param {object} card
  * @param {HTMLElement} tooltip
@@ -438,32 +429,29 @@ function renderTooltipContent(card, tooltip, e, { reposition = true } = {}) {
 
   const position = cardStore.getPrintingPosition(card);
 
-  // The explicit cycle control that touch devices need (they have no
-  // right-click).
-  const cycleControl =
-    position.total > 1 && typeof tooltip.onCycle === 'function' ? createCycleButton(tooltip) : null;
+  // The explicit "choose printing" control. Touch devices have no right-click,
+  // and right-click now opens the picker too.
+  const printingControl =
+    position.total > 1 && typeof tooltip.onChoosePrinting === 'function'
+      ? createPrintingButton(tooltip)
+      : null;
 
   if (modal) {
-    tooltip.appendChild(createTooltipDetails(card, position, cycleControl, tooltip));
+    tooltip.appendChild(createTooltipDetails(card, position, printingControl, tooltip));
 
     if (typeof tooltip.onNavigate === 'function') {
       const hint = document.createElement('div');
       hint.className = 'tooltip-swipe-hint';
-      if (isHoverCapable()) {
-        const canCycle = typeof tooltip.onCycle === 'function' && position.total > 1;
-        hint.textContent = canCycle
-          ? '\u2190 / \u2192 change card \u00b7 \u2191 / \u2193 change printing'
-          : '\u2190 / \u2192 change card';
-      } else {
-        hint.textContent = 'Swipe for previous / next card';
-      }
+      hint.textContent = isHoverCapable()
+        ? '\u2190 / \u2192 change card'
+        : 'Swipe for previous / next card';
       tooltip.appendChild(hint);
     }
-  } else if (cycleControl) {
+  } else if (printingControl) {
     // Floating hover preview (statistics): keep the button on its own row.
     const textContainer = document.createElement('div');
     textContainer.className = 'tooltip-text-container';
-    textContainer.appendChild(cycleControl);
+    textContainer.appendChild(printingControl);
     tooltip.appendChild(textContainer);
   }
 
@@ -650,12 +638,6 @@ document.addEventListener('keydown', (event) => {
   } else if ((key === 'arrowleft' || key === 'k') && typeof onNavigate === 'function') {
     event.preventDefault();
     onNavigate(-1, { clientX: 0, clientY: 0 });
-  } else if (key === 'arrowdown' && typeof activeTooltip.onCycle === 'function') {
-    event.preventDefault();
-    activeTooltip.onCycle(event, 1);
-  } else if (key === 'arrowup' && typeof activeTooltip.onCycle === 'function') {
-    event.preventDefault();
-    activeTooltip.onCycle(event, -1);
   } else if (key === 'escape') {
     event.preventDefault();
     hideTooltip(activeTooltip);
