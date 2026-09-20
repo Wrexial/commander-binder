@@ -142,12 +142,13 @@ describe('showListCompareModal', () => {
     expect(chips.some((text) => text.includes('You have') && text.includes('1'))).toBe(true);
     expect(chips.some((text) => text.includes("You don't have") && text.includes('1'))).toBe(true);
 
-    // Both list buckets plus the cards you own that aren't on the list.
+    // Only the two list buckets are shown; cards owned but not on the list are
+    // deliberately not listed here.
     const rows = [...document.querySelectorAll('.bulk-row')].map((el) => el.textContent);
     expect(rows).toContain('Both Have');
     expect(rows).toContain('Only They Have');
-    expect(rows).toContain('Only I Have');
-    expect(chips.some((text) => text.includes('not on the list') && text.includes('1'))).toBe(true);
+    expect(rows).not.toContain('Only I Have');
+    expect(chips.some((text) => text.includes('not on the list'))).toBe(false);
     expect(document.querySelector('.bulk-content > .bulk-preview .bulk-groups')).not.toBeNull();
 
     [...document.querySelectorAll('.modal-button-container button')]

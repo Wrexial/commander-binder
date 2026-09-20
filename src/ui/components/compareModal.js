@@ -77,8 +77,7 @@ function render(contentArea, modal, diff, labels) {
 }
 
 /**
- * Paint a list-vs-collection diff: the list cards you have and don't have, plus
- * the cards you own that aren't on the list at all.
+ * Paint a list-vs-collection diff: the list cards you have and don't have.
  *
  * @param {HTMLElement} contentArea
  * @param {HTMLElement} modal
@@ -87,12 +86,10 @@ function render(contentArea, modal, diff, labels) {
 function renderListCompare(contentArea, modal, diff) {
   const missing = sortedEntries(diff.ownerOnly); // on the list, not owned
   const have = sortedEntries(diff.shared); // on the list and owned
-  const extra = sortedEntries(diff.viewerOnly); // owned, but not on the list
 
   const subtitle = modal.querySelector('.bulk-modal-subtitle');
   if (subtitle) subtitle.textContent = `${have.length} you have · ${missing.length} you don't`;
 
-  // An empty list would otherwise dump the whole collection into "not on the list".
   if (have.length === 0 && missing.length === 0) {
     contentArea.innerHTML = '<p class="bulk-empty">This list has no cards yet.</p>';
     return;
@@ -102,13 +99,10 @@ function renderListCompare(contentArea, modal, diff) {
     <div class="bulk-summary">
       ${summaryChip('owned', 'You have', have.length)}
       ${summaryChip('missing', "You don't have", missing.length)}
-      ${summaryChip('unknown', 'You own · not on the list', extra.length)}
     </div>`;
 
   const groups =
-    previewGroup('missing', "You don't have", missing) +
-    previewGroup('owned', 'You have', have) +
-    previewGroup('unknown', 'You own — not on the list', extra);
+    previewGroup('missing', "You don't have", missing) + previewGroup('owned', 'You have', have);
 
   contentArea.innerHTML = `${summary}<div class="bulk-preview"><div class="bulk-groups">${groups}</div></div>`;
 }
@@ -193,9 +187,9 @@ export async function showCompareModal() {
 
 /**
  * Compare a custom list against the viewer's own collection: what is on the
- * list but missing from the collection, and what is in the collection but not
- * on the list. Works signed in, signed out and in a share view (where the
- * viewer's own collection is loaded separately from the owner's).
+ * list and owned, and what is on the list but missing. Works signed in, signed
+ * out and in a share view (where the viewer's own collection is loaded
+ * separately from the owner's).
  *
  * @param {{ id: string, name: string }} list
  */

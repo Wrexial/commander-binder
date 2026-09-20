@@ -429,8 +429,8 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   (server when signed in, IndexedDB otherwise), with "Wishlist missing" and
   "Copy names" actions. The same module's `showListCompareModal` diffs one custom
   list against the viewer's collection (signed in, guest or share view) into the
-  list cards you have, the ones you don't, and the cards you own that aren't on
-  the list — with "Wishlist missing"/"Copy list". Plain
+  list cards you have and the ones you don't — with "Wishlist missing"/"Copy
+  list". Plain
   signed-out visitors are **not** view-only: they track a collection and wishlist
   in IndexedDB that are additively merged into their account on sign-in
   (`merge-owned`/`merge-wishlist`), and they get the same collection sidebar
