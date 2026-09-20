@@ -57,8 +57,9 @@
   </head>
 
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <div id="sidebar-backdrop"></div>
-    <div id="sidebar" class="sidebar"></div>
+    <nav id="sidebar" class="sidebar" aria-label="Main navigation"></nav>
     <button
       id="openbtn"
       type="button"
@@ -70,7 +71,7 @@
       <span></span>
       <span></span>
     </button>
-    <div id="main">
+    <div id="main" tabindex="-1">
       <main class="container">
         <header class="main-header">
           <picture>

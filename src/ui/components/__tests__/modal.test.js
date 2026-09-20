@@ -4,6 +4,7 @@ import { createModal } from '../modal.js';
 describe('createModal', () => {
   afterEach(() => {
     document.body.innerHTML = '';
+    document.body.classList.remove('modal-open');
   });
 
   it('creates a backdrop holding a labelled dialog in the body', () => {
@@ -71,6 +72,25 @@ describe('createModal', () => {
     document.querySelector('.list-modal-backdrop').click();
 
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
+
+  it('locks page scroll while open and restores it on close', () => {
+    const { show, close } = createModal({});
+    show();
+    expect(document.body.classList.contains('modal-open')).toBe(true);
+    close();
+    expect(document.body.classList.contains('modal-open')).toBe(false);
+  });
+
+  it('keeps the lock until every nested modal has closed', () => {
+    const outer = createModal({});
+    const inner = createModal({});
+    outer.show();
+    inner.show();
+    inner.close();
+    expect(document.body.classList.contains('modal-open')).toBe(true);
+    outer.close();
+    expect(document.body.classList.contains('modal-open')).toBe(false);
   });
 
   it('moves focus into the dialog on show()', () => {

@@ -102,6 +102,22 @@ describe('filter integration', () => {
     expect(JSON.parse(sessionStorage.getItem('viewState')).filters.colors).toEqual([]);
   });
 
+  it('shows an actionable empty state when a filter hides every card', () => {
+    wire();
+
+    // Every fixture card is colourless, so filtering to white hides them all.
+    document.querySelector('.filter-pip-W').click();
+
+    const box = document.getElementById('no-results-message');
+    expect(box.style.display).toBe('flex');
+    expect(box.querySelector('.no-results-text').textContent).toContain('filters');
+
+    box.querySelector('.no-results-clear').click();
+
+    expect(allVisible()).toBe(true);
+    expect(box.style.display).toBe('none');
+  });
+
   it('un-hides cards when the owned filter is cleared', () => {
     isCardOwned.mockReturnValue(true);
     wire();

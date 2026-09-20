@@ -10,6 +10,7 @@ import { getDisplayedPrice } from '../utils/prices.js';
 import { cardStore } from '../state/cardStore.js';
 import { getSavedSearch, saveSearch } from '../state/viewState.js';
 import { activeFilterCount, cardMatchesFilters } from '../state/filters.js';
+import { escapeHtml } from '../utils/html.js';
 
 export function parseQuery(query) {
   query = query.replace(/\s+(or|and)\s+/gi, (match) => ` ${match.toLowerCase().trim()} `);
@@ -234,6 +235,44 @@ function cardMatchesFilter(card, filter) {
 /** Active, normalized query; keeps `reapplySearchFilter` cheap when empty. */
 let activeQuery = '';
 
+/** Clear the search box and every active filter, then re-run the grid filter. */
+function clearSearchAndFilters() {
+  const searchInput = document.getElementById('search-input');
+  if (searchInput?.value) {
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // The filter bar owns its own state; its reset button is the single source of
+  // truth for clearing everything except the sort. Fall back to a plain repaint
+  // when there is no filter to clear.
+  const reset = document.querySelector('.filter-reset');
+  if (reset && !reset.disabled) reset.click();
+  else refreshCardFilter();
+}
+
+/** Exact copy for the empty state, based on what is narrowing the grid. */
+function noResultsCopy(hasSearch, hasFilters) {
+  if (hasSearch && hasFilters) return 'No cards match your search and filters.';
+  if (hasSearch) return 'No cards match your search.';
+  return 'No cards match the active filters.';
+}
+
+/** Build the empty-state block once; re-rendering only when the copy changes. */
+function renderNoResults(message) {
+  const box = document.getElementById('no-results-message');
+  if (!box || box.dataset.message === message) return;
+  box.dataset.message = message;
+  box.innerHTML = `
+    <svg class="no-results-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.6" />
+      <path d="m16.4 16.4 4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    </svg>
+    <p class="no-results-text">${escapeHtml(message)}</p>
+    <button type="button" class="no-results-clear">Clear search &amp; filters</button>`;
+  box.querySelector('.no-results-clear')?.addEventListener('click', clearSearchAndFilters);
+}
+
 /**
  * Hide cards that don't match the query and roll section/binder visibility up
  * in a single pass, instead of re-querying and re-allocating arrays per binder.
@@ -285,7 +324,15 @@ function filterCards() {
   updateOwnedCounter();
 
   if (noResultsMessage) {
-    noResultsMessage.style.display = visibleCardCount === 0 && searchTerm ? 'block' : 'none';
+    const hasSearch = Boolean(searchTerm);
+    const hasFilters = activeFilterCount() > 0;
+    // Only claim "no matches" once cards have actually rendered; during the
+    // initial load the grid is legitimately empty.
+    const hasRenderedCards = document.querySelectorAll('.card').length > 0;
+    const show = visibleCardCount === 0 && (hasSearch || hasFilters) && hasRenderedCards;
+
+    noResultsMessage.style.display = show ? 'flex' : 'none';
+    if (show) renderNoResults(noResultsCopy(hasSearch, hasFilters));
   }
   if (clearSearchButton) {
     clearSearchButton.style.display = searchInput.value ? 'block' : 'none';

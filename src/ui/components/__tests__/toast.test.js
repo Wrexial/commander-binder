@@ -46,6 +46,23 @@ describe('toast', () => {
     expect(action).toHaveBeenCalled();
   });
 
+  it('accepts a bare type string and tags the toast for styling', () => {
+    showToast('Saved', 'success');
+    expect(toastContainer.dataset.type).toBe('success');
+    vi.runAllTimers();
+  });
+
+  it('dismisses from the close control', () => {
+    showToast('Hello');
+
+    const close = toastContainer.querySelector('.toast-close');
+    expect(close).not.toBeNull();
+    close.click();
+
+    expect(toastContainer.classList.contains('show')).toBe(false);
+    expect(toastContainer.innerHTML).toBe('');
+  });
+
   it('should show an undo toast', () => {
     const undoAction = vi.fn();
     showUndo('Action completed', undoAction);

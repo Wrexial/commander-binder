@@ -74,9 +74,18 @@ function bindToastSwipe(container) {
   container.addEventListener('touchcancel', onSwipeEnd);
 }
 
-export function showToast(message, { duration = 4000, actionText, action } = {}) {
+export function showToast(message, options = {}) {
   const container = document.getElementById('toast');
   if (!container) return;
+
+  // `showToast(message, 'success')` is the common shorthand; a config object
+  // carries the longer-lived actions. Accept either.
+  const {
+    duration = 4000,
+    actionText,
+    action,
+    type,
+  } = typeof options === 'string' ? { type: options } : options;
 
   // cancel any existing hide timeout so an old timer can't hide this new toast
   if (container._hideTimeout) {
@@ -105,6 +114,19 @@ export function showToast(message, { duration = 4000, actionText, action } = {})
     });
     container.appendChild(btn);
   }
+
+  // An explicit dismiss control: swipe needs a touch screen and the auto-hide
+  // timer is too short to read a long message.
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Dismiss notification');
+  close.title = 'Dismiss';
+  close.innerHTML = '&times;';
+  close.addEventListener('click', () => hide());
+  container.appendChild(close);
+
+  container.dataset.type = type || '';
 
   bindToastSwipe(container);
   container._hide = hide;

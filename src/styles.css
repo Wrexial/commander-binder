@@ -13,6 +13,36 @@ label,
   -webkit-tap-highlight-color: transparent;
 }
 
+/* A visible focus ring on every control by default. The `:where()` wrapper
+   keeps specificity at zero, so a component that styles its own
+   `:focus-visible` treatment (or opts out with `outline: none`) still wins —
+   but nothing is ever left with an invisible focus state. */
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Keyboard users can jump straight past the sidebar/filters to the grid. */
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 8px;
+  z-index: var(--z-index-toast);
+  padding: 10px 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: calc(8px + var(--safe-top));
+}
+
 ::selection {
   background: rgba(212, 175, 55, 0.3);
   color: #fff;
@@ -1158,6 +1188,20 @@ body.list-mode .card.list-tile .owned-badge {
   border-color: var(--focus);
 }
 
+/* Keep a focused card clear of the sticky search/filter bar. */
+.card {
+  scroll-margin-top: 96px;
+}
+
+/* The tiny corner controls are real buttons, so give them a ring that is
+   visible on top of both the artwork and the tile footer. */
+.card-toggle:focus-visible,
+.card-wishlist:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+  z-index: 7;
+}
+
 .edhrec-link {
   position: absolute;
   bottom: 2px;
@@ -1322,6 +1366,13 @@ body.list-mode .card.list-tile .owned-badge {
 
 /* Stop the page scrolling behind the mobile tooltip. */
 body.tooltip-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Same for the full dialogs (see createModal); the scrollbar is already hidden
+   globally, so locking it produces no layout shift. */
+body.modal-open {
   overflow: hidden;
   overscroll-behavior: none;
 }
@@ -1619,6 +1670,9 @@ button.tooltip-wishlist-status:disabled {
   display: flex;
   gap: 10px;
   align-items: center;
+  /* Never wider than the viewport, so a long error wraps instead of
+     overflowing off-screen. */
+  max-width: min(560px, calc(100vw - 32px));
   z-index: var(--z-index-toast);
   opacity: 0;
   pointer-events: none;
@@ -1682,6 +1736,53 @@ button.tooltip-wishlist-status:disabled {
   }
 }
 
+.toast-message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Type accents: green success, red error, gold warning (the default). */
+.toast[data-type='success'] {
+  border-left-color: var(--success);
+}
+.toast[data-type='error'] {
+  border-left-color: var(--danger);
+}
+.toast[data-type='warning'] {
+  border-left-color: var(--accent);
+}
+
+.toast .toast-close {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.toast .toast-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.toast .toast-close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 .toast .toast-action {
   background: var(--accent-soft);
   border: 1px solid rgba(212, 175, 55, 0.4);
@@ -1694,6 +1795,11 @@ button.tooltip-wishlist-status:disabled {
 
 .toast .toast-action:hover {
   background: rgba(212, 175, 55, 0.24);
+}
+
+.toast .toast-action:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 .set-tooltip {
@@ -2387,10 +2493,50 @@ button.tooltip-wishlist-status:disabled {
 }
 
 #no-results-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   text-align: center;
-  padding: 2rem;
-  font-size: 1.2rem;
+  padding: 3.5rem 1.5rem;
   color: var(--muted);
+}
+
+.no-results-icon {
+  width: 44px;
+  height: 44px;
+  color: var(--border-strong);
+  opacity: 0.8;
+}
+
+.no-results-text {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.no-results-clear {
+  padding: 9px 16px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.no-results-clear:hover {
+  background: var(--button-bg-hover);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.no-results-clear:active {
+  transform: translateY(0);
 }
 
 .card-toggle {
@@ -4991,6 +5137,11 @@ body.selection-mode #results {
   color: var(--accent);
 }
 
+.binder-slot-add:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+
 .binder-slot-unknown {
   margin: auto;
   padding: 8px;
@@ -5038,6 +5189,11 @@ body.selection-mode #results {
 .binder-slot-controls button:hover {
   border-color: var(--accent);
   color: var(--accent-strong);
+}
+
+.binder-slot-controls button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 .binder-slot-remove:hover {

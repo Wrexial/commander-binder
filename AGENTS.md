@@ -182,7 +182,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `randomCard`, `keyboardShortcuts`, `installPrompt`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
-  and focus restore — the shared collection-modal chrome/helpers
+  focus restore and a page-scroll lock while any dialog is open — the shared collection-modal chrome/helpers
   `collectionModal.js`, the settings dialog `settingsModal.js` (display mode,
   currency, grid columns/rows, pages per binder, swipe-to-dismiss and the
   preferred-printings reset; the sidebar's “⚙️ Settings” entry opens it), the
@@ -230,7 +230,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   network, and only while it is still loading does the picker fall back to
   Scryfall autocomplete; picking loads the name's printings into `cardStore`),
   `sidebar`, `toast`
-  (swipe-any-direction to dismiss; toggled by the `swipeDismissToast` setting),
+  (type-coloured — `success`/`error`/`warning` — with an explicit dismiss control
+  plus swipe-any-direction to dismiss on touch; the swipe is toggled by the
+  `swipeDismissToast` setting),
   `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
   custom-list UI (`listsModal.js` — create/rename/notes/public/delete, the list's
   member cards with owned/missing status, per-card removal, “add selection”, and
@@ -273,7 +275,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   `fetchNextPage`. `scrollPosition.js` waits for the async grid to grow tall
   enough before restoring the saved offset, and `search.js` re-applies the active
   query via `reapplySearchFilter()` (called by `cardFeed.js` after each page) so
-  later pages stay filtered. `filterBar.js`/`filters.js` add a separate
+  later pages stay filtered. When the active search/filters hide every rendered
+  card, `search.js` fills `#no-results-message` with an actionable empty state
+  (a message plus a “Clear search & filters” button). `filterBar.js`/`filters.js` add a separate
   click-driven filter state that `search.js` ANDs with the parsed query; tiles
   emit a `filter:set` event when their set/colour chip is clicked, which the bar
   applies and persists through the same commit path. `cards.js` supports three

@@ -11,6 +11,16 @@ const FOCUSABLE_SELECTOR = [
 ].join(', ');
 
 /**
+ * Keep the page behind dialogs from scrolling. Driven off the DOM (any backdrop
+ * still marked open) rather than a counter, so dialogs that are removed without
+ * `close()` — tests, or an ancestor wipe — can't leave the lock stuck on.
+ */
+function syncBodyScrollLock() {
+  const anyOpen = document.querySelector('.list-modal-backdrop.is-open') !== null;
+  document.body.classList.toggle('modal-open', anyOpen);
+}
+
+/**
  * Shared modal shell used by the bulk, export and statistics dialogs.
  *
  * Creates the backdrop and dialog elements and wires up the common behaviour:
@@ -59,6 +69,8 @@ export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
   function close() {
     if (closed) return;
     closed = true;
+    backdrop.classList.remove('is-open');
+    syncBodyScrollLock();
     document.removeEventListener('keydown', handleKeyDown);
     backdrop.remove();
     restoreFocus();
@@ -130,6 +142,10 @@ export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
     modal,
     close,
     show: () => {
+      // Stop the page behind the dialog from scrolling (and from scrolling when
+      // a swipe starts on the backdrop). Nested modals both count.
+      backdrop.classList.add('is-open');
+      syncBodyScrollLock();
       backdrop.style.display = 'block';
       (focusable()[0] ?? modal).focus();
     },
