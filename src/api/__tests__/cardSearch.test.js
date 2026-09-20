@@ -21,6 +21,7 @@ import {
   ensurePrintingsLoaded,
   hydrateCardsByIds,
   loadPrintingsForName,
+  loadPrintingsForNames,
   resetCardSearchCache,
 } from '../cardSearch.js';
 import { fetchCardsByIds, fetchPage } from '../scryfall.js';
@@ -83,6 +84,60 @@ describe('ensurePrintingsLoaded', () => {
     await ensurePrintingsLoaded('Solitude');
 
     expect(fetchPage).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('loadPrintingsForNames', () => {
+  it('fetches several names in one batched search', async () => {
+    fetchPage.mockResolvedValue({
+      data: [
+        { id: 'a', name: 'Sol Ring' },
+        { id: 'b', name: 'Arcane Signet' },
+      ],
+      has_more: false,
+    });
+
+    const added = await loadPrintingsForNames(['Sol Ring', 'Arcane Signet']);
+
+    expect(added).toBe(true);
+    expect(fetchPage).toHaveBeenCalledTimes(1);
+    const url = fetchPage.mock.calls[0][0];
+    expect(url).toContain(encodeURIComponent('!"Sol Ring"'));
+    expect(url).toContain(encodeURIComponent('!"Arcane Signet"'));
+    expect(url).toContain('unique=prints');
+    expect(cardStore.add).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips names whose printings are already loaded', async () => {
+    store.cards = [
+      { id: 'a', name: 'Sol Ring' },
+      { id: 'b', name: 'Sol Ring' },
+    ];
+    fetchPage.mockResolvedValue({ data: [], has_more: false });
+
+    expect(await loadPrintingsForNames(['Sol Ring'])).toBe(false);
+    expect(fetchPage).not.toHaveBeenCalled();
+  });
+
+  it('chunks a long list into batches', async () => {
+    const names = Array.from({ length: 25 }, (_, i) => `Card ${i}`);
+    fetchPage.mockResolvedValue({ data: [], has_more: false });
+
+    await loadPrintingsForNames(names);
+
+    // 25 names / batch of 10 => 3 requests rather than 25.
+    expect(fetchPage).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry an attempted batch on the next eager pass', async () => {
+    fetchPage.mockRejectedValue(new Error('429 Too Many Requests'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await loadPrintingsForNames(['Sol Ring']);
+    await loadPrintingsForNames(['Sol Ring']);
+
+    expect(fetchPage).toHaveBeenCalledTimes(1);
+    error.mockRestore();
   });
 });
 

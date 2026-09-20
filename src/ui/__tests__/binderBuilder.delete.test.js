@@ -39,6 +39,7 @@ vi.mock('../components/confirmDialog.js', () => ({
 vi.mock('../../api/cardSearch.js', () => ({
   ensurePrintingsLoaded: vi.fn(),
   hydrateCardsByIds: vi.fn(),
+  loadPrintingsForNames: vi.fn(async () => false),
 }));
 
 import { loadBinders, createBinder, getActiveBinder } from '../../state/bindersState.js';

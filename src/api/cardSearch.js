@@ -24,8 +24,14 @@ const PRINTINGS_URL = (name) =>
 /** How many search pages of printings to follow (175 cards each). */
 const MAX_PRINTING_PAGES = 3;
 
+/** Names per batched printings search (keeps the query URL short). */
+const PRINTINGS_BATCH_SIZE = 10;
+
 /** Names whose full printing list has already been fetched this session. */
 const printingsLoaded = new Set();
+
+/** Names a batched fetch already tried, so the eager pass doesn't retry them. */
+const printingsAttempted = new Set();
 
 /** Scryfall's autocomplete catalog for a partial name (min 2 characters). */
 export async function autocompleteCardNames(query) {
@@ -81,6 +87,76 @@ export async function ensurePrintingsLoaded(name) {
   }
 }
 
+/** Scryfall's exact-name term; its quoted phrase cannot contain a quote. */
+function exactNameTerm(name) {
+  return `!"${name.replace(/"/g, '')}"`;
+}
+
+/** A `unique=prints` search URL for a batch of exact names, oldest first. */
+function batchPrintingsUrl(names) {
+  const query = `(${names.map(exactNameTerm).join(' or ')})`;
+  return `https://api.scryfall.com/cards/search?q=${encodeURIComponent(
+    query
+  )}&unique=prints&order=released&dir=asc`;
+}
+
+/** True when a name's printing list still needs fetching (eager path only). */
+function needsPrintings(name) {
+  return (
+    !printingsLoaded.has(name) &&
+    !printingsAttempted.has(name) &&
+    cardStore.getPrintings(name).length <= 1
+  );
+}
+
+/** Fetch and store one batch of printings; mark the names as loaded. */
+async function loadPrintingsBatch(batch) {
+  let url = batchPrintingsUrl(batch);
+  let added = false;
+  for (let page = 0; page < MAX_PRINTING_PAGES && url; page++) {
+    const data = await fetchPage(url);
+    if (Array.isArray(data?.data)) {
+      for (const card of data.data) {
+        cardStore.add(card);
+        added = true;
+      }
+    }
+    url = data?.has_more ? data.next_page : null;
+  }
+  for (const name of batch) printingsLoaded.add(name);
+  return added;
+}
+
+/**
+ * Fetch the printing list for several names in as few requests as possible.
+ * Scryfall has no batch printings endpoint, so the names are OR-ed into one
+ * `unique=prints` search and paged through — so a binder page costs a request or
+ * two instead of one `/cards/search` per pocket, which was tripping Scryfall's
+ * rate limit.
+ *
+ * @param {Iterable<string>} names
+ * @returns {Promise<boolean>} true when any printings were added
+ */
+export async function loadPrintingsForNames(names) {
+  const pending = [...new Set([...(names || [])].map((name) => String(name || '').trim()))].filter(
+    (name) => name && needsPrintings(name)
+  );
+  if (pending.length === 0) return false;
+
+  let added = false;
+  for (let i = 0; i < pending.length; i += PRINTINGS_BATCH_SIZE) {
+    const batch = pending.slice(i, i + PRINTINGS_BATCH_SIZE);
+    try {
+      added = (await loadPrintingsBatch(batch)) || added;
+    } catch (err) {
+      console.error('Failed to load printings:', err);
+      // Don't retry the same batch on every render; the picker can still retry.
+      for (const name of batch) printingsAttempted.add(name);
+    }
+  }
+  return added;
+}
+
 /**
  * Fetch specific printings by id (batched) and add them to `cardStore`.
  * @param {string[]} ids
@@ -110,4 +186,5 @@ export async function hydrateCardsByIds(ids) {
 /** Forget which printing lists have been fetched (tests). */
 export function resetCardSearchCache() {
   printingsLoaded.clear();
+  printingsAttempted.clear();
 }

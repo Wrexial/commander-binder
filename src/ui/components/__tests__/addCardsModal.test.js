@@ -32,6 +32,7 @@ vi.mock('../../../state/cardCatalog.js', () => ({
 vi.mock('../../../api/cardSearch.js', () => ({
   hydrateCardsByIds: vi.fn(async () => []),
   loadPrintingsForName: vi.fn(async () => []),
+  loadPrintingsForNames: vi.fn(async () => false),
 }));
 
 import { createAddCardsModal } from '../addCardsModal.js';
@@ -42,7 +43,7 @@ import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
 import { addCardsToList, isInList } from '../../../state/listsState.js';
 import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
 import { getCatalogNames } from '../../../state/cardCatalog.js';
-import { hydrateCardsByIds, loadPrintingsForName } from '../../../api/cardSearch.js';
+import { hydrateCardsByIds, loadPrintingsForNames } from '../../../api/cardSearch.js';
 import { showToast } from '../toast.js';
 
 const solRing = { id: 'id-sol', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
@@ -89,7 +90,7 @@ beforeEach(() => {
   getCatalogNames.mockReturnValue([]);
   hydrateCardsByIds.mockResolvedValue([]);
   isCardCatalogLoaded.mockReturnValue(true);
-  loadPrintingsForName.mockResolvedValue([]);
+  loadPrintingsForNames.mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -129,10 +130,10 @@ describe('addCardsModal', () => {
     cardStore.getAll.mockReturnValue([]);
     cardStore.getPrintings.mockReturnValue([]);
     const live = { id: 'id-live', name: 'Live Card' };
-    loadPrintingsForName.mockImplementation(async () => {
+    loadPrintingsForNames.mockImplementation(async () => {
       cardStore.getAll.mockReturnValue([live]);
       cardStore.getPrintings.mockReturnValue([live]);
-      return [live];
+      return true;
     });
 
     createAddCardsModal().show();
@@ -140,7 +141,7 @@ describe('addCardsModal', () => {
     textArea().dispatchEvent(new Event('input'));
     await vi.advanceTimersByTimeAsync(300);
 
-    expect(loadPrintingsForName).toHaveBeenCalledWith('Live Card');
+    expect(loadPrintingsForNames).toHaveBeenCalledWith(['Live Card']);
     expect(chipTexts()[0]).toBe('Will add 1');
   });
 

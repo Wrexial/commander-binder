@@ -30,6 +30,7 @@ vi.mock('../../../state/cardCatalog.js', () => ({
 vi.mock('../../../api/cardSearch.js', () => ({
   hydrateCardsByIds: vi.fn(async () => []),
   loadPrintingsForName: vi.fn(async () => []),
+  loadPrintingsForNames: vi.fn(async () => false),
 }));
 
 vi.mock('../../../state/cardStore.js', () => ({

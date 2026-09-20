@@ -7,7 +7,7 @@
  */
 import { cardStore, primaryName } from '../../state/cardStore.js';
 import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../state/cardCatalog.js';
-import { hydrateCardsByIds, loadPrintingsForName } from '../../api/cardSearch.js';
+import { hydrateCardsByIds, loadPrintingsForNames } from '../../api/cardSearch.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { normalizeName } from './collectionModal.js';
 
@@ -118,13 +118,10 @@ export async function resolveMissingCards({ text, nameIndex, printingIndex, atte
 
   const before = cardStore.getAll().length;
   if (ids.size > 0) await hydrateCardsByIds([...ids]);
-  for (const name of namesToLoad) {
-    attemptedNames.add(name);
-    try {
-      await loadPrintingsForName(name);
-    } catch (err) {
-      console.error('Failed to load printings for', name, err);
-    }
+  if (namesToLoad.size > 0) {
+    // One batched search for every unresolved name, not one per name.
+    for (const name of namesToLoad) attemptedNames.add(name);
+    await loadPrintingsForNames([...namesToLoad]);
   }
 
   const changed = cardStore.getAll().length > before;

@@ -69,6 +69,7 @@ vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
 vi.mock('../../api/cardSearch.js', () => ({
   hydrateCardsByIds: vi.fn(async () => []),
   ensurePrintingsLoaded: vi.fn(async () => undefined),
+  loadPrintingsForNames: vi.fn(async () => false),
 }));
 
 vi.mock('../../api/binders.js', () => ({

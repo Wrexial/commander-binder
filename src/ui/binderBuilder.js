@@ -38,7 +38,11 @@ import { showToast } from './components/toast.js';
 import { createCardPickerModal } from './components/cardPickerModal.js';
 import { createPrintingPickerModal } from './components/printingPickerModal.js';
 import { confirmDialog } from './components/confirmDialog.js';
-import { ensurePrintingsLoaded, hydrateCardsByIds } from '../api/cardSearch.js';
+import {
+  ensurePrintingsLoaded,
+  hydrateCardsByIds,
+  loadPrintingsForNames,
+} from '../api/cardSearch.js';
 import { withLoading } from './loadingIndicator.js';
 import { resolveCatalogName } from '../state/cardCatalog.js';
 
@@ -521,7 +525,12 @@ async function hydrateVisibleCards() {
     const card = cardStore.getByPrintingId(id);
     if (card) names.add(card.name);
   }
-  for (const name of names) await ensurePrintingsLoaded(name);
+  if (names.size > 0) {
+    // One batched lookup for the whole page, so the version badges fill in
+    // without a `/cards/search` per pocket.
+    const loaded = await withLoading('Loading printings…', () => loadPrintingsForNames(names));
+    if (loaded) render();
+  }
 }
 
 /** Kick off a hydration pass, coalescing concurrent calls. */
