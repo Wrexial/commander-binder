@@ -30,6 +30,51 @@ export function cheapestPrinting(printings) {
   return orderPrintingsByPrice(printings)[0] ?? null;
 }
 
+/** The oldest printing (earliest release date), or `null` when empty. */
+export function oldestPrinting(printings) {
+  return (printings || []).reduce(
+    (oldest, card) => (!oldest || releaseKey(card) < releaseKey(oldest) ? card : oldest),
+    null
+  );
+}
+
+/** The most expensive priced printing in the selected currency, or `null`. */
+export function mostExpensivePrinting(printings) {
+  let best = null;
+  let bestPrice = null;
+  for (const card of printings || []) {
+    const price = getDisplayedPrice(card);
+    if (price == null) continue;
+    if (bestPrice == null || price > bestPrice) {
+      best = card;
+      bestPrice = price;
+    }
+  }
+  return best;
+}
+
+/** The cheapest full-art printing, or `null` when the card has none. */
+export function fullArtPrinting(printings) {
+  return cheapestPrinting((printings || []).filter((card) => card?.full_art === true));
+}
+
+/**
+ * Pick the printing a "default printing" mode shows. A mode with no match (no
+ * price data, no full-art version) falls back to the oldest printing so the
+ * tile always shows something sensible.
+ *
+ * @param {object[]} printings
+ * @param {'oldest'|'cheapest'|'most-expensive'|'full-art'} mode
+ * @returns {object|null}
+ */
+export function selectPrinting(printings, mode) {
+  const list = printings || [];
+  if (mode === 'cheapest') return cheapestPrinting(list) ?? oldestPrinting(list);
+  if (mode === 'most-expensive') return mostExpensivePrinting(list) ?? oldestPrinting(list);
+  if (mode === 'full-art') return fullArtPrinting(list) ?? oldestPrinting(list);
+  return oldestPrinting(list);
+}
+
 /**
  * The next (or previous) printing to show when cycling a tile, statistics row or
  * the modal preview, wrapping around. Returns `null` when the card has no other

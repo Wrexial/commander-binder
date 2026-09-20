@@ -109,4 +109,25 @@ describe('preferredPrintings', () => {
     ).not.toThrow();
     expect(preferredPrintings.getPreferredPrintings()).toEqual({ Card: 'a' });
   });
+
+  it('resolves the configured default-printing mode when nothing is pinned', async () => {
+    const { cardStore, preferredPrintings } = await setup();
+    const { setSetting } = await import('../cardSettings.js');
+
+    const old = { id: 'old', name: 'Card', released_at: '1993-08-05', prices: { eur: '10.00' } };
+    const cheap = { id: 'cheap', name: 'Card', released_at: '2020-01-01', prices: { eur: '2.00' } };
+    cardStore.add(old);
+    cardStore.add(cheap);
+
+    // The default is the oldest printing, so the art matches the release-ordered
+    // feed (and its year).
+    expect(preferredPrintings.resolveDisplayPrinting('Card')).toBe(old);
+
+    setSetting('defaultPrinting', 'cheapest');
+    expect(preferredPrintings.resolveDisplayPrinting('Card')).toBe(cheap);
+
+    // A pinned printing still wins over the mode.
+    preferredPrintings.rememberPreferredPrinting(old);
+    expect(preferredPrintings.resolveDisplayPrinting('Card')).toBe(old);
+  });
 });

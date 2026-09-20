@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { nextPrinting, orderPrintingsByPrice, cheapestPrinting } from '../printings.js';
+import {
+  nextPrinting,
+  orderPrintingsByPrice,
+  cheapestPrinting,
+  oldestPrinting,
+  mostExpensivePrinting,
+  fullArtPrinting,
+  selectPrinting,
+} from '../printings.js';
 
 const a = { id: 'a' };
 const b = { id: 'b' };
@@ -72,5 +80,80 @@ describe('cheapestPrinting', () => {
 
   it('returns null for an empty list', () => {
     expect(cheapestPrinting([])).toBeNull();
+  });
+});
+
+describe('oldestPrinting', () => {
+  it('returns the earliest-released printing', () => {
+    const old = { id: 'old', released_at: '1993-08-05' };
+    const newer = { id: 'newer', released_at: '2020-01-01' };
+    expect(oldestPrinting([newer, old])).toBe(old);
+  });
+
+  it('returns null for an empty or missing list', () => {
+    expect(oldestPrinting([])).toBeNull();
+    expect(oldestPrinting(null)).toBeNull();
+  });
+});
+
+describe('mostExpensivePrinting', () => {
+  it('returns the priciest priced printing', () => {
+    const cheap = { id: 'cheap', prices: { eur: '2.00' } };
+    const pricey = { id: 'pricey', prices: { eur: '30.00' } };
+    expect(mostExpensivePrinting([cheap, pricey])).toBe(pricey);
+  });
+
+  it('ignores unpriced printings and returns null when none are priced', () => {
+    expect(mostExpensivePrinting([{ id: 'x', prices: {} }])).toBeNull();
+  });
+});
+
+describe('fullArtPrinting', () => {
+  it('returns the cheapest full-art printing', () => {
+    const plain = { id: 'plain', full_art: false, prices: { eur: '1.00' } };
+    const fullCheap = { id: 'full-cheap', full_art: true, prices: { eur: '3.00' } };
+    const fullPricey = { id: 'full-pricey', full_art: true, prices: { eur: '8.00' } };
+    expect(fullArtPrinting([plain, fullPricey, fullCheap])).toBe(fullCheap);
+  });
+
+  it('returns null when the card has no full-art printing', () => {
+    expect(fullArtPrinting([{ id: 'plain', full_art: false }])).toBeNull();
+  });
+});
+
+describe('selectPrinting', () => {
+  const old = { id: 'old', released_at: '1993-08-05', full_art: false, prices: { eur: '10.00' } };
+  const cheapNew = {
+    id: 'cheap-new',
+    released_at: '2020-01-01',
+    full_art: true,
+    prices: { eur: '2.00' },
+  };
+  const priceyNew = {
+    id: 'pricey-new',
+    released_at: '2021-01-01',
+    full_art: false,
+    prices: { eur: '40.00' },
+  };
+  const list = [old, cheapNew, priceyNew];
+
+  it('defaults to the oldest printing', () => {
+    expect(selectPrinting(list, 'oldest')).toBe(old);
+    expect(selectPrinting(list, undefined)).toBe(old);
+  });
+
+  it('selects by mode', () => {
+    expect(selectPrinting(list, 'cheapest')).toBe(cheapNew);
+    expect(selectPrinting(list, 'most-expensive')).toBe(priceyNew);
+    expect(selectPrinting(list, 'full-art')).toBe(cheapNew);
+  });
+
+  it('falls back to the oldest printing when a mode has no match', () => {
+    const unpricedPlain = [
+      { id: 'a', released_at: '1993-08-05', full_art: false, prices: {} },
+      { id: 'b', released_at: '2020-01-01', full_art: false, prices: {} },
+    ];
+    expect(selectPrinting(unpricedPlain, 'most-expensive')).toBe(unpricedPlain[0]);
+    expect(selectPrinting(unpricedPlain, 'full-art')).toBe(unpricedPlain[0]);
   });
 });

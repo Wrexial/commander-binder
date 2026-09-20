@@ -6,6 +6,8 @@
  * paint all go through the same code path.
  */
 import { getSetting } from '../state/cardSettings.js';
+import { filters } from '../state/filters.js';
+import { isDefaultSort } from '../utils/sortCards.js';
 import { applyDisplayMode, applyPreferredPrintings, updateCardStyles } from './cards.js';
 import { refreshGridLayout } from './cardFeed.js';
 import { DEFAULT_GRID_COLUMNS, DEFAULT_GRID_ROWS } from '../config/constants.js';
@@ -55,6 +57,16 @@ export function handleDisplayModeChange(value) {
   document.body.classList.toggle('images-mode', value === 'images');
   document.body.classList.toggle('list-mode', value === 'list');
   applyDisplayMode();
+}
+
+/**
+ * Re-resolve the art each tile shows after the default-printing mode changed.
+ * The chronological feed only needs the tiles repainted; a sorted grid rebuilds
+ * because its order depends on the shown printing (e.g. price).
+ */
+export function applyDefaultPrintingChange() {
+  applyPreferredPrintings();
+  if (!isDefaultSort(filters.sort)) refreshGridLayout();
 }
 
 /**

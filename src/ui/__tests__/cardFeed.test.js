@@ -108,6 +108,10 @@ describe('fetchNextPage', () => {
     appState.binder.totalCards = 0;
     appState.binder.ownedCards = 0;
     appState.grid = document.createElement('div');
+    cardSettings.defaultPrinting = 'oldest';
+    cardStore.getPrintings.mockReturnValue([]);
+    cardStore.getOldestPrinting.mockReturnValue(undefined);
+    cardStore.getAll.mockReturnValue([]);
   });
 
   it('fetches only one page when the first page already fills a section', async () => {
@@ -154,6 +158,47 @@ describe('fetchNextPage', () => {
     expect(section.dataset.mark).toBe('2024');
     expect(section.dataset.markSets).toBe('TST');
     layout.startNewSection.mockImplementation(() => {});
+  });
+
+  it('stamps the oldest printing, not a reprint, so the scrubber year is right', async () => {
+    // The tile resolves to the cheapest printing, but the feed is ordered by a
+    // card's first appearance, so the year/set metadata must come from the
+    // oldest printing.
+    cardSettings.defaultPrinting = 'cheapest';
+    const old = {
+      id: 'dup-old',
+      name: 'Dup',
+      set: 'old',
+      set_name: 'Old Set',
+      released_at: '1993-08-05',
+      games: ['paper'],
+      prices: { eur: '10.00' },
+    };
+    const reprint = {
+      id: 'dup-new',
+      name: 'Dup',
+      set: 'new',
+      set_name: 'New Set',
+      released_at: '2024-01-01',
+      games: ['paper'],
+      prices: { eur: '2.00' },
+    };
+    global.fetch.mockResolvedValue(
+      jsonResponse({ has_more: false, next_page: null, data: [old, reprint] })
+    );
+    cardStore.getPrintings.mockReturnValue([old, reprint]);
+    cardStore.getOldestPrinting.mockReturnValue(old);
+
+    const section = document.createElement('div');
+    layout.startNewSection.mockImplementation(() => {
+      appState.section = section;
+    });
+
+    await fetchNextPage(null, null);
+
+    expect(cards.createCardElement).toHaveBeenCalledWith(reprint, expect.any(Number));
+    expect(section.dataset.mark).toBe('1993');
+    expect(section.dataset.markSets).toBe('OLD');
   });
 
   it('keeps fetching while pages yield too few new cards, then stops', async () => {

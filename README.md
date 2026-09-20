@@ -47,6 +47,9 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   through.
 - **Three tile layouts** — full artwork, text tiles, or a compact list with inline ownership
   toggles, for marking a whole page quickly.
+- **Choose the printing** — every card can show its **oldest** (default), cheapest, priciest or
+  a full-art version, set under Settings → Default printing; picking a specific printing on a
+  card pins it to that card.
 - **Add & bulk check** — type names (with autocomplete), paste a list, or import a CSV / Moxfield
   / Archidekt file to mark many cards owned at once. Bulk Check reports where each pasted
   name lives — collection, wishlist, lists and binders.

@@ -38,6 +38,7 @@ import { updateAllCardStates } from '../cards.js';
 import { appState } from '../../state/appState.js';
 import { showTooltip } from '../tooltip.js';
 import { getHistory, recordSnapshot, resetHistory } from '../../state/collectionHistory.js';
+import { setSetting } from '../../state/cardSettings.js';
 
 function makeCard(overrides = {}) {
   return {
@@ -62,6 +63,7 @@ beforeEach(() => {
   appState.isViewOnlyMode = false;
   showTooltip.mockClear();
   resetHistory();
+  setSetting('defaultPrinting', 'oldest');
 });
 
 describe('calculateStatistics', () => {
@@ -142,12 +144,35 @@ describe('calculateStatistics', () => {
     expect(stats.medianManaValue).toBe(3);
   });
 
-  it('values cards by their cheapest available printing', () => {
+  it('values cards by the printing the grid shows (oldest by default)', () => {
+    cardStore.getPrintings.mockImplementation((name) =>
+      name === 'Dated'
+        ? [
+            { released_at: '1993-08-05', prices: { eur: '10.00' } },
+            { released_at: '2020-01-01', prices: { eur: '5.00' } },
+          ]
+        : []
+    );
+
+    const stats = calculateStatistics([
+      makeCard({ name: 'Dated' }),
+      makeCard({ name: 'Unpriced' }),
+    ]);
+
+    expect(stats.totalValue).toBe(10);
+    expect(stats.averageCardValue).toBe(5);
+    expect(stats.medianCardValue).toBe(10);
+    expect(stats.top5ValuableCards).toHaveLength(1);
+    expect(stats.top5ValuableCards[0]).toMatchObject({ name: 'Dated', price: 10 });
+  });
+
+  it('values cards by their cheapest printing when that mode is selected', () => {
+    setSetting('defaultPrinting', 'cheapest');
     cardStore.getPrintings.mockImplementation((name) =>
       name === 'Cheap'
         ? [
-            { prices: { eur: '10.00', eur_foil: '20.00' } },
-            { prices: { eur: '5.00', eur_foil: null } },
+            { released_at: '1993-08-05', prices: { eur: '10.00' } },
+            { released_at: '2020-01-01', prices: { eur: '5.00' } },
           ]
         : []
     );
@@ -158,9 +183,6 @@ describe('calculateStatistics', () => {
     ]);
 
     expect(stats.totalValue).toBe(5);
-    expect(stats.averageCardValue).toBe(2.5);
-    expect(stats.medianCardValue).toBe(5);
-    expect(stats.top5ValuableCards).toHaveLength(1);
     expect(stats.top5ValuableCards[0]).toMatchObject({ name: 'Cheap', price: 5 });
   });
 
@@ -608,6 +630,9 @@ describe('showStatisticsModal', () => {
   });
 
   it('attaches the card tooltip to the most valuable cards', () => {
+    // These printings differ only by price, so use the cheapest mode to keep the
+    // "starts on the shown printing" assertion meaningful.
+    setSetting('defaultPrinting', 'cheapest');
     document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
     const card = makeCard({
       id: 'printing-1',

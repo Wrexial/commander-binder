@@ -197,15 +197,17 @@ new key there too.
   collection totals (owned/total/value/sets completed, capped to ~90 days in
   `localStorage`) that powers the statistics modal's "Progress" section.
   `cardSettings.js` holds the display mode, the price currency
-  (EUR/USD/TIX), the grid dimensions (`gridColumns` x `gridRows` = cards per
-  page), the pages-per-binder capacity, the swipe-to-dismiss flag and the
+  (EUR/USD/TIX), the default printing mode (`oldest` by default), the grid
+  dimensions (`gridColumns` x `gridRows` = cards per page), the
+  pages-per-binder capacity, the swipe-to-dismiss flag and the
   preferred-printing map; the
   currency is read by `utils/priceFields.js` so tiles, the filter bar, search,
   sort and statistics all agree on one unit. `getCardsPerPage()`/`getPagesPerBinder()`
   derive the live page and binder sizes from those settings, so `cardFeed.js`,
   `layout.js`, `cards.js` and the bulk-source pager follow a change immediately.
   `preferredPrintings.js` resolves
-  the printing a tile shows: the saved pick, else the cheapest printing.
+  the printing a tile shows: the saved pick, else the `defaultPrinting`
+  setting (`oldest` by default, or `cheapest` / `most-expensive` / `full-art`).
 - `src/ui/` — DOM rendering and interactions (`layout`, `cards`, `search`,
   `searchHelp`, `settingsUI`, `statistics`, `lazyCardLoader`, `loadingIndicator`,
   `tooltip`, `cardInteractions`, `bulkEdit`, `yearScrubber`, `scrollPosition`,
@@ -311,7 +313,7 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   Creature Types, and Set Completion and Wishlist Targets each render as a
   labelled row under a single heading. Money
   metrics value each card at its `resolveDisplayPrinting` printing (the pinned
-  or cheapest one) on the grid, so the totals match the tile prices.
+  or default-mode one) on the grid, so the totals match the tile prices.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart. `is:wanted`
   reads the wishlist and `is:new` matches cards added to either collection in the
@@ -321,7 +323,10 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   `yearScrubber.js` builds the draggable rail from one mark per _visible_
   section (the section's first visible card, labelled by the active sort —
   release year + sets in the default order, or letter/price/rarity/colour
-  identity), so the readout's sets follow the page under the thumb. Ticks and
+  identity), so the readout's sets follow the page under the thumb. In the
+  default order the year/sets come from each card's _oldest_ printing, so a
+  cheap reprint can't shift a card's apparent year even when the tile shows a
+  different version. Ticks and
   keyboard steps use `labelMarks()` (one per run of the same label). `search.js`
   dispatches a `cards:filtered` event after each filter pass so the marks follow
   filtering; the section `data-mark`/`data-markSets` stamps are the fallback when
@@ -364,7 +369,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   ordering: `orderPrintingsByPrice`/`cheapestPrinting` sort by the selected
   currency (unpriced printings last, release date breaks ties), so the version
   badge's “1” and the printing picker's order always lead with the cheapest
-  version.
+  version; it also exposes `oldestPrinting`/`mostExpensivePrinting`/
+  `fullArtPrinting` and the `selectPrinting(printings, mode)` that backs the
+  `defaultPrinting` setting.
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;

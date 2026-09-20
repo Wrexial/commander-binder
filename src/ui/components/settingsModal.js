@@ -18,7 +18,12 @@ import {
   MIN_PAGES_PER_BINDER,
 } from '../../state/cardSettings.js';
 import { resetPreferredPrintings } from '../../state/preferredPrintings.js';
-import { applyCurrencyChange, applyGridSettings, handleDisplayModeChange } from '../settingsUI.js';
+import {
+  applyCurrencyChange,
+  applyDefaultPrintingChange,
+  applyGridSettings,
+  handleDisplayModeChange,
+} from '../settingsUI.js';
 import { applyPreferredPrintings } from '../cards.js';
 import { CURRENCY_OPTIONS, getCurrency } from '../../utils/prices.js';
 import { showToast } from './toast.js';
@@ -29,6 +34,14 @@ const DISPLAY_MODE_OPTIONS = [
   { value: 'images', label: 'Images' },
   { value: 'text', label: 'Text only' },
   { value: 'list', label: 'List' },
+];
+
+/** Printings a card can default to when the user has not pinned one. */
+const DEFAULT_PRINTING_OPTIONS = [
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'cheapest', label: 'Cheapest' },
+  { value: 'most-expensive', label: 'Most expensive' },
+  { value: 'full-art', label: 'Full art' },
 ];
 
 /** A titled block of related settings. */
@@ -93,6 +106,66 @@ function createSelectRow({ label, hint, ariaLabel, options, value, onChange }) {
   });
 
   row.append(text, select);
+  return row;
+}
+
+/**
+ * A label + segmented-button row for a small set of mutually exclusive choices.
+ *
+ * @param {object} config
+ * @param {string} config.label
+ * @param {string} [config.hint]
+ * @param {string} config.ariaLabel
+ * @param {{value: string, label: string}[]} config.options
+ * @param {string} config.value
+ * @param {(value: string) => void} config.onChange
+ * @returns {HTMLElement}
+ */
+function createSegmentedRow({ label, hint, ariaLabel, options, value, onChange }) {
+  const row = document.createElement('div');
+  row.className = 'settings-row settings-row-segmented';
+
+  const text = document.createElement('span');
+  text.className = 'settings-row-text';
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'settings-row-label';
+  labelEl.textContent = label;
+  text.appendChild(labelEl);
+
+  if (hint) {
+    const hintEl = document.createElement('span');
+    hintEl.className = 'settings-row-hint';
+    hintEl.textContent = hint;
+    text.appendChild(hintEl);
+  }
+
+  const group = document.createElement('div');
+  group.className = 'settings-segmented';
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', ariaLabel);
+
+  let current = value;
+  const buttons = new Map();
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'settings-segment';
+    button.textContent = option.label;
+    button.setAttribute('aria-pressed', String(option.value === current));
+    button.addEventListener('click', () => {
+      if (option.value === current) return;
+      current = option.value;
+      for (const [optionValue, el] of buttons) {
+        el.setAttribute('aria-pressed', String(optionValue === current));
+      }
+      onChange(current);
+    });
+    group.appendChild(button);
+    buttons.set(option.value, button);
+  }
+
+  row.append(text, group);
   return row;
 }
 
@@ -269,6 +342,20 @@ export function createSettingsModal() {
       onChange: (value) => {
         setSetting('currency', value);
         applyCurrencyChange();
+      },
+    })
+  );
+
+  displayGroup.appendChild(
+    createSegmentedRow({
+      label: 'Default printing',
+      hint: 'Which version to show when you have not picked one.',
+      ariaLabel: 'Default printing',
+      options: DEFAULT_PRINTING_OPTIONS,
+      value: getSetting('defaultPrinting'),
+      onChange: (value) => {
+        setSetting('defaultPrinting', value);
+        applyDefaultPrintingChange();
       },
     })
   );

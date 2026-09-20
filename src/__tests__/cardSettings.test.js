@@ -53,6 +53,7 @@ describe('cardSettings', () => {
       JSON.stringify({
         displayMode: 'list',
         currency: 'eur',
+        defaultPrinting: 'oldest',
         swipeDismissToast: true,
         gridColumns: 5,
         gridRows: 4,
@@ -73,6 +74,7 @@ describe('cardSettings', () => {
       JSON.stringify({
         displayMode: 'list',
         currency: 'eur',
+        defaultPrinting: 'oldest',
         swipeDismissToast: true,
         gridColumns: 5,
         gridRows: 4,
@@ -195,5 +197,15 @@ describe('cardSettings', () => {
     unsubscribe();
     setSetting('displayMode', 'images');
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts only known default-printing modes', async () => {
+    const { cardSettings, applySettings } = await import('../state/cardSettings.js');
+
+    expect(applySettings({ defaultPrinting: 'cheapest' })).toBe(true);
+    expect(cardSettings.defaultPrinting).toBe('cheapest');
+
+    expect(applySettings({ defaultPrinting: 'bogus' })).toBe(false);
+    expect(cardSettings.defaultPrinting).toBe('cheapest');
   });
 });

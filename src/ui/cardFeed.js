@@ -188,12 +188,17 @@ function renderPage(results, tooltip, pageCards) {
   const chronological = isDefaultSort(filters.sort);
 
   const pageSets = new Map();
-  pageCards.forEach((c) =>
-    pageSets.set(c.set, {
-      name: c.set_name,
-      date: c.released_at,
-    })
-  );
+  pageCards.forEach((c) => {
+    // The feed is ordered by a card's first appearance, so the scrubber year
+    // and the set tags must read the *oldest* printing even when the tile shows
+    // another one (cheapest / full-art / a pinned version). Otherwise a cheap
+    // reprint shifts the card's apparent year.
+    const first = cardStore.getOldestPrinting(primaryName(c)) || c;
+    pageSets.set(first.set, {
+      name: first.set_name,
+      date: first.released_at,
+    });
+  });
 
   startNewSection(pageSets, { showSets: chronological });
 

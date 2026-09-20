@@ -5079,6 +5079,48 @@ body.selection-mode #results {
   color: var(--muted);
 }
 
+/* A small set of mutually exclusive choices as wrapping pills (see
+   `createSegmentedRow`), matching the canonical active-pill treatment. */
+.settings-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.settings-segment {
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.settings-segment:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.settings-segment[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.settings-segment:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+
 .settings-select {
   flex: 0 0 auto;
   min-width: 96px;

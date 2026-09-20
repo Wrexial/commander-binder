@@ -5,6 +5,7 @@ import { getSetting, setSetting } from '../../../state/cardSettings.js';
 import { resetPreferredPrintings } from '../../../state/preferredPrintings.js';
 import {
   applyCurrencyChange,
+  applyDefaultPrintingChange,
   applyGridSettings,
   handleDisplayModeChange,
 } from '../../settingsUI.js';
@@ -24,6 +25,7 @@ vi.mock('../../../state/preferredPrintings.js', () => ({
 
 vi.mock('../../settingsUI.js', () => ({
   applyCurrencyChange: vi.fn(),
+  applyDefaultPrintingChange: vi.fn(),
   applyGridSettings: vi.fn(),
   handleDisplayModeChange: vi.fn(),
 }));
@@ -48,6 +50,7 @@ vi.mock('../toast.js', () => ({
 const values = {
   displayMode: 'images',
   currency: 'eur',
+  defaultPrinting: 'oldest',
   swipeDismissToast: true,
   gridColumns: 5,
   gridRows: 4,
@@ -58,6 +61,7 @@ function resetValues() {
   Object.assign(values, {
     displayMode: 'images',
     currency: 'eur',
+    defaultPrinting: 'oldest',
     swipeDismissToast: true,
     gridColumns: 5,
     gridRows: 4,
@@ -233,5 +237,32 @@ describe('settingsModal', () => {
     createSettingsModal().show();
     const { violations, summary } = await analyzeA11y(document.body);
     expect(violations.length, summary).toBe(0);
+  });
+
+  it('lets the user pick the default printing', () => {
+    createSettingsModal();
+
+    const group = document.querySelector('[aria-label="Default printing"]');
+    const buttons = [...group.querySelectorAll('button')];
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      'Oldest',
+      'Cheapest',
+      'Most expensive',
+      'Full art',
+    ]);
+    expect(
+      buttons.find((button) => button.textContent === 'Oldest').getAttribute('aria-pressed')
+    ).toBe('true');
+
+    buttons.find((button) => button.textContent === 'Cheapest').click();
+
+    expect(setSetting).toHaveBeenCalledWith('defaultPrinting', 'cheapest');
+    expect(applyDefaultPrintingChange).toHaveBeenCalledTimes(1);
+    expect(
+      buttons.find((button) => button.textContent === 'Cheapest').getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(
+      buttons.find((button) => button.textContent === 'Oldest').getAttribute('aria-pressed')
+    ).toBe('false');
   });
 });

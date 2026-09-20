@@ -28,6 +28,11 @@ const DEFAULT_SETTINGS = {
   // Price currency shown on tiles, in statistics and used by the price filter:
   // 'eur' | 'usd' | 'tix' (MTGO tickets).
   currency: 'eur',
+  // Which printing a card shows when the user hasn't pinned one:
+  // 'oldest' | 'cheapest' | 'most-expensive' | 'full-art'. 'oldest' is the
+  // default so a tile's art matches the release-ordered feed (and the year
+  // scrubber), instead of a cheap reprint shifting the card's apparent year.
+  defaultPrinting: 'oldest',
   // Swipe any direction on a toast (e.g. the undo prompt) to dismiss it early.
   swipeDismissToast: true,
   // Card-grid dimensions. One page (a section) shows `gridColumns` x
@@ -48,6 +53,11 @@ const isIntegerInRange = (value, min, max) =>
 const SETTING_VALIDATORS = {
   displayMode: (value) => value === 'images' || value === 'text' || value === 'list',
   currency: (value) => value === 'eur' || value === 'usd' || value === 'tix',
+  defaultPrinting: (value) =>
+    value === 'oldest' ||
+    value === 'cheapest' ||
+    value === 'most-expensive' ||
+    value === 'full-art',
   swipeDismissToast: (value) => typeof value === 'boolean',
   gridColumns: (value) => isIntegerInRange(value, MIN_GRID_COLUMNS, MAX_GRID_COLUMNS),
   gridRows: (value) => isIntegerInRange(value, MIN_GRID_ROWS, MAX_GRID_ROWS),
