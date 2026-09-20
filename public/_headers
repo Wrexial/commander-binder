@@ -1,9 +1,10 @@
 # Security & caching headers for the Netlify deploy.
 #
-# The CSP is enforced. It allowlists Clerk (auth + bot protection), Scryfall's
-# API and image/bulk CDNs, and the self-hosted Google Fonts. If a future Clerk
-# or CDN change starts getting blocked, temporarily rename the key back to
-# `Content-Security-Policy-Report-Only` to debug without breaking the page.
+# The CSP is enforced. It allowlists Clerk (auth + bot protection + telemetry),
+# Scryfall's API and image/bulk CDNs, and the self-hosted Google Fonts. If a
+# future Clerk or CDN change starts getting blocked, temporarily rename the key
+# back to `Content-Security-Policy-Report-Only` to debug without breaking the
+# page.
 
 # Vite emits content-hashed filenames, so these can be cached forever.
 /assets/*
@@ -28,4 +29,4 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   # OAuth popups need the opener to survive the cross-origin hop.
   Cross-Origin-Opener-Policy: same-origin-allow-popups
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://cards.scryfall.io https://*.scryfall.io https://clerk.com https://*.clerk.com https://img.clerk.com; connect-src 'self' https://api.scryfall.com https://*.scryfall.io https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev; manifest-src 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://cards.scryfall.io https://*.scryfall.io https://clerk.com https://*.clerk.com https://img.clerk.com; connect-src 'self' https://api.scryfall.com https://*.scryfall.io https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://clerk-telemetry.com https://challenges.cloudflare.com; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev; manifest-src 'self'; upgrade-insecure-requests
