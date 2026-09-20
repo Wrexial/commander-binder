@@ -65,11 +65,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `#binder-root` exists) and the collection elsewhere. Each page calls
   `bootShell()` and then mounts its own
   main content (`main.js` = the search/browse grid, `binderMain.js` = the Binder
-  Builder).
+  Builder). Browse-grid-only tools ("Surprise Me", "Recent Additions") are
+  omitted on the Binder Builder page, where they have nothing to operate on.
 - `src/binderMain.js` + `binder.html` — the separate Binder Builder page. It
   reuses the shell and renders the editor into `#binder-root`. A binder can hold
   any card, so the picker searches Scryfall live and the editor hydrates only the
-  pockets it renders (see `src/api/cardSearch.js`). The legendary-creature bulk
+  pockets it renders (see `src/api/cardSearch.js`). On phones the pocket grid
+  displays at most three columns (via `--binder-columns-mobile`) so pockets stay
+  readable; this is display-only — the binder's stored `columns`/`rows` are never
+  changed, so cards never shift or spill. The legendary-creature bulk
   set is warmed into `cardStore` afterwards, in the background (non-blocking),
   because Statistics and Compare Collections label the collection from it. Vite
   builds both pages (`vite.config.js` `rollupOptions.input`).

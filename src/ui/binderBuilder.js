@@ -44,6 +44,12 @@ let activePage = 0;
 /** Slot key awaiting a destination tap, or null. */
 let pendingMove = null;
 
+/**
+ * Most pocket columns the editor displays on phones. Purely visual: the binder's
+ * stored `columns`/`rows` are unchanged, so cards are never reflowed or spilled.
+ */
+const MOBILE_BINDER_COLUMNS = 3;
+
 let refs = null;
 let listening = false;
 /** True while a hydration pass is fetching this page's cards. */
@@ -602,8 +608,14 @@ export function render() {
     refs.status.hidden = true;
   }
 
-  // Pockets
+  // Pockets. `--binder-columns` is the physical layout; phones display a capped
+  // number of columns so pockets stay readable, without touching the binder's
+  // stored columns/rows (so cards never shift or spill).
   refs.pageEl.style.setProperty('--binder-columns', String(binder.columns));
+  refs.pageEl.style.setProperty(
+    '--binder-columns-mobile',
+    String(Math.min(binder.columns, MOBILE_BINDER_COLUMNS))
+  );
   refs.pageEl.replaceChildren();
 
   for (let row = 0; row < binder.rows; row++) {

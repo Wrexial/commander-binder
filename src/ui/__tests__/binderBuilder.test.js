@@ -125,6 +125,21 @@ describe('binderBuilder', () => {
     expect(document.querySelector('.bb-page-label').textContent).toBe('Page 1 / 1');
   });
 
+  it('caps displayed pocket columns on phones without changing the binder layout', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await updateBinder(binder.id, { columns: 5, rows: 2, pages: 1 });
+
+    const page = document.getElementById('binder-page');
+    expect(page.style.getPropertyValue('--binder-columns')).toBe('5');
+    expect(page.style.getPropertyValue('--binder-columns-mobile')).toBe('3');
+
+    // The stored layout is untouched, so no cards shift and no continuation is
+    // created.
+    expect(getActiveBinder().columns).toBe(5);
+    expect(getActiveBinder().rows).toBe(2);
+  });
+
   it('opens the picker for an empty pocket and places the chosen card', async () => {
     await mount();
 

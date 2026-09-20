@@ -5769,6 +5769,9 @@ body.selection-mode #results {
   .binder-page {
     padding: 8px;
     gap: 0.35rem;
+    /* Phones show fewer pocket columns so they stay readable. The binder's own
+       columns/rows are untouched — this only changes how the page is laid out. */
+    grid-template-columns: repeat(var(--binder-columns-mobile, 3), minmax(0, 1fr));
   }
 
   .bb-dims {

@@ -101,6 +101,28 @@ describe('setupUI', () => {
     expect(document.querySelector('.guest-welcome')).not.toBeNull();
   });
 
+  it('omits the browse-grid tools on the Binder Builder page', async () => {
+    document.body.innerHTML = `
+      <div id="user-actions"></div>
+      <div id="sidebar"></div>
+      <div id="guest-welcome"></div>
+      <button id="openbtn"></button>
+      <div id="binder-root"></div>
+    `;
+    mainState.shareToken = undefined;
+    clerk.getClerk.mockReturnValue({ openSignIn: vi.fn() });
+
+    await setupUI();
+
+    const labels = [...document.querySelectorAll('#sidebar button')].map((b) => b.textContent);
+    // Surprise Me / Recent Additions act on the browse grid, so they are omitted.
+    expect(labels).not.toContain('🎲 Surprise Me');
+    expect(labels).not.toContain('🕒 Recent Additions');
+    // The collection tools that do work on both pages remain.
+    expect(labels).toContain('📊 Show Statistics');
+    expect(labels).toContain('➕ Add Cards');
+  });
+
   it('should setup for an authenticated user if clerk.user exists', async () => {
     const mockClerk = {
       user: { id: 'user-456' },

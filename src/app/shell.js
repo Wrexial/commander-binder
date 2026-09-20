@@ -139,8 +139,12 @@ function addCollectionTools() {
   addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'collection', 40);
 
   addBulkTools();
-  createSurpriseButton();
-  createRecentActivityButton();
+  // Surprise Me and Recent Additions act on the browse grid/collection, so they
+  // are omitted on the Binder Builder page.
+  if (!isBinderView()) {
+    createSurpriseButton();
+    createRecentActivityButton();
+  }
 }
 
 function setupAuthenticatedUser(userButtonDiv, clerk) {
@@ -215,8 +219,11 @@ export async function setupUI() {
     userActionsContainer.appendChild(guestModeText);
     addButtonToSidebar('📊 Show Statistics', showStatistics, 'browse', 10);
     addButtonToSidebar('📋 Lists', () => showModal(loadListsModal), 'browse', 40);
-    createSurpriseButton();
-    createRecentActivityButton();
+    // Browse-grid tools are omitted on the Binder Builder page.
+    if (!isBinderView()) {
+      createSurpriseButton();
+      createRecentActivityButton();
+    }
     createCompareButton();
     // Read-only bulk tools; "Add Cards" is omitted because it writes.
     createBulkCheckButton(() => showModal(() => loadBulkCheckModal()));
