@@ -97,7 +97,9 @@ new key there too.
   collection from it. Vite
   builds both pages (`vite.config.js` `rollupOptions.input`).
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
-  (`bulkData.js`), search-response cache (`responseCache.js`), on-demand card
+  (`bulkData.js`), search-response cache (`responseCache.js`), per-printing card
+  cache (`cardCache.js`), the opt-in compressed all-printings archive
+  (`cardArchive.js`), on-demand card
   lookup (`cardSearch.js`), and
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
   guest merge clients (`mergeCollection.js` factory, re-exported as `mergeOwned.js`
@@ -109,11 +111,13 @@ new key there too.
   `fetchPage`, `fetchCardsByIds` (the batched collection endpoint),
   `setRequestThrottle`, and the bulk-source controls. `bulkData.js` streams the
   Scryfall `default_cards` file once and, in the same pass, keeps the legendary
-  subset _and_ builds the all-cards name catalog (`state/cardCatalog.js`) — so
+  subset _and_ builds the all-cards name catalog (`state/cardCatalog.js`) — and,
+  with the `preloadCards` setting on, the compressed card archive — so
   every card name is available for the picker and compare tools with no extra
   download. The cached subset is versioned, so a shape change forces one rebuild;
   `cardCatalog` also derives a name→id lookup from its id→name map when reading
-  an older cached record that predates that field.
+  an older cached record that predates that field, and inverts it into a
+  name→all-printing-ids index (`getCatalogPrintingIds`) for the archive path.
   `cardSearch.js` is the
   Binder Builder's all-cards layer: autocomplete, exact-name printing lists and
   id hydration (added to `cardStore`), all through the same cache/rate limiter.
@@ -125,8 +129,17 @@ new key there too.
   persisted by printing id (`cardCache.js`, 16h TTL, LRU-capped): the
   `/cards/collection` POST that hydrates binder pockets is not covered by
   Scryfall's HTTP cache, so without it every reload re-fetched the visible
-  cards. `hydrateCardsByIds` reads the cache first, fetches only the misses and
-  falls back to a stale copy when offline; printing searches populate it too.
+  cards. `hydrateCardsByIds` reads the archive/cache first, fetches only the
+  misses and falls back to a stale copy when offline; printing searches populate
+  the cache too.
+  With the opt-in `preloadCards` setting, `bulkData.js` also builds
+  `api/cardArchive.js` during the same stream: every English printing is written
+  in fixed-size gzip members plus a printing-id → member index (a few tens of MB
+  compressed), so `hydrateCardsByIds` and `loadPrintingsForNames` resolve any
+  card and its full printing list with no Scryfall request at all (the catalog's
+  id → name map is inverted for `getCatalogPrintingIds`). The bulk download and
+  `CompressionStream` are the only build cost; a lookup decompresses one member
+  and keeps the hottest parsed members in an LRU.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
@@ -217,7 +230,8 @@ new key there too.
   `cardSettings.js` holds the display mode, the price currency
   (EUR/USD/TIX), the default printing mode (`oldest` by default), the grid
   dimensions (`gridColumns` x `gridRows` = cards per page), the
-  pages-per-binder capacity, the swipe-to-dismiss flag and the
+  pages-per-binder capacity, the swipe-to-dismiss flag, the `preloadCards`
+  opt-in (see `api/cardArchive.js`) and the
   preferred-printing map; the
   currency is read by `utils/priceFields.js` so tiles, the filter bar, search,
   sort and statistics all agree on one unit. `getCardsPerPage()`/`getPagesPerBinder()`
@@ -236,8 +250,9 @@ new key there too.
   focus restore and a page-scroll lock while any dialog is open — the themed
   confirm prompt `confirmDialog.js` used for destructive actions, the shared collection-modal chrome/helpers
   `collectionModal.js`, the settings dialog `settingsModal.js` (display mode,
-  currency, grid columns/rows, pages per binder, swipe-to-dismiss and the
-  preferred-printings reset — with a live miniature of the grid page that
+  currency, grid columns/rows, pages per binder, swipe-to-dismiss, the
+  preferred-printings reset and the “Preload all card data” opt-in — with a live
+  miniature of the grid page that
   updates as columns/rows change; the sidebar's “⚙️ Settings” entry opens it),
   the first-run tour `tour.js` (a spotlight/popover walk that is page-aware:
   browse covers the search, filters, a card and the menu, while the Binder

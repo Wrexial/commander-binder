@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getCatalogNames,
+  getCatalogPrintingIds,
   isCardCatalogLoaded,
   rankCatalogNames,
   resetCardCatalog,
@@ -65,6 +66,26 @@ describe('cardCatalog', () => {
 
     expect(resolveCatalogPrintingId('sol ring')).toBe('id-sol-a');
     expect(resolveCatalogPrintingId('unknown')).toBeNull();
+  });
+
+  it('lists every printing id for a name', () => {
+    setCardCatalog({
+      cardNames: ['Sol Ring'],
+      cardNameById: { 'id-sol-a': 'Sol Ring', 'id-sol-b': 'Sol Ring', 'id-other': 'Other' },
+    });
+
+    expect(getCatalogPrintingIds('sol ring')).toEqual(['id-sol-a', 'id-sol-b']);
+    expect(getCatalogPrintingIds('unknown')).toBeNull();
+    // The returned array is a copy, so a caller can't mutate the catalog.
+    getCatalogPrintingIds('sol ring').push('nope');
+    expect(getCatalogPrintingIds('sol ring')).toEqual(['id-sol-a', 'id-sol-b']);
+  });
+
+  it('matches a multi-face card by its full or front-face name', () => {
+    setCardCatalog({ cardNames: ['Front'], cardNameById: { a: 'Front', b: 'Front' } });
+
+    expect(getCatalogPrintingIds('Front // Back')).toEqual(['a', 'b']);
+    expect(resolveCatalogPrintingId('Front // Back')).toBe('a');
   });
 
   it('resets', () => {

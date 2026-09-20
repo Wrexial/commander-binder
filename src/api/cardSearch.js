@@ -12,6 +12,8 @@
 import { MAX_COLLECTION_IDENTIFIERS, fetchCardsByIds, fetchPage } from './scryfall.js';
 import { cardStore } from '../state/cardStore.js';
 import { clearCardCacheMemory, readCachedCards, writeCachedCards } from './cardCache.js';
+import { hasCardArchive, readArchivedCards } from './cardArchive.js';
+import { getCatalogPrintingIds } from '../state/cardCatalog.js';
 
 const AUTOCOMPLETE_URL = (query) =>
   `https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`;
@@ -50,6 +52,29 @@ export async function autocompleteCardNames(query) {
 }
 
 /**
+ * Load a set of names' printings from the local archive when it is available
+ * and the all-cards catalog knows every name. Returns null to signal "fall back
+ * to the search API" (no archive, or a name the catalog doesn't have).
+ *
+ * @param {string[]} names
+ * @returns {Promise<{added: boolean, handled: Set<string>}|null>}
+ */
+async function loadPrintingsFromArchive(names) {
+  if (!(await hasCardArchive())) return null;
+
+  /** @type {Map<string, string[]>} */
+  const targets = new Map();
+  for (const name of names) {
+    const ids = getCatalogPrintingIds(name);
+    if (ids && ids.length > 0) targets.set(name, ids);
+  }
+  if (targets.size === 0) return { added: false, handled: new Set() };
+
+  const added = await hydrateCardsByIds([...new Set([...targets.values()].flat())]);
+  return { added: added.length > 0, handled: new Set(targets.keys()) };
+}
+
+/**
  * Fetch every printing of a card name and add them to `cardStore`.
  * @param {string} name
  * @returns {Promise<object[]>} the loaded printings
@@ -57,6 +82,13 @@ export async function autocompleteCardNames(query) {
 export async function loadPrintingsForName(name) {
   const trimmed = String(name || '').trim();
   if (!trimmed) return [];
+
+  // The archive already holds every printing, so no search is needed.
+  const local = await loadPrintingsFromArchive([trimmed]);
+  if (local?.handled.has(trimmed)) {
+    printingsLoaded.add(trimmed);
+    return cardStore.getPrintings(trimmed);
+  }
 
   const cards = [];
   let url = PRINTINGS_URL(trimmed);
@@ -195,8 +227,19 @@ export async function loadPrintingsForNames(names) {
   if (pending.length === 0) return false;
 
   let added = false;
-  for (let i = 0; i < pending.length; i += PRINTINGS_BATCH_SIZE) {
-    const chunk = pending.slice(i, i + PRINTINGS_BATCH_SIZE);
+  let remaining = pending;
+
+  // A built archive resolves a name's printings with no Scryfall request at
+  // all; names it can't cover fall through to the batched search below.
+  const local = await loadPrintingsFromArchive(pending);
+  if (local) {
+    added = local.added;
+    for (const name of local.handled) printingsLoaded.add(name);
+    remaining = pending.filter((name) => !local.handled.has(name));
+  }
+
+  for (let i = 0; i < remaining.length; i += PRINTINGS_BATCH_SIZE) {
+    const chunk = remaining.slice(i, i + PRINTINGS_BATCH_SIZE);
     added = (await loadPrintingsChunked(chunk)) || added;
   }
   return added;
@@ -213,11 +256,22 @@ export async function hydrateCardsByIds(ids) {
 
   const added = [];
 
-  // Serve from the persistent card cache first: `/cards/collection` is a POST,
-  // so Scryfall's HTTP caching never covers it and a reload would otherwise
-  // re-fetch every visible binder card.
-  const cached = await readCachedCards(missing);
+  // 1. The opt-in local archive: every English printing, no network at all.
+  const archived = await readArchivedCards(missing);
   for (const id of missing) {
+    const card = archived.get(id);
+    if (card) {
+      cardStore.add(card);
+      added.push(card);
+    }
+  }
+
+  // 2. The persistent card cache: `/cards/collection` is a POST, so Scryfall's
+  // HTTP caching never covers it and a reload would otherwise re-fetch every
+  // visible binder card.
+  const afterArchive = missing.filter((id) => !cardStore.getByPrintingId(id));
+  const cached = await readCachedCards(afterArchive);
+  for (const id of afterArchive) {
     const card = cached.get(id);
     if (card) {
       cardStore.add(card);

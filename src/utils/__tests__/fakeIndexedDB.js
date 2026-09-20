@@ -28,7 +28,12 @@ class FakeObjectStore {
 
   /** Snapshot values so callers cannot mutate the store through returned refs. */
   #clone(value) {
-    return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+    if (value === undefined) return undefined;
+    // `structuredClone` keeps typed arrays/Blobs intact; JSON is the fallback
+    // for runtimes without it (and matches the real IndexedDB's structured
+    // clone semantics far better than JSON.stringify).
+    if (typeof structuredClone === 'function') return structuredClone(value);
+    return JSON.parse(JSON.stringify(value));
   }
 
   get(key) {

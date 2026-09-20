@@ -44,6 +44,10 @@ const DEFAULT_SETTINGS = {
   // Card name -> chosen printing id. One entry per card, so cycling a name a
   // second time replaces the first pick rather than accumulating printings.
   preferredPrintings: {},
+  // Opt-in: keep a compressed archive of every English printing on the device
+  // so the Binder Builder never has to ask Scryfall for a card. Off by default
+  // because it costs a few tens of MB of storage.
+  preloadCards: false,
 };
 
 const isIntegerInRange = (value, min, max) =>
@@ -59,6 +63,7 @@ const SETTING_VALIDATORS = {
     value === 'most-expensive' ||
     value === 'full-art',
   swipeDismissToast: (value) => typeof value === 'boolean',
+  preloadCards: (value) => typeof value === 'boolean',
   gridColumns: (value) => isIntegerInRange(value, MIN_GRID_COLUMNS, MAX_GRID_COLUMNS),
   gridRows: (value) => isIntegerInRange(value, MIN_GRID_ROWS, MAX_GRID_ROWS),
   pagesPerBinder: (value) => isIntegerInRange(value, MIN_PAGES_PER_BINDER, MAX_PAGES_PER_BINDER),

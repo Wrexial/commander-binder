@@ -8,6 +8,15 @@ vi.mock('../scryfall.js', () => ({
   fetchCardsByIds: vi.fn(),
 }));
 
+vi.mock('../cardArchive.js', () => ({
+  hasCardArchive: vi.fn(async () => false),
+  readArchivedCards: vi.fn(async () => new Map()),
+}));
+
+vi.mock('../../state/cardCatalog.js', () => ({
+  getCatalogPrintingIds: vi.fn(() => null),
+}));
+
 vi.mock('../../state/cardStore.js', () => ({
   cardStore: {
     add: vi.fn((card) => store.cards.push(card)),
@@ -26,11 +35,17 @@ import {
 } from '../cardSearch.js';
 import { fetchCardsByIds, fetchPage } from '../scryfall.js';
 import { cardStore } from '../../state/cardStore.js';
+import { hasCardArchive, readArchivedCards } from '../cardArchive.js';
+import { getCatalogPrintingIds } from '../../state/cardCatalog.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
   store.cards = [];
   resetCardSearchCache();
+  // Default back to the search-API path; archive tests opt in per case.
+  hasCardArchive.mockResolvedValue(false);
+  readArchivedCards.mockResolvedValue(new Map());
+  getCatalogPrintingIds.mockReturnValue(null);
 });
 
 describe('autocompleteCardNames', () => {
@@ -197,5 +212,45 @@ describe('hydrateCardsByIds', () => {
 
     expect(fetchCardsByIds).toHaveBeenCalledTimes(1);
     expect(cardStore.add).toHaveBeenCalledWith({ id: 'a', name: 'A' });
+  });
+
+  it('serves ids from the local archive without any network request', async () => {
+    readArchivedCards.mockResolvedValue(
+      new Map([['arch-1', { id: 'arch-1', name: 'From archive' }]])
+    );
+
+    const added = await hydrateCardsByIds(['arch-1', 'arch-1']);
+
+    expect(fetchCardsByIds).not.toHaveBeenCalled();
+    expect(added).toEqual([{ id: 'arch-1', name: 'From archive' }]);
+  });
+});
+
+describe('loadPrintingsForNames with the card archive', () => {
+  it('resolves a name from the catalog/archive instead of searching', async () => {
+    hasCardArchive.mockResolvedValue(true);
+    getCatalogPrintingIds.mockImplementation((name) => (name === 'Sol Ring' ? ['p1', 'p2'] : null));
+    readArchivedCards.mockResolvedValue(
+      new Map([
+        ['p1', { id: 'p1', name: 'Sol Ring' }],
+        ['p2', { id: 'p2', name: 'Sol Ring' }],
+      ])
+    );
+
+    const added = await loadPrintingsForNames(['Sol Ring']);
+
+    expect(added).toBe(true);
+    expect(fetchPage).not.toHaveBeenCalled();
+    expect(getCatalogPrintingIds).toHaveBeenCalledWith('Sol Ring');
+  });
+
+  it('falls back to a search when the catalog has no ids for the name', async () => {
+    hasCardArchive.mockResolvedValue(true);
+    getCatalogPrintingIds.mockReturnValue(null);
+    fetchPage.mockResolvedValue({ data: [{ id: 's1', name: 'Unknown' }], has_more: false });
+
+    await loadPrintingsForNames(['Unknown']);
+
+    expect(fetchPage).toHaveBeenCalled();
   });
 });

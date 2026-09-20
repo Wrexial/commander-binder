@@ -20,6 +20,7 @@ import { startFirstRunTour } from './ui/components/tour.js';
 import { cardStore } from './state/cardStore.js';
 import { ensureSeedBinder } from './state/bindersState.js';
 import { isTourDone } from './state/onboarding.js';
+import { getSetting } from './state/cardSettings.js';
 import { getLegendaryCreatures } from './api/bulkData.js';
 
 /**
@@ -45,7 +46,7 @@ function whenIdle(task) {
  */
 async function warmCollectionStore() {
   try {
-    const { cards } = await getLegendaryCreatures();
+    const { cards } = await getLegendaryCreatures({ buildArchive: getSetting('preloadCards') });
     const CHUNK_SIZE = 400;
     for (let i = 0; i < cards.length; i++) {
       cardStore.add(cards[i]);

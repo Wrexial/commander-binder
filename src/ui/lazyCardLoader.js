@@ -2,6 +2,7 @@ import { appState } from '../state/appState.js';
 import { fetchNextPage } from './cardFeed.js';
 import { setBulkCardSource, BULK_SOURCE_SENTINEL } from '../api/scryfall.js';
 import { getLegendaryCreatures, verifyBulkCoverage } from '../api/bulkData.js';
+import { getSetting } from '../state/cardSettings.js';
 import { startNewBinder } from './layout.js';
 
 /**
@@ -74,7 +75,7 @@ async function loadFullCollectionFromBulk(results, tooltip, firstPage) {
   }
 
   try {
-    const { cards } = await getLegendaryCreatures();
+    const { cards } = await getLegendaryCreatures({ buildArchive: getSetting('preloadCards') });
     // Counts differ slightly (bulk lags the live index by a daily refresh and
     // carries a few non-searchable printings), so only the id sample is a hard
     // requirement. The delta is logged below for visibility.

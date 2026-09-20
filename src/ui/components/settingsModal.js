@@ -26,6 +26,7 @@ import {
 } from '../settingsUI.js';
 import { applyPreferredPrintings } from '../cards.js';
 import { CURRENCY_OPTIONS, getCurrency } from '../../utils/prices.js';
+import { withLoading } from '../loadingIndicator.js';
 import { showToast } from './toast.js';
 import { createModal } from './modal.js';
 
@@ -242,21 +243,42 @@ function createNumberRow({ label, hint, ariaLabel, min, max, value, onChange }) 
 }
 
 /** A label + checkbox row bound to a stored boolean setting. */
-function createToggleRow({ label, setting }) {
+function createToggleRow({ label, hint, setting, onChange }) {
   const row = document.createElement('label');
   row.className = 'settings-row settings-row-toggle';
+
+  const text = document.createElement('span');
+  text.className = 'settings-row-text';
 
   const labelEl = document.createElement('span');
   labelEl.className = 'settings-row-label';
   labelEl.textContent = label;
+  text.appendChild(labelEl);
+
+  if (hint) {
+    const hintEl = document.createElement('span');
+    hintEl.className = 'settings-row-hint';
+    hintEl.textContent = hint;
+    text.appendChild(hintEl);
+  }
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.checked = Boolean(getSetting(setting));
-  checkbox.addEventListener('change', () => setSetting(setting, checkbox.checked));
+  checkbox.addEventListener('change', () => {
+    setSetting(setting, checkbox.checked);
+    onChange?.(checkbox.checked);
+  });
 
-  row.append(labelEl, checkbox);
+  row.append(text, checkbox);
   return row;
+}
+
+/** Human-readable archive size, e.g. "18.2 MB". */
+function formatBytes(bytes) {
+  const mb = Number(bytes) / 1e6;
+  if (!Number.isFinite(mb) || mb <= 0) return '';
+  return mb >= 10 ? `${mb.toFixed(0)} MB` : `${mb.toFixed(1)} MB`;
 }
 
 /**
@@ -441,6 +463,66 @@ export function createSettingsModal() {
   });
   behaviourGroup.appendChild(resetPrintings);
   content.appendChild(behaviourGroup);
+
+  // --- Offline card data -------------------------------------------------
+  const offlineGroup = createSettingsGroup('Offline card data');
+
+  const archiveStatus = document.createElement('p');
+  archiveStatus.className = 'settings-readout';
+
+  const refreshArchiveStatus = async () => {
+    try {
+      const { readCardArchiveMeta } = await import('../../api/cardArchive.js');
+      const meta = await readCardArchiveMeta();
+      archiveStatus.textContent = meta
+        ? `Downloaded ${meta.count.toLocaleString()} cards (${formatBytes(meta.bytes)}).`
+        : 'No card data downloaded yet.';
+    } catch {
+      archiveStatus.textContent = '';
+    }
+  };
+
+  /** Build the archive now that the setting is on (may re-download bulk data). */
+  const buildArchive = async () => {
+    archiveStatus.textContent = 'Downloading card data…';
+    try {
+      await withLoading('Downloading card data…', async () => {
+        const { getLegendaryCreatures } = await import('../../api/bulkData.js');
+        await getLegendaryCreatures({ buildArchive: true });
+      });
+      showToast('Card data downloaded for offline binders.', 'success');
+    } catch (err) {
+      console.error('Failed to download card data:', err);
+      showToast('Could not download card data.', 'error');
+    }
+    await refreshArchiveStatus();
+  };
+
+  const clearArchive = async () => {
+    try {
+      const { clearCardArchive } = await import('../../api/cardArchive.js');
+      await clearCardArchive();
+      showToast('Offline card data cleared.', 'success');
+    } catch (err) {
+      console.error('Failed to clear card data:', err);
+      showToast('Could not clear card data.', 'error');
+    }
+    await refreshArchiveStatus();
+  };
+
+  offlineGroup.appendChild(
+    createToggleRow({
+      label: 'Preload all card data',
+      hint:
+        'Keep every card on this device so binders load without contacting Scryfall. ' +
+        'Uses a few tens of MB.',
+      setting: 'preloadCards',
+      onChange: (enabled) => void (enabled ? buildArchive() : clearArchive()),
+    })
+  );
+  offlineGroup.append(archiveStatus);
+  content.appendChild(offlineGroup);
+  void refreshArchiveStatus();
 
   // --- Footer ------------------------------------------------------------
   const footer = document.createElement('div');

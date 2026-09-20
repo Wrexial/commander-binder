@@ -25,11 +25,26 @@ let lowerNames = [];
 let nameById = new Map();
 /** @type {Map<string, string>} lowercased front name -> one printing id */
 let idByName = new Map();
+/** @type {Map<string, string[]>} lowercased front name -> every printing id */
+let printingIdsByName = new Map();
 let loaded = false;
 
 /** True once a bulk stream has published the catalog (even if empty). */
 export function isCardCatalogLoaded() {
   return loaded;
+}
+
+/** Invert the id -> name map so a name can list all of its printings. */
+function indexPrintingsByName(nameById) {
+  const byName = new Map();
+  for (const [id, name] of nameById) {
+    const key = frontName(name);
+    if (!key) continue;
+    const ids = byName.get(key);
+    if (ids) ids.push(id);
+    else byName.set(key, [id]);
+  }
+  return byName;
 }
 
 /** Publish (or replace) the catalog from a bulk subset record. */
@@ -38,12 +53,13 @@ export function setCardCatalog({ cardNames, cardNameById, cardIdByName } = {}) {
   lowerNames = names.map((name) => name.toLowerCase());
   nameById = new Map(Object.entries(cardNameById || {}));
   idByName = new Map(Object.entries(cardIdByName || {}));
+  printingIdsByName = indexPrintingsByName(nameById);
 
   // Subsets cached before `cardIdByName` existed only carry `nameById`; invert
   // it so name resolution still works without re-downloading the bulk file.
   if (idByName.size === 0 && nameById.size > 0) {
     for (const [id, name] of nameById) {
-      const key = name.toLowerCase();
+      const key = frontName(name);
       if (!idByName.has(key)) idByName.set(key, id);
     }
   }
@@ -51,15 +67,30 @@ export function setCardCatalog({ cardNames, cardNameById, cardIdByName } = {}) {
   loaded = names.length > 0 || nameById.size > 0 || idByName.size > 0;
 }
 
+/** The front-face name, matching how the catalog keys multi-face cards. */
+function frontName(value) {
+  return String(value || '')
+    .split(' // ')[0]
+    .trim()
+    .toLowerCase();
+}
+
 /** One printing id for a (case-insensitive) card name, or null when unknown. */
 export function resolveCatalogPrintingId(name) {
-  return (
-    idByName.get(
-      String(name || '')
-        .trim()
-        .toLowerCase()
-    ) || null
-  );
+  return idByName.get(frontName(name)) || null;
+}
+
+/**
+ * Every known printing id for a (case-insensitive) card name, or null when the
+ * name isn't in the catalog. Lets the Binder Builder load a card's full
+ * printing list from the local archive instead of a Scryfall search.
+ *
+ * @param {string} name
+ * @returns {string[]|null}
+ */
+export function getCatalogPrintingIds(name) {
+  const ids = printingIdsByName.get(frontName(name));
+  return ids ? ids.slice() : null;
 }
 
 /** The front-face name for a printing id, or null when unknown. */
@@ -112,5 +143,6 @@ export function resetCardCatalog() {
   lowerNames = [];
   nameById = new Map();
   idByName = new Map();
+  printingIdsByName = new Map();
   loaded = false;
 }

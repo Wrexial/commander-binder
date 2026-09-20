@@ -108,6 +108,23 @@ describe('settingsModal', () => {
     expect(swipe.checked).toBe(true);
   });
 
+  it('reflects the offline card data setting in its toggle', () => {
+    values.preloadCards = true;
+    createSettingsModal();
+
+    const preload = [...document.querySelectorAll('.settings-row-toggle')].find((row) =>
+      row.textContent.includes('Preload all card data')
+    );
+    expect(preload).toBeTruthy();
+
+    const checkbox = preload.querySelector('input[type="checkbox"]');
+    expect(checkbox.checked).toBe(true);
+
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event('change'));
+    expect(setSetting).toHaveBeenCalledWith('preloadCards', false);
+  });
+
   it('reports the current cards-per-page count', () => {
     getSetting.mockImplementation((key) =>
       key === 'gridColumns' ? 6 : key === 'gridRows' ? 5 : 0

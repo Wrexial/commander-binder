@@ -18,6 +18,12 @@
 
 import { createStore } from '../utils/idb.js';
 import { setCardCatalog } from '../state/cardCatalog.js';
+import {
+  ARCHIVE_VERSION,
+  beginCardArchiveBuild,
+  createCardArchiveBuilder,
+  readCardArchiveMeta,
+} from './cardArchive.js';
 
 const BULK_INDEX_URL = 'https://api.scryfall.com/bulk-data';
 
@@ -257,6 +263,9 @@ export async function downloadFilteredBulkCards(type, predicate, options = {}) {
     // stays responsive while we parse it on the main thread.
     if (lineCount % 2000 === 0) {
       await new Promise((resolve) => setTimeout(resolve, 0));
+      // Let a consumer (the card archive builder) drain its write queue so a
+      // slow disk can't let buffered members pile up.
+      await options.onYield?.();
     }
     let card;
     try {
@@ -318,28 +327,46 @@ function publishCardCatalog(subset) {
 }
 
 /**
+ * True when the on-disk card archive already matches `updatedAt` (or no archive
+ * is wanted). Missing/old builds return false so the caller re-downloads.
+ */
+async function archiveSatisfied(updatedAt, buildArchive) {
+  if (!buildArchive) return true;
+  const meta = await readCardArchiveMeta();
+  return Boolean(meta && meta.version === ARCHIVE_VERSION && meta.updatedAt === updatedAt);
+}
+
+/**
  * Return every paper legendary-creature printing, sorted by release date to
  * match the app's `order=released&dir=asc` view. Cached in IndexedDB and
  * reused for {@link SUBSET_TTL_MS} before Scryfall's index is re-checked.
  *
  * The same stream also builds the all-cards name catalog (`cardNames` /
  * `cardNameById`) for free, so the Binder Builder picker and the compare tools
- * have every card name without downloading anything extra.
+ * have every card name without downloading anything extra. With
+ * `buildArchive: true` it additionally persists the compressed all-printings
+ * archive (see `api/cardArchive.js`) in bounded chunks.
  *
- * @param {{type?: string, force?: boolean}} [options]
+ * @param {{type?: string, force?: boolean, buildArchive?: boolean}} [options]
  * @returns {Promise<{updatedAt: string, type: string, fetchedAt: number, cards: object[], cardNames?: string[], cardNameById?: object}>}
  */
-export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = false } = {}) {
+export async function getLegendaryCreatures({
+  type = DEFAULT_BULK_TYPE,
+  force = false,
+  buildArchive = false,
+} = {}) {
   const cacheKey = `${type}:${LEGENDARY_CREATURES_KEY}`;
   const cached = await readSubset(cacheKey);
 
   // Fast path: a subset downloaded within the TTL is served with no network
-  // request at all (not even the bulk index).
+  // request at all (not even the bulk index), as long as the archive is either
+  // not wanted or already matches it.
   if (
     !force &&
     cached &&
     Array.isArray(cached.cards) &&
-    Date.now() - (cached.fetchedAt || 0) < SUBSET_TTL_MS
+    Date.now() - (cached.fetchedAt || 0) < SUBSET_TTL_MS &&
+    (await archiveSatisfied(cached.updatedAt, buildArchive))
   ) {
     publishCardCatalog(cached);
     return cached;
@@ -358,7 +385,13 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
     throw err;
   }
 
-  if (!force && cached && cached.updatedAt === entry.updated_at && Array.isArray(cached.cards)) {
+  if (
+    !force &&
+    cached &&
+    cached.updatedAt === entry.updated_at &&
+    Array.isArray(cached.cards) &&
+    (await archiveSatisfied(entry.updated_at, buildArchive))
+  ) {
     // Unchanged upstream: extend the freshness window without re-downloading.
     const refreshed = { ...cached, fetchedAt: Date.now() };
     await writeSubset(cacheKey, refreshed);
@@ -369,11 +402,15 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
   const cardNames = new Set();
   const cardNameById = {};
   const cardIdByName = {};
+  const builder = buildArchive ? createCardArchiveBuilder() : null;
+  if (builder) await beginCardArchiveBuild();
+
   const { updatedAt, cards } = await downloadFilteredBulkCards(type, isPlayableLegendaryCreature, {
     entry,
     // Every card in the file contributes its front-face name, not just the
     // legendary creatures we keep below.
     onCard: (card) => {
+      builder?.add(card);
       if (!card || typeof card.name !== 'string' || !card.name) return;
       const front = card.name.split(' // ')[0];
       if (!front) return;
@@ -384,7 +421,9 @@ export async function getLegendaryCreatures({ type = DEFAULT_BULK_TYPE, force = 
       const key = front.toLowerCase();
       if (!(key in cardIdByName)) cardIdByName[key] = id;
     },
+    onYield: builder ? () => builder.settle() : undefined,
   });
+  if (builder) await builder.finish(updatedAt);
   cards.sort((a, b) => String(a.released_at || '').localeCompare(String(b.released_at || '')));
 
   const subset = {

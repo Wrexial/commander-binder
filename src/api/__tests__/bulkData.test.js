@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 import {
   isLegendaryCreature,
   isPlayableLegendaryCreature,
@@ -12,6 +12,8 @@ import {
   SUBSET_TTL_MS,
 } from '../bulkData.js';
 import { getCatalogNames, isCardCatalogLoaded, resetCardCatalog } from '../../state/cardCatalog.js';
+import { installFakeIndexedDB } from '../../utils/__tests__/fakeIndexedDB.js';
+import { clearCardArchive, hasCardArchive, readArchivedCards } from '../cardArchive.js';
 
 function makeCard(overrides = {}) {
   return {
@@ -60,8 +62,19 @@ function mockResponse({
 }
 
 describe('bulkData', () => {
+  let fakeIdb;
+
+  beforeAll(() => {
+    fakeIdb = installFakeIndexedDB();
+  });
+
+  afterAll(() => {
+    fakeIdb?.restore();
+  });
+
   beforeEach(async () => {
     await clearBulkCache();
+    await clearCardArchive();
     resetCardCatalog();
     global.fetch = vi.fn();
   });
@@ -224,6 +237,38 @@ describe('bulkData', () => {
     // (not even the bulk index).
     const indexCalls = global.fetch.mock.calls.filter(([u]) => String(u).includes('/bulk-data'));
     expect(indexCalls).toHaveLength(1);
+  });
+
+  it('builds the opt-in card archive from the same download', async () => {
+    const entry = {
+      type: 'default_cards',
+      updated_at: '2026-09-12T21:05:31.691+00:00',
+      jsonl_download_uri: 'https://data.scryfall.io/default-cards/cards.jsonl.gz',
+    };
+    const cards = [
+      makeCard({ id: 'legend-1', name: 'Legend One' }),
+      makeCard({ id: 'mono-1', name: 'Mono Creature', type_line: 'Creature — Elf' }),
+    ];
+    const jsonl = cards.map((c) => JSON.stringify(c)).join('\n');
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url).includes('/bulk-data')) {
+        return { ok: true, json: async () => ({ data: [entry] }) };
+      }
+      return mockResponse({
+        body: streamFromBytes(await gzipBytes(jsonl)),
+        url: entry.jsonl_download_uri,
+        contentType: 'application/gzip',
+      });
+    });
+
+    await getLegendaryCreatures({ buildArchive: true });
+
+    expect(await hasCardArchive()).toBe(true);
+    // The archive holds *every* printing, not just the legendary subset.
+    const archived = await readArchivedCards(['legend-1', 'mono-1']);
+    expect(archived.get('legend-1').name).toBe('Legend One');
+    expect(archived.get('mono-1').name).toBe('Mono Creature');
   });
 
   it('re-downloads when Scryfall publishes a newer bulk file after the TTL', async () => {
