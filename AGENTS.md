@@ -79,8 +79,8 @@ new key there too.
   backfilled onto the already-mounted tiles by the shell's
   `updateAllCardStates()`, and the default binder is seeded only after any
   guest→account merge has settled. The legendary-creature bulk
-  set is warmed into `cardStore` afterwards, in the background and deferred to
-  idle (non-blocking), because Statistics and Compare Collections label the
+  set is warmed into `cardStore` afterwards in yielded chunks, deferred to idle
+  (non-blocking), because Statistics and Compare Collections label the
   collection from it. Vite
   builds both pages (`vite.config.js` `rollupOptions.input`).
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
@@ -400,8 +400,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
 - `netlify/utils/request.ts` — `parseJsonBody` (malformed JSON → 400 instead of
   a thrown 500) and `badRequest`, plus the `MAX_BATCH_SIZE` cap used by the batch
   toggle.
-- `public/_headers` — Netlify security headers (report-only CSP; see the file for
-  how to promote it to enforcing) and immutable caching for `/assets/*`.
+- `public/_headers` — Netlify security headers (an enforced CSP; the file
+  explains how to drop back to report-only while debugging) and immutable
+  caching for `/assets/*`.
 - `public/manifest.webmanifest` + `public/sw.js` — PWA install metadata and the offline
   app-shell service worker. The worker is registered from `src/pwa.js` (production only) and
   never caches `/.netlify/functions/*`; the header install button is `src/ui/installPrompt.js`.

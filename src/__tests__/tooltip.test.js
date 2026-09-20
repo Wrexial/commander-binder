@@ -146,6 +146,8 @@ describe('tooltip', () => {
       vi.runAllTimers();
 
       expect(tooltip.classList.contains('modal')).toBe(true);
+      expect(tooltip.getAttribute('role')).toBe('dialog');
+      expect(tooltip.getAttribute('aria-modal')).toBe('true');
       const backdropEl = document.querySelector('.tooltip-backdrop');
       expect(backdropEl).not.toBeNull();
       expect(backdropEl.classList.contains('visible')).toBe(true);
@@ -252,6 +254,8 @@ describe('tooltip', () => {
 
       expect(tooltip.style.display).toBe('none');
       expect(tooltip.classList.contains('modal')).toBe(false);
+      expect(tooltip.getAttribute('role')).toBe('tooltip');
+      expect(tooltip.hasAttribute('aria-modal')).toBe(false);
       expect(document.body.classList.contains('tooltip-open')).toBe(false);
     });
 

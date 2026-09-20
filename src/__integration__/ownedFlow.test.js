@@ -13,6 +13,15 @@ vi.mock('@clerk/clerk-js', () => ({
 }));
 vi.mock('@clerk/themes', () => ({ dark: {} }));
 
+// jsdom has no Scryfall bulk endpoint, so the bulk path always falls back to the
+// search API here. That fallback is expected: keep its warning out of the test
+// output so real warnings stand out.
+const realWarn = console.warn;
+vi.spyOn(console, 'warn').mockImplementation((...args) => {
+  if (typeof args[0] === 'string' && args[0].startsWith('Scryfall bulk data')) return;
+  realWarn(...args);
+});
+
 class MockIntersectionObserver {
   observe() {}
   unobserve() {}

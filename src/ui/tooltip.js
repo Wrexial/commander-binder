@@ -381,10 +381,17 @@ export function showTooltip(e, card, tooltip, { modal = isMobileLayout() } = {})
   // ownership.
   tooltip.classList.toggle('modal', modal);
   if (modal) {
+    // The centred preview is a dialog, not a hover tooltip: mark it so assistive
+    // tech announces the close control and the modal boundary.
+    tooltip.setAttribute('role', 'dialog');
+    tooltip.setAttribute('aria-modal', 'true');
     tooltip.style.left = '';
     tooltip.style.top = '';
     getBackdrop().classList.add('visible');
     document.body.classList.add('tooltip-open');
+  } else {
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.removeAttribute('aria-modal');
   }
 
   // Swipe gestures: the modal dialog supports swipe-down to dismiss and
@@ -535,6 +542,8 @@ export function hideTooltip(tooltip) {
   tooltip.classList.remove('show');
   tooltip.classList.remove('modal');
   tooltip.classList.remove('swipe-nav');
+  tooltip.setAttribute('role', 'tooltip');
+  tooltip.removeAttribute('aria-modal');
   tooltip.style.display = 'none';
   activeTooltip = null;
   tooltip.innerHTML = '';

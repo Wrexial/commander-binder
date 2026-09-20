@@ -38,12 +38,20 @@ function whenIdle(task) {
 /**
  * Warm `cardStore` with the app's legendary-creature set. Runs after the binder
  * is interactive, so the page is usable immediately while the (cached) bulk
- * data fills in for Statistics / Compare Collections.
+ * data fills in for Statistics / Compare Collections. Cards are added in chunks
+ * with a yield between them, so a few thousand adds never become one long task
+ * that blocks input.
  */
 async function warmCollectionStore() {
   try {
     const { cards } = await getLegendaryCreatures();
-    for (const card of cards) cardStore.add(card);
+    const CHUNK_SIZE = 400;
+    for (let i = 0; i < cards.length; i++) {
+      cardStore.add(cards[i]);
+      if ((i + 1) % CHUNK_SIZE === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
   } catch (err) {
     console.error('Failed to load the card collection:', err);
   }

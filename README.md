@@ -204,8 +204,9 @@ Tests are colocated in `__tests__/` folders next to the code, with cross-module 
 - **Bulk data** replaces dozens of paginated search requests with a single download. Because
   only the default order can be streamed, choosing any other sort drops the set tags and
   rebuilds the grid once loaded.
-- **Security headers** live in `public/_headers`. The CSP currently ships in
-  **Report-Only** mode; promote it to enforcing once the production console is clean.
+- **Security headers** live in `public/_headers`. The CSP is enforced; to debug a
+  blocked resource, temporarily rename the key back to
+  `Content-Security-Policy-Report-Only`.
 - **Installable / offline.** `public/manifest.webmanifest` plus `public/sw.js` make the app a
   PWA. The service worker serves navigations network-first with a cached shell fallback, and
   hashed assets / icons cache-first, but never caches `/.netlify/functions/*`, so auth and
