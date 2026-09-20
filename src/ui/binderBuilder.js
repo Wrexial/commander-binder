@@ -571,11 +571,20 @@ export function render() {
     refs.binderTabs.appendChild(tab);
   }
 
-  // Keep the active binder visible when there are more tabs than fit.
-  refs.binderTabs.querySelector('.binder-tab.is-active')?.scrollIntoView?.({
-    inline: 'nearest',
-    block: 'nearest',
-  });
+  // Keep the active binder visible when there are more tabs than fit. Scroll
+  // the tab strip itself instead of `scrollIntoView`, which would also scroll
+  // the window and yank the page back to the top whenever a re-render happens
+  // while the user is scrolled down to the pockets (e.g. changing a printing).
+  const activeTab = refs.binderTabs.querySelector('.binder-tab.is-active');
+  if (activeTab) {
+    const tabRect = activeTab.getBoundingClientRect();
+    const stripRect = refs.binderTabs.getBoundingClientRect();
+    if (tabRect.left < stripRect.left) {
+      refs.binderTabs.scrollLeft += tabRect.left - stripRect.left;
+    } else if (tabRect.right > stripRect.right) {
+      refs.binderTabs.scrollLeft += tabRect.right - stripRect.right;
+    }
+  }
 
   refs.nameInput.value = binder.name;
   refs.columns.value = String(binder.columns);

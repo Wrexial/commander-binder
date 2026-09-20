@@ -230,6 +230,26 @@ describe('binderBuilder', () => {
     await vi.waitFor(() => expect(getActiveBinder().slots['0:0:0']).toBe('printing-b'));
   });
 
+  it('keeps the window scroll position when re-rendering', async () => {
+    await mount();
+
+    // jsdom does not implement `scrollIntoView`, so install one to catch any
+    // code path that would scroll the active tab (and, with it, the window)
+    // back to the top while the user is scrolled down to the pockets.
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      const binder = getActiveBinder();
+      await assignCardToSlot(binder.id, '0:0:0', 'printing-a');
+      await vi.waitFor(() => expect(getActiveBinder().slots['0:0:0']).toBe('printing-a'));
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      delete Element.prototype.scrollIntoView;
+    }
+  });
+
   it('moves a card to another binder when switching tabs during a move', async () => {
     await mount();
     const first = getActiveBinder();
