@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createPrintingPickerModal } from '../printingPickerModal.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 
 const card = { id: 'c', name: 'Sol Ring' };
 const printings = [
@@ -106,5 +107,11 @@ describe('printingPickerModal', () => {
 
     filter('');
     expect(document.querySelectorAll('.printing-picker-row')).toHaveLength(2);
+  });
+
+  it('has no accessibility violations', async () => {
+    createPrintingPickerModal({ card, printings, currentId: 'p1', onPick: vi.fn() }).show();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });

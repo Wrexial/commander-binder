@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 
 import { createExportModal } from '../exportModal.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 import { showToast } from '../toast.js';
 
 const cards = [
@@ -253,5 +254,11 @@ describe('exportModal', () => {
 
     const active = document.querySelector('.target-toggle-option[aria-pressed="true"]');
     expect(active.textContent).toBe('Trade pile');
+  });
+
+  it('has no accessibility violations', async () => {
+    open(cards).show();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });

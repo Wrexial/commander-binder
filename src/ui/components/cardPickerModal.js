@@ -25,6 +25,9 @@ import { createModal } from './modal.js';
 const MAX_RESULTS = 30;
 const SEARCH_DEBOUNCE_MS = 250;
 
+/** Unique id per picker instance, so `aria-controls` targets the right list. */
+let pickerSeq = 0;
+
 /** Rank matches: prefix first, then word-start, then substring. */
 export function rankCardNames(cards, query, limit = MAX_RESULTS) {
   const q = query.trim().toLowerCase();
@@ -76,7 +79,11 @@ export function createCardPickerModal({ title = 'Add a card', onPick, onRemove }
 
   const results = document.createElement('div');
   results.className = 'card-picker-results';
+  // Unique per instance so `aria-controls` always points at this list.
+  results.id = `card-picker-results-${++pickerSeq}`;
   results.setAttribute('role', 'listbox');
+  results.setAttribute('aria-label', 'Card search results');
+  searchInput.setAttribute('aria-controls', results.id);
 
   const footer = document.createElement('div');
   footer.className = 'modal-button-container';
@@ -113,9 +120,13 @@ export function createCardPickerModal({ title = 'Add a card', onPick, onRemove }
   }
 
   function renderMessage(text) {
+    // A listbox may only contain options, so drop the role while showing a
+    // plain status message (empty / loading / error).
+    results.removeAttribute('role');
     results.innerHTML = '';
     const message = document.createElement('p');
     message.className = 'card-picker-empty';
+    message.setAttribute('role', 'status');
     message.textContent = text;
     results.appendChild(message);
   }
@@ -126,6 +137,7 @@ export function createCardPickerModal({ title = 'Add a card', onPick, onRemove }
       return;
     }
 
+    results.setAttribute('role', 'listbox');
     results.innerHTML = '';
     for (const name of names) {
       const local = cardStore.getPrintings(name)[0];

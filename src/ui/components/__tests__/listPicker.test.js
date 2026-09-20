@@ -23,6 +23,7 @@ vi.mock('../../../state/listsState.js', () => ({
 vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 
 import { createListPicker } from '../listPicker.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 import { updateAllCardStates } from '../../cards.js';
 import * as listsState from '../../../state/listsState.js';
 
@@ -92,5 +93,11 @@ describe('listPicker', () => {
     for (const row of document.querySelectorAll('.list-picker-row')) {
       expect(row.disabled).toBe(true);
     }
+  });
+
+  it('has no accessibility violations', async () => {
+    createListPicker().show(CARD);
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });

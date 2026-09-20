@@ -35,6 +35,7 @@ vi.mock('../../../api/cardSearch.js', () => ({
 }));
 
 import { createAddCardsModal } from '../addCardsModal.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
@@ -365,5 +366,14 @@ describe('addCardsModal', () => {
 
     item.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     expect(area.value).toBe('Sol Ring\n');
+  });
+
+  it('has no accessibility violations', async () => {
+    createAddCardsModal().show();
+    // axe needs real timers; restore fake ones for the suite's afterEach.
+    vi.useRealTimers();
+    const { violations, summary } = await analyzeA11y(document.body);
+    vi.useFakeTimers();
+    expect(violations.length, summary).toBe(0);
   });
 });

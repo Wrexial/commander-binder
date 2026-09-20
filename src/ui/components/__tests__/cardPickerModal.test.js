@@ -31,6 +31,7 @@ vi.mock('../../../utils/prices.js', () => ({
 }));
 
 import { createCardPickerModal, rankCardNames } from '../cardPickerModal.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 import { autocompleteCardNames, loadPrintingsForName } from '../../../api/cardSearch.js';
 import { resetCardCatalog, setCardCatalog } from '../../../state/cardCatalog.js';
 
@@ -143,5 +144,11 @@ describe('cardPickerModal', () => {
     remove.click();
 
     expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no accessibility violations', async () => {
+    createCardPickerModal({ onPick: vi.fn() }).show();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });

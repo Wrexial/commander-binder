@@ -24,6 +24,7 @@ vi.mock('../../../state/selectionState.js', () => ({
 }));
 
 import { createListsModal } from '../listsModal.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 import * as listsState from '../../../state/listsState.js';
 import { isCardOwned } from '../../../state/cardState.js';
 
@@ -156,5 +157,11 @@ describe('listsModal', () => {
         (button) => button.textContent === 'Delete'
       )
     ).toBe(false);
+  });
+
+  it('has no accessibility violations', async () => {
+    createListsModal().show();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });

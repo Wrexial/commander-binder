@@ -1,5 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { createSettingsModal } from '../settingsModal.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 import { getSetting, setSetting } from '../../../state/cardSettings.js';
 import { resetPreferredPrintings } from '../../../state/preferredPrintings.js';
 import {
@@ -226,5 +227,11 @@ describe('settingsModal', () => {
       .click();
 
     expect(document.querySelector('.list-modal-backdrop')).toBeNull();
+  });
+
+  it('has no accessibility violations', async () => {
+    createSettingsModal().show();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });
