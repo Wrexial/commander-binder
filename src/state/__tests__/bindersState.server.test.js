@@ -28,6 +28,7 @@ import {
   canEditBinders,
   createBinder,
   deleteBinder,
+  ensureSeedBinder,
   getActiveBinder,
   getBinders,
   loadBinders,
@@ -88,6 +89,30 @@ describe('bindersState (server mode)', () => {
       expect.objectContaining({ name: 'Binder 1', slots: {} })
     );
     expect(getActiveBinder().id).toBe('new');
+  });
+
+  it('shares one fetch between concurrent loads', async () => {
+    await Promise.all([loadBinders({ seed: false }), loadBinders({ seed: false })]);
+
+    expect(fetchBinders).toHaveBeenCalledTimes(1);
+    expect(getBinders()).toHaveLength(1);
+  });
+
+  it('seeds via ensureSeedBinder only when the registry is empty', async () => {
+    fetchBinders.mockResolvedValue([]);
+    apiCreateBinder.mockResolvedValue([record({ id: 'new', name: 'Binder 1' })]);
+
+    // `seed: false` leaves a fresh account empty so the Binder Builder can wait
+    // for guest→account merges before deciding it really has no binders.
+    await loadBinders({ seed: false });
+    expect(apiCreateBinder).not.toHaveBeenCalled();
+
+    await ensureSeedBinder();
+    expect(apiCreateBinder).toHaveBeenCalledTimes(1);
+    expect(getActiveBinder().id).toBe('new');
+
+    await ensureSeedBinder();
+    expect(apiCreateBinder).toHaveBeenCalledTimes(1);
   });
 
   it('persists slot changes and adopts the server reply', async () => {

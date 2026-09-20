@@ -671,9 +671,12 @@ export function render() {
 /**
  * Mount the Binder Builder into `root`.
  * @param {HTMLElement} root
+ * @param {{seed?: boolean}} [options] `seed` creates a default binder when the
+ *   caller has none. The Binder Builder page passes `false` and seeds later,
+ *   once guest→account merges have settled.
  */
-export async function initBinderBuilder(root) {
-  await loadBinders();
+export async function initBinderBuilder(root, { seed = true } = {}) {
+  await loadBinders({ seed });
   buildChrome(root);
   refs.pageEl.addEventListener('click', handlePageClick);
   render();

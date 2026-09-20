@@ -285,14 +285,17 @@ function uniqueName(base = 'Binder') {
   return `${base} ${n}`;
 }
 
-/** Load binders from whichever source applies; seeds one from current settings. */
 /**
- * Load binders from whichever source applies. `seed` creates a default binder
- * when the caller has none (the Binder Builder page wants one; the browse page's
- * bulk modals only need to list existing binders).
- * @param {{seed?: boolean}} [options]
+ * In-flight source load, shared by concurrent `loadBinders` callers. The shell
+ * starts loading binders for the bulk modals while the Binder Builder page
+ * mounts its own editor; they should share one round trip instead of each
+ * fetching the same records.
+ * @type {Promise<void>|null}
  */
-export async function loadBinders({ seed = true } = {}) {
+let pendingLoad = null;
+
+/** Fetch the applicable binder records and replace the in-memory registry. */
+async function fetchBinderRecords() {
   if (isShareMode()) {
     try {
       applyBinders(await fetchBinders({ shareToken: mainState.shareToken }));
@@ -300,7 +303,10 @@ export async function loadBinders({ seed = true } = {}) {
       console.error('Failed to load shared binders:', err);
       binders.clear();
     }
-  } else if (isLocalMode()) {
+    return;
+  }
+
+  if (isLocalMode()) {
     let records;
     try {
       records = await loadLocalBinders();
@@ -314,14 +320,31 @@ export async function loadBinders({ seed = true } = {}) {
       if (!record || typeof record.id !== 'string') continue;
       binders.set(record.id, normalizeBinder(record));
     }
-  } else {
-    try {
-      applyBinders(await fetchBinders());
-    } catch (err) {
-      console.error('Failed to load binders:', err);
-      binders.clear();
-    }
+    return;
   }
+
+  try {
+    applyBinders(await fetchBinders());
+  } catch (err) {
+    console.error('Failed to load binders:', err);
+    binders.clear();
+  }
+}
+
+/**
+ * Load binders from whichever source applies. Concurrent callers share a single
+ * fetch. `seed` creates a default binder when the caller has none (the Binder
+ * Builder page wants one; the browse page's bulk modals only need to list
+ * existing binders).
+ * @param {{seed?: boolean}} [options]
+ */
+export async function loadBinders({ seed = true } = {}) {
+  if (!pendingLoad) {
+    pendingLoad = fetchBinderRecords().finally(() => {
+      pendingLoad = null;
+    });
+  }
+  await pendingLoad;
 
   try {
     activeId = localStorage.getItem(ACTIVE_KEY);
@@ -330,15 +353,30 @@ export async function loadBinders({ seed = true } = {}) {
   }
 
   if (binders.size === 0 && seed && canEditBinders()) {
-    await createBinder({
-      name: 'Binder 1',
-      columns: clampInt(getSetting('gridColumns'), 1, MAX_BINDER_COLUMNS, 3),
-      rows: clampInt(getSetting('gridRows'), 1, MAX_BINDER_ROWS, 3),
-      pages: clampInt(getSetting('pagesPerBinder'), 1, MAX_BINDER_PAGES, 1),
-      silent: true,
-    });
+    await ensureSeedBinder();
   }
 
+  announce();
+  return getBinders();
+}
+
+/**
+ * Create the default "Binder 1" when the registry is empty. Split out from
+ * {@link loadBinders} so the Binder Builder can wait until any guest→account
+ * merge has settled before deciding the account really has no binders.
+ *
+ * @returns {Promise<object[]>} the binder list
+ */
+export async function ensureSeedBinder() {
+  if (binders.size > 0 || !canEditBinders()) return getBinders();
+
+  await createBinder({
+    name: 'Binder 1',
+    columns: clampInt(getSetting('gridColumns'), 1, MAX_BINDER_COLUMNS, 3),
+    rows: clampInt(getSetting('gridRows'), 1, MAX_BINDER_ROWS, 3),
+    pages: clampInt(getSetting('pagesPerBinder'), 1, MAX_BINDER_PAGES, 1),
+    silent: true,
+  });
   announce();
   return getBinders();
 }
@@ -827,6 +865,7 @@ export async function mergeLocalBindersToAccount() {
 export async function resetBinders() {
   binders.clear();
   activeId = null;
+  pendingLoad = null;
   await clearLocalBinders();
   announce();
 }

@@ -125,6 +125,16 @@ describe('binderBuilder', () => {
     expect(document.querySelector('.bb-page-label').textContent).toBe('Page 1 / 1');
   });
 
+  it('defers seeding when mounted with seed: false', async () => {
+    await initBinderBuilder(document.getElementById('binder-root'), { seed: false });
+
+    // The shell seeds once guest→account merges have settled; until then the
+    // editor stays empty rather than creating a spurious "Binder 1".
+    expect(getActiveBinder()).toBeNull();
+    expect(document.querySelectorAll('.binder-slot')).toHaveLength(0);
+    expect(document.querySelector('.binder-builder-empty').hidden).toBe(false);
+  });
+
   it('caps displayed pocket columns on phones without changing the binder layout', async () => {
     await mount();
     const binder = getActiveBinder();

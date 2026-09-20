@@ -17,8 +17,23 @@ import { initViewportMetrics } from './utils/viewport.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
 import { startFirstRunTour } from './ui/components/tour.js';
 import { cardStore } from './state/cardStore.js';
+import { ensureSeedBinder } from './state/bindersState.js';
 import { isTourDone } from './state/onboarding.js';
 import { getLegendaryCreatures } from './api/bulkData.js';
+
+/**
+ * Run `task` once the browser is idle, so it does not compete with the first
+ * render or the binder's own card fetches. Falls back to a short timeout where
+ * `requestIdleCallback` is unavailable (Safari, jsdom).
+ * @param {() => void} task
+ */
+function whenIdle(task) {
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => task(), { timeout: 3000 });
+    return;
+  }
+  window.setTimeout(task, 300);
+}
 
 /**
  * Warm `cardStore` with the app's legendary-creature set. Runs after the binder
@@ -86,13 +101,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // that does not want to import the tour module directly.
   document.addEventListener('tour:start', () => startFirstRunTour({ force: true }));
 
-  // The editor needs the saved ownership state (for the owned/missing styling)
-  // before it renders; its card data is fetched lazily per page.
+  // The editor only needs the binder records, which it loads itself, so mount
+  // it without waiting for the collection/wishlist/list state. Ownership and
+  // wishlist styling is applied to the already-mounted tiles by the shell's
+  // `updateAllCardStates()` once `statesReady` resolves (and `render()` reads
+  // the live state per tile), so the page becomes interactive much sooner.
+  initBinderBuilder(root, { seed: false })
+    .then(scheduleFirstRunTour)
+    .catch((err) => console.error('Failed to mount the Binder Builder:', err));
+
   await statesReady;
-  await initBinderBuilder(root);
 
-  scheduleFirstRunTour();
+  // Seed a first binder only after any guest→account merge has run, so a
+  // signed-in visitor with local binders doesn't also get an empty "Binder 1".
+  await ensureSeedBinder();
 
-  // Background enrichment for the collection-wide tools.
-  warmCollectionStore();
+  // Background enrichment for the collection-wide tools; deferred to idle so it
+  // does not slow down the editor's first paint or its card fetches.
+  whenIdle(warmCollectionStore);
 });

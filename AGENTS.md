@@ -73,9 +73,15 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   pockets it renders (see `src/api/cardSearch.js`). On phones the pocket grid
   displays at most three columns (via `--binder-columns-mobile`) so pockets stay
   readable; this is display-only — the binder's stored `columns`/`rows` are never
-  changed, so cards never shift or spill. The legendary-creature bulk
-  set is warmed into `cardStore` afterwards, in the background (non-blocking),
-  because Statistics and Compare Collections label the collection from it. Vite
+  changed, so cards never shift or spill. Unlike the browse page, the editor is
+  mounted from its own (shared, coalesced) binder load without waiting for the
+  full collection/wishlist/list state: ownership and wishlist styling is
+  backfilled onto the already-mounted tiles by the shell's
+  `updateAllCardStates()`, and the default binder is seeded only after any
+  guest→account merge has settled. The legendary-creature bulk
+  set is warmed into `cardStore` afterwards, in the background and deferred to
+  idle (non-blocking), because Statistics and Compare Collections label the
+  collection from it. Vite
   builds both pages (`vite.config.js` `rollupOptions.input`).
 - `src/api/` — Scryfall API client (`scryfall.js`), bulk-data loader
   (`bulkData.js`), search-response cache (`responseCache.js`), on-demand card
