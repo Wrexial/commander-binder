@@ -187,6 +187,43 @@ function createToggleRow({ label, setting }) {
 }
 
 /**
+ * A miniature of one grid page. Re-rendering it on every columns/rows change
+ * makes the density change tangible while the dialog is still open (the real
+ * grid is behind the modal backdrop).
+ *
+ * @returns {{el: HTMLElement, render: () => void}}
+ */
+function createGridPreview() {
+  const wrap = document.createElement('div');
+  wrap.className = 'settings-grid-preview';
+
+  const grid = document.createElement('div');
+  grid.className = 'settings-grid-preview-grid';
+
+  const caption = document.createElement('span');
+  caption.className = 'settings-grid-preview-caption';
+
+  wrap.append(grid, caption);
+
+  function render() {
+    const columns = Number(getSetting('gridColumns')) || 1;
+    const rows = Number(getSetting('gridRows')) || 1;
+    grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    grid.replaceChildren();
+    for (let i = 0; i < columns * rows; i++) {
+      const cell = document.createElement('span');
+      cell.className = 'settings-grid-preview-cell';
+      grid.appendChild(cell);
+    }
+    caption.textContent = `${columns} x ${rows} = ${columns * rows} cards per page`;
+  }
+
+  render();
+  return { el: wrap, render };
+}
+
+/**
  * Build the settings modal.
  *
  * @returns {{show: () => void, close: () => void}}
@@ -242,10 +279,13 @@ export function createSettingsModal() {
 
   const cardsPerPage = document.createElement('p');
   cardsPerPage.className = 'settings-readout';
-  const updateCardsPerPage = () => {
+  const gridPreview = createGridPreview();
+
+  const syncGridReadout = () => {
     const columns = getSetting('gridColumns');
     const rows = getSetting('gridRows');
     cardsPerPage.textContent = `Each page shows ${columns * rows} cards (${columns} x ${rows}).`;
+    gridPreview.render();
   };
 
   gridGroup.appendChild(
@@ -257,7 +297,7 @@ export function createSettingsModal() {
       value: getSetting('gridColumns'),
       onChange: (value) => {
         setSetting('gridColumns', value);
-        updateCardsPerPage();
+        syncGridReadout();
         applyGridSettings();
       },
     })
@@ -272,14 +312,14 @@ export function createSettingsModal() {
       value: getSetting('gridRows'),
       onChange: (value) => {
         setSetting('gridRows', value);
-        updateCardsPerPage();
+        syncGridReadout();
         applyGridSettings();
       },
     })
   );
 
-  gridGroup.appendChild(cardsPerPage);
-  updateCardsPerPage();
+  gridGroup.append(cardsPerPage, gridPreview.el);
+  syncGridReadout();
 
   gridGroup.appendChild(
     createNumberRow({

@@ -33,6 +33,19 @@ describe('createGuestWelcome', () => {
     expect(onSignIn).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a tour button only when a handler is provided', () => {
+    expect(createGuestWelcome().querySelector('.guest-welcome-tour')).toBeNull();
+  });
+
+  it('calls onTour when the tour button is clicked', () => {
+    const onTour = vi.fn();
+    const el = createGuestWelcome({ onTour });
+
+    el.querySelector('.guest-welcome-tour').click();
+
+    expect(onTour).toHaveBeenCalledTimes(1);
+  });
+
   it('persists the dismissal and calls onDismiss', () => {
     const onDismiss = vi.fn();
     const el = createGuestWelcome({ onDismiss });

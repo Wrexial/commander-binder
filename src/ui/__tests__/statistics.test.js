@@ -718,4 +718,26 @@ describe('showStatisticsModal', () => {
 
     expect(writeText).toHaveBeenCalledWith('Wanted One');
   });
+
+  it('renders a section index whose chips jump to each section', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    cardStore.getAll.mockReturnValue([makeCard({ id: 'a', name: 'A' })]);
+    cardStore.getPrintings.mockReturnValue([]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal();
+
+    const chips = [...document.querySelectorAll('.stats-nav-chip')].map((chip) => chip.textContent);
+    expect(chips[0]).toBe('Summary');
+    expect(chips).toEqual(
+      expect.arrayContaining(['Card Colors', 'Set Completion', 'Top 5 Most Valuable Cards'])
+    );
+
+    // Every jump target carries the id its chip points at.
+    expect(document.querySelector('.stats-summary').id).toBeTruthy();
+    expect(document.querySelector('.stats-section').id).toBeTruthy();
+    const chipCount = document.querySelectorAll('.stats-nav-chip').length;
+    const targetCount = document.querySelectorAll('.stats-summary, .stats-section').length;
+    expect(chipCount).toBe(targetCount);
+  });
 });

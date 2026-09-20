@@ -963,6 +963,63 @@ export function showStatisticsModal({
   const contentArea = document.createElement('div');
   contentArea.className = 'modal-content-area statistics-content';
 
+  // A quick index of the sections. It is its own flex row between the (fixed)
+  // header and the scrolling content, so it stays visible the whole time.
+  const nav = document.createElement('nav');
+  nav.className = 'stats-nav';
+  nav.setAttribute('aria-label', 'Statistics sections');
+
+  let navItems = [];
+
+  /** Rebuild the section chips from the freshly rendered content. */
+  function buildSectionNav() {
+    nav.replaceChildren();
+    navItems = [];
+
+    const summary = contentArea.querySelector('.stats-summary');
+    const targets = [summary, ...contentArea.querySelectorAll('.stats-section')].filter(Boolean);
+
+    targets.forEach((target, index) => {
+      if (!target.id) target.id = `stats-section-${index}`;
+      const title =
+        target === summary
+          ? 'Summary'
+          : target.querySelector('h3')?.firstChild?.textContent?.trim() || `Section ${index + 1}`;
+
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'stats-nav-chip';
+      chip.textContent = title;
+      chip.addEventListener('click', () => {
+        target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+      nav.appendChild(chip);
+      navItems.push({ chip, target });
+    });
+
+    syncActiveChip();
+  }
+
+  /** Highlight the chip for the section nearest the top of the viewport. */
+  function syncActiveChip() {
+    if (navItems.length === 0) return;
+    const containerTop = contentArea.getBoundingClientRect().top;
+    let active = navItems[0].chip;
+
+    for (const item of navItems) {
+      if (item.target.getBoundingClientRect().top - containerTop <= 60) active = item.chip;
+    }
+
+    for (const item of navItems) {
+      const isActive = item.chip === active;
+      item.chip.classList.toggle('is-active', isActive);
+      if (isActive) item.chip.setAttribute('aria-current', 'location');
+      else item.chip.removeAttribute('aria-current');
+    }
+  }
+
+  contentArea.addEventListener('scroll', syncActiveChip, { passive: true });
+
   const cardsByName = new Map(allCards.map((card) => [card.name, card]));
 
   /** Recompute and repaint after a wishlist change. */
@@ -977,6 +1034,7 @@ export function showStatisticsModal({
     subtitle.textContent = `${stats.totalCards} ${ownershipWord}${cardWord} · ${formatMoney(stats.totalValue)} total value${wishlistSuffix}${ownedSuffix}`;
 
     contentArea.innerHTML = createStatisticsHTML(stats);
+    buildSectionNav();
     wireStatisticsActions();
   }
 
@@ -1062,9 +1120,11 @@ export function showStatisticsModal({
   buttonContainer.append(copyMissingButton, closeButton);
 
   modal.appendChild(header);
+  modal.appendChild(nav);
   modal.appendChild(contentArea);
   modal.appendChild(buttonContainer);
 
   shell.show();
+  syncActiveChip();
   closeButton.focus();
 }

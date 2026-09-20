@@ -12,6 +12,8 @@ import { initYearScrubber } from './ui/yearScrubber.js';
 import { initViewportMetrics } from './utils/viewport.js';
 import { updateAllBinderCounts } from './ui/layout.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
+import { startFirstRunTour } from './ui/components/tour.js';
+import { isTourDone } from './state/onboarding.js';
 
 // setupUI stays importable from here for the existing tests/bootstrap callers.
 export { setupUI } from './app/shell.js';
@@ -29,6 +31,33 @@ function addBinderBuilderLink() {
   );
 }
 
+/** Replay entry point, always available from the sidebar. */
+function addTourLink() {
+  addButtonToSidebar('❓ App Tour', () => startFirstRunTour({ force: true }), 'settings', 20);
+}
+
+/**
+ * Auto-run the tour on a first visit, once the grid has a card to point at.
+ * Guests still looking at the welcome panel get their own tour button instead
+ * of a second overlay on top of it.
+ */
+function scheduleFirstRunTour() {
+  if (isTourDone()) return;
+  // Guests still looking at the welcome panel get their own tour button instead
+  // of a second overlay on top of it; a share-link visitor is not the owner and
+  // has none of the tools the tour describes.
+  if (document.querySelector('.guest-welcome, .guest-mode-container')) return;
+
+  const waitForCard = (attempt = 0) => {
+    if (document.querySelector('#results .card') || attempt >= 20) {
+      startFirstRunTour();
+      return;
+    }
+    window.setTimeout(() => waitForCard(attempt + 1), 250);
+  };
+  window.setTimeout(waitForCard, 500);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const { results, tooltip } = await bootShell();
 
@@ -37,6 +66,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   initYearScrubber();
   updateAllBinderCounts();
   addBinderBuilderLink();
+  addTourLink();
+
+  // The guest welcome's "Take a quick tour" button, and any future entry point
+  // that does not want to import the tour module directly.
+  document.addEventListener('tour:start', () => startFirstRunTour({ force: true }));
+  scheduleFirstRunTour();
 
   initViewportMetrics();
   initSearch();

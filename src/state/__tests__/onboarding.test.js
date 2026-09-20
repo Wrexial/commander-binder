@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { isGuestWelcomeDismissed, dismissGuestWelcome } from '../onboarding.js';
+import {
+  isGuestWelcomeDismissed,
+  dismissGuestWelcome,
+  isTourDone,
+  markTourDone,
+} from '../onboarding.js';
 
 describe('guest welcome onboarding flag', () => {
   beforeEach(() => {
@@ -26,6 +31,35 @@ describe('guest welcome onboarding flag', () => {
       throw new Error('blocked');
     });
     expect(() => dismissGuestWelcome()).not.toThrow();
+    setItem.mockRestore();
+  });
+});
+
+describe('first-run tour onboarding flag', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('defaults to not done', () => {
+    expect(isTourDone()).toBe(false);
+  });
+
+  it('remembers completion', () => {
+    markTourDone();
+    expect(isTourDone()).toBe(true);
+  });
+
+  it('stays best-effort when storage is unavailable', () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(isTourDone()).toBe(false);
+    getItem.mockRestore();
+
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(() => markTourDone()).not.toThrow();
     setItem.mockRestore();
   });
 });

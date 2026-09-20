@@ -113,6 +113,25 @@ describe('settingsModal', () => {
     expect(document.querySelector('.settings-readout').textContent).toContain('6 x 5');
   });
 
+  it('previews the grid density and updates it live', () => {
+    createSettingsModal();
+
+    const grid = document.querySelector('.settings-grid-preview-grid');
+    expect(grid).not.toBeNull();
+    expect(grid.querySelectorAll('.settings-grid-preview-cell')).toHaveLength(20);
+    expect(grid.style.gridTemplateColumns).toBe('repeat(5, 1fr)');
+    expect(grid.style.gridTemplateRows).toBe('repeat(4, 1fr)');
+    expect(document.querySelector('.settings-grid-preview-caption').textContent).toContain(
+      '20 cards per page'
+    );
+
+    changeControl('Grid columns', '6');
+
+    expect(grid.querySelectorAll('.settings-grid-preview-cell')).toHaveLength(24);
+    expect(grid.style.gridTemplateColumns).toBe('repeat(6, 1fr)');
+    expect(document.querySelector('.settings-grid-preview-caption').textContent).toContain('6 x 4');
+  });
+
   it('updates the grid settings and reflows the grid', () => {
     createSettingsModal();
 

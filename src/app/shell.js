@@ -275,6 +275,8 @@ function renderGuestWelcome(clerk, mount) {
     createGuestWelcome({
       onSignIn: () => clerk.openSignIn(),
       onDismiss: () => mount.replaceChildren(),
+      // The tour's anchors are browse-page specific, so the binder page omits it.
+      onTour: isBinderView() ? null : () => document.dispatchEvent(new CustomEvent('tour:start')),
     })
   );
 }

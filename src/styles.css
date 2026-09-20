@@ -367,6 +367,27 @@ body.sidebar-open {
   cursor: pointer;
 }
 
+/* Secondary, low-key action beside the primary "Sign In". */
+.guest-welcome-tour {
+  padding: 9px 12px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.guest-welcome-tour:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+}
+
 .guest-welcome-dismiss:hover {
   background: var(--surface-3);
   color: var(--text);
@@ -1802,6 +1823,142 @@ button.tooltip-wishlist-status:disabled {
   outline-offset: 1px;
 }
 
+/* --- First-run tour ---------------------------------------------------- */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2300;
+}
+
+/* A transparent "hole" cut out of a huge shadow: everything except the
+   spotlight is dimmed, and the highlighted control stays fully visible. */
+.tour-spotlight {
+  position: fixed;
+  z-index: 2301;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 9999px rgba(6, 9, 14, 0.74),
+    0 0 0 2px var(--accent);
+  transition:
+    top 0.25s ease,
+    left 0.25s ease,
+    width 0.25s ease,
+    height 0.25s ease;
+}
+
+.tour-popover {
+  position: fixed;
+  z-index: 2302;
+  width: min(340px, calc(100vw - 24px));
+  padding: 16px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+}
+
+.tour-popover:focus {
+  outline: none;
+}
+
+.tour-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tour-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition:
+    width 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tour-dot.is-active {
+  width: 18px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.tour-title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.tour-body {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-skip {
+  padding: 8px 4px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tour-skip:hover {
+  color: var(--text);
+}
+
+.tour-back,
+.tour-next {
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tour-back:hover:not(:disabled),
+.tour-next:hover {
+  border-color: var(--accent);
+}
+
+.tour-back:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tour-next.primary {
+  background: linear-gradient(160deg, var(--accent), #b8912a);
+  border-color: var(--accent-strong);
+  color: #161206;
+}
+
+.tour-skip:focus-visible,
+.tour-back:focus-visible,
+.tour-next:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .set-tooltip {
   position: fixed;
   display: none;
@@ -3190,6 +3347,53 @@ footer a:focus-visible {
   transform: none;
 }
 
+/* Section index: sticky between the header and the scrolling body. */
+.stats-nav {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 10px 26px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.stats-nav-chip {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.stats-nav-chip:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.stats-nav-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+@media (max-width: 700px) {
+  .stats-nav {
+    padding: 10px 16px;
+  }
+}
+
 /* The modal has padding: 0 so the header/content manage their own spacing;
    the footer needs matching padding or it clips on the rounded corner. */
 .statistics-modal .modal-button-container {
@@ -3201,8 +3405,9 @@ footer a:focus-visible {
 .stats-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 18px;
+  scroll-margin-top: 12px;
 }
 
 .stat-card {
@@ -3286,7 +3491,7 @@ footer a:focus-visible {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-  gap: 14px;
+  gap: 16px;
   align-items: start;
   margin-bottom: 14px;
 }
@@ -3297,6 +3502,7 @@ footer a:focus-visible {
   border-radius: var(--radius-md);
   background: var(--surface-1);
   box-shadow: var(--shadow-sm);
+  scroll-margin-top: 12px;
 }
 
 .statistics-modal .stats-section h3 {
@@ -4566,6 +4772,39 @@ body.selection-mode #results {
   padding: 2px 10px 6px;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+/* A miniature page: the cell count tracks the real grid, so raising the
+   density visibly shrinks the tiles. Fixed height keeps the dialog stable. */
+.settings-grid-preview {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+}
+
+.settings-grid-preview-grid {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  height: 130px;
+  grid-auto-rows: 1fr;
+}
+
+.settings-grid-preview-cell {
+  min-height: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: linear-gradient(160deg, var(--surface-3), var(--surface-1));
+}
+
+.settings-grid-preview-caption {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .settings-reset-printings {

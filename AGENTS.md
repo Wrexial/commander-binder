@@ -158,7 +158,8 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `viewState.js`
   persists the active search, scroll offset and filter
   state in `sessionStorage` (per-tab, best-effort); `onboarding.js` keeps
-  first-run flags such as the dismissed guest welcome in `localStorage`;
+  first-run flags such as the dismissed guest welcome and the completed app tour
+  in `localStorage`;
   `filters.js` holds the filter-bar state (including the sort option, the
   collection lens — All/Owned/Wanted/Missing — a custom-list lens, plus
   rarity/colour/set/price
@@ -185,7 +186,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   focus restore and a page-scroll lock while any dialog is open — the shared collection-modal chrome/helpers
   `collectionModal.js`, the settings dialog `settingsModal.js` (display mode,
   currency, grid columns/rows, pages per binder, swipe-to-dismiss and the
-  preferred-printings reset; the sidebar's “⚙️ Settings” entry opens it), the
+  preferred-printings reset — with a live miniature of the grid page that
+  updates as columns/rows change; the sidebar's “⚙️ Settings” entry opens it),
+  the first-run tour `tour.js` (a spotlight/popover walk over the search,
+  filters, a card and the menu; auto-started once for signed-in visitors, offered
+  from the guest welcome and replayable from the sidebar's “❓ App Tour”), the
   add/check/export modals (the add, bulk-check, export
   and recent-activity modals share an Owned/Wishlist picker from
   `collectionModal.js`'s `createTargetToggle` (which can also pin a "+ New list"
@@ -245,7 +250,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   binder on the Binder Builder page (hydrating that binder's pockets first,
   `countAll: true` so every pocket — duplicate or unowned, legendary or not — is
   counted, and `exactPrintings: true` so each pocket is valued at its own
-  printing) and to the whole owned collection elsewhere. Its hover preview clears
+  printing) and to the whole owned collection elsewhere. It includes a pinned
+  section index of jump-to-section chips, so a long report is navigable rather
+  than a single scroll. Its hover preview clears
   the grid's `onToggle`/`onWishlistToggle`/`onAddToList` handlers on open
   (`onNavigate` too), so the read-only preview can only cycle printings.
   Statistics includes a

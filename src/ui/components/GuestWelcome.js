@@ -6,10 +6,10 @@ import { dismissGuestWelcome } from '../../state/onboarding.js';
  * tracking your collection needs an account, so this explains the trade-off and
  * offers a sign-in shortcut. Dismissal is remembered (see `onboarding.js`).
  *
- * @param {{ onSignIn?: () => void, onDismiss?: () => void }} [handlers]
+ * @param {{ onSignIn?: () => void, onDismiss?: () => void, onTour?: () => void }} [handlers]
  * @returns {HTMLElement}
  */
-export function createGuestWelcome({ onSignIn, onDismiss } = {}) {
+export function createGuestWelcome({ onSignIn, onDismiss, onTour } = {}) {
   const panel = document.createElement('section');
   panel.className = 'guest-welcome';
   panel.setAttribute('aria-labelledby', 'guest-welcome-title');
@@ -29,6 +29,15 @@ export function createGuestWelcome({ onSignIn, onDismiss } = {}) {
 
   const actions = document.createElement('div');
   actions.className = 'guest-welcome-actions';
+
+  if (onTour) {
+    const tour = document.createElement('button');
+    tour.type = 'button';
+    tour.className = 'guest-welcome-tour';
+    tour.textContent = 'Take a quick tour';
+    tour.addEventListener('click', () => onTour());
+    actions.appendChild(tour);
+  }
 
   const signIn = document.createElement('button');
   signIn.type = 'button';
