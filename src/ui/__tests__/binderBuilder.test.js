@@ -288,6 +288,25 @@ describe('binderBuilder', () => {
     );
   });
 
+  it('moves between binder tabs with the arrow keys', async () => {
+    await mount();
+    await createBinder({ name: 'Second' });
+    await vi.waitFor(() => expect(document.querySelectorAll('.binder-tab')).toHaveLength(2));
+
+    const tabs = () => [...document.querySelectorAll('.binder-tab')];
+    const activeIndex = () => tabs().findIndex((tab) => tab.classList.contains('is-active'));
+
+    // Creating a binder makes it active; ArrowLeft returns to the first tab.
+    const active = tabs()[activeIndex()];
+    active.focus();
+    expect(active.tabIndex).toBe(0);
+    active.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+
+    await vi.waitFor(() => expect(activeIndex()).toBe(0));
+    expect(tabs()[0].tabIndex).toBe(0);
+    expect(tabs()[1].tabIndex).toBe(-1);
+  });
+
   it('renders a read-only view for a share visitor', async () => {
     mainState.shareToken = 'tok';
     fetchBinders.mockResolvedValueOnce([

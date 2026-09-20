@@ -114,7 +114,10 @@ describe('exportModal', () => {
     expect(writeText.mock.calls[0][0]).toContain('Tradelist Count');
   });
 
-  it('filters the visible list while keeping the total', () => {
+  it('filters the visible list and the export together', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
     const modal = open([...cards, { id: 'c', name: 'Mana Crypt' }]);
     modal.show();
 
@@ -125,7 +128,15 @@ describe('exportModal', () => {
     expect([...document.querySelectorAll('.bulk-row')].map((row) => row.textContent)).toEqual([
       'Arcane Signet',
     ]);
-    expect(document.querySelector('.export-copy').textContent).toBe('Copy all 3 cards');
+    expect(document.querySelector('.export-copy').textContent).toBe('Copy 1 card');
+
+    document.querySelector('.export-copy').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(writeText.mock.calls[0][0]).toContain('Arcane Signet');
+    expect(writeText.mock.calls[0][0]).not.toContain('Sol Ring');
+    expect(showToast).toHaveBeenCalledWith('Copied 1 card.', 'success');
   });
 
   it('shows an empty state and disables the actions when there is nothing to export', () => {

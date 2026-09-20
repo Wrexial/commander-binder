@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../utils/html.js';
 import { showToast } from './toast.js';
 import { createCollectionModal, createTargetToggle } from './collectionModal.js';
+import { attachCardPreview } from './cardPreview.js';
 import {
   DEFAULT_TRANSFER_FORMAT,
   TEXT_TRANSFER_FORMATS,
@@ -77,6 +78,9 @@ export function createExportModal({ collections, title = 'Export Cards', initial
 
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
+  attachCardPreview(preview);
+  // The active collection's cards after the search filter; the export follows it.
+  let visibleCards = allCards;
 
   if (collections.length > 1) {
     const target = createTargetToggle({
@@ -107,7 +111,7 @@ export function createExportModal({ collections, title = 'Export Cards', initial
   function render() {
     const { noun, emptyMessage } = active;
     const query = searchInput.value.trim().toLowerCase();
-    const visible = query
+    visibleCards = query
       ? allCards.filter((card) => card.name.toLowerCase().includes(query))
       : allCards;
 
@@ -117,34 +121,41 @@ export function createExportModal({ collections, title = 'Export Cards', initial
 
     if (allCards.length === 0) {
       preview.innerHTML = `<p class="bulk-empty">${emptyMessage}</p>`;
-    } else if (visible.length === 0) {
+    } else if (visibleCards.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No cards match that filter.</p>';
     } else {
-      const rows = visible
-        .map((card) => `<li class="bulk-row bulk-row-owned">${escapeHtml(card.name)}</li>`)
+      const rows = visibleCards
+        .map(
+          (card) =>
+            `<li class="bulk-row bulk-row-owned" data-card-preview data-card-id="${escapeHtml(card.id)}">${escapeHtml(card.name)}</li>`
+        )
         .join('');
       preview.innerHTML = `
                 <div class="bulk-summary">
-                    <span class="bulk-summary-chip bulk-chip-owned">Showing <strong>${visible.length}</strong></span>
+                    <span class="bulk-summary-chip bulk-chip-owned">Showing <strong>${visibleCards.length}</strong></span>
                     <span class="bulk-summary-chip">Total <strong>${allCards.length}</strong></span>
                 </div>
                 <ul class="bulk-list">${rows}</ul>`;
     }
 
     const label = TRANSFER_FORMATS.find((format) => format.id === currentFormat())?.label ?? 'CSV';
-    copyButton.textContent = `Copy all ${allCards.length} card${allCards.length === 1 ? '' : 's'}`;
+    const count = visibleCards.length;
+    copyButton.textContent = `Copy ${count} card${count === 1 ? '' : 's'}`;
     downloadButton.textContent = `Download ${label}`;
-    copyButton.disabled = allCards.length === 0;
-    downloadButton.disabled = allCards.length === 0;
+    copyButton.disabled = count === 0;
+    downloadButton.disabled = count === 0;
   }
 
   async function copyAll() {
-    if (allCards.length === 0) return;
+    if (visibleCards.length === 0) return;
 
     try {
-      // The full collection is exported; the filter only affects the preview.
-      await navigator.clipboard.writeText(serializeCollection(allCards, currentFormat()));
-      showToast(`Copied ${allCards.length} card${allCards.length === 1 ? '' : 's'}.`, 'success');
+      // The filter narrows the export, matching what the preview shows.
+      await navigator.clipboard.writeText(serializeCollection(visibleCards, currentFormat()));
+      showToast(
+        `Copied ${visibleCards.length} card${visibleCards.length === 1 ? '' : 's'}.`,
+        'success'
+      );
     } catch (err) {
       console.error('Failed to copy cards:', err);
       showToast('Could not copy to the clipboard.', 'error');
@@ -152,9 +163,9 @@ export function createExportModal({ collections, title = 'Export Cards', initial
   }
 
   function downloadAll() {
-    if (allCards.length === 0) return;
+    if (visibleCards.length === 0) return;
 
-    const blob = new Blob([serializeCollection(allCards, currentFormat())], {
+    const blob = new Blob([serializeCollection(visibleCards, currentFormat())], {
       type: TEXT_TRANSFER_FORMATS.has(currentFormat())
         ? 'text/plain;charset=utf-8'
         : 'text/csv;charset=utf-8',
@@ -167,7 +178,10 @@ export function createExportModal({ collections, title = 'Export Cards', initial
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    showToast(`Downloaded ${allCards.length} card${allCards.length === 1 ? '' : 's'}.`, 'success');
+    showToast(
+      `Downloaded ${visibleCards.length} card${visibleCards.length === 1 ? '' : 's'}.`,
+      'success'
+    );
   }
 
   function show() {

@@ -6,6 +6,7 @@ import { updateAllBinderCounts } from '../layout.js';
 import { updateOwnedCounter } from './ownedCounter.js';
 import { showToast } from './toast.js';
 import { createModal } from './modal.js';
+import { hideCardPreview } from './cardPreview.js';
 import { COLLECTION_TARGETS } from './collectionTargets.js';
 
 /** Case/whitespace-insensitive key used to match a card name. */
@@ -32,7 +33,13 @@ export function normalizeName(name) {
  * }}
  */
 export function createCollectionModal({ title, subtitle, actions }) {
-  const shell = createModal({ className: 'bulk-modal', ariaLabel: title });
+  // The rows inside these modals can open a floating card preview; make sure it
+  // is torn down when the dialog closes (the hovered row disappears first).
+  const shell = createModal({
+    className: 'bulk-modal',
+    ariaLabel: title,
+    onClose: hideCardPreview,
+  });
   const { modal, close } = shell;
 
   const header = document.createElement('div');
@@ -73,15 +80,24 @@ export function summaryChip(status, label, count) {
   return `<span class="bulk-summary-chip bulk-chip-${status}">${escapeHtml(label)} <strong>${count}</strong></span>`;
 }
 
-/** A labelled `<ul>` of card names in a modal's preview. */
-export function previewGroup(status, label, names) {
-  if (names.length === 0) return '';
+/**
+ * A labelled `<ul>` of card names in a modal's preview. Entries may be plain
+ * strings (non-interactive) or `{name, id}` / card objects, in which case the
+ * row opts into a hover/tap preview (see `attachCardPreview`).
+ */
+export function previewGroup(status, label, entries) {
+  if (entries.length === 0) return '';
 
-  const rows = names
-    .map((name) => `<li class="bulk-row bulk-row-${status}">${escapeHtml(name)}</li>`)
+  const rows = entries
+    .map((entry) => {
+      const name = typeof entry === 'string' ? entry : entry.name;
+      const id = typeof entry === 'string' ? '' : entry.id || '';
+      const preview = id ? ` data-card-preview data-card-id="${escapeHtml(id)}"` : '';
+      return `<li class="bulk-row bulk-row-${status}"${preview}>${escapeHtml(name)}</li>`;
+    })
     .join('');
 
-  return `<section class="bulk-group"><h3>${escapeHtml(label)}<span>${names.length}</span></h3><ul>${rows}</ul></section>`;
+  return `<section class="bulk-group"><h3>${escapeHtml(label)}<span>${entries.length}</span></h3><ul>${rows}</ul></section>`;
 }
 
 /**
@@ -135,13 +151,27 @@ export function createTargetToggle({
   group.setAttribute('role', 'group');
   group.setAttribute('aria-label', 'Collection');
 
+  // The options scroll horizontally while the optional "+ New" action stays
+  // pinned, so it can never be scrolled out of reach.
+  const optionsRow = document.createElement('div');
+  optionsRow.className = 'target-toggle-options';
+
   const buttons = new Map();
   let value = initial;
+
+  /** Keep the active pill in view when the row is wider than its container. */
+  function scrollActiveIntoView() {
+    const button = buttons.get(value);
+    if (button && typeof button.scrollIntoView === 'function') {
+      button.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    }
+  }
 
   function sync() {
     for (const [id, button] of buttons) {
       button.setAttribute('aria-pressed', String(id === value));
     }
+    scrollActiveIntoView();
   }
 
   function makeOption(option) {
@@ -149,6 +179,7 @@ export function createTargetToggle({
     button.type = 'button';
     button.className = 'target-toggle-option';
     button.textContent = option.label;
+    button.title = option.label;
     button.addEventListener('click', () => {
       if (option.id === value) return;
       value = option.id;
@@ -160,15 +191,15 @@ export function createTargetToggle({
 
   for (const option of options) {
     const button = makeOption(option);
-    group.appendChild(button);
+    optionsRow.appendChild(button);
     buttons.set(option.id, button);
   }
+  group.appendChild(optionsRow);
 
   // Optional "+ New …" action pinned to the end of the row; it is never itself
   // a selected target.
-  let newButton = null;
   if (onCreate) {
-    newButton = document.createElement('button');
+    const newButton = document.createElement('button');
     newButton.type = 'button';
     newButton.className = 'target-toggle-option target-toggle-new';
     newButton.textContent = '+ New list';
@@ -181,11 +212,11 @@ export function createTargetToggle({
   return {
     el: group,
     getValue: () => value,
-    /** Append a newly created target (before the "+ New" action) and select it. */
+    /** Append a newly created target and select it. */
     addOption(option) {
       if (buttons.has(option.id)) return;
       const button = makeOption(option);
-      group.insertBefore(button, newButton);
+      optionsRow.appendChild(button);
       buttons.set(option.id, button);
       sync();
     },

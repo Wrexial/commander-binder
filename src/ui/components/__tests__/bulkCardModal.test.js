@@ -33,7 +33,11 @@ vi.mock('../../../api/cardSearch.js', () => ({
 }));
 
 vi.mock('../../../state/cardStore.js', () => ({
-  cardStore: { getAll: vi.fn(() => []) },
+  cardStore: {
+    getAll: vi.fn(() => []),
+    getPrintings: vi.fn(() => []),
+    getByPrintingId: vi.fn(),
+  },
   primaryName: (cardOrName) =>
     (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
 }));
@@ -127,6 +131,20 @@ describe('bulk check modal', () => {
     expect(groupLabels()).toEqual(['Owned', 'Missing']);
     expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet']);
     expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
+  });
+
+  it('resolves an exact set/collector printing when names collide', async () => {
+    const cmm = { id: 'cmm-342', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
+    const twom = { id: '2xm-999', name: 'Sol Ring', set: '2xm', collector_number: '999' };
+    // The name index lands on 2XM (first); the printing index must win.
+    cardStore.getAll.mockReturnValue([twom, cmm]);
+    cardStore.getPrintings.mockReturnValue([cmm, twom]);
+    isCardOwned.mockReturnValue(true);
+
+    createBulkCheckModal().show();
+    await typeList(document.querySelector('.bulk-modal textarea'), '1 Sol Ring (CMM) 342');
+
+    expect(isCardOwned).toHaveBeenCalledWith(cmm);
   });
 
   it('keeps a name that starts with a number when it exists verbatim', async () => {

@@ -137,7 +137,7 @@ export function createCardPickerModal({ title = 'Add a card', onPick, onRemove }
       row.className = 'card-picker-result';
       row.setAttribute('role', 'option');
       row.innerHTML = `
-        <span class="card-picker-name">${escapeHtml(name)}</span>
+        <span class="card-picker-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
         <span class="card-picker-meta">
           ${display?.set ? `<span class="card-picker-set">${escapeHtml(display.set.toUpperCase())}</span>` : ''}
           ${price !== null ? `<span class="card-picker-price">${escapeHtml(formatPrice(price))}</span>` : ''}

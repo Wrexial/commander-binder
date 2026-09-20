@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Preserve `?share=` so a share visitor stays in the owner's view.
       window.location.href = `index.html${window.location.search}`;
     },
-    'collection',
-    90
+    'browse',
+    5
   );
 
   const root = document.getElementById('binder-root');

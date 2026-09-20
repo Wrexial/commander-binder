@@ -27,9 +27,10 @@ function buildNameIndex() {
 
 /**
  * Rank autocomplete matches: prefix matches first, then word-start matches,
- * then everything else. Keeps the list short and predictable.
+ * then everything else. Keeps the list short and predictable. `lowerNames` is a
+ * precomputed parallel array so typing does not lowercase the whole catalog.
  */
-function findSuggestions(names, query) {
+function findSuggestions(names, lowerNames, query) {
   const q = query.toLowerCase();
   if (q.length < 2) return [];
 
@@ -37,8 +38,9 @@ function findSuggestions(names, query) {
   const wordStart = [];
   const contains = [];
 
-  for (const name of names) {
-    const lower = name.toLowerCase();
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    const lower = lowerNames[i];
     if (lower.startsWith(q)) {
       startsWith.push(name);
     } else if (lower.split(/[\s,]+/).some((word) => word.startsWith(q))) {
@@ -60,12 +62,30 @@ function findSuggestions(names, query) {
  */
 export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
   const nameIndex = buildNameIndex();
+
   // Suggest every known card name, not just the legendary cards loaded into
-  // `cardStore`, so all-cards entries autocomplete too. Front-face names keep
-  // suggestions aligned with the catalog and with how cards are tracked.
-  const allNames = [
-    ...new Set([...[...nameIndex.values()].map((card) => primaryName(card)), ...getCatalogNames()]),
-  ].sort((a, b) => a.localeCompare(b));
+  // `cardStore`, so all-cards entries autocomplete too. The combined list is
+  // cached and only rebuilt when the store or the (streaming) catalog grows,
+  // and a precomputed lowercase array keeps keystrokes cheap.
+  let allNames = [];
+  let lowerNames = [];
+  let cachedStoreSize = -1;
+  let cachedCatalogLength = -1;
+
+  function getNames() {
+    const catalog = getCatalogNames();
+    if (nameIndex.size === cachedStoreSize && catalog.length === cachedCatalogLength) {
+      return { names: allNames, lowerNames };
+    }
+
+    cachedStoreSize = nameIndex.size;
+    cachedCatalogLength = catalog.length;
+    allNames = [
+      ...new Set([...[...nameIndex.values()].map((card) => primaryName(card)), ...catalog]),
+    ].sort((a, b) => a.localeCompare(b));
+    lowerNames = allNames.map((name) => name.toLowerCase());
+    return { names: allNames, lowerNames };
+  }
 
   const el = document.createElement('div');
   el.className = 'bulk-input-wrapper';
@@ -118,9 +138,7 @@ export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
     onChange?.();
   }
 
-  function handleAutocomplete(event) {
-    if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(event.key)) return;
-
+  function refreshSuggestions() {
     const { start, end } = currentLineRange();
     const query = textArea.value.slice(start, end).trim();
 
@@ -129,7 +147,8 @@ export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
       return;
     }
 
-    const matches = findSuggestions(allNames, query);
+    const { names, lowerNames: lowers } = getNames();
+    const matches = findSuggestions(names, lowers, query);
     if (matches.length === 0) {
       hideSuggestions();
       return;
@@ -181,7 +200,7 @@ export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
     }
   }
 
-  textArea.addEventListener('keyup', handleAutocomplete);
+  textArea.addEventListener('input', refreshSuggestions);
   textArea.addEventListener('keydown', handleKeyDown);
   textArea.addEventListener('blur', () => {
     window.setTimeout(hideSuggestions, 120);

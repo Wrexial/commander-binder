@@ -1,4 +1,5 @@
 import { createModal } from './modal.js';
+import { attachCardPreview, hideCardPreview } from './cardPreview.js';
 import { showToast } from './toast.js';
 import { escapeHtml } from '../../utils/html.js';
 import {
@@ -25,7 +26,11 @@ import { updateAllCardStates } from '../cards.js';
  * @returns {{ show: () => void }}
  */
 export function createListsModal() {
-  const shell = createModal({ className: 'lists-modal', ariaLabel: 'My Lists' });
+  const shell = createModal({
+    className: 'lists-modal',
+    ariaLabel: 'My Lists',
+    onClose: hideCardPreview,
+  });
   const { modal, close } = shell;
 
   const header = document.createElement('div');
@@ -47,6 +52,7 @@ export function createListsModal() {
 
   const editor = document.createElement('div');
   editor.className = 'lists-editor';
+  attachCardPreview(editor);
 
   layout.append(nav, editor);
 
@@ -161,6 +167,8 @@ export function createListsModal() {
       const owned = isCardOwned(card);
       const row = document.createElement('div');
       row.className = 'lists-card-row';
+      row.dataset.cardPreview = '';
+      row.dataset.cardId = card.id;
 
       const name = document.createElement('span');
       name.className = 'lists-card-name';

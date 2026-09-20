@@ -188,6 +188,8 @@ function buildChrome(root) {
 
   const pageEl = document.createElement('div');
   pageEl.className = 'binder-page';
+  pageEl.id = 'binder-page';
+  pageEl.setAttribute('role', 'tabpanel');
 
   const hint = document.createElement('p');
   hint.className = 'binder-builder-hint';
@@ -291,6 +293,28 @@ function wireChrome() {
 
   refs.prevButton.addEventListener('click', () => goToPage(activePage - 1));
   refs.nextButton.addEventListener('click', () => goToPage(activePage + 1));
+
+  // A real tablist: Left/Right/Home/End move between binders (switching, since
+  // each tab is also the active view). The list is rebuilt on every switch, so
+  // focus the recreated active tab afterwards.
+  refs.binderTabs.addEventListener('keydown', (event) => {
+    const handled = ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key);
+    if (!handled) return;
+    const tabs = [...refs.binderTabs.querySelectorAll('.binder-tab')];
+    if (tabs.length === 0) return;
+
+    const current = tabs.indexOf(document.activeElement);
+    let next = current;
+    if (event.key === 'ArrowLeft') next = Math.max(0, current - 1);
+    else if (event.key === 'ArrowRight') next = Math.min(tabs.length - 1, current + 1);
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    if (next === current || next < 0 || next >= tabs.length) return;
+
+    event.preventDefault();
+    tabs[next].click();
+    refs.binderTabs.querySelector('.binder-tab.is-active')?.focus();
+  });
 
   refs.clearButton.addEventListener('click', async () => {
     const binder = getActiveBinder();
@@ -507,6 +531,8 @@ export function render() {
     tab.className = `binder-tab${isActive ? ' is-active' : ''}`;
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', String(isActive));
+    tab.setAttribute('aria-controls', 'binder-page');
+    tab.tabIndex = isActive ? 0 : -1;
     tab.textContent = item.name;
     tab.addEventListener('click', () => {
       if (isActive) return;
@@ -522,6 +548,12 @@ export function render() {
     });
     refs.binderTabs.appendChild(tab);
   }
+
+  // Keep the active binder visible when there are more tabs than fit.
+  refs.binderTabs.querySelector('.binder-tab.is-active')?.scrollIntoView?.({
+    inline: 'nearest',
+    block: 'nearest',
+  });
 
   refs.nameInput.value = binder.name;
   refs.columns.value = String(binder.columns);

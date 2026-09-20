@@ -3592,6 +3592,12 @@ footer a:focus-visible {
   padding: 0;
   background: transparent;
   border: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* The preview list owns the scroll below, so the name autocomplete (which is
+     absolutely positioned) is never clipped by this scroll container. */
+  overflow: visible;
 }
 
 .bulk-input-wrapper {
@@ -3619,13 +3625,25 @@ footer a:focus-visible {
 /* Owned / Wishlist picker shared by the add, export and recent modals. */
 .target-toggle {
   display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
   max-width: 100%;
-  overflow-x: auto;
+  min-width: 0;
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-1);
+  overflow: hidden;
+}
+
+/* The options scroll while the pinned "+ New" action stays put. */
+.target-toggle-options {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
   scrollbar-width: thin;
 }
 
@@ -3647,6 +3665,10 @@ footer a:focus-visible {
 }
 
 .target-toggle-new {
+  flex: 0 0 auto;
+  margin-left: 2px;
+  border-left: 1px solid var(--border);
+  border-radius: 0 999px 999px 0;
   color: var(--accent-strong);
 }
 
@@ -3742,6 +3764,10 @@ footer a:focus-visible {
 }
 
 .bulk-preview {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   margin-top: 14px;
   font-size: 0.85rem;
 }
@@ -5097,6 +5123,11 @@ body.selection-mode #results {
 }
 
 .card-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
 }
 

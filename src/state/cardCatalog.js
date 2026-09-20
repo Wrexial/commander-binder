@@ -19,6 +19,8 @@
 
 /** @type {string[]} */
 let names = [];
+/** Lowercased parallel array, rebuilt with `names` so ranking never re-lowercases. */
+let lowerNames = [];
 /** @type {Map<string, string>} */
 let nameById = new Map();
 /** @type {Map<string, string>} lowercased front name -> one printing id */
@@ -33,6 +35,7 @@ export function isCardCatalogLoaded() {
 /** Publish (or replace) the catalog from a bulk subset record. */
 export function setCardCatalog({ cardNames, cardNameById, cardIdByName } = {}) {
   names = Array.isArray(cardNames) ? cardNames : [];
+  lowerNames = names.map((name) => name.toLowerCase());
   nameById = new Map(Object.entries(cardNameById || {}));
   idByName = new Map(Object.entries(cardIdByName || {}));
 
@@ -83,15 +86,21 @@ export function rankCatalogNames(query, limit = 30) {
     .toLowerCase();
   if (q.length < 2 || names.length === 0) return [];
 
+  // Cached subsets are published wholesale, but guard against a stale parallel
+  // array (e.g. tests that swap `names` directly).
+  if (lowerNames.length !== names.length) {
+    lowerNames = names.map((name) => name.toLowerCase());
+  }
+
   const startsWith = [];
   const wordStart = [];
   const contains = [];
 
-  for (const name of names) {
-    const lower = name.toLowerCase();
-    if (lower.startsWith(q)) startsWith.push(name);
-    else if (lower.split(/[\s,]+/).some((word) => word.startsWith(q))) wordStart.push(name);
-    else if (lower.includes(q)) contains.push(name);
+  for (let i = 0; i < names.length; i++) {
+    const lower = lowerNames[i];
+    if (lower.startsWith(q)) startsWith.push(names[i]);
+    else if (lower.split(/[\s,]+/).some((word) => word.startsWith(q))) wordStart.push(names[i]);
+    else if (lower.includes(q)) contains.push(names[i]);
   }
 
   return [...startsWith, ...wordStart, ...contains].slice(0, limit);
@@ -100,6 +109,7 @@ export function rankCatalogNames(query, limit = 30) {
 /** Drop the catalog (tests). */
 export function resetCardCatalog() {
   names = [];
+  lowerNames = [];
   nameById = new Map();
   idByName = new Map();
   loaded = false;

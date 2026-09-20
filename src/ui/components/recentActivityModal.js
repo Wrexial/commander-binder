@@ -4,6 +4,7 @@ import { cardStore, primaryName } from '../../state/cardStore.js';
 import { escapeHtml } from '../../utils/html.js';
 import { createModal } from './modal.js';
 import { createTargetToggle } from './collectionModal.js';
+import { attachCardPreview, hideCardPreview } from './cardPreview.js';
 
 /** Cap the list so a huge collection can't build thousands of rows. */
 const MAX_ENTRIES = 100;
@@ -75,7 +76,11 @@ export function recentAdditions(addedAt = getOwnedAddedAt(), limit = MAX_ENTRIES
 export function createRecentActivityModal({ kind = 'owned' } = {}) {
   let active = kind === 'wishlist' ? 'wishlist' : 'owned';
 
-  const shell = createModal({ className: 'activity-modal', ariaLabel: 'Recent Additions' });
+  const shell = createModal({
+    className: 'activity-modal',
+    ariaLabel: 'Recent Additions',
+    onClose: hideCardPreview,
+  });
   const { modal, close } = shell;
 
   const header = document.createElement('div');
@@ -97,6 +102,7 @@ export function createRecentActivityModal({ kind = 'owned' } = {}) {
 
   const contentArea = document.createElement('div');
   contentArea.className = 'modal-content-area activity-content';
+  attachCardPreview(contentArea);
 
   function renderList() {
     const isWishlist = active === 'wishlist';
@@ -116,8 +122,8 @@ export function createRecentActivityModal({ kind = 'owned' } = {}) {
     contentArea.innerHTML = `<ul class="activity-list">${entries
       .map(
         (entry) => `
-          <li class="activity-row">
-            <span class="activity-name">${escapeHtml(entry.card.name)}</span>
+          <li class="activity-row" data-card-preview data-card-id="${escapeHtml(entry.card.id)}">
+            <span class="activity-name" title="${escapeHtml(entry.card.name)}">${escapeHtml(entry.card.name)}</span>
             <span class="activity-set">${escapeHtml((entry.card.set || '').toUpperCase())}</span>
             <span class="activity-time">${escapeHtml(formatAddedAt(entry.createdAt))}</span>
           </li>`

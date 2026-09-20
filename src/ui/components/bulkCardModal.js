@@ -8,8 +8,9 @@ import {
   summaryChip,
 } from './collectionModal.js';
 import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
-import { findEntryCard, resolveMissingCards } from './cardLookup.js';
+import { buildPrintingIndex, findEntryCard, resolveMissingCards } from './cardLookup.js';
 import { createCardNameInput } from './cardNameInput.js';
+import { attachCardPreview } from './cardPreview.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
@@ -27,6 +28,7 @@ const VALIDATION_DEBOUNCE_MS = 250;
  * @returns {{ show: () => void, destroy: () => void }}
  */
 function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
+  const byPrinting = buildPrintingIndex();
   /** Names already looked up live, so a typo isn't re-fetched every pass. */
   const attemptedNames = new Set();
 
@@ -88,6 +90,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
+  attachCardPreview(preview);
 
   const target = createTargetToggle({
     options: targetOptions,
@@ -104,6 +107,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     return resolveMissingCards({
       text: input.textArea.value,
       nameIndex: input.nameIndex,
+      printingIndex: byPrinting,
       attemptedNames,
     });
   }
@@ -130,7 +134,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     const unknown = [];
 
     for (const entry of entries) {
-      const card = findEntryCard(entry, input.nameIndex);
+      const card = findEntryCard(entry, input.nameIndex, byPrinting);
       const key = normalizeName(card ? card.name : entry.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -170,16 +174,8 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
-                ${previewGroup(
-                  'owned',
-                  config.presentLabel,
-                  present.map((card) => card.name)
-                )}
-                ${previewGroup(
-                  'missing',
-                  config.missingLabel,
-                  missing.map((card) => card.name)
-                )}
+                ${previewGroup('owned', config.presentLabel, present)}
+                ${previewGroup('missing', config.missingLabel, missing)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
     updatePrimary();

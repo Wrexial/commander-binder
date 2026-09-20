@@ -11,6 +11,7 @@ vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 import {
   addOwnedCards,
   createCollectionModal,
+  createTargetToggle,
   normalizeName,
   previewGroup,
   summaryChip,
@@ -49,6 +50,53 @@ describe('summaryChip / previewGroup', () => {
 
   it('omits empty groups', () => {
     expect(previewGroup('owned', 'Owned', [])).toBe('');
+  });
+
+  it('marks card entries as previewable', () => {
+    const html = previewGroup('owned', 'Owned', [{ id: 'a', name: 'Alpha' }]);
+    expect(html).toContain('data-card-preview');
+    expect(html).toContain('data-card-id="a"');
+    expect(html).toContain('Alpha');
+  });
+
+  it('leaves plain string names non-interactive', () => {
+    const html = previewGroup('unknown', 'Not found', ['Ghost']);
+    expect(html).not.toContain('data-card-preview');
+  });
+});
+
+describe('createTargetToggle', () => {
+  it('keeps the + New action outside the scrolling options', () => {
+    const toggle = createTargetToggle({
+      options: [{ id: 'owned', label: 'Collection' }],
+      initial: 'owned',
+      onChange: vi.fn(),
+      onCreate: vi.fn(),
+    });
+    document.body.appendChild(toggle.el);
+
+    const optionsRow = toggle.el.querySelector('.target-toggle-options');
+    const newButton = toggle.el.querySelector('.target-toggle-new');
+    expect(optionsRow.contains(newButton)).toBe(false);
+    expect(optionsRow.querySelector('.target-toggle-option').textContent).toBe('Collection');
+  });
+
+  it('scrolls the active option into view when it changes', () => {
+    const scrollIntoView = vi.fn();
+    const toggle = createTargetToggle({
+      options: [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+      ],
+      initial: 'a',
+      onChange: vi.fn(),
+    });
+    document.body.appendChild(toggle.el);
+    toggle.el.querySelectorAll('.target-toggle-option')[1].scrollIntoView = scrollIntoView;
+
+    toggle.setValue('b');
+
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 });
 

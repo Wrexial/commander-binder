@@ -24,8 +24,8 @@ function addBinderBuilderLink() {
       // Preserve `?share=` so a share visitor stays in the owner's view.
       window.location.href = `binder.html${window.location.search}`;
     },
-    'collection',
-    90
+    'browse',
+    5
   );
 }
 

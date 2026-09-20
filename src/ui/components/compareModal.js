@@ -8,6 +8,7 @@ import { setCardsWanted } from '../../state/wishlistState.js';
 import { diffCollections } from '../../utils/compareCollections.js';
 import { updateAllCardStates } from '../cards.js';
 import { createCollectionModal, previewGroup, summaryChip } from './collectionModal.js';
+import { attachCardPreview } from './cardPreview.js';
 import { showToast } from './toast.js';
 
 /**
@@ -35,6 +36,18 @@ function sortedLabels(keys) {
   return keys.map(labelFor).sort((a, b) => a.localeCompare(b));
 }
 
+/** A previewable `{name, id}` entry for a comparison key, when the card is loaded. */
+function entryFor(key) {
+  const card = cardStore.getByPrintingId(key) || cardStore.getOldestPrinting(key);
+  if (card) return { name: card.name, id: card.id };
+  return { name: resolveCatalogName(key) || key };
+}
+
+/** Like `sortedLabels`, but keeps the printing id so each row can preview. */
+function sortedEntries(keys) {
+  return keys.map(entryFor).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /**
  * Paint a two-sided diff into a collection modal.
  *
@@ -55,8 +68,8 @@ function render(contentArea, modal, diff, labels) {
     </div>`;
 
   const groups =
-    previewGroup('missing', labels.groupLeft, sortedLabels(diff.ownerOnly)) +
-    previewGroup('owned', labels.groupRight, sortedLabels(diff.viewerOnly));
+    previewGroup('missing', labels.groupLeft, sortedEntries(diff.ownerOnly)) +
+    previewGroup('owned', labels.groupRight, sortedEntries(diff.viewerOnly));
 
   contentArea.innerHTML = groups
     ? `${summary}<div class="bulk-groups">${groups}</div>`
@@ -72,9 +85,9 @@ function render(contentArea, modal, diff, labels) {
  * @param {{ ownerOnly: string[], viewerOnly: string[], shared: string[] }} diff
  */
 function renderListCompare(contentArea, modal, diff) {
-  const missing = sortedLabels(diff.ownerOnly); // on the list, not owned
-  const have = sortedLabels(diff.shared); // on the list and owned
-  const extra = sortedLabels(diff.viewerOnly); // owned, but not on the list
+  const missing = sortedEntries(diff.ownerOnly); // on the list, not owned
+  const have = sortedEntries(diff.shared); // on the list and owned
+  const extra = sortedEntries(diff.viewerOnly); // owned, but not on the list
 
   const subtitle = modal.querySelector('.bulk-modal-subtitle');
   if (subtitle) subtitle.textContent = `${have.length} you have · ${missing.length} you don't`;
@@ -118,6 +131,7 @@ export async function showCompareModal() {
   buttons.close.addEventListener('click', close);
   buttons.wishlist.disabled = true;
   buttons.copy.disabled = true;
+  attachCardPreview(contentArea);
   contentArea.innerHTML = '<p class="bulk-empty">Loading your collection…</p>';
   shell.show();
 
@@ -200,6 +214,7 @@ export async function showListCompareModal(list) {
   buttons.close.addEventListener('click', close);
   buttons.wishlist.disabled = true;
   buttons.copy.disabled = true;
+  attachCardPreview(contentArea);
   contentArea.innerHTML = '<p class="bulk-empty">Loading your collection…</p>';
   shell.show();
 

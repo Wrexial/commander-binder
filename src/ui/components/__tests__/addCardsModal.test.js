@@ -286,7 +286,7 @@ describe('addCardsModal', () => {
     createAddCardsModal().show();
     const area = textArea();
     area.value = 'sol';
-    area.dispatchEvent(new KeyboardEvent('keyup', { key: 'l', bubbles: true }));
+    area.dispatchEvent(new Event('input', { bubbles: true }));
 
     const item = [...document.querySelectorAll('.suggestion-item')].find(
       (el) => el.textContent === 'Sol Ring'

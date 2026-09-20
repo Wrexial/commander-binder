@@ -11,6 +11,7 @@ import {
 import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
 import { buildPrintingIndex, findEntryCard, resolveMissingCards } from './cardLookup.js';
 import { createCardNameInput } from './cardNameInput.js';
+import { attachCardPreview } from './cardPreview.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
@@ -140,6 +141,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
+  attachCardPreview(preview);
 
   // Inline "create a new list" form, revealed by the picker's "+ New list".
   const newListForm = document.createElement('form');
@@ -253,16 +255,8 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
-                ${previewGroup(
-                  'missing',
-                  'Will add',
-                  add.map((card) => card.name)
-                )}
-                ${previewGroup(
-                  'owned',
-                  config.presentLabel,
-                  present.map((card) => card.name)
-                )}
+                ${previewGroup('missing', 'Will add', add)}
+                ${previewGroup('owned', config.presentLabel, present)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
     updatePrimary();
