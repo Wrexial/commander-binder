@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createGuestWelcome } from '../GuestWelcome.js';
+import { createGuestWelcome } from '../guestWelcome.js';
 
 describe('createGuestWelcome', () => {
   beforeEach(() => {

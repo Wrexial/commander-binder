@@ -269,12 +269,9 @@ export function startNewBinder(results) {
   const newBinder = document.createElement('div');
   newBinder.className = 'binder';
 
-  // Prefer binder colors defined in CSS variables, fallback to config
-  const cssColor = getComputedStyle(document.documentElement)
-    .getPropertyValue(`--binder-color-${(binderNumber - 1) % 6}`)
-    .trim();
-  const fallback = binderColors[(binderNumber - 1) % binderColors.length];
-  const color = cssColor || fallback;
+  // `binderColors` (config/constants.js) is the single source of truth for the
+  // index-based binder palette.
+  const color = binderColors[(binderNumber - 1) % binderColors.length];
 
   newBinder.style.borderColor = color;
   newBinder.style.setProperty('--binder-accent', color);

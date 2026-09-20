@@ -1,5 +1,7 @@
 // src/config/constants.js
 export const VITE_CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+/** Index-based palette for binder accents (see `src/ui/layout.js`). */
 export const binderColors = ['#c84c4c', '#4c8cc8', '#4cc88c', '#c88cc8', '#c8b14c', '#8c4cc8'];
 
 // Default card-grid dimensions (columns x rows) and binder capacity. These are

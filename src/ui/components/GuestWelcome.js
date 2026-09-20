@@ -1,4 +1,4 @@
-// src/ui/components/GuestWelcome.js
+// src/ui/components/guestWelcome.js
 import { dismissGuestWelcome } from '../../state/onboarding.js';
 
 /**

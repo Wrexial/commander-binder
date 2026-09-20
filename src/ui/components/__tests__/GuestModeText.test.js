@@ -1,6 +1,6 @@
-// src/ui/components/__tests__/GuestModeText.test.js
+// src/ui/components/__tests__/guestModeText.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createGuestModeText, getBaseUrl } from '../GuestModeText';
+import { createGuestModeText, getBaseUrl } from '../guestModeText';
 
 describe('GuestModeText', () => {
   beforeEach(() => {

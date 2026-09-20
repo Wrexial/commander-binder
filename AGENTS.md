@@ -40,8 +40,8 @@ there.
 ### Environment
 
 Environment values live in `.env` (gitignored, never commit it). `.env.example`
-is the one env file `.gitignore` whitelists, so document any new key there too
-(the file is not checked in yet).
+is the one env file `.gitignore` whitelists and is checked in, so document any
+new key there too.
 
 - `VITE_CLERK_PUBLISHABLE_KEY` — frontend Clerk initialization.
 - `VITE_CLERK_ISSUER_URL` — function-side JWT verification (`netlify/utils/auth.ts`).
@@ -276,7 +276,7 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   (type-coloured — `success`/`error`/`warning` — with an explicit dismiss control
   plus swipe-any-direction to dismiss on touch; the swipe is toggled by the
   `swipeDismissToast` setting),
-  `ownedCounter`, `SignInButton`, `GuestModeText`, `GuestWelcome`), the
+  `ownedCounter`, `signInButton`, `guestModeText`, `guestWelcome`), the
   custom-list UI (`listsModal.js` — create/rename/notes/public/delete, the list's
   member cards with owned/missing status, per-card removal, “add selection”, and
   a “Compare with my collection” action; `listPicker.js` — one card from the

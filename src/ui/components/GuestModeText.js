@@ -1,4 +1,4 @@
-// src/ui/components/GuestModeText.js
+// src/ui/components/guestModeText.js
 
 /**
  * Returns the site's base URL (no query string or hash), so exiting guest

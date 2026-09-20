@@ -107,13 +107,8 @@ label,
   --colorless-bg: #f4f4f4;
   --multicolor-border: #ffd700;
 
-  /* Binder colors (index-based) */
-  --binder-color-0: #c84c4c;
-  --binder-color-1: #4c8cc8;
-  --binder-color-2: #4cc88c;
-  --binder-color-3: #c88cc8;
-  --binder-color-4: #c8b14c;
-  --binder-color-5: #8c4cc8;
+  /* Binder colors live in `src/config/constants.js` (`binderColors`) so the
+     index-based palette has a single source. */
 
   /* UI colors */
   --card-border-default: #4a5568;

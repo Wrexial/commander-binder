@@ -1,4 +1,4 @@
-// src/ui/components/SignInButton.js
+// src/ui/components/signInButton.js
 export function createSignInButton(clerk) {
   const signInButton = document.createElement('button');
   signInButton.textContent = 'Sign In';

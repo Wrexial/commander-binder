@@ -5,16 +5,16 @@ vi.mock('../state/appState.js', () => ({
   appState: { isViewOnlyMode: false },
 }));
 vi.mock('../auth/clerk.js');
-vi.mock('../ui/components/SignInButton.js');
-vi.mock('../ui/components/GuestModeText.js');
+vi.mock('../ui/components/signInButton.js');
+vi.mock('../ui/components/guestModeText.js');
 
 // NOW, import the modules we need, including the state object
 import { setupUI } from '../main.js';
 import { mainState } from '../state/mainState.js';
 import { appState } from '../state/appState.js';
 import * as clerk from '../auth/clerk.js';
-import * as signInButton from '../ui/components/SignInButton.js';
-import * as guestModeText from '../ui/components/GuestModeText.js';
+import * as signInButton from '../ui/components/signInButton.js';
+import * as guestModeText from '../ui/components/guestModeText.js';
 
 describe('setupUI', () => {
   beforeEach(() => {

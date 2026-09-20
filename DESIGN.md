@@ -54,8 +54,9 @@ All tokens live in `:root` in `src/styles.css`. Use them — avoid raw hex.
 | `--danger`        | `#e06060`              | Destructive, error toast                |
 | `--focus`         | `#7cc4ff`              | Focus ring (never remove)               |
 
-MTG identity colours (`--mtg-W/U/B/R/G`, `--binder-color-*`, `--colorless`) are
-for card data, not chrome.
+MTG identity colours (`--mtg-W/U/B/R/G`, `--colorless`) are for card data, not
+chrome; the index-based binder palette lives in `src/config/constants.js`
+(`binderColors`).
 
 ### Shape & depth
 
