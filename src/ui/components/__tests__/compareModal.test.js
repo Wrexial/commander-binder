@@ -27,6 +27,7 @@ import { setCardsWanted } from '../../../state/wishlistState.js';
 import { cardStore } from '../../../state/cardStore.js';
 import { resetCardCatalog, setCardCatalog } from '../../../state/cardCatalog.js';
 import { showToast } from '../toast.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 
 function card(id, name) {
   return { id, name, released_at: '2020-01-01' };
@@ -71,6 +72,12 @@ describe('showCompareModal', () => {
 
     // The diff scrolls inside the modal instead of spilling past its bounds.
     expect(document.querySelector('.bulk-content > .bulk-preview .bulk-groups')).not.toBeNull();
+  });
+
+  it('has no accessibility violations', async () => {
+    await showCompareModal();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 
   it('labels collection ids that are not loaded via the all-cards catalog', async () => {

@@ -54,6 +54,7 @@ import { isInList } from '../../../state/listsState.js';
 import { getBinders, isCardInBinder } from '../../../state/bindersState.js';
 import { resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
 import { hydrateCardsByIds } from '../../../api/cardSearch.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 
 function makeCard(name) {
   return { id: name, name, type_line: 'Legendary Creature — Human', colors: [] };
@@ -245,6 +246,19 @@ describe('bulk check modal', () => {
 
     expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-sol']);
     expect(groupLabels()).toEqual(['Found']);
+  });
+
+  it('has no accessibility violations', async () => {
+    cardStore.getAll.mockReturnValue([makeCard('Sol Ring')]);
+    createBulkCheckModal().show();
+    await typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring');
+
+    // axe uses real timers internally, so leave the fake-timer world first.
+    vi.useRealTimers();
+    const { violations, summary } = await analyzeA11y(document.body);
+    // Restore fake timers so the suite's afterEach can flush them.
+    vi.useFakeTimers();
+    expect(violations.length, summary).toBe(0);
   });
 
   it('shows the modal and removes it when its close button is clicked', async () => {

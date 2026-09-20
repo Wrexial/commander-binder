@@ -30,6 +30,7 @@ vi.mock('../tooltip.js', () => ({
 }));
 
 import { calculateStatistics, createStatisticsHTML, showStatisticsModal } from '../statistics.js';
+import { analyzeA11y } from '../../__tests__/helpers/a11y.js';
 import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted, setCardsWanted } from '../../state/wishlistState.js';
@@ -756,6 +757,18 @@ describe('showStatisticsModal', () => {
       '.stats-summary, .stats-section, .stats-section-group'
     ).length;
     expect(chipCount).toBe(targetCount);
+  });
+
+  it('has no accessibility violations', async () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    cardStore.getAll.mockReturnValue([makeCard({ id: 'a', name: 'A', colors: ['U'] })]);
+    cardStore.getPrintings.mockReturnValue([]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal();
+
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 
   it('shows progress against the last tracked day', () => {

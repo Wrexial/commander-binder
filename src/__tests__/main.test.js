@@ -15,6 +15,7 @@ import { appState } from '../state/appState.js';
 import * as clerk from '../auth/clerk.js';
 import * as signInButton from '../ui/components/signInButton.js';
 import * as guestModeText from '../ui/components/guestModeText.js';
+import { analyzeA11y } from './helpers/a11y.js';
 
 describe('setupUI', () => {
   beforeEach(() => {
@@ -170,5 +171,20 @@ describe('setupUI', () => {
     expect(labels.some((text) => text.includes('Add Cards'))).toBe(true);
     expect(labels.some((text) => text.includes('Bulk Check'))).toBe(true);
     expect(labels.some((text) => text.includes('Export Cards'))).toBe(true);
+  });
+
+  it('renders an accessible shell for a signed-out visitor', async () => {
+    // Mirror the real shell DOM: index.html labels the hamburger, and the real
+    // SignInButton renders visible text (the plain mock button has neither).
+    document.getElementById('openbtn').setAttribute('aria-label', 'Toggle navigation menu');
+    signInButton.createSignInButton.mockReturnValue(
+      Object.assign(document.createElement('button'), { textContent: 'Sign In' })
+    );
+    clerk.getClerk.mockReturnValue({ openSignIn: vi.fn() });
+
+    await setupUI();
+
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 });

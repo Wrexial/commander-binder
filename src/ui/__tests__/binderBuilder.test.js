@@ -92,6 +92,7 @@ import {
 } from '../../state/bindersState.js';
 import { mainState } from '../../state/mainState.js';
 import { fetchBinders } from '../../api/binders.js';
+import { analyzeA11y } from '../../__tests__/helpers/a11y.js';
 
 async function mount() {
   const root = document.getElementById('binder-root');
@@ -228,6 +229,12 @@ describe('binderBuilder', () => {
     );
 
     await vi.waitFor(() => expect(getActiveBinder().slots['0:0:0']).toBe('printing-b'));
+  });
+
+  it('has no accessibility violations', async () => {
+    await mount();
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 
   it('keeps the window scroll position when re-rendering', async () => {

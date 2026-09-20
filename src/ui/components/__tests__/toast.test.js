@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { showToast, showUndo } from '../toast';
 import { getSetting, setSetting } from '../../../state/cardSettings.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 
 /** jsdom has no TouchEvent; build an event carrying `touches`. */
 function touch(type, clientX, clientY, { cancelable = true } = {}) {
@@ -118,5 +119,14 @@ describe('toast', () => {
       setSetting('swipeDismissToast', original);
       vi.runAllTimers();
     }
+  });
+
+  it('has no accessibility violations', async () => {
+    showToast('Saved!', 'success');
+    // axe needs real timers; restore fake ones for the suite's afterEach.
+    vi.useRealTimers();
+    const { violations, summary } = await analyzeA11y(document.body);
+    vi.useFakeTimers();
+    expect(violations.length, summary).toBe(0);
   });
 });

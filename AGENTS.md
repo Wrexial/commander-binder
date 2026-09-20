@@ -435,7 +435,11 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   `src/ui/components/__tests__/`, `src/utils/__tests__/`, `netlify/utils/__tests__/`).
   Cross-module flows live
   in `src/__integration__/ownedFlow.test.js`. Mock Clerk lives in
-  `src/__mocks__/@clerk/clerk-js.js`.
+  `src/__mocks__/@clerk/clerk-js.js`. Accessibility is checked with
+  `src/__tests__/helpers/a11y.js` (axe-core, wrapped as `analyzeA11y`); add an
+  `analyzeA11y(document.body)` assertion to any test that mounts a new dialog or
+  page surface. Contrast/region are disabled because jsdom has no layout, and
+  axe needs real timers, so switch off `vi.useFakeTimers()` for the check.
 
 ## Conventions
 

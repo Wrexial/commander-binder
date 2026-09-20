@@ -99,6 +99,7 @@ export function createCardNameInput({ placeholder, ariaLabel, onChange }) {
   const suggestions = document.createElement('div');
   suggestions.className = 'suggestions-container';
   suggestions.setAttribute('role', 'listbox');
+  suggestions.setAttribute('aria-label', 'Card name suggestions');
 
   el.append(textArea, suggestions);
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { confirmDialog } from '../confirmDialog.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -59,6 +60,13 @@ describe('confirmDialog', () => {
     confirmDialog({ message: 'Delete it?', danger: true });
 
     expect(document.activeElement.textContent).toBe('Cancel');
+  });
+
+  it('has no accessibility violations', async () => {
+    confirmDialog({ title: 'Delete binder?', message: 'Delete it?', danger: true });
+
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
   });
 
   it('styles the confirm button by intent', () => {
