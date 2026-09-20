@@ -159,6 +159,14 @@ body.sidebar-open #openbtn {
   padding: 16px;
 }
 
+/* Phones lose a lot of horizontal room to nested padding; keep the grid and
+   the sticky bar close to the screen edges. */
+@media (max-width: 768px) {
+  #main {
+    padding: 8px 6px;
+  }
+}
+
 #sidebar-backdrop {
   position: fixed;
   top: 0;
