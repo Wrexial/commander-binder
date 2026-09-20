@@ -7,6 +7,7 @@ vi.mock('../../../state/onboarding.js', () => ({
 
 import { startTour, startFirstRunTour } from '../tour.js';
 import { isTourDone, markTourDone } from '../../../state/onboarding.js';
+import { analyzeA11y } from '../../../__tests__/helpers/a11y.js';
 
 const anchor = () => document.getElementById('anchor');
 const popoverText = () => document.querySelector('.tour-popover')?.textContent || '';
@@ -24,6 +25,13 @@ afterEach(() => {
 });
 
 describe('startTour', () => {
+  it('has no accessibility violations', async () => {
+    startTour([{ target: anchor, title: 'One', body: 'Body' }]);
+
+    const { violations, summary } = await analyzeA11y(document.body);
+    expect(violations.length, summary).toBe(0);
+  });
+
   it('shows the first step with a spotlight and popover', () => {
     startTour([{ target: anchor, title: 'One', body: 'Body' }]);
 

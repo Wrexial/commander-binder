@@ -9,6 +9,7 @@ import {
 import { getImage } from '../utils/imageCache.js';
 import { getCardImages } from '../utils/cardImages.js';
 import { cardStore } from '../state/cardStore.js';
+import { analyzeA11y } from './helpers/a11y.js';
 
 // Mock dependencies
 vi.mock('../state/cardStore.js', () => ({
@@ -61,6 +62,16 @@ describe('tooltip', () => {
   });
 
   describe('showTooltip', () => {
+    it('has no accessibility violations', async () => {
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+      vi.useRealTimers();
+      vi.stubGlobal('requestAnimationFrame', (cb) => cb());
+
+      const { violations, summary } = await analyzeA11y(document.body);
+      expect(violations.length, summary).toBe(0);
+    });
+
     it('should render the descriptor and a single image for a single-faced card', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();
