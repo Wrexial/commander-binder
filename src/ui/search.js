@@ -150,7 +150,10 @@ function cardMatchesFilter(card, filter) {
     match = cardColors.length > 0 && cardColors.every((color) => queryColors.includes(color));
   } else if (filter.startsWith('c=') || filter.startsWith('c:')) {
     const queryColors = filter.substring(2).toUpperCase().split('').sort();
-    const cardColors = (card.cardData.color_identity || []).sort();
+    // Copy before sorting: `color_identity` lives on the shared card object and
+    // its order drives the multicolor stripe gradient, so a read-only filter
+    // must not reorder it in place.
+    const cardColors = [...(card.cardData.color_identity || [])].sort();
     match = JSON.stringify(queryColors) === JSON.stringify(cardColors);
   } else if (filter.startsWith('c>')) {
     const queryColors = filter.substring(2).toUpperCase().split('');

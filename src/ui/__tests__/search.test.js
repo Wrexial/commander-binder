@@ -290,4 +290,16 @@ describe('price filter', () => {
     expect(evaluateCondition(priced('30.00'), { type: 'filter', value: 'price:20' })).toBe(true);
     expect(evaluateCondition(priced('3.00'), { type: 'filter', value: 'price:20' })).toBe(false);
   });
+
+  it('does not reorder the shared color identity when matching c: or c=', () => {
+    const multicolor = {
+      cardData: { name: 'Test', color_identity: ['W', 'U'], set: 'x', set_name: 'X' },
+    };
+
+    expect(evaluateCondition(multicolor, { type: 'filter', value: 'c:wu' })).toBe(true);
+    expect(multicolor.cardData.color_identity).toEqual(['W', 'U']);
+
+    expect(evaluateCondition(multicolor, { type: 'filter', value: 'c=wu' })).toBe(true);
+    expect(multicolor.cardData.color_identity).toEqual(['W', 'U']);
+  });
 });
