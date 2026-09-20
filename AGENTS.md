@@ -138,7 +138,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   a tile carries `data-binder-slot`, so `applyPreferredPrintings()` skips it and
   cycling emits `binder:printing-changed` to save that exact printing on the
   pocket instead of the global preference (two pockets of the same card keep
-  their own versions).
+  their own versions). In a share/guest view `canCyclePrinting()` blocks cycling
+  on binder pockets entirely (it would look editable but could never save); the
+  browse grid still allows cycling as a view action.
   `compareState.js` loads the viewer's _own_ collection separately from the
   share view's owner collection, so the two can be diffed. `selectionState.js`
   holds the bulk-edit multi-selection (keyed by card name), entered from the
@@ -210,8 +212,9 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   it reuses
   `cards.js` tiles so ownership toggles and the preview keep working, and each
   pocket pins its own exact printing). A share-link view
-  renders it read-only: `canEditBinders()` hides the toolbar edits, the pocket
-  controls and empty-slot adders) and its card picker `cardPickerModal.js`
+  render it read-only: `canEditBinders()` hides the toolbar edits, the pocket
+  controls and empty-slot adders, and binder pockets can't have their printing
+  cycled either) and its card picker `cardPickerModal.js`
   (all-cards search: the `cardCatalog` name list answers instantly with no
   network, and only while it is still loading does the picker fall back to
   Scryfall autocomplete; picking loads the name's printings into `cardStore`),

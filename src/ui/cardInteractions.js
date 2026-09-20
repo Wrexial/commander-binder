@@ -57,14 +57,26 @@ function findAdjacentCard(current, direction) {
 }
 
 /**
+ * Whether a tile's printing may be cycled. Binder pockets in a share/guest view
+ * are strictly read-only: changing the printing there would look editable but
+ * could never be saved, so block it at the source.
+ * @param {HTMLElement} cardElement
+ */
+function canCyclePrinting(cardElement) {
+  if (!cardElement?.dataset?.binderSlot) return true;
+  return !appState.isViewOnlyMode;
+}
+
+/**
  * Point the preview's controls (printing cycle, swipe navigation and ownership
- * toggle) at a card element. `onToggle` is null in view-only mode, so the modal
- * renders a plain status badge rather than a button.
+ * toggle) at a card element. `onToggle`/`onCycle` are null in view-only mode, so
+ * the modal renders a plain status badge rather than a button.
  */
 function wireCardControls(cardElement, tooltip) {
   tooltipCardElement = cardElement;
-  tooltip.onCycle = (cycleEvent, direction) =>
-    cycleCardPrinting(cardElement, cycleEvent, tooltip, direction);
+  tooltip.onCycle = canCyclePrinting(cardElement)
+    ? (cycleEvent, direction) => cycleCardPrinting(cardElement, cycleEvent, tooltip, direction)
+    : null;
   tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
   tooltip.onToggle = appState.isViewOnlyMode
     ? null
@@ -359,6 +371,7 @@ async function toggleCardOwnership(cardElement, card) {
  */
 function cycleCardPrinting(cardElement, event, tooltip, direction = 1) {
   if (!cardElement || !cardElement.cardData) return;
+  if (!canCyclePrinting(cardElement)) return;
 
   const next = nextPrinting(
     orderPrintingsByPrice(cardStore.getPrintings(cardElement.cardData.name)),

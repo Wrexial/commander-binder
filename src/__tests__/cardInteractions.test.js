@@ -119,6 +119,18 @@ describe('initCardInteractions', () => {
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
+    it('does not wire a printing-cycle handler for a binder pocket in a guest view', () => {
+      appState.isViewOnlyMode = true;
+      cardElement.dataset.binderSlot = '0:0:0';
+
+      initCardInteractions(container, tooltipElement);
+      startTouch(cardElement);
+
+      expect(tooltipElement.onCycle).toBeNull();
+      // Cancel the pending long-press timer.
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
     /** Add a card tile with `cardData` to the binder and return it. */
     function addCard(id, name) {
       const tile = document.createElement('div');
@@ -327,6 +339,34 @@ describe('initCardInteractions', () => {
       expect(cardElement.cardData.id).toBe('p2');
       expect(rememberPreferredPrinting).not.toHaveBeenCalled();
       expect(details).toEqual([{ slotKey: '0:0:0', printingId: 'p2' }]);
+    });
+
+    it('does not cycle a binder pocket in a share/guest view', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      appState.isViewOnlyMode = true;
+      cardElement.cardData = first;
+      cardElement.dataset.binderSlot = '0:0:0';
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      initCardInteractions(container, tooltipElement);
+      cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+      expect(cardElement.cardData.id).toBe('p1');
+      expect(rememberPreferredPrinting).not.toHaveBeenCalled();
+    });
+
+    it('still cycles a grid tile in a share/guest view', () => {
+      const first = { id: 'p1', name: 'Card', released_at: '2020-01-01' };
+      const second = { id: 'p2', name: 'Card', released_at: '2021-01-01' };
+      appState.isViewOnlyMode = true;
+      cardElement.cardData = first;
+      cardStore.getPrintings.mockReturnValue([first, second]);
+
+      initCardInteractions(container, tooltipElement);
+      cardElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+      expect(cardElement.cardData.id).toBe('p2');
     });
 
     it('cycles the printing when the version badge is activated, without toggling ownership', async () => {
