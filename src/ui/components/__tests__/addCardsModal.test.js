@@ -289,7 +289,7 @@ describe('addCardsModal', () => {
 
   it('switches the target to a custom list and adds there', async () => {
     createAddCardsModal().show();
-    target('Trade pile').click();
+    target('List: Trade pile').click();
     expect(document.querySelector('.bulk-modal-header h2').textContent).toBe('Add to “Trade pile”');
 
     paste('Sol Ring');
@@ -306,7 +306,7 @@ describe('addCardsModal', () => {
   it('flags cards already in the selected list', () => {
     isInList.mockReturnValue(true);
     createAddCardsModal().show();
-    target('Trade pile').click();
+    target('List: Trade pile').click();
     paste('Sol Ring');
 
     expect(chipTexts()[1]).toContain('Already in “Trade pile”');

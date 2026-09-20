@@ -135,7 +135,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   first empty pockets and grows the page count when needed, and
   `moveCardToFirstEmptySlot` moves a pocket's card into another binder's first
   empty pocket (growing it if full), powering the builder's "switch binder while
-  moving" flow.
+  moving" flow. `resizeBinder` reflows a binder when its columns/rows/pages
+  change — pockets that still exist keep their card, displaced cards shift into
+  the first free pockets, and any card that still doesn't fit spills into a newly
+  created continuation binder (`<name> (2)`, …) so resizing never drops a card;
+  `updateBinder` routes dimension changes through it (and only handles
+  name/isPublic itself).
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control). Binder pockets opt out:

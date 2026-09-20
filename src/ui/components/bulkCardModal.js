@@ -34,7 +34,8 @@ function collectLocations() {
     { kind: 'wishlist', label: 'Wishlist', present: isCardWanted },
     ...getLists().map((list) => ({
       kind: 'list',
-      label: list.name,
+      // Prefix so a list never reads like a same-named binder.
+      label: `List: ${list.name}`,
       present: (card) => isInList(list.id, card),
     })),
     ...getBinders().map((binder) => ({

@@ -27,7 +27,7 @@ describe('target id prefixes', () => {
     expect(buildTargetOptions()).toEqual([
       { id: 'owned', label: 'Collection' },
       { id: 'wishlist', label: 'Wishlist' },
-      { id: 'list:L1', label: 'Trade pile' },
+      { id: 'list:L1', label: 'List: Trade pile' },
       { id: 'binder:B1', label: 'Binder: Trade binder' },
     ]);
   });

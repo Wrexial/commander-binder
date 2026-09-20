@@ -195,7 +195,7 @@ export function createExportButton() {
         // Custom lists are exported exactly like the two built-in collections.
         ...getLists().map((list) => ({
           id: listTargetId(list.id),
-          label: list.name,
+          label: `List: ${list.name}`,
           cards: getListCards(list.id),
           filePrefix: `list-${slugify(list.name)}`,
           noun: 'list',
@@ -204,7 +204,7 @@ export function createExportButton() {
         // Binders export their pockets in page/slot order.
         ...binders.map((binder) => ({
           id: binderTargetId(binder.id),
-          label: binder.name,
+          label: `Binder: ${binder.name}`,
           cards: getBinderCards(binder.id),
           filePrefix: `binder-${slugify(binder.name)}`,
           noun: 'binder',

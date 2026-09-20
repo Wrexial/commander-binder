@@ -345,7 +345,7 @@ export async function loadBinders({ seed = true } = {}) {
 
 /**
  * Create a binder and make it active.
- * @param {{name?: string, columns?: number, rows?: number, pages?: number, isPublic?: boolean, silent?: boolean}} input
+ * @param {{name?: string, columns?: number, rows?: number, pages?: number, isPublic?: boolean, silent?: boolean, activate?: boolean}} input
  */
 export async function createBinder({
   name,
@@ -354,6 +354,7 @@ export async function createBinder({
   pages = 1,
   isPublic = false,
   silent = false,
+  activate = true,
 } = {}) {
   if (!canEditBinders()) return null;
 
@@ -375,7 +376,7 @@ export async function createBinder({
     } catch (err) {
       console.error('Failed to create the binder:', err);
     }
-    if (created) rememberActive(created.id);
+    if (created && activate) rememberActive(created.id);
     return created;
   }
 
@@ -391,53 +392,182 @@ export async function createBinder({
   });
 
   binders.set(binder.id, binder);
-  rememberActive(binder.id);
+  if (activate) rememberActive(binder.id);
   await persistLocal(binder);
   if (!silent) announce();
   return binder;
 }
 
-/** Patch a binder's name, dimensions and/or share visibility. */
-export async function updateBinder(id, patch = {}) {
+/** The next free `"<base> (n)"` name, starting at n=2. */
+function partName(base, start = 2) {
+  const taken = new Set(getBinders().map((binder) => binder.name.toLowerCase()));
+  let n = start;
+  while (taken.has(`${base} (${n})`.toLowerCase())) n += 1;
+  return `${base} (${n})`;
+}
+
+/**
+ * Resize a binder without ever dropping a card. Pockets that still exist in the
+ * new grid keep their card; cards displaced by a smaller grid shift into the
+ * first free pockets. Anything that still doesn't fit spills into one or more
+ * newly created continuation binder(s).
+ *
+ * @param {string} id
+ * @param {{columns?: number, rows?: number, pages?: number}} dims
+ * @returns {Promise<{binder: object, overflow: {id: string, name: string, count: number}[]} | null>}
+ */
+export async function resizeBinder(id, dims = {}) {
   if (!canEditBinders()) return null;
   const binder = binders.get(id);
   if (!binder) return null;
 
+  const columns = clampInt(
+    dims.columns ?? binder.columns,
+    MIN_BINDER_COLUMNS,
+    MAX_BINDER_COLUMNS,
+    binder.columns
+  );
+  const rows = clampInt(dims.rows ?? binder.rows, MIN_BINDER_ROWS, MAX_BINDER_ROWS, binder.rows);
+  const pages = clampInt(dims.pages ?? binder.pages, 1, MAX_BINDER_PAGES, binder.pages);
+
+  if (columns === binder.columns && rows === binder.rows && pages === binder.pages) {
+    return { binder, overflow: [] };
+  }
+
+  // Keep every pocket that still exists in the new grid, in reading order;
+  // queue the rest so they can be shifted into the freed pockets.
+  const keptSlots = {};
+  const displaced = [];
+  for (const key of sortedSlotKeys(binder)) {
+    const parsed = parseSlotKey(key);
+    if (!parsed) continue;
+    if (parsed.page < pages && parsed.row < rows && parsed.col < columns) {
+      keptSlots[key] = binder.slots[key];
+    } else {
+      displaced.push(binder.slots[key]);
+    }
+  }
+
+  // Shift displaced cards into the first free pockets, page → row → column.
+  const slots = { ...keptSlots };
+  let placed = 0;
+  for (let page = 0; page < pages && placed < displaced.length; page++) {
+    for (let row = 0; row < rows && placed < displaced.length; row++) {
+      for (let col = 0; col < columns && placed < displaced.length; col++) {
+        const key = slotKey(page, row, col);
+        if (slots[key]) continue;
+        slots[key] = displaced[placed++];
+      }
+    }
+  }
+
+  const overflow = displaced.slice(placed);
+  const sourceName = binder.name;
+  const sourceIsPublic = binder.isPublic;
+
+  binder.columns = columns;
+  binder.rows = rows;
+  binder.pages = pages;
+  binder.slots = slots;
+  // Persist the source before creating anything else: the create path can
+  // rebuild the in-memory registry from the server's reply.
+  await commit(binder, { silent: true });
+
+  const overflowBinders = [];
+  let remaining = overflow;
+  let part = 2;
+  while (remaining.length > 0) {
+    const perPage = columns * rows;
+    const pagesNeeded = Math.min(
+      MAX_BINDER_PAGES,
+      Math.max(1, Math.ceil(remaining.length / perPage))
+    );
+    const chunk = remaining.slice(0, perPage * pagesNeeded);
+
+    const created = await createBinder({
+      name: partName(sourceName, part++),
+      columns,
+      rows,
+      pages: pagesNeeded,
+      isPublic: sourceIsPublic,
+      silent: true,
+      activate: false,
+    });
+    if (!created) {
+      // The continuation could not be created (e.g. a server error). Grow the
+      // source binder instead so the cards are never silently dropped.
+      const fallback = binders.get(id);
+      for (const printingId of remaining) {
+        let key = firstEmptySlotKey(fallback);
+        if (!key) {
+          if (fallback.pages >= MAX_BINDER_PAGES) {
+            console.error('Could not place an overflow card; binder is full:', printingId);
+            continue;
+          }
+          fallback.pages += 1;
+          key = slotKey(fallback.pages - 1, 0, 0);
+        }
+        fallback.slots[key] = printingId;
+      }
+      await commit(fallback, { silent: true });
+      break;
+    }
+
+    remaining = remaining.slice(chunk.length);
+    const target = binders.get(created.id) || created;
+    chunk.forEach((printingId, index) => {
+      const page = Math.floor(index / perPage);
+      const within = index % perPage;
+      target.slots[slotKey(page, Math.floor(within / columns), within % columns)] = printingId;
+    });
+    await commit(target, { silent: true });
+    overflowBinders.push({ id: target.id, name: target.name, count: chunk.length });
+  }
+
+  announce();
+  return { binder, overflow: overflowBinders };
+}
+
+/**
+ * Patch a binder's name, dimensions and/or share visibility. Dimension changes
+ * go through `resizeBinder` so cards are shifted/kept rather than orphaned.
+ */
+export async function updateBinder(id, patch = {}) {
+  if (!canEditBinders()) return null;
+  if (!binders.has(id)) return null;
+
+  if (patch.columns != null || patch.rows != null || patch.pages != null) {
+    const resized = await resizeBinder(id, {
+      columns: patch.columns,
+      rows: patch.rows,
+      pages: patch.pages,
+    });
+    if (!resized) return null;
+  }
+
+  // Re-read after a resize: the server path rebuilds the registry from its reply.
+  const binder = binders.get(id);
+  if (!binder) return null;
+
+  let changed = false;
   if (patch.name != null) {
     const next = String(patch.name).trim().slice(0, 80);
     const clash =
       next &&
       getBinders().some((item) => item.id !== id && item.name.toLowerCase() === next.toLowerCase());
-    if (next && !clash) binder.name = next;
+    if (next && !clash && binder.name !== next) {
+      binder.name = next;
+      changed = true;
+    }
   }
-  if (patch.columns != null) {
-    binder.columns = clampInt(
-      patch.columns,
-      MIN_BINDER_COLUMNS,
-      MAX_BINDER_COLUMNS,
-      binder.columns
-    );
-  }
-  if (patch.rows != null) {
-    binder.rows = clampInt(patch.rows, MIN_BINDER_ROWS, MAX_BINDER_ROWS, binder.rows);
-  }
-  if (patch.pages != null) {
-    binder.pages = clampInt(patch.pages, 1, MAX_BINDER_PAGES, binder.pages);
-  }
-  if (patch.isPublic != null) {
+  if (patch.isPublic != null && binder.isPublic !== Boolean(patch.isPublic)) {
     binder.isPublic = Boolean(patch.isPublic);
+    changed = true;
   }
 
-  binder.updatedAt = new Date().toISOString();
-
-  if (isLocalMode()) {
-    await persistLocal(binder);
-    announce();
-    return binder;
-  }
-
-  await pushBinder(id);
-  return binder;
+  // A resize already persisted and announced; only commit name/public edits.
+  if (!changed) return binder;
+  return commit(binder);
 }
 
 /** Delete a binder; a new empty one is seeded when the last is removed. */

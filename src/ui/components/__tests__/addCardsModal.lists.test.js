@@ -67,7 +67,13 @@ describe('addCardsModal list targets', () => {
     const labels = [...document.querySelectorAll('.target-toggle-option')].map(
       (button) => button.textContent
     );
-    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile', '+ New list', '+ New binder']);
+    expect(labels).toEqual([
+      'Collection',
+      'Wishlist',
+      'List: Trade pile',
+      '+ New list',
+      '+ New binder',
+    ]);
   });
 
   it('creates a new list from the picker and targets it', async () => {
@@ -93,8 +99,8 @@ describe('addCardsModal list targets', () => {
     expect(labels).toEqual([
       'Collection',
       'Wishlist',
-      'Trade pile',
-      'Deck: Atraxa',
+      'List: Trade pile',
+      'List: Deck: Atraxa',
       '+ New list',
       '+ New binder',
     ]);

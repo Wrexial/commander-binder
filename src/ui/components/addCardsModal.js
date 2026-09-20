@@ -250,7 +250,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       const list = await createList({ name: trimmed });
       if (!list) return;
       const id = listTargetId(list.id);
-      target.addOption({ id, label: list.name });
+      target.addOption({ id, label: `List: ${list.name}` });
       target.setValue(id);
       newList.form.hidden = true;
       applyTarget(id);

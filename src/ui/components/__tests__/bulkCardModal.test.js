@@ -140,7 +140,7 @@ describe('bulk check modal', () => {
     expect(locationsFor('Sol Ring')).toEqual([
       'Collection',
       'Wishlist',
-      'Trade pile',
+      'List: Trade pile',
       'Binder: Trade binder',
     ]);
     expect(groupLabels()).toEqual(['Found']);
@@ -157,7 +157,7 @@ describe('bulk check modal', () => {
     createBulkCheckModal().show();
     await typeList(document.querySelector('.bulk-modal textarea'), 'Sol Ring\nArcane Signet');
 
-    expect(locationsFor('Sol Ring')).toEqual(['Trade pile']);
+    expect(locationsFor('Sol Ring')).toEqual(['List: Trade pile']);
     expect(locationsFor('Arcane Signet')).toEqual(['Binder: Trade binder']);
     expect(groupLabels()).toEqual(['Found']);
     expect(document.querySelector('.bulk-modal .primary').disabled).toBe(true);

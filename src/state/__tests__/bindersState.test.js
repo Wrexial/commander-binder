@@ -302,4 +302,95 @@ describe('bindersState', () => {
 
     expect(listener).toHaveBeenCalled();
   });
+
+  describe('resizeBinder', () => {
+    it('shifts displaced cards into free pockets when shrinking', async () => {
+      const { loadBinders, getActiveBinder, assignCardToSlot, resizeBinder } = await load();
+      await loadBinders();
+      const binder = getActiveBinder();
+      await assignCardToSlot(binder.id, '0:0:2', 'card-a');
+
+      const { overflow } = await resizeBinder(binder.id, { columns: 2, rows: 3, pages: 1 });
+
+      expect(overflow).toEqual([]);
+      expect(getActiveBinder().slots).toEqual({ '0:0:0': 'card-a' });
+    });
+
+    it('moves cards that no longer fit into a new continuation binder', async () => {
+      const {
+        loadBinders,
+        getActiveBinder,
+        getBinder,
+        getBinders,
+        assignCardToSlot,
+        resizeBinder,
+      } = await load();
+      await loadBinders();
+      const binder = getActiveBinder();
+      await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+      await assignCardToSlot(binder.id, '0:0:1', 'card-b');
+      await assignCardToSlot(binder.id, '0:0:2', 'card-c');
+
+      const { overflow } = await resizeBinder(binder.id, { columns: 1, rows: 1, pages: 1 });
+
+      expect(getBinder(binder.id).slots).toEqual({ '0:0:0': 'card-a' });
+      expect(overflow).toHaveLength(1);
+      expect(overflow[0].name).toBe('Binder 1 (2)');
+      expect(overflow[0].count).toBe(2);
+      expect(getBinder(overflow[0].id).slots).toEqual({
+        '0:0:0': 'card-b',
+        '1:0:0': 'card-c',
+      });
+      expect(getBinders()).toHaveLength(2);
+    });
+
+    it('keeps every pocket that still fits when growing', async () => {
+      const { loadBinders, getActiveBinder, assignCardToSlot, resizeBinder } = await load();
+      await loadBinders();
+      const binder = getActiveBinder();
+      await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+      await assignCardToSlot(binder.id, '0:1:1', 'card-b');
+
+      const { overflow } = await resizeBinder(binder.id, { columns: 4, rows: 3, pages: 2 });
+
+      expect(overflow).toEqual([]);
+      expect(getActiveBinder().slots).toEqual({ '0:0:0': 'card-a', '0:1:1': 'card-b' });
+    });
+
+    it('leaves the active binder on the one that was resized', async () => {
+      const {
+        loadBinders,
+        getActiveBinder,
+        createBinder,
+        setActiveBinder,
+        assignCardToSlot,
+        resizeBinder,
+      } = await load();
+      await loadBinders();
+      const source = getActiveBinder();
+      await createBinder({ name: 'Other', columns: 1, rows: 1, pages: 1 });
+      setActiveBinder(source.id);
+      await assignCardToSlot(source.id, '0:0:0', 'card-a');
+      await assignCardToSlot(source.id, '0:0:1', 'card-b');
+
+      await resizeBinder(source.id, { columns: 1, rows: 1, pages: 1 });
+
+      expect(getActiveBinder().id).toBe(source.id);
+    });
+
+    it('does nothing when the dimensions are unchanged', async () => {
+      const { loadBinders, getActiveBinder, resizeBinder } = await load();
+      await loadBinders();
+      const binder = getActiveBinder();
+
+      const result = await resizeBinder(binder.id, {
+        columns: binder.columns,
+        rows: binder.rows,
+        pages: binder.pages,
+      });
+
+      expect(result.overflow).toEqual([]);
+      expect(getActiveBinder().columns).toBe(binder.columns);
+    });
+  });
 });

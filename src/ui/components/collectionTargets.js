@@ -52,7 +52,7 @@ function listIdFromTarget(targetId) {
 export function buildTargetOptions() {
   return [
     ...COLLECTION_TARGETS,
-    ...getLists().map((list) => ({ id: listTargetId(list.id), label: list.name })),
+    ...getLists().map((list) => ({ id: listTargetId(list.id), label: `List: ${list.name}` })),
     ...getBinders().map((binder) => ({
       id: binderTargetId(binder.id),
       label: `Binder: ${binder.name}`,

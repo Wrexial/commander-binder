@@ -33,6 +33,7 @@ import {
   loadBinders,
   mergeLocalBindersToAccount,
   resetBinders,
+  resizeBinder,
 } from '../bindersState.js';
 import { mainState } from '../mainState.js';
 import {
@@ -119,6 +120,27 @@ describe('bindersState (server mode)', () => {
 
     expect(created.name).toBe('Binder 2');
     expect(getActiveBinder().id).toBe('b2');
+  });
+
+  it('keeps overflow cards in the source binder when a continuation fails to create', async () => {
+    fetchBinders.mockResolvedValue([
+      record({ slots: { '0:0:0': 'card-a', '0:0:1': 'card-b', '0:0:2': 'card-c' } }),
+    ]);
+    await loadBinders();
+    apiUpdateBinder.mockImplementation(async (id, payload) => [record({ id, ...payload })]);
+    apiCreateBinder.mockRejectedValue(new Error('network down'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { overflow } = await resizeBinder('b1', { columns: 1, rows: 1, pages: 1 });
+
+    error.mockRestore();
+    expect(overflow).toEqual([]);
+    expect(getBinders()).toHaveLength(1);
+    expect(getActiveBinder().slots).toEqual({
+      '0:0:0': 'card-a',
+      '1:0:0': 'card-b',
+      '2:0:0': 'card-c',
+    });
   });
 
   it('deletes through the API and reseeds the last binder', async () => {

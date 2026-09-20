@@ -27,6 +27,7 @@ import {
   moveCardToFirstEmptySlot,
   moveSlot,
   parseSlotKey,
+  resizeBinder,
   setActiveBinder,
   slotKey,
   updateBinder,
@@ -277,15 +278,23 @@ function wireChrome() {
     await updateBinder(binder.id, { isPublic: refs.publicInput.checked });
   });
 
-  const onDimChange = () => {
+  const onDimChange = async () => {
     const binder = getActiveBinder();
     if (!binder) return;
     pendingMove = null;
-    updateBinder(binder.id, {
+    const result = await resizeBinder(binder.id, {
       columns: refs.columns.value,
       rows: refs.rows.value,
       pages: refs.pages.value,
     });
+    if (result && result.overflow.length > 0) {
+      const total = result.overflow.reduce((sum, item) => sum + item.count, 0);
+      const names = result.overflow.map((item) => `“${item.name}”`).join(', ');
+      showToast(
+        `Moved ${total} card${total === 1 ? '' : 's'} to ${names} — they no longer fit.`,
+        'warning'
+      );
+    }
   };
   refs.columns.addEventListener('change', onDimChange);
   refs.rows.addEventListener('change', onDimChange);
