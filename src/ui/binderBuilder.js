@@ -22,6 +22,7 @@ import {
   deleteBinder,
   getActiveBinder,
   getActiveBinderId,
+  getBinder,
   getBinders,
   loadBinders,
   moveCardToFirstEmptySlot,
@@ -261,7 +262,11 @@ function wireChrome() {
   });
 
   refs.deleteButton.addEventListener('click', async () => {
-    const binder = getActiveBinder();
+    // Resolve the binder from the tab the user actually sees as active, so the
+    // delete always matches what is on screen.
+    const activeTab = refs.binderTabs.querySelector('.binder-tab.is-active');
+    const binder =
+      (activeTab?.dataset.binderId && getBinder(activeTab.dataset.binderId)) || getActiveBinder();
     if (!binder) return;
     const ok =
       typeof window.confirm !== 'function' ||
@@ -269,7 +274,8 @@ function wireChrome() {
     if (!ok) return;
     pendingMove = null;
     activePage = 0;
-    await deleteBinder(binder.id);
+    const name = binder.name;
+    if (await deleteBinder(binder.id)) showToast(`Deleted “${name}”.`, 'success');
   });
 
   refs.publicInput.addEventListener('change', async () => {
@@ -541,6 +547,7 @@ export function render() {
     tab.setAttribute('role', 'tab');
     tab.setAttribute('aria-selected', String(isActive));
     tab.setAttribute('aria-controls', 'binder-page');
+    tab.dataset.binderId = item.id;
     tab.tabIndex = isActive ? 0 : -1;
     tab.textContent = item.name;
     tab.addEventListener('click', () => {

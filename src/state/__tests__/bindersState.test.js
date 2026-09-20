@@ -393,4 +393,48 @@ describe('bindersState', () => {
       expect(getActiveBinder().columns).toBe(binder.columns);
     });
   });
+
+  describe('deleteBinder', () => {
+    it('selects the next binder and persists it when the active one is deleted', async () => {
+      const { loadBinders, createBinder, getActiveBinder, setActiveBinder, deleteBinder } =
+        await load();
+      await loadBinders();
+      const second = await createBinder({ name: 'Binder 2' });
+      const third = await createBinder({ name: 'Binder 3' });
+
+      setActiveBinder(second.id);
+      await deleteBinder(second.id);
+
+      expect(getActiveBinder().id).toBe(third.id);
+      expect(localStorage.getItem('activeBinderId')).toBe(third.id);
+    });
+
+    it('falls back to the previous binder when the active last one is deleted', async () => {
+      const { loadBinders, createBinder, getActiveBinder, setActiveBinder, deleteBinder } =
+        await load();
+      await loadBinders();
+      const second = await createBinder({ name: 'Binder 2' });
+      const third = await createBinder({ name: 'Binder 3' });
+
+      setActiveBinder(third.id);
+      await deleteBinder(third.id);
+
+      expect(getActiveBinder().id).toBe(second.id);
+      expect(localStorage.getItem('activeBinderId')).toBe(second.id);
+    });
+
+    it('keeps the active binder when a different one is deleted', async () => {
+      const { loadBinders, createBinder, getActiveBinder, setActiveBinder, deleteBinder } =
+        await load();
+      await loadBinders();
+      const first = getActiveBinder();
+      const second = await createBinder({ name: 'Binder 2' });
+      await createBinder({ name: 'Binder 3' });
+
+      setActiveBinder(second.id);
+      await deleteBinder(first.id);
+
+      expect(getActiveBinder().id).toBe(second.id);
+    });
+  });
 });

@@ -140,7 +140,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   the first free pockets, and any card that still doesn't fit spills into a newly
   created continuation binder (`<name> (2)`, …) so resizing never drops a card;
   `updateBinder` routes dimension changes through it (and only handles
-  name/isPublic itself).
+  name/isPublic itself). `deleteBinder` removes the binder the editor is showing
+  and moves the selection to the tab that takes its place (falling back to the
+  previous one when the last tab is removed), persisting the new active id so
+  `localStorage` never keeps a deleted binder; the builder resolves the target
+  from the active tab's `data-binder-id` and toasts the deleted binder's name.
   `preferredPrintings.js`
   remembers the printing the user picked when cycling versions (saved tiles
   show a pin; the sidebar settings has a reset control). Binder pockets opt out:

@@ -570,23 +570,48 @@ export async function updateBinder(id, patch = {}) {
   return commit(binder);
 }
 
+/**
+ * After deleting `deletedId`, move the selection to the binder that took its
+ * place (or the previous one when the last tab was removed) and persist it, so
+ * the editor lands next to where the user was and `localStorage` never keeps a
+ * deleted binder.
+ *
+ * @param {string} deletedId
+ * @param {number} index position of the deleted binder in the pre-delete order
+ */
+function selectNeighbourAfterDelete(deletedId, index) {
+  if (activeId !== deletedId) return;
+  const remaining = getBinders();
+  if (remaining.length === 0) {
+    activeId = null;
+    return;
+  }
+  const neighbour = remaining[Math.min(Math.max(index, 0), remaining.length - 1)];
+  activeId = neighbour.id;
+  rememberActive(activeId);
+}
+
 /** Delete a binder; a new empty one is seeded when the last is removed. */
 export async function deleteBinder(id) {
-  if (!canEditBinders() || !binders.has(id)) return;
+  if (!canEditBinders() || !binders.has(id)) return false;
+
+  // Remember where the deleted binder sat so the selection can move to the
+  // binder that replaces it rather than jumping back to the oldest.
+  const index = getBinders().findIndex((binder) => binder.id === id);
 
   if (!isLocalMode()) {
     try {
       applyBinders(await apiDeleteBinder(id));
     } catch (err) {
       console.error('Failed to delete the binder:', err);
-      return;
+      return false;
     }
-    if (activeId === id) activeId = getBinders()[0]?.id || null;
+    selectNeighbourAfterDelete(id, index);
     if (binders.size === 0) {
       await createBinder({ name: 'Binder 1', columns: 3, rows: 3, pages: 1, silent: true });
     }
     announce();
-    return;
+    return true;
   }
 
   binders.delete(id);
@@ -596,12 +621,13 @@ export async function deleteBinder(id) {
     console.error('Failed to remove the local binder:', err);
   }
 
-  if (activeId === id) activeId = getBinders()[0]?.id || null;
+  selectNeighbourAfterDelete(id, index);
 
   if (binders.size === 0) {
     await createBinder({ name: 'Binder 1', columns: 3, rows: 3, pages: 1, silent: true });
   }
   announce();
+  return true;
 }
 
 /** Persist a mutated binder (local write, or a serialized server push). */

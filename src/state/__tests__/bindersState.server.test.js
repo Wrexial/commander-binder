@@ -210,7 +210,7 @@ describe('bindersState (server mode)', () => {
 
     expect(await assignCardToSlot('b1', '0:0:0', 'card-a')).toBeNull();
     expect(await createBinder({ name: 'X' })).toBeNull();
-    expect(await deleteBinder('b1')).toBeUndefined();
+    expect(await deleteBinder('b1')).toBe(false);
     expect(apiUpdateBinder).not.toHaveBeenCalled();
     expect(apiCreateBinder).not.toHaveBeenCalled();
   });
