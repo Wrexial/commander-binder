@@ -66,3 +66,111 @@ describe('PWA artifacts', () => {
     expect(sw).toContain("addEventListener('install'");
   });
 });
+
+const swSource = readFileSync(resolve(root, 'public/sw.js'), 'utf8');
+
+/** Run the classic service-worker script against fakes, returning its listeners. */
+function loadServiceWorker({ caches, fetch }) {
+  const listeners = {};
+  const self = {
+    location: { origin: 'https://legendex.test' },
+    addEventListener: (type, handler) => {
+      listeners[type] = handler;
+    },
+    skipWaiting: vi.fn(),
+    clients: { claim: vi.fn() },
+  };
+  new Function('self', 'caches', 'fetch', swSource)(self, caches, fetch);
+  return listeners;
+}
+
+function fakeResponse() {
+  const response = { ok: true, clone: () => response };
+  return response;
+}
+
+function fakeCaches({ match } = {}) {
+  const put = vi.fn(() => Promise.resolve());
+  const add = vi.fn(() => Promise.resolve());
+  return {
+    open: vi.fn(() => Promise.resolve({ put, add })),
+    match: vi.fn((key) => Promise.resolve(match ? match(key) : undefined)),
+    keys: vi.fn(() => Promise.resolve([])),
+    delete: vi.fn(() => Promise.resolve(true)),
+    put,
+  };
+}
+
+/** A minimal FetchEvent. `respondWith` is spied so the response promise is readable. */
+function fetchEvent(request) {
+  return { request, respondWith: vi.fn() };
+}
+
+function request(path, overrides = {}) {
+  return { method: 'GET', url: `https://legendex.test${path}`, ...overrides };
+}
+
+describe('service worker routing', () => {
+  it('ignores non-GET, cross-origin and function requests', () => {
+    const listeners = loadServiceWorker({ caches: fakeCaches(), fetch: vi.fn() });
+
+    const post = fetchEvent({ method: 'POST', url: 'https://legendex.test/assets/x.js' });
+    const cross = fetchEvent({ method: 'GET', url: 'https://api.scryfall.com/cards' });
+    const fn = fetchEvent(request('/.netlify/functions/owned-cards'));
+
+    for (const event of [post, cross, fn]) listeners.fetch(event);
+
+    expect(post.respondWith).not.toHaveBeenCalled();
+    expect(cross.respondWith).not.toHaveBeenCalled();
+    expect(fn.respondWith).not.toHaveBeenCalled();
+  });
+
+  it('serves navigations network-first and caches the shell', async () => {
+    const caches = fakeCaches();
+    const response = fakeResponse();
+    const listeners = loadServiceWorker({ caches, fetch: vi.fn(() => Promise.resolve(response)) });
+
+    const event = fetchEvent(request('/', { mode: 'navigate' }));
+    listeners.fetch(event);
+
+    await expect(event.respondWith.mock.calls[0][0]).resolves.toBe(response);
+    await vi.waitFor(() => expect(caches.put).toHaveBeenCalled());
+  });
+
+  it('falls back to the cached shell when the network fails', async () => {
+    const cached = fakeResponse();
+    const caches = fakeCaches({ match: () => cached });
+    const fetch = vi.fn(() => Promise.reject(new Error('offline')));
+    const listeners = loadServiceWorker({ caches, fetch });
+
+    const event = fetchEvent(request('/binder.html', { mode: 'navigate' }));
+    listeners.fetch(event);
+
+    await expect(event.respondWith.mock.calls[0][0]).resolves.toBe(cached);
+  });
+
+  it('serves hashed assets cache-first and stores a miss', async () => {
+    const caches = fakeCaches();
+    const response = fakeResponse();
+    const listeners = loadServiceWorker({ caches, fetch: vi.fn(() => Promise.resolve(response)) });
+
+    const event = fetchEvent(request('/assets/main-abc.js'));
+    listeners.fetch(event);
+
+    await expect(event.respondWith.mock.calls[0][0]).resolves.toBe(response);
+    await vi.waitFor(() => expect(caches.put).toHaveBeenCalled());
+  });
+
+  it('serves a cached asset without hitting the network', async () => {
+    const cached = fakeResponse();
+    const caches = fakeCaches({ match: () => cached });
+    const fetch = vi.fn();
+    const listeners = loadServiceWorker({ caches, fetch });
+
+    const event = fetchEvent(request('/assets/main-abc.js'));
+    listeners.fetch(event);
+
+    await expect(event.respondWith.mock.calls[0][0]).resolves.toBe(cached);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});

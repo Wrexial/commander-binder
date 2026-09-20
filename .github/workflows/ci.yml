@@ -25,3 +25,6 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
+      # The deploy is a Vite build; run it here too so a build-only failure
+      # (e.g. an import path whose case is wrong on Linux) fails PRs, not Netlify.
+      - run: npm run build
