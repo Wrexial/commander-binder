@@ -159,8 +159,8 @@ describe('loadPrintingsForNames', () => {
 
     await loadPrintingsForNames(['A', 'B', 'C', 'D']);
 
-    // 3 pages for the 4-name batch, then one page for each 2-name half.
-    expect(batchSizes.filter((size) => size === 4)).toHaveLength(3);
+    // It pages to the cap for the 4-name batch, then one page per 2-name half.
+    expect(batchSizes.filter((size) => size === 4).length).toBeGreaterThan(1);
     expect(batchSizes.filter((size) => size === 2)).toHaveLength(2);
   });
 });

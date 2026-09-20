@@ -21,8 +21,13 @@ const PRINTINGS_URL = (name) =>
     `!"${name}"`
   )}&unique=prints&order=released&dir=asc`;
 
-/** How many search pages of printings to follow (175 cards each). */
-const MAX_PRINTING_PAGES = 3;
+/**
+ * How many search pages of printings to follow (175 cards each). Ten pages is
+ * ~1750 printings — well past any legendary creature and most basics — so a
+ * batch normally finishes in one pass; anything larger is split (see
+ * `loadPrintingsChunked`).
+ */
+const MAX_PRINTING_PAGES = 10;
 
 /** Names per batched printings search (keeps the query URL short). */
 const PRINTINGS_BATCH_SIZE = 10;
