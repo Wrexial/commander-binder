@@ -44,7 +44,8 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
 - **Recent additions** — a timeline of when you marked each card owned, built from
   `owned_cards.created_at`.
 - **Binders** — virtual groupings of the feed that make a large collection easier to page
-  through.
+  through, and a separate Binder Builder page for laying cards out into physical binder pages
+  (ownership/wishlist markings stay on the collection grid).
 - **Three tile layouts** — full artwork, text tiles, or a compact list with inline ownership
   toggles, for marking a whole page quickly.
 - **Choose the printing** — every card can show its **oldest** (default), cheapest, priciest or

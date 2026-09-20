@@ -145,6 +145,29 @@ describe('initCardInteractions', () => {
       cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
     });
 
+    it('wires a binder pocket preview without the collection controls', () => {
+      cardElement.dataset.binderSlot = '0:0:0';
+      initCardInteractions(container, tooltipElement);
+
+      startTouch(cardElement);
+
+      expect(tooltipElement.collection).toBe(false);
+      expect(tooltipElement.onToggle).toBeNull();
+      expect(tooltipElement.onWishlistToggle).toBeNull();
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
+    it('keeps the collection controls for a browse-grid preview', () => {
+      initCardInteractions(container, tooltipElement);
+
+      startTouch(cardElement);
+
+      expect(tooltipElement.collection).toBe(true);
+      expect(typeof tooltipElement.onToggle).toBe('function');
+      expect(typeof tooltipElement.onWishlistToggle).toBe('function');
+      cardElement.dispatchEvent(new Event('touchend', { bubbles: true }));
+    });
+
     /** Add a card tile with `cardData` to the binder and return it. */
     function addCard(id, name) {
       const tile = document.createElement('div');
@@ -452,6 +475,23 @@ describe('initCardInteractions', () => {
       await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
       expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+    });
+
+    it('never edits ownership or wishlist from a binder pocket', async () => {
+      cardElement.dataset.binderSlot = '0:0:0';
+      // A pocket tile wouldn't normally carry a heart; make sure even a stray
+      // tap on one is ignored.
+      const heart = document.createElement('button');
+      heart.className = 'card-wishlist';
+      cardElement.appendChild(heart);
+      wishlistState.toggleCardWanted.mockResolvedValue(true);
+
+      initCardInteractions(container, tooltipElement);
+      await cardElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await heart.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+      expect(cardState.toggleCardOwned).not.toHaveBeenCalled();
+      expect(wishlistState.toggleCardWanted).not.toHaveBeenCalled();
     });
 
     it('should not toggle ownership while a tooltip gesture is active', async () => {

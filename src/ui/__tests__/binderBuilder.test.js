@@ -92,6 +92,7 @@ import {
 } from '../../state/bindersState.js';
 import { mainState } from '../../state/mainState.js';
 import { fetchBinders } from '../../api/binders.js';
+import { createCardElement } from '../cards.js';
 import { analyzeA11y } from '../../__tests__/helpers/a11y.js';
 
 async function mount() {
@@ -124,6 +125,17 @@ describe('binderBuilder', () => {
     expect(document.querySelectorAll('.binder-slot')).toHaveLength(9);
     expect(document.querySelectorAll('.binder-slot-add')).toHaveLength(9);
     expect(document.querySelector('.bb-page-label').textContent).toBe('Page 1 / 1');
+  });
+
+  it('renders pocket tiles without the collection controls', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    await vi.waitFor(() => expect(createCardElement).toHaveBeenCalled());
+    expect(createCardElement).toHaveBeenCalledWith(expect.anything(), expect.any(Number), {
+      collection: false,
+    });
   });
 
   it('defers seeding when mounted with seed: false', async () => {

@@ -123,6 +123,43 @@ describe('createCardElement', () => {
     expect(toggleButton).toBeNull();
     appState.isViewOnlyMode = false; // Reset for other tests
   });
+
+  it('renders a layout-only tile with no ownership or wishlist controls', () => {
+    cardState.isCardOwned.mockReturnValue(true);
+
+    const element = createCardElement(card, 0, { collection: false });
+
+    expect(element.querySelector('.card-toggle')).toBeNull();
+    expect(element.querySelector('.card-wishlist')).toBeNull();
+    expect(element.querySelector('.owned-badge')).toBeNull();
+    expect(element.classList.contains('has-toggle')).toBe(false);
+
+    // The shell's `updateAllCardStates()` pass must not style it as owned.
+    updateCardState(element);
+    expect(element.classList.contains('owned')).toBe(false);
+    expect(element.classList.contains('wanted')).toBe(false);
+  });
+
+  it('omits the footer collection controls for a layout-only image tile', () => {
+    cardSettings.displayMode = 'images';
+    try {
+      const imageCard = {
+        ...card,
+        id: 'img',
+        image_uris: { thumb: 'http://x/t.jpg', grid: 'http://x/g.jpg' },
+      };
+
+      const element = createCardElement(imageCard, 0, { collection: false });
+
+      expect(element.querySelector('.card-footer')).not.toBeNull();
+      expect(element.querySelector('.card-toggle')).toBeNull();
+      expect(element.querySelector('.card-wishlist')).toBeNull();
+      expect(element.querySelector('.card-wishlist-float')).toBeNull();
+      expect(element.querySelector('.owned-badge')).toBeNull();
+    } finally {
+      cardSettings.displayMode = 'text';
+    }
+  });
 });
 
 describe('wishlist heart', () => {

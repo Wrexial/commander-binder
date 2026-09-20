@@ -321,7 +321,7 @@ function createColorChip(card) {
  * @param {{index: number, total: number}} version
  * @returns {HTMLElement}
  */
-function createCardFooter(card, price, version) {
+function createCardFooter(card, price, version, collection = true) {
   const footer = document.createElement('div');
   footer.className = 'card-footer';
 
@@ -366,16 +366,18 @@ function createCardFooter(card, price, version) {
   const edhrec = createEdhrecLink(card);
   if (edhrec) actions.appendChild(edhrec);
 
-  actions.appendChild(
-    appState.isViewOnlyMode ? createOwnedBadge() : createOwnedToggle(isCardOwned(card))
-  );
+  if (collection) {
+    actions.appendChild(
+      appState.isViewOnlyMode ? createOwnedBadge() : createOwnedToggle(isCardOwned(card))
+    );
 
-  // Wishlist control/badge follows the ownership one, so the two independent
-  // collections read left-to-right in the same order everywhere.
-  if (appState.isViewOnlyMode) {
-    if (isCardWanted(card)) actions.appendChild(createWantedBadge());
-  } else {
-    actions.appendChild(createWishlistToggle(isCardWanted(card)));
+    // Wishlist control/badge follows the ownership one, so the two independent
+    // collections read left-to-right in the same order everywhere.
+    if (appState.isViewOnlyMode) {
+      if (isCardWanted(card)) actions.appendChild(createWantedBadge());
+    } else {
+      actions.appendChild(createWishlistToggle(isCardWanted(card)));
+    }
   }
   footer.appendChild(actions);
 
@@ -397,7 +399,7 @@ function applyCardColors(element, card) {
  * @param {number} cardIndex
  * @returns {HTMLElement}
  */
-function populateListCard(div, card, cardIndex) {
+function populateListCard(div, card, cardIndex, collection = true) {
   div.classList.add('list-tile');
 
   const slotNumberEl = document.createElement('span');
@@ -433,15 +435,17 @@ function populateListCard(div, card, cardIndex) {
   const edhrec = createEdhrecLink(card);
   if (edhrec) div.appendChild(edhrec);
 
-  if (appState.isViewOnlyMode) {
-    div.appendChild(createOwnedBadge());
-    if (isCardWanted(card)) div.appendChild(createWantedBadge());
-  } else {
-    // Put the toggle first so the row reads as a checklist.
-    const ownedToggle = createOwnedToggle(isCardOwned(card));
-    div.insertBefore(ownedToggle, slotNumberEl.nextSibling);
-    div.insertBefore(createWishlistToggle(isCardWanted(card)), ownedToggle.nextSibling);
-    div.classList.add('has-toggle');
+  if (collection) {
+    if (appState.isViewOnlyMode) {
+      div.appendChild(createOwnedBadge());
+      if (isCardWanted(card)) div.appendChild(createWantedBadge());
+    } else {
+      // Put the toggle first so the row reads as a checklist.
+      const ownedToggle = createOwnedToggle(isCardOwned(card));
+      div.insertBefore(ownedToggle, slotNumberEl.nextSibling);
+      div.insertBefore(createWishlistToggle(isCardWanted(card)), ownedToggle.nextSibling);
+      div.classList.add('has-toggle');
+    }
   }
 
   applyCardColors(div, card);
@@ -463,8 +467,11 @@ function populateCard(div, card, cardIndex) {
   div.replaceChildren();
   div.classList.remove('has-toggle', 'image-tile', 'list-tile');
 
+  // Binder pockets are layout-only: no ownership/wishlist controls or styling.
+  const collection = div.collectionTile !== false;
+
   if (cardSettings.displayMode === 'list') {
-    return populateListCard(div, card, cardIndex);
+    return populateListCard(div, card, cardIndex, collection);
   }
 
   const slotNumberEl = document.createElement('span');
@@ -494,7 +501,8 @@ function populateCard(div, card, cardIndex) {
   // Image tiles gather everything into a single footer strip so the artwork
   // stays legible instead of carrying half a dozen floating badges.
   if (isImage) {
-    div.appendChild(createCardFooter(card, price, version));
+    div.appendChild(createCardFooter(card, price, version, collection));
+    if (!collection) return div;
     if (!appState.isViewOnlyMode) {
       div.classList.add('has-toggle');
       // Phones hide the tile footer, so the heart gets its own floating control.
@@ -510,6 +518,8 @@ function populateCard(div, card, cardIndex) {
 
   if (price !== null) div.appendChild(createPriceElement(price));
   if (version.total > 1) div.appendChild(createVersionBadge(version));
+
+  if (!collection) return div;
 
   if (appState.isViewOnlyMode) {
     div.appendChild(createOwnedBadge());
@@ -527,10 +537,11 @@ function populateCard(div, card, cardIndex) {
   return div;
 }
 
-export function createCardElement(card, cardIndex) {
+export function createCardElement(card, cardIndex, { collection = true } = {}) {
   const div = document.createElement('div');
   div.className = 'card loading';
   div.cardData = card;
+  div.collectionTile = collection;
   populateCard(div, card, cardIndex);
   return div;
 }
@@ -575,6 +586,9 @@ export function applyPreferredPrintings() {
 
 export function updateCardState(cardElement) {
   cardElement.classList.remove('loading');
+
+  // Binder pockets are layout-only: no owned/wishlist/selection styling.
+  if (cardElement.collectionTile === false) return;
 
   const card = cardElement.cardData;
   const owned = isCardOwned(card);

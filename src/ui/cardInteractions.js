@@ -73,16 +73,22 @@ function canChoosePrinting(cardElement) {
  */
 function wireCardControls(cardElement, tooltip) {
   tooltipCardElement = cardElement;
+  // Binder pockets are layout-only, so a preview opened from one drops the
+  // ownership/wishlist controls entirely (`tooltip.collection` gates the badges).
+  const collection = !cardElement?.dataset?.binderSlot;
+  tooltip.collection = collection;
   tooltip.onChoosePrinting = canChoosePrinting(cardElement)
     ? (chooseEvent) => openCardPrintingPicker(cardElement, chooseEvent, tooltip)
     : null;
   tooltip.onNavigate = (direction, navEvent) => navigateTooltip(direction, navEvent, tooltip);
-  tooltip.onToggle = appState.isViewOnlyMode
-    ? null
-    : () => toggleCardOwnership(cardElement, cardElement.cardData);
-  tooltip.onWishlistToggle = appState.isViewOnlyMode
-    ? null
-    : () => toggleWishlist(cardElement, cardElement.cardData);
+  tooltip.onToggle =
+    appState.isViewOnlyMode || !collection
+      ? null
+      : () => toggleCardOwnership(cardElement, cardElement.cardData);
+  tooltip.onWishlistToggle =
+    appState.isViewOnlyMode || !collection
+      ? null
+      : () => toggleWishlist(cardElement, cardElement.cardData);
   tooltip.onAddToList = () => {
     // The preview is a modal with its own focus trap; close it before opening
     // the picker so the two never fight over focus or z-order.
@@ -268,6 +274,9 @@ async function handleContainerClick(event, tooltip) {
     syncCardSelection(cardElement);
     return;
   }
+
+  // Binder pockets are layout-only: a tap must not edit the collection.
+  if (cardElement.dataset.binderSlot) return;
 
   if (appState.isViewOnlyMode) return;
 

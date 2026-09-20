@@ -257,6 +257,18 @@ describe('tooltip', () => {
       expect(tooltip.querySelector('.tooltip-owned-status').tagName).toBe('SPAN');
     });
 
+    it('omits the collection badges for a binder pocket preview', () => {
+      // `wireCardControls` clears this for binder pockets; the browse grid and
+      // statistics leave it undefined (treated as a collection preview).
+      tooltip.collection = false;
+
+      showTooltip(event, card, tooltip);
+      vi.runAllTimers();
+
+      expect(tooltip.querySelector('.tooltip-owned-status')).toBeNull();
+      expect(tooltip.querySelector('.tooltip-wishlist-status')).toBeNull();
+    });
+
     it('closes when the backdrop edge is tapped', () => {
       showTooltip(event, card, tooltip);
       vi.runAllTimers();

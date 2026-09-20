@@ -273,7 +273,10 @@ new key there too.
   by set code, set name, collector number or year); while a move is pending,
   clicking another binder tab sends the card to that binder's first empty pocket;
   it reuses
-  `cards.js` tiles so ownership toggles and the preview keep working, and each
+  `cards.js` tiles in layout-only mode (`createCardElement(card, index,
+{ collection: false })`): pockets carry no owned/wishlist controls or styling
+  and a tap never edits the collection (those stay on the browse grid), though
+  the long-press preview still works with the collection badges hidden. Each
   pocket pins its own exact printing). A share-link view
   render it read-only: `canEditBinders()` hides the toolbar edits, the pocket
   controls and empty-slot adders, and binder pockets can't have their printing

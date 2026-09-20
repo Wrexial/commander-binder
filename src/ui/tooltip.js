@@ -130,49 +130,53 @@ function createTooltipDetails(card, version, printingControl, tooltip) {
     status.appendChild(link);
   }
 
-  const canToggle = typeof tooltip?.onToggle === 'function';
-  const badge = document.createElement(canToggle ? 'button' : 'span');
-  setOwnedStatus(badge, isCardOwned(card));
+  // Binder pockets are layout-only, so their previews hide the collection
+  // controls; the browse grid and statistics keep them.
+  if (tooltip?.collection !== false) {
+    const canToggle = typeof tooltip?.onToggle === 'function';
+    const badge = document.createElement(canToggle ? 'button' : 'span');
+    setOwnedStatus(badge, isCardOwned(card));
 
-  if (canToggle) {
-    badge.type = 'button';
-    badge.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      if (badge.disabled) return;
-      badge.disabled = true;
-      try {
-        const next = await tooltip.onToggle();
-        if (typeof next === 'boolean') setOwnedStatus(badge, next);
-      } finally {
-        badge.disabled = false;
-      }
-    });
+    if (canToggle) {
+      badge.type = 'button';
+      badge.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        if (badge.disabled) return;
+        badge.disabled = true;
+        try {
+          const next = await tooltip.onToggle();
+          if (typeof next === 'boolean') setOwnedStatus(badge, next);
+        } finally {
+          badge.disabled = false;
+        }
+      });
+    }
+
+    status.appendChild(badge);
+
+    // The wishlist toggle mirrors the owned one, so the heart is reachable on
+    // phones where the image-tile footer (and its inline heart) is hidden.
+    const canWishlist = typeof tooltip?.onWishlistToggle === 'function';
+    const wishlistBadge = document.createElement(canWishlist ? 'button' : 'span');
+    setWishlistStatus(wishlistBadge, isCardWanted(card));
+
+    if (canWishlist) {
+      wishlistBadge.type = 'button';
+      wishlistBadge.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        if (wishlistBadge.disabled) return;
+        wishlistBadge.disabled = true;
+        try {
+          const next = await tooltip.onWishlistToggle();
+          if (typeof next === 'boolean') setWishlistStatus(wishlistBadge, next);
+        } finally {
+          wishlistBadge.disabled = false;
+        }
+      });
+    }
+
+    status.appendChild(wishlistBadge);
   }
-
-  status.appendChild(badge);
-
-  // The wishlist toggle mirrors the owned one, so the heart is reachable on
-  // phones where the image-tile footer (and its inline heart) is hidden.
-  const canWishlist = typeof tooltip?.onWishlistToggle === 'function';
-  const wishlistBadge = document.createElement(canWishlist ? 'button' : 'span');
-  setWishlistStatus(wishlistBadge, isCardWanted(card));
-
-  if (canWishlist) {
-    wishlistBadge.type = 'button';
-    wishlistBadge.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      if (wishlistBadge.disabled) return;
-      wishlistBadge.disabled = true;
-      try {
-        const next = await tooltip.onWishlistToggle();
-        if (typeof next === 'boolean') setWishlistStatus(wishlistBadge, next);
-      } finally {
-        wishlistBadge.disabled = false;
-      }
-    });
-  }
-
-  status.appendChild(wishlistBadge);
 
   // Membership in the user's custom lists. The picker also works read-only in a
   // share view, so a visitor can see which public lists hold the card.

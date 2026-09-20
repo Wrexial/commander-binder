@@ -610,7 +610,7 @@ export function render() {
   refs.publicInput.disabled = !editable;
   refs.clearButton.hidden = !editable;
   refs.hint.textContent = editable
-    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Card taps still mark owned.'
+    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Long-press a card to preview it.'
     : 'View only — tap a card to preview it (←/→ or J/K to move through the grid).';
 
   if (pendingMove) {
@@ -646,7 +646,7 @@ export function render() {
       if (printingId && card) {
         slot.classList.add('is-filled');
         const index = activePage * binder.columns * binder.rows + row * binder.columns + col;
-        const tile = createCardElement(card, index);
+        const tile = createCardElement(card, index, { collection: false });
         tile.dataset.cardIndex = String(index);
         // Marks the tile as owning its exact printing, so the global
         // preferred-printing pass leaves it alone and cycling updates the slot.
