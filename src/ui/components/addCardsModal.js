@@ -3,46 +3,22 @@ import { showToast } from './toast.js';
 import {
   addOwnedCards,
   addWantedCards,
-  binderIdFromTarget,
-  binderTargetId,
-  COLLECTION_TARGETS,
   createCollectionModal,
   createTargetToggle,
-  isBinderTargetId,
-  normalizeName,
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
+import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
+import { buildPrintingIndex, findEntryCard, resolveMissingCards } from './cardLookup.js';
 import { createCardNameInput } from './cardNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
-import { cardStore } from '../../state/cardStore.js';
-import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../state/cardCatalog.js';
-import { hydrateCardsByIds, loadPrintingsForName } from '../../api/cardSearch.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
-import { addCardsToList, createList, getList, getLists, isInList } from '../../state/listsState.js';
-import {
-  addCardsToBinder,
-  getBinder,
-  getBinders,
-  isCardInBinder,
-} from '../../state/bindersState.js';
+import { addCardsToList, createList, isInList } from '../../state/listsState.js';
+import { addCardsToBinder, isCardInBinder } from '../../state/bindersState.js';
 import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
-
-/** One pass over the store: "set:number" (lowercase set) -> exact printing. */
-function buildPrintingIndex() {
-  const byPrinting = new Map();
-  for (const card of cardStore.getAll()) {
-    for (const printing of cardStore.getPrintings(card.name)) {
-      if (printing.set && printing.collector_number) {
-        byPrinting.set(`${printing.set.toLowerCase()}:${printing.collector_number}`, printing);
-      }
-    }
-  }
-  return byPrinting;
-}
 
 /**
  * The combined "Add Cards" modal. Accepts typed names (with autocomplete), a
@@ -59,69 +35,14 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   /** Names already looked up live, so a typo isn't re-fetched every pass. */
   const attemptedNames = new Set();
 
-  /**
-   * Merge cards loaded after the index was built (e.g. the all-cards catalog
-   * resolving a non-legendary name) into the lookup structures.
-   */
-  function refreshIndexes() {
-    for (const [key, printing] of buildPrintingIndex()) {
-      if (!byPrinting.has(key)) byPrinting.set(key, printing);
-    }
-    for (const card of cardStore.getAll()) {
-      const key = normalizeName(card.name);
-      if (key && !input.nameIndex.has(key)) input.nameIndex.set(key, card);
-    }
-  }
-
-  /**
-   * Resolve pasted names that aren't in the loaded store but are known to the
-   * all-cards catalog, fetching their printings in one batched request. This is
-   * what lets the modal add any card, not just ones a binder already hydrated.
-   *
-   * @returns {Promise<boolean>} whether new cards were loaded
-   */
-  async function resolveCatalogMatches() {
-    const { entries } = parseCollection(input.textArea.value);
-    const ids = new Set();
-    const namesToLoad = new Set();
-    const catalogReady = isCardCatalogLoaded();
-
-    for (const entry of entries) {
-      const raw = normalizeName(entry.raw ?? '');
-      const name = normalizeName(entry.name);
-      if (input.nameIndex.has(raw) || input.nameIndex.has(name)) continue;
-      if (
-        entry.setCode &&
-        entry.collectorNumber &&
-        byPrinting.has(`${entry.setCode}:${entry.collectorNumber}`)
-      ) {
-        continue;
-      }
-      const id = resolveCatalogPrintingId(entry.raw ?? '') || resolveCatalogPrintingId(entry.name);
-      if (id) ids.add(id);
-      // Until the catalog is ready it cannot tell a real name from a typo, so
-      // ask Scryfall directly (once per name) instead of reporting "not found".
-      else if (!catalogReady && entry.name && !attemptedNames.has(entry.name)) {
-        namesToLoad.add(entry.name);
-      }
-    }
-
-    if (ids.size === 0 && namesToLoad.size === 0) return false;
-
-    const before = cardStore.getAll().length;
-    if (ids.size > 0) await hydrateCardsByIds([...ids]);
-    for (const name of namesToLoad) {
-      attemptedNames.add(name);
-      try {
-        await loadPrintingsForName(name);
-      } catch (err) {
-        console.error('Failed to load printings for', name, err);
-      }
-    }
-
-    const changed = cardStore.getAll().length > before;
-    if (changed) refreshIndexes();
-    return changed;
+  /** Resolve pasted names the loaded store doesn't have (catalog/live lookup). */
+  function resolveMissing() {
+    return resolveMissingCards({
+      text: input.textArea.value,
+      nameIndex: input.nameIndex,
+      printingIndex: byPrinting,
+      attemptedNames,
+    });
   }
 
   /**
@@ -129,7 +50,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
    * @param {string} id 'owned', 'wishlist', or a custom list id.
    */
   function describeTarget(id) {
-    if (id === 'wishlist') {
+    const target = resolveTarget(id);
+
+    if (target.kind === 'wishlist') {
       return {
         present: isCardWanted,
         add: addWantedCards,
@@ -140,7 +63,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
         addLabel: (n) => (n > 0 ? `Add ${n} to wishlist` : 'Add to wishlist'),
       };
     }
-    if (id === 'owned') {
+    if (target.kind === 'owned') {
       return {
         present: isCardOwned,
         add: addOwnedCards,
@@ -152,46 +75,38 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       };
     }
 
-    if (isBinderTargetId(id)) {
-      const binderId = binderIdFromTarget(id);
-      const name = getBinder(binderId)?.name || 'binder';
+    if (target.kind === 'binder') {
       return {
-        present: (card) => isCardInBinder(binderId, card),
+        present: (card) => isCardInBinder(target.id, card),
         add: async (cards, message) => {
-          await addCardsToBinder(binderId, cards);
+          await addCardsToBinder(target.id, cards);
           showToast(message, 'success');
           updateAllCardStates();
         },
-        presentLabel: `Already in “${name}”`,
+        presentLabel: `Already in “${target.name}”`,
         skipVerb: 'have in the binder',
-        successSuffix: ` to “${name}”`,
-        title: `Add to “${name}”`,
+        successSuffix: ` to “${target.name}”`,
+        title: `Add to “${target.name}”`,
         addLabel: (n) => (n > 0 ? `Add ${n} to binder` : 'Add to binder'),
       };
     }
 
-    const name = getList(id)?.name || 'list';
     return {
-      present: (card) => isInList(id, card),
+      present: (card) => isInList(target.id, card),
       add: async (cards, message) => {
-        await addCardsToList(id, cards);
+        await addCardsToList(target.id, cards);
         showToast(message, 'success');
         updateAllCardStates();
       },
-      presentLabel: `Already in “${name}”`,
+      presentLabel: `Already in “${target.name}”`,
       skipVerb: 'have in the list',
-      successSuffix: ` to “${name}”`,
-      title: `Add to “${name}”`,
+      successSuffix: ` to “${target.name}”`,
+      title: `Add to “${target.name}”`,
       addLabel: (n) => (n > 0 ? `Add ${n} to list` : 'Add to list'),
     };
   }
 
-  const listOptions = getLists().map((list) => ({ id: list.id, label: list.name }));
-  const binderOptions = getBinders().map((binder) => ({
-    id: binderTargetId(binder.id),
-    label: `Binder: ${binder.name}`,
-  }));
-  const targetOptions = [...COLLECTION_TARGETS, ...listOptions, ...binderOptions];
+  const targetOptions = buildTargetOptions();
   let targetId = targetOptions.some((option) => option.id === initialKind) ? initialKind : 'owned';
   let config = describeTarget(targetId);
 
@@ -300,15 +215,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     const unknown = [];
 
     for (const entry of entries) {
-      let card = null;
-      if (entry.setCode && entry.collectorNumber) {
-        card = byPrinting.get(`${entry.setCode}:${entry.collectorNumber}`) || null;
-      }
-      // Prefer the raw pasted name over the quantity-stripped one, so a card
-      // whose name genuinely starts with a number still matches.
-      card ||= input.nameIndex.get(normalizeName(entry.raw ?? '')) || null;
-      card ||= input.nameIndex.get(normalizeName(entry.name)) || null;
-
+      const card = findEntryCard(entry, input.nameIndex, byPrinting);
       if (!card) {
         unknown.push(entry.name);
         continue;
@@ -364,7 +271,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   async function handleAdd() {
     if (confirming) return;
 
-    await resolveCatalogMatches();
+    await resolveMissing();
     categorized = categorize();
     const { add } = categorized;
     if (add.length === 0) return;
@@ -390,7 +297,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   // The immediate render uses whatever is already loaded; the debounced pass
   // then resolves any all-cards catalog names and re-renders.
   const runValidation = debounce(async () => {
-    await resolveCatalogMatches();
+    await resolveMissing();
     renderPreview();
   }, PREVIEW_DEBOUNCE_MS);
 

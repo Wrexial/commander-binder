@@ -23,8 +23,6 @@ let names = [];
 let nameById = new Map();
 /** @type {Map<string, string>} lowercased front name -> one printing id */
 let idByName = new Map();
-/** @type {Map<string, string>} lowercased front name -> canonical name */
-let canonicalByName = new Map();
 let loaded = false;
 
 /** True once a bulk stream has published the catalog (even if empty). */
@@ -47,21 +45,7 @@ export function setCardCatalog({ cardNames, cardNameById, cardIdByName } = {}) {
     }
   }
 
-  canonicalByName = new Map();
-  for (const name of names) canonicalByName.set(name.toLowerCase(), name);
-
   loaded = names.length > 0 || nameById.size > 0 || idByName.size > 0;
-}
-
-/** The canonical front-face name for a (case-insensitive) query, or null. */
-export function findCatalogName(name) {
-  return (
-    canonicalByName.get(
-      String(name || '')
-        .trim()
-        .toLowerCase()
-    ) || null
-  );
 }
 
 /** One printing id for a (case-insensitive) card name, or null when unknown. */
@@ -118,6 +102,5 @@ export function resetCardCatalog() {
   names = [];
   nameById = new Map();
   idByName = new Map();
-  canonicalByName = new Map();
   loaded = false;
 }

@@ -1,24 +1,20 @@
 import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
 import {
-  binderIdFromTarget,
-  binderTargetId,
   createCollectionModal,
   createTargetToggle,
-  isBinderTargetId,
   normalizeName,
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
+import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
+import { findEntryCard, resolveMissingCards } from './cardLookup.js';
 import { createCardNameInput } from './cardNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
-import { cardStore } from '../../state/cardStore.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
-import { getList, getLists, isInList } from '../../state/listsState.js';
-import { getBinder, getBinders, isCardInBinder } from '../../state/bindersState.js';
-import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../state/cardCatalog.js';
-import { hydrateCardsByIds, loadPrintingsForName } from '../../api/cardSearch.js';
+import { isInList } from '../../state/listsState.js';
+import { isCardInBinder } from '../../state/bindersState.js';
 
 const VALIDATION_DEBOUNCE_MS = 250;
 
@@ -36,7 +32,9 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
   /** Resolve a target id to the predicate and copy the modal needs. */
   function describeTarget(id) {
-    if (id === 'wishlist') {
+    const target = resolveTarget(id);
+
+    if (target.kind === 'wishlist') {
       return {
         present: isCardWanted,
         presentLabel: 'Wanted',
@@ -44,7 +42,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
         targetNoun: 'wishlist',
       };
     }
-    if (id === 'owned') {
+    if (target.kind === 'owned') {
       return {
         present: isCardOwned,
         presentLabel: 'Owned',
@@ -53,35 +51,19 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
       };
     }
 
-    if (isBinderTargetId(id)) {
-      const binderId = binderIdFromTarget(id);
-      const name = getBinder(binderId)?.name || 'binder';
-      return {
-        present: (card) => isCardInBinder(binderId, card),
-        presentLabel: `In “${name}”`,
-        missingLabel: `Not in “${name}”`,
-        targetNoun: `“${name}”`,
-      };
-    }
-
-    const name = getList(id)?.name || 'list';
+    const present =
+      target.kind === 'binder'
+        ? (card) => isCardInBinder(target.id, card)
+        : (card) => isInList(target.id, card);
     return {
-      present: (card) => isInList(id, card),
-      presentLabel: `In “${name}”`,
-      missingLabel: `Not in “${name}”`,
-      targetNoun: `“${name}”`,
+      present,
+      presentLabel: `In “${target.name}”`,
+      missingLabel: `Not in “${target.name}”`,
+      targetNoun: `“${target.name}”`,
     };
   }
 
-  const targetOptions = [
-    { id: 'owned', label: 'Collection' },
-    { id: 'wishlist', label: 'Wishlist' },
-    ...getLists().map((list) => ({ id: list.id, label: list.name })),
-    ...getBinders().map((binder) => ({
-      id: binderTargetId(binder.id),
-      label: `Binder: ${binder.name}`,
-    })),
-  ];
+  const targetOptions = buildTargetOptions();
   let targetId = targetOptions.some((option) => option.id === initialTarget)
     ? initialTarget
     : 'owned';
@@ -117,53 +99,13 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
   let categorized = { present: [], missing: [], unknown: [] };
 
-  /**
-   * Resolve pasted names that aren't in the loaded store but are known to the
-   * all-cards catalog, fetching their printings in one batched request so the
-   * check covers every card, not just the legendary subset.
-   *
-   * @returns {Promise<boolean>} whether new cards were loaded
-   */
-  async function resolveCatalogMatches() {
-    const { entries } = parseCollection(input.textArea.value);
-    const ids = new Set();
-    const namesToLoad = new Set();
-    const catalogReady = isCardCatalogLoaded();
-
-    for (const entry of entries) {
-      const raw = normalizeName(entry.raw ?? '');
-      const name = normalizeName(entry.name);
-      if (input.nameIndex.has(raw) || input.nameIndex.has(name)) continue;
-      const id = resolveCatalogPrintingId(entry.raw ?? '') || resolveCatalogPrintingId(entry.name);
-      if (id) ids.add(id);
-      // Before the catalog loads it cannot tell a real name from a typo, so ask
-      // Scryfall directly (once per name) rather than reporting "not found".
-      else if (!catalogReady && entry.name && !attemptedNames.has(entry.name)) {
-        namesToLoad.add(entry.name);
-      }
-    }
-
-    if (ids.size === 0 && namesToLoad.size === 0) return false;
-
-    const before = cardStore.getAll().length;
-    if (ids.size > 0) await hydrateCardsByIds([...ids]);
-    for (const name of namesToLoad) {
-      attemptedNames.add(name);
-      try {
-        await loadPrintingsForName(name);
-      } catch (err) {
-        console.error('Failed to load printings for', name, err);
-      }
-    }
-
-    const changed = cardStore.getAll().length > before;
-    if (changed) {
-      for (const card of cardStore.getAll()) {
-        const key = normalizeName(card.name);
-        if (key && !input.nameIndex.has(key)) input.nameIndex.set(key, card);
-      }
-    }
-    return changed;
+  /** Resolve pasted names the loaded store doesn't have (catalog/live lookup). */
+  function resolveMissing() {
+    return resolveMissingCards({
+      text: input.textArea.value,
+      nameIndex: input.nameIndex,
+      attemptedNames,
+    });
   }
 
   /** Switch the target and relabel the modal; the pasted list stays put. */
@@ -188,14 +130,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     const unknown = [];
 
     for (const entry of entries) {
-      // Prefer the pasted text verbatim so a card whose name genuinely starts
-      // with a number ("1996 World Champion") still matches; only fall back to
-      // the quantity-stripped name when the raw text isn't a known card.
-      const card =
-        input.nameIndex.get(normalizeName(entry.raw ?? '')) ||
-        input.nameIndex.get(normalizeName(entry.name)) ||
-        null;
-
+      const card = findEntryCard(entry, input.nameIndex);
       const key = normalizeName(card ? card.name : entry.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -271,7 +206,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   // The immediate render uses whatever is already loaded; the debounced pass
   // then resolves any all-cards catalog names and re-renders.
   const runValidation = debounce(async () => {
-    await resolveCatalogMatches();
+    await resolveMissing();
     renderPreview();
   }, VALIDATION_DEBOUNCE_MS);
 

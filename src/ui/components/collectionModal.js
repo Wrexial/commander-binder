@@ -6,6 +6,7 @@ import { updateAllBinderCounts } from '../layout.js';
 import { updateOwnedCounter } from './ownedCounter.js';
 import { showToast } from './toast.js';
 import { createModal } from './modal.js';
+import { COLLECTION_TARGETS } from './collectionTargets.js';
 
 /** Case/whitespace-insensitive key used to match a card name. */
 export function normalizeName(name) {
@@ -109,30 +110,6 @@ export async function addWantedCards(cards, successMessage) {
   await setCardsWanted(cards, true);
   showToast(successMessage, 'success');
   updateAllCardStates();
-}
-
-/** The two collections the add/export/recent modals can target. */
-export const COLLECTION_TARGETS = [
-  { id: 'owned', label: 'Collection' },
-  { id: 'wishlist', label: 'Wishlist' },
-];
-
-/**
- * Binder targets are prefixed in the target picker so a binder id can never be
- * mistaken for a custom-list id (both are UUIDs).
- */
-export const BINDER_TARGET_PREFIX = 'binder:';
-
-export function binderTargetId(binderId) {
-  return `${BINDER_TARGET_PREFIX}${binderId}`;
-}
-
-export function isBinderTargetId(targetId) {
-  return typeof targetId === 'string' && targetId.startsWith(BINDER_TARGET_PREFIX);
-}
-
-export function binderIdFromTarget(targetId) {
-  return isBinderTargetId(targetId) ? targetId.slice(BINDER_TARGET_PREFIX.length) : null;
 }
 
 /**

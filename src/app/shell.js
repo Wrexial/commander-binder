@@ -22,7 +22,7 @@ import {
   getBinderPrintingIds,
   getBinderSlotCards,
 } from '../state/bindersState.js';
-import { binderTargetId } from '../ui/components/collectionModal.js';
+import { binderTargetId } from '../ui/components/collectionTargets.js';
 import { cardStore } from '../state/cardStore.js';
 import { hydrateCardsByIds } from '../api/cardSearch.js';
 import { initClerk, getClerk } from '../auth/clerk.js';

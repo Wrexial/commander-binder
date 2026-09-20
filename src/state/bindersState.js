@@ -43,7 +43,6 @@ const MIN_BINDER_ROWS = 1;
 
 /** id -> binder record */
 const binders = new Map();
-let initialized = false;
 let activeId = null;
 
 /** Serializes server writes so responses can't land out of order. */
@@ -162,7 +161,6 @@ function applyBinders(records) {
     if (!record || typeof record.id !== 'string') continue;
     binders.set(record.id, normalizeBinder(record));
   }
-  initialized = true;
   announce();
 }
 
@@ -208,11 +206,6 @@ export function getBinder(id) {
 export function getBinderByName(name) {
   const target = String(name || '').toLowerCase();
   return getBinders().find((binder) => binder.name.toLowerCase() === target) || null;
-}
-
-/** True when `binderId` is a real binder the caller can see. */
-export function hasBinder(binderId) {
-  return binders.has(binderId);
 }
 
 /** A binder's slot keys ordered page → row → column. */
@@ -326,7 +319,6 @@ export async function loadBinders({ seed = true } = {}) {
     } catch (err) {
       console.error('Failed to load shared binders:', err);
       binders.clear();
-      initialized = true;
     }
   } else if (isLocalMode()) {
     let records;
@@ -348,7 +340,6 @@ export async function loadBinders({ seed = true } = {}) {
     } catch (err) {
       console.error('Failed to load binders:', err);
       binders.clear();
-      initialized = true;
     }
   }
 
@@ -368,13 +359,8 @@ export async function loadBinders({ seed = true } = {}) {
     });
   }
 
-  initialized = true;
   announce();
   return getBinders();
-}
-
-export function areBindersLoaded() {
-  return initialized;
 }
 
 /**
@@ -705,7 +691,6 @@ export async function mergeLocalBindersToAccount() {
 export async function resetBinders() {
   binders.clear();
   activeId = null;
-  initialized = false;
   await clearLocalBinders();
   announce();
 }

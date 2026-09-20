@@ -183,18 +183,22 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   add/check/export modals (the add, bulk-check, export
   and recent-activity modals share an Owned/Wishlist picker from
   `collectionModal.js`'s `createTargetToggle` (which can also pin a "+ New list"
-  action); the add and bulk-check modals append every custom list and every
-  binder as a target (binders are prefixed `binder:` so a binder id can never
-  be mistaken for a list id), the add modal's "+ New list" reveals an inline
-  create form and selects the new
+  action). `collectionTargets.js` is the shared, dependency-light home of the
+  target descriptors (`COLLECTION_TARGETS`, `binderTargetId`,
+  `buildTargetOptions`, `resolveTarget`) — the add/check modals append every
+  custom list and every binder as a target (binders are prefixed `binder:` so a
+  binder id is never mistaken for a list id), the add modal's "+ New list"
+  reveals an inline create form and selects the new
   list, and the export button feeds each list and binder in
   as a collection (hydrating a binder's not-yet-loaded cards first), so they all
   work on lists and binders exactly like the built-ins. The export modal also
   takes an `initialId`, so on the binder page it opens on the visible binder.
-  The add/check modals resolve pasted names against the all-cards `cardCatalog`
-  when they are not in `cardStore`, batching a fetch for the missing printings,
-  and fall back to a live lookup while the catalog is still loading, so _any_
-  card can be added/checked — not only ones a binder already hydrated; plus the
+  The add/check modals share `cardLookup.js` (the store-by-name/printing lookup
+  and `resolveMissingCards`), which resolves pasted names against the all-cards
+  `cardCatalog` when they are not in `cardStore`, batching a fetch for the
+  missing printings, and falls back to a live lookup while the catalog is still
+  loading, so _any_ card can be added/checked — not only ones a binder already
+  hydrated; plus the
   shared
   `cardNameInput.js` autocomplete (which suggests names from the catalog too), the share-view `compareModal.js` diff,
   the Binder Builder editor `binderBuilder.js` (a top binder-tab switcher, pocket

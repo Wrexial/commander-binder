@@ -12,6 +12,7 @@ import {
   getBinders,
   getActiveBinderId,
 } from '../state/bindersState.js';
+import { binderTargetId } from './components/collectionTargets.js';
 import { hydrateCardsByIds } from '../api/cardSearch.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
@@ -202,7 +203,7 @@ export function createExportButton() {
         })),
         // Binders export their pockets in page/slot order.
         ...binders.map((binder) => ({
-          id: `binder:${binder.id}`,
+          id: binderTargetId(binder.id),
           label: binder.name,
           cards: getBinderCards(binder.id),
           filePrefix: `binder-${slugify(binder.name)}`,
@@ -224,7 +225,7 @@ export function createExportButton() {
       const { createExportModal } = await import('./components/exportModal.js');
       createExportModal({
         collections,
-        initialId: activeBinderId ? `binder:${activeBinderId}` : undefined,
+        initialId: activeBinderId ? binderTargetId(activeBinderId) : undefined,
       }).show();
     },
     'collection',
