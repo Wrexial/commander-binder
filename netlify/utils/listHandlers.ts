@@ -3,7 +3,7 @@ import type { HandlerEvent } from '@netlify/functions';
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../../db';
-import { cardListItems, cardLists, shareLinks } from '../../db/schema';
+import { cardListItems, cardLists } from '../../db/schema';
 import { getUserId, unauthorized } from './auth';
 import {
   MAX_LISTS,
@@ -15,6 +15,7 @@ import {
   parseMergeLists,
 } from './lists';
 import { badRequest, parseJsonBody } from './request';
+import { resolveReadUser } from './share';
 
 /** One list as the client sees it: metadata plus its member printing ids. */
 export type ClientList = {
@@ -74,30 +75,15 @@ export async function readLists(event: HandlerEvent) {
   const parsed = parseJsonBody(event);
   if (!parsed.ok) return parsed.response;
 
-  const { shareToken } = parsed.value;
-  let userId: string | null;
-  let publicOnly = false;
+  const resolved = await resolveReadUser(event, parsed.value.shareToken);
+  if (!resolved.ok) return resolved.response;
 
-  if (shareToken) {
-    if (typeof shareToken !== 'string') {
-      return badRequest("'shareToken' must be a string.");
-    }
-    const [row] = await db
-      .select({ userId: shareLinks.userId })
-      .from(shareLinks)
-      .where(eq(shareLinks.token, shareToken));
-    userId = row?.userId ?? null;
-    // A visitor only ever sees the lists the owner marked public.
-    publicOnly = true;
-  } else {
-    userId = await getUserId(event);
-  }
-
-  if (!userId) return unauthorized();
-
+  // A visitor only ever sees the lists the owner marked public.
   return {
     statusCode: 200,
-    body: JSON.stringify({ lists: await collectLists(userId, { publicOnly }) }),
+    body: JSON.stringify({
+      lists: await collectLists(resolved.userId, { publicOnly: resolved.shared }),
+    }),
   };
 }
 

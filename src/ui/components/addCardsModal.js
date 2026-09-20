@@ -15,14 +15,8 @@ import {
   binderTargetId,
   listTargetId,
 } from './collectionTargets.js';
-import {
-  buildPrintingIndex,
-  findEntryCard,
-  isPendingName,
-  resolveMissingCards,
-} from './cardLookup.js';
-import { createCardNameInput } from './cardNameInput.js';
-import { attachCardPreview } from './cardPreview.js';
+import { findEntryCard, isPendingName } from './cardLookup.js';
+import { createBulkNameInput } from './bulkNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
@@ -79,19 +73,16 @@ function createNewTargetForm({ className, placeholder, ariaLabel }) {
  * @returns {{ show: () => void, destroy: () => void }}
  */
 export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
-  const byPrinting = buildPrintingIndex();
-  /** Names already looked up live, so a typo isn't re-fetched every pass. */
-  const attemptedNames = new Set();
-
-  /** Resolve pasted names the loaded store doesn't have (catalog/live lookup). */
-  function resolveMissing() {
-    return resolveMissingCards({
-      text: input.textArea.value,
-      nameIndex: input.nameIndex,
-      printingIndex: byPrinting,
-      attemptedNames,
-    });
-  }
+  const bulk = createBulkNameInput({
+    placeholder: 'One card name per line, or paste a list (Ctrl+Enter to add)',
+    ariaLabel: 'Cards to add',
+    // Picking a suggestion fills the textarea without an `input` event, so kick
+    // the resolver too or the new name would stay "unknown".
+    onChange: () => {
+      renderPreview();
+      runValidation();
+    },
+  });
 
   /**
    * Resolve a target id to the predicate, action and copy the modal needs.
@@ -180,21 +171,6 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   fileInput.setAttribute('aria-label', 'Choose a collection file');
   toolbar.appendChild(fileInput);
 
-  const input = createCardNameInput({
-    placeholder: 'One card name per line, or paste a list (Ctrl+Enter to add)',
-    ariaLabel: 'Cards to add',
-    // Picking a suggestion fills the textarea without an `input` event, so kick
-    // the resolver too or the new name would stay "unknown".
-    onChange: () => {
-      renderPreview();
-      runValidation();
-    },
-  });
-
-  const preview = document.createElement('div');
-  preview.className = 'bulk-preview';
-  attachCardPreview(preview);
-
   // Inline "name a new target" forms, revealed by the picker's actions. Only
   // one is shown at a time.
   const newList = createNewTargetForm({
@@ -227,7 +203,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     ],
   });
 
-  contentArea.append(target.el, newList.form, newBinder.form, toolbar, input.el, preview);
+  contentArea.append(target.el, newList.form, newBinder.form, toolbar, bulk.input.el, bulk.preview);
 
   let categorized = { add: [], present: [], loading: [], unknown: [] };
   let confirming = false;
@@ -293,7 +269,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
    * `loading` so it is never reported as "not found" mid-lookup.
    */
   function categorize() {
-    const { entries } = parseCollection(input.textArea.value);
+    const { entries } = parseCollection(bulk.input.textArea.value);
     const seenIds = new Set();
     const seenNames = new Set();
     const add = [];
@@ -302,12 +278,12 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     const unknown = [];
 
     for (const entry of entries) {
-      const card = findEntryCard(entry, input.nameIndex, byPrinting);
+      const card = findEntryCard(entry, bulk.input.nameIndex, bulk.printingIndex);
       if (!card) {
         const key = normalizeName(entry.name);
         if (!key || seenNames.has(key)) continue;
         seenNames.add(key);
-        if (isPendingName(entry, attemptedNames)) loading.push(entry.name);
+        if (isPendingName(entry, bulk.attemptedNames)) loading.push(entry.name);
         else unknown.push(entry.name);
         continue;
       }
@@ -340,12 +316,12 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     const { add, present, loading, unknown } = categorized;
 
     if (add.length + present.length + loading.length + unknown.length === 0) {
-      preview.innerHTML = '<p class="bulk-empty">Nothing to add yet.</p>';
+      bulk.preview.innerHTML = '<p class="bulk-empty">Nothing to add yet.</p>';
       updatePrimary();
       return;
     }
 
-    preview.innerHTML = `
+    bulk.preview.innerHTML = `
             <div class="bulk-summary">
                 ${summaryChip('missing', 'Will add', add.length)}
                 ${summaryChip('owned', config.presentLabel, present.length)}
@@ -364,7 +340,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   async function handleAdd() {
     if (confirming) return;
 
-    await resolveMissing();
+    await bulk.resolveMissing();
     categorized = categorize();
     const { add } = categorized;
     if (add.length === 0) return;
@@ -390,15 +366,15 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   // The immediate render uses whatever is already loaded; the debounced pass
   // then resolves any all-cards catalog names and re-renders.
   const runValidation = debounce(async () => {
-    await resolveMissing();
+    await bulk.resolveMissing();
     renderPreview();
   }, PREVIEW_DEBOUNCE_MS);
 
-  input.textArea.addEventListener('input', () => {
+  bulk.input.textArea.addEventListener('input', () => {
     renderPreview();
     runValidation();
   });
-  input.textArea.addEventListener('keydown', (event) => {
+  bulk.input.textArea.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       handleAdd();
@@ -409,7 +385,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     if (!file) return;
 
     try {
-      input.textArea.value = await file.text();
+      bulk.input.textArea.value = await file.text();
       renderPreview();
       runValidation();
     } catch (err) {
@@ -437,7 +413,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
   function show() {
     shell.show();
-    input.textArea.focus();
+    bulk.input.textArea.focus();
   }
 
   renderPreview();

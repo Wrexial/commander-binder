@@ -102,7 +102,9 @@ new key there too.
   auth/share helpers (`authenticatedFetch.js`, `share.js`, `userSettings.js`) and the
   guest merge clients (`mergeCollection.js` factory, re-exported as `mergeOwned.js`
   / `mergeWishlist.js`), and the custom-list client (`lists.js` — read,
-  create/update/delete, item add/remove and guest merge). `scryfall.js` is
+  create/update/delete, item add/remove and guest merge), both built on the
+  shared `registryClient.js` POST/error/unwrap helper (`binders.js` uses it
+  too). `scryfall.js` is
   deliberately DOM-free: it only caches/paces/retries requests and exposes
   `fetchPage`, `fetchCardsByIds` (the batched collection endpoint),
   `setRequestThrottle`, and the bulk-source controls. `bulkData.js` streams the
@@ -264,7 +266,9 @@ new key there too.
   modal also
   takes an `initialId`, so on the binder page it opens on the visible binder, and
   its search filter narrows both the preview and the actual copy/download.
-  The add/check modals share `cardLookup.js` (the store-by-name/printing lookup
+  The add/check modals share `bulkNameInput.js` (the textarea + preview pair,
+  plus the printing index and `attemptedNames` set) and `cardLookup.js` (the
+  store-by-name/printing lookup
   and `resolveMissingCards`), which resolves pasted names against the all-cards
   `cardCatalog` when they are not in `cardStore`, batching a fetch for the
   missing printings, and falls back to a live lookup while the catalog is still
@@ -414,20 +418,26 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   the verified caller's account and ignores `shareToken`.
 - `netlify/utils/auth.ts` — JWT verification via `jose` against Clerk's JWKS
   (exports `getUserId` and `unauthorized`; `verifyToken` is internal).
+- `netlify/utils/share.ts` — `resolveReadUser(event, shareToken)`, the shared
+  first step of every read handler. A share token is a read-only capability that
+  wins over the caller's session; otherwise the verified Clerk id is used. It
+  returns the user plus whether the read is a share view, or a ready-to-forward
+  400 (bad token type) / 401 (unknown owner).
 - `netlify/utils/collection.ts` — the `owned`/`wishlist` table map and the
   shared add/remove DB logic used by the toggle handlers.
 - `netlify/utils/collectionHandlers.ts` — read/toggle/batch/merge handlers shared
   by the owned and wishlist function files. `readCollection` accepts a
-  `shareToken` as a read-only capability, so a share link exposes the owner's
-  wishlist as well as their collection.
+  `shareToken` as a read-only capability (via `resolveReadUser`), so a share
+  link exposes the owner's wishlist as well as their collection.
 - `netlify/utils/listHandlers.ts` + `netlify/utils/lists.ts` — the custom-list
   read/create/update/delete/item/merge handlers and their payload validation
   (`MAX_LISTS`, name/notes caps). `readLists` takes a `shareToken` as a read
-  capability too, but returns only lists marked public.
+  capability too (via `resolveReadUser`), but returns only lists marked public.
 - `netlify/utils/binderHandlers.ts` + `netlify/utils/binders.ts` — the Binder
   Builder read/create/update/delete/merge handlers and their payload validation
   (`MAX_BINDERS`, grid bounds, `MAX_BINDER_SLOTS`/bytes). `readBinders` takes a
-  `shareToken` as a read capability and returns only binders marked public;
+  `shareToken` as a read capability (via `resolveReadUser`) and returns only
+  binders marked public;
   `mergeBinders` unions guest binders by name without ever overwriting a stored
   pocket or un-publishing one.
 - `netlify/utils/userSettings.ts` — load/save a user's JSON settings blob for

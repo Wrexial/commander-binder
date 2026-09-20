@@ -3,7 +3,7 @@ import type { HandlerEvent } from '@netlify/functions';
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { binders, shareLinks } from '../../db/schema';
+import { binders } from '../../db/schema';
 import { getUserId, unauthorized } from './auth';
 import {
   MAX_BINDERS,
@@ -16,6 +16,7 @@ import {
 } from './binders';
 import { parseIsPublic } from './lists';
 import { badRequest, parseJsonBody } from './request';
+import { resolveReadUser } from './share';
 
 /** One binder as the client sees it. */
 export type ClientBinder = {
@@ -86,28 +87,11 @@ export async function readBinders(event: HandlerEvent) {
   const parsed = parseJsonBody(event);
   if (!parsed.ok) return parsed.response;
 
-  const { shareToken } = parsed.value;
-  let userId: string | null;
-  let publicOnly = false;
+  const resolved = await resolveReadUser(event, parsed.value.shareToken);
+  if (!resolved.ok) return resolved.response;
 
-  if (shareToken) {
-    if (typeof shareToken !== 'string') {
-      return badRequest("'shareToken' must be a string.");
-    }
-    const [row] = await db
-      .select({ userId: shareLinks.userId })
-      .from(shareLinks)
-      .where(eq(shareLinks.token, shareToken));
-    userId = row?.userId ?? null;
-    // A visitor only ever sees the binders the owner marked public.
-    publicOnly = true;
-  } else {
-    userId = await getUserId(event);
-  }
-
-  if (!userId) return unauthorized();
-
-  return bindersResponse(userId, { publicOnly });
+  // A visitor only ever sees the binders the owner marked public.
+  return bindersResponse(resolved.userId, { publicOnly: resolved.shared });
 }
 
 /** The caller's binder with the given name (case-insensitive), if any. */

@@ -5,14 +5,8 @@ import {
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
-import {
-  buildPrintingIndex,
-  findEntryCard,
-  isPendingName,
-  resolveMissingCards,
-} from './cardLookup.js';
-import { createCardNameInput } from './cardNameInput.js';
-import { attachCardPreview } from './cardPreview.js';
+import { findEntryCard, isPendingName } from './cardLookup.js';
+import { createBulkNameInput } from './bulkNameInput.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
@@ -54,19 +48,7 @@ function collectLocations() {
  * @returns {{ show: () => void, destroy: () => void }}
  */
 function buildBulkCheckModal() {
-  const byPrinting = buildPrintingIndex();
-  /** Names already looked up live, so a typo isn't re-fetched every pass. */
-  const attemptedNames = new Set();
-
-  const { shell, close, contentArea, buttons } = createCollectionModal({
-    title: 'Bulk Check Cards',
-    subtitle:
-      'Paste one card name per line to see where each one lives — collection, wishlist, lists and binders.',
-    actions: [{ id: 'close', text: 'Close' }],
-  });
-  const { close: closeButton } = buttons;
-
-  const input = createCardNameInput({
+  const bulk = createBulkNameInput({
     placeholder: 'One card name per line — “1 Sol Ring” is fine',
     ariaLabel: 'Card names, one per line',
     // Picking a suggestion fills the textarea without an `input` event, so kick
@@ -77,23 +59,17 @@ function buildBulkCheckModal() {
     },
   });
 
-  const preview = document.createElement('div');
-  preview.className = 'bulk-preview';
-  attachCardPreview(preview);
+  const { shell, close, contentArea, buttons } = createCollectionModal({
+    title: 'Bulk Check Cards',
+    subtitle:
+      'Paste one card name per line to see where each one lives — collection, wishlist, lists and binders.',
+    actions: [{ id: 'close', text: 'Close' }],
+  });
+  const { close: closeButton } = buttons;
 
-  contentArea.append(input.el, preview);
+  contentArea.append(bulk.input.el, bulk.preview);
 
   let categorized = { found: [], missing: [], loading: [], unknown: [] };
-
-  /** Resolve pasted names the loaded store doesn't have (catalog/live lookup). */
-  function resolveMissing() {
-    return resolveMissingCards({
-      text: input.textArea.value,
-      nameIndex: input.nameIndex,
-      printingIndex: byPrinting,
-      attemptedNames,
-    });
-  }
 
   /**
    * Split the textarea into found (with the places it lives) / missing
@@ -104,7 +80,7 @@ function buildBulkCheckModal() {
    * hydrated yet stays in `loading` rather than being called "not found".
    */
   function categorize() {
-    const { entries } = parseCollection(input.textArea.value);
+    const { entries } = parseCollection(bulk.input.textArea.value);
     const seen = new Set();
     const found = [];
     const missing = [];
@@ -113,7 +89,7 @@ function buildBulkCheckModal() {
     const locations = collectLocations();
 
     for (const entry of entries) {
-      const card = findEntryCard(entry, input.nameIndex, byPrinting);
+      const card = findEntryCard(entry, bulk.input.nameIndex, bulk.printingIndex);
       const key = normalizeName(card ? card.name : entry.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
@@ -125,7 +101,7 @@ function buildBulkCheckModal() {
         const row = { name: card.name, id: card.id, locations: matches };
         if (matches.length > 0) found.push(row);
         else missing.push(row);
-      } else if (isPendingName(entry, attemptedNames)) {
+      } else if (isPendingName(entry, bulk.attemptedNames)) {
         loading.push(entry.name);
       } else {
         unknown.push(entry.name);
@@ -140,11 +116,11 @@ function buildBulkCheckModal() {
     const { found, missing, loading, unknown } = categorized;
 
     if (found.length + missing.length + loading.length + unknown.length === 0) {
-      preview.innerHTML = '<p class="bulk-empty">No card names yet.</p>';
+      bulk.preview.innerHTML = '<p class="bulk-empty">No card names yet.</p>';
       return;
     }
 
-    preview.innerHTML = `
+    bulk.preview.innerHTML = `
             <div class="bulk-summary">
                 ${summaryChip('owned', 'Found', found.length)}
                 ${summaryChip('missing', 'Missing everywhere', missing.length)}
@@ -162,11 +138,11 @@ function buildBulkCheckModal() {
   // The immediate render uses whatever is already loaded; the debounced pass
   // then resolves any all-cards catalog names and re-renders.
   const runValidation = debounce(async () => {
-    await resolveMissing();
+    await bulk.resolveMissing();
     renderPreview();
   }, VALIDATION_DEBOUNCE_MS);
 
-  input.textArea.addEventListener('input', () => {
+  bulk.input.textArea.addEventListener('input', () => {
     renderPreview();
     runValidation();
   });
@@ -177,7 +153,7 @@ function buildBulkCheckModal() {
   return {
     show: () => {
       shell.show();
-      input.textArea.focus();
+      bulk.input.textArea.focus();
     },
     destroy: close,
   };

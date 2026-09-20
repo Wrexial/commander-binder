@@ -1,11 +1,11 @@
 import type { HandlerEvent } from '@netlify/functions';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { shareLinks } from '../../db/schema';
 import { getUserId, unauthorized } from './auth';
 import { type CollectionKind, collectionTable, setCollection } from './collection';
 import { parseCardIds } from './mergeOwned';
 import { MAX_BATCH_SIZE, badRequest, parseJsonBody } from './request';
+import { resolveReadUser } from './share';
 
 /**
  * Read a collection. A `shareToken` is an explicit read-only capability and
@@ -16,26 +16,9 @@ export async function readCollection(event: HandlerEvent, kind: CollectionKind) 
   const parsed = parseJsonBody(event);
   if (!parsed.ok) return parsed.response;
 
-  const { shareToken } = parsed.value;
-  let userId: string | null;
-
-  if (shareToken) {
-    if (typeof shareToken !== 'string') {
-      return badRequest("'shareToken' must be a string.");
-    }
-
-    const [row] = await db
-      .select({ userId: shareLinks.userId })
-      .from(shareLinks)
-      .where(eq(shareLinks.token, shareToken));
-
-    userId = row?.userId ?? null;
-  } else {
-    // No share token: signed-in callers are pinned to their verified identity.
-    userId = await getUserId(event);
-  }
-
-  if (!userId) return unauthorized();
+  const resolved = await resolveReadUser(event, parsed.value.shareToken);
+  if (!resolved.ok) return resolved.response;
+  const { userId } = resolved;
 
   const table = collectionTable(kind);
   const rows = await db

@@ -1,36 +1,12 @@
-import { authenticatedFetch } from './authenticatedFetch.js';
+import { createRegistryRequest } from './registryClient.js';
 
 const READ_PATH = '/.netlify/functions/lists';
 const MANAGE_PATH = '/.netlify/functions/manage-list';
 const ITEMS_PATH = '/.netlify/functions/list-items';
 const MERGE_PATH = '/.netlify/functions/merge-lists';
 
-/**
- * POST a JSON body to a list endpoint and return the caller's full list set.
- * Every list mutation returns the whole set (like `merge-owned` returns the
- * whole collection), so the client can adopt server truth without a second
- * round trip.
- */
-async function requestLists(path, body) {
-  const res = await authenticatedFetch(path, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const data = await res.json();
-      if (data && typeof data.message === 'string') message = data.message;
-    } catch {
-      /* non-JSON error body — keep the status message */
-    }
-    throw new Error(message);
-  }
-
-  const data = await res.json();
-  return Array.isArray(data?.lists) ? data.lists : [];
-}
+/** POST to a list endpoint and unwrap the caller's full (fresh) list set. */
+const requestLists = createRegistryRequest('lists');
 
 /**
  * Load the caller's lists. A `shareToken` yields the owner's public lists only;

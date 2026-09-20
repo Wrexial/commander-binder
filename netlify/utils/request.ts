@@ -6,7 +6,7 @@ type JsonEvent = { body?: string | null };
 /** Upper bound on a single batch toggle so one request can't fan out unbounded. */
 export const MAX_BATCH_SIZE = 500;
 
-type HandlerResponse = { statusCode: number; body: string };
+export type HandlerResponse = { statusCode: number; body: string };
 
 /** Standard 400 response carrying a human-readable reason. */
 export function badRequest(message = 'Bad Request'): HandlerResponse {
