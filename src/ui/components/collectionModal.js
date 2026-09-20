@@ -82,8 +82,9 @@ export function summaryChip(status, label, count) {
 
 /**
  * A labelled `<ul>` of card names in a modal's preview. Entries may be plain
- * strings (non-interactive) or `{name, id}` / card objects, in which case the
- * row opts into a hover/tap preview (see `attachCardPreview`).
+ * strings (non-interactive) or `{name, id, locations?}` / card objects, in which
+ * case the row opts into a hover/tap preview (see `attachCardPreview`). A
+ * `locations` array renders as membership badges (used by Bulk Check).
  */
 export function previewGroup(status, label, entries) {
   if (entries.length === 0) return '';
@@ -92,8 +93,21 @@ export function previewGroup(status, label, entries) {
     .map((entry) => {
       const name = typeof entry === 'string' ? entry : entry.name;
       const id = typeof entry === 'string' ? '' : entry.id || '';
+      const locations = typeof entry === 'string' ? [] : entry.locations || [];
       const preview = id ? ` data-card-preview data-card-id="${escapeHtml(id)}"` : '';
-      return `<li class="bulk-row bulk-row-${status}"${preview}>${escapeHtml(name)}</li>`;
+      const locationHtml = locations.length
+        ? `<span class="bulk-row-locations">${locations
+            .map(
+              (location) =>
+                `<span class="bulk-location bulk-location-${escapeHtml(
+                  location.kind || 'list'
+                )}">${escapeHtml(location.label)}</span>`
+            )
+            .join('')}</span>`
+        : '';
+      return `<li class="bulk-row bulk-row-${status}"${preview}><span class="bulk-row-name">${escapeHtml(
+        name
+      )}</span>${locationHtml}</li>`;
     })
     .join('');
 

@@ -2,12 +2,10 @@ import { debounce } from '../../utils/debounce.js';
 import { showToast } from './toast.js';
 import {
   createCollectionModal,
-  createTargetToggle,
   normalizeName,
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
-import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
 import {
   buildPrintingIndex,
   findEntryCard,
@@ -19,73 +17,57 @@ import { attachCardPreview } from './cardPreview.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
-import { isInList } from '../../state/listsState.js';
-import { isCardInBinder } from '../../state/bindersState.js';
+import { getLists, isInList } from '../../state/listsState.js';
+import { getBinders, isCardInBinder } from '../../state/bindersState.js';
 
 const VALIDATION_DEBOUNCE_MS = 250;
 
 /**
- * Create the "Bulk Check Cards" modal: paste names to see which are in the
- * picked target (collection, wishlist or a custom list), then copy the ones
- * that aren't. (Adding cards lives in `addCardsModal.js`.)
+ * Every place a card can live, in report order. Rebuilt on each pass so it
+ * reflects any list/binder that loaded after the modal opened.
  *
- * @param {{target?: string}} [options] Initial target id.
+ * @returns {{kind: string, label: string, present: (card: object) => boolean}[]}
+ */
+function collectLocations() {
+  return [
+    { kind: 'owned', label: 'Collection', present: isCardOwned },
+    { kind: 'wishlist', label: 'Wishlist', present: isCardWanted },
+    ...getLists().map((list) => ({
+      kind: 'list',
+      label: list.name,
+      present: (card) => isInList(list.id, card),
+    })),
+    ...getBinders().map((binder) => ({
+      kind: 'binder',
+      // Prefix so a binder never reads like a same-named custom list.
+      label: `Binder: ${binder.name}`,
+      present: (card) => isCardInBinder(binder.id, card),
+    })),
+  ];
+}
+
+/**
+ * Create the "Bulk Check Cards" modal: paste names to see *everywhere* each one
+ * lives (collection, wishlist, any custom list, any binder), then copy the ones
+ * that are missing from all of them. (Adding cards lives in `addCardsModal.js`.)
+ *
  * @returns {{ show: () => void, destroy: () => void }}
  */
-function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
+function buildBulkCheckModal() {
   const byPrinting = buildPrintingIndex();
   /** Names already looked up live, so a typo isn't re-fetched every pass. */
   const attemptedNames = new Set();
 
-  /** Resolve a target id to the predicate and copy the modal needs. */
-  function describeTarget(id) {
-    const target = resolveTarget(id);
-
-    if (target.kind === 'wishlist') {
-      return {
-        present: isCardWanted,
-        presentLabel: 'Wanted',
-        missingLabel: 'Not wanted',
-        targetNoun: 'wishlist',
-      };
-    }
-    if (target.kind === 'owned') {
-      return {
-        present: isCardOwned,
-        presentLabel: 'Owned',
-        missingLabel: 'Missing',
-        targetNoun: 'collection',
-      };
-    }
-
-    const present =
-      target.kind === 'binder'
-        ? (card) => isCardInBinder(target.id, card)
-        : (card) => isInList(target.id, card);
-    return {
-      present,
-      presentLabel: `In “${target.name}”`,
-      missingLabel: `Not in “${target.name}”`,
-      targetNoun: `“${target.name}”`,
-    };
-  }
-
-  const targetOptions = buildTargetOptions();
-  let targetId = targetOptions.some((option) => option.id === initialTarget)
-    ? initialTarget
-    : 'owned';
-  let config = describeTarget(targetId);
-
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title: 'Bulk Check Cards',
-    subtitle: `Paste one card name per line to see what's in your ${config.targetNoun}.`,
+    subtitle:
+      'Paste one card name per line to see where each one lives — collection, wishlist, lists and binders.',
     actions: [
       { id: 'primary', className: 'primary' },
       { id: 'close', text: 'Close' },
     ],
   });
   const { primary: primaryButton, close: closeButton } = buttons;
-  const subtitle = shell.modal.querySelector('.bulk-modal-subtitle');
 
   const input = createCardNameInput({
     placeholder: 'One card name per line — “1 Sol Ring” is fine (Ctrl+Enter to copy missing)',
@@ -102,15 +84,9 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   preview.className = 'bulk-preview';
   attachCardPreview(preview);
 
-  const target = createTargetToggle({
-    options: targetOptions,
-    initial: targetId,
-    onChange: applyTarget,
-  });
+  contentArea.append(input.el, preview);
 
-  contentArea.append(target.el, input.el, preview);
-
-  let categorized = { present: [], missing: [], loading: [], unknown: [] };
+  let categorized = { found: [], missing: [], loading: [], unknown: [] };
 
   /** Resolve pasted names the loaded store doesn't have (catalog/live lookup). */
   function resolveMissing() {
@@ -122,28 +98,22 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     });
   }
 
-  /** Switch the target and relabel the modal; the pasted list stays put. */
-  function applyTarget(next) {
-    targetId = next;
-    config = describeTarget(next);
-    subtitle.textContent = `Paste one card name per line to see what's in your ${config.targetNoun}.`;
-    renderPreview();
-  }
-
   /**
-   * Split the textarea into present / missing / still loading / unknown,
-   * de-duplicating. Uses the shared collection parser so pasted decklists with
-   * quantities ("1 Sol Ring", "2x Arcane Signet") or set/collector suffixes
+   * Split the textarea into found (with the places it lives) / missing
+   * everywhere / still loading / unknown, de-duplicating by name. Uses the
+   * shared collection parser so pasted decklists with quantities
+   * ("1 Sol Ring", "2x Arcane Signet") or set/collector suffixes
    * ("1 Sol Ring (CMM) 342") are matched by name. A real card that just hasn't
    * hydrated yet stays in `loading` rather than being called "not found".
    */
   function categorize() {
     const { entries } = parseCollection(input.textArea.value);
     const seen = new Set();
-    const present = [];
+    const found = [];
     const missing = [];
     const loading = [];
     const unknown = [];
+    const locations = collectLocations();
 
     for (const entry of entries) {
       const card = findEntryCard(entry, input.nameIndex, byPrinting);
@@ -152,8 +122,12 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
       seen.add(key);
 
       if (card) {
-        if (config.present(card)) present.push(card);
-        else missing.push(card);
+        const matches = locations
+          .filter((location) => location.present(card))
+          .map((location) => ({ kind: location.kind, label: location.label }));
+        const row = { name: card.name, id: card.id, locations: matches };
+        if (matches.length > 0) found.push(row);
+        else missing.push(row);
       } else if (isPendingName(entry, attemptedNames)) {
         loading.push(entry.name);
       } else {
@@ -161,7 +135,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
       }
     }
 
-    return { present, missing, loading, unknown };
+    return { found, missing, loading, unknown };
   }
 
   function updatePrimary() {
@@ -178,9 +152,9 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
   function renderPreview() {
     categorized = categorize();
-    const { present, missing, loading, unknown } = categorized;
+    const { found, missing, loading, unknown } = categorized;
 
-    if (present.length + missing.length + loading.length + unknown.length === 0) {
+    if (found.length + missing.length + loading.length + unknown.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No card names yet.</p>';
       updatePrimary();
       return;
@@ -188,14 +162,14 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
     preview.innerHTML = `
             <div class="bulk-summary">
-                ${summaryChip('owned', config.presentLabel, present.length)}
-                ${summaryChip('missing', config.missingLabel, missing.length)}
+                ${summaryChip('owned', 'Found', found.length)}
+                ${summaryChip('missing', 'Missing everywhere', missing.length)}
                 ${loading.length > 0 ? summaryChip('pending', 'Loading', loading.length) : ''}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
-                ${previewGroup('owned', config.presentLabel, present)}
-                ${previewGroup('missing', config.missingLabel, missing)}
+                ${previewGroup('owned', 'Found', found)}
+                ${previewGroup('missing', 'Missing everywhere', missing)}
                 ${previewGroup('pending', 'Loading…', loading)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
@@ -210,7 +184,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
     const { missing } = categorized;
     if (missing.length === 0) return;
 
-    const text = missing.map((card) => card.name).join('\n');
+    const text = missing.map((row) => row.name).join('\n');
     try {
       await navigator.clipboard.writeText(text);
       showToast(
@@ -257,7 +231,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 const NOOP_MODAL = { show: () => {}, destroy: () => {} };
 
 /** Open the bulk-check modal, unless another modal is already open. */
-export function createBulkCheckModal(options) {
+export function createBulkCheckModal() {
   if (document.querySelector('.list-modal-backdrop')) return NOOP_MODAL;
-  return buildBulkCheckModal(options);
+  return buildBulkCheckModal();
 }

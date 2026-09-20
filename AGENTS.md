@@ -191,10 +191,12 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   the first-run tour `tour.js` (a spotlight/popover walk over the search,
   filters, a card and the menu; auto-started once for signed-in visitors, offered
   from the guest welcome and replayable from the sidebar's “❓ App Tour”), the
-  add/check/export modals (the add, bulk-check, export
-  and recent-activity modals share an Owned/Wishlist picker from
-  `collectionModal.js`'s `createTargetToggle` (which can also pin a "+ New list"
-  action). `cardPreview.js` is the shared hover/tap preview for card names shown
+  add/check/export modals (the add, export and recent-activity modals share an
+  Owned/Wishlist picker from `collectionModal.js`'s `createTargetToggle`, which
+  can also pin a "+ New list" action; the bulk-check modal instead checks _every_
+  target at once and reports each card's membership as badges — collection,
+  wishlist, custom lists and binders — copying the cards missing from all of
+  them). `cardPreview.js` is the shared hover/tap preview for card names shown
   outside the grid (the add/check/export previews, list membership, recent
   additions and compare groups): rows opt in with `data-card-preview` plus a
   `data-card-id`/`data-card-name`, and the preview is read-only (no ownership or

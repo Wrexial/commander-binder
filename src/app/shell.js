@@ -52,8 +52,8 @@ import { initInstallPrompt, mountInstallButton } from '../ui/installPrompt.js';
 /** The card add/manager dialogs, pulled in on demand as separate chunks. */
 const loadAddCardsModal = async (kind) =>
   (await import('../ui/components/addCardsModal.js')).createAddCardsModal({ kind });
-const loadBulkCheckModal = async (target) =>
-  (await import('../ui/components/bulkCardModal.js')).createBulkCheckModal({ target });
+const loadBulkCheckModal = async () =>
+  (await import('../ui/components/bulkCardModal.js')).createBulkCheckModal();
 const loadListsModal = async () =>
   (await import('../ui/components/listsModal.js')).createListsModal();
 const loadSettingsModal = async () =>
@@ -65,8 +65,8 @@ function isBinderView() {
 }
 
 /**
- * The default target for the bulk add/check tools: on the Binder Builder page
- * the binder currently on screen, otherwise the collection.
+ * The default target for the bulk-add tool: on the Binder Builder page the
+ * binder currently on screen, otherwise the collection.
  */
 function defaultTargetId() {
   if (isBinderView()) {
@@ -76,10 +76,10 @@ function defaultTargetId() {
   return 'owned';
 }
 
-/** The bulk add/check buttons, wired to the current view's default target. */
+/** The bulk add/check buttons, plus export. */
 function addBulkTools() {
   createAddCardsButton(() => showModal(() => loadAddCardsModal(defaultTargetId())));
-  createBulkCheckButton(() => showModal(() => loadBulkCheckModal(defaultTargetId())));
+  createBulkCheckButton(() => showModal(() => loadBulkCheckModal()));
   createExportButton();
 }
 
