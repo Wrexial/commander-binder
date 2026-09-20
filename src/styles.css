@@ -147,6 +147,8 @@ label,
   --z-index-loading-indicator: 1050;
   --z-index-toast: 2100;
   --z-index-tooltip: 2200;
+  /* Dialogs opened *from* the card preview / hover tooltip must clear it. */
+  --z-index-picker: 2210;
 }
 
 html {
@@ -3191,6 +3193,12 @@ body.list-mode .card.list-tile .wanted-badge {
   transition:
     width 0.5s ease,
     left 0.5s ease;
+}
+
+/* The printing picker opens from the card preview (`.tooltip.modal`, 2200) and
+   the statistics hover preview, so it has to sit above that layer. */
+.list-modal-backdrop.modal-above-tooltip {
+  z-index: var(--z-index-picker);
 }
 
 .list-modal {

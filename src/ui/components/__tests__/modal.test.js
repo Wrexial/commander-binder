@@ -18,6 +18,13 @@ describe('createModal', () => {
     expect(modal.getAttribute('aria-label')).toBe('Test');
   });
 
+  it('adds an extra class to the backdrop when asked', () => {
+    createModal({ className: 'printing-picker', backdropClass: 'modal-above-tooltip' });
+
+    const backdrop = document.querySelector('.list-modal-backdrop');
+    expect(backdrop.classList.contains('modal-above-tooltip')).toBe(true);
+  });
+
   it('starts hidden and is revealed by show()', () => {
     const { show } = createModal({});
     const backdrop = document.querySelector('.list-modal-backdrop');

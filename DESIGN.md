@@ -87,7 +87,9 @@ Prefer `gap` — do not scatter `margin-top/bottom` between siblings.
 
 Use the `--z-index-*` tokens. Order: scrubber `11` → sidebar `1000/1010` →
 hamburger `1020` → modal backdrop `1030` → loading `1050` → toast `2100` →
-tooltip `2200`.
+tooltip `2200` → picker `2210`. A dialog opened _from_ the card preview or a
+hover tooltip must clear that layer (`.list-modal-backdrop.modal-above-tooltip`),
+or it renders behind the thing that opened it.
 
 ---
 

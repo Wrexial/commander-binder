@@ -28,12 +28,12 @@ function syncBodyScrollLock() {
  * the dialog on `show()` and back to the trigger on close. Each modal only has
  * to build its own content.
  *
- * @param {{className?: string, ariaLabel?: string, onClose?: () => void}} [options]
+ * @param {{className?: string, backdropClass?: string, ariaLabel?: string, onClose?: () => void}} [options]
  * @returns {{modal: HTMLElement, show: () => void, close: () => void}}
  */
-export function createModal({ className = '', ariaLabel = '', onClose } = {}) {
+export function createModal({ className = '', backdropClass = '', ariaLabel = '', onClose } = {}) {
   const backdrop = document.createElement('div');
-  backdrop.className = 'list-modal-backdrop';
+  backdrop.className = `list-modal-backdrop${backdropClass ? ` ${backdropClass}` : ''}`;
 
   const modal = document.createElement('div');
   modal.className = `list-modal${className ? ` ${className}` : ''}`;

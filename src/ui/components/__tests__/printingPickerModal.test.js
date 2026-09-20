@@ -30,6 +30,16 @@ beforeEach(() => {
 });
 
 describe('printingPickerModal', () => {
+  it('stacks above the card-preview / hover-tooltip layer', () => {
+    const picker = createPrintingPickerModal({ card, printings, currentId: 'p1', onPick: vi.fn() });
+    picker.show();
+
+    const backdrop = document.querySelector('.list-modal-backdrop');
+    expect(backdrop.classList.contains('modal-above-tooltip')).toBe(true);
+    // The dialog itself keeps its own class so it can be styled.
+    expect(backdrop.querySelector('.printing-picker')).not.toBeNull();
+  });
+
   it('lists every printing with set, number, year and thumbnail', () => {
     const picker = createPrintingPickerModal({ card, printings, currentId: 'p1', onPick: vi.fn() });
     picker.show();

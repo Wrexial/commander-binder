@@ -58,6 +58,9 @@ export function createPrintingPickerModal({ card, printings, currentId, onPick }
     close,
   } = createModal({
     className: 'printing-picker',
+    // Opened from the card preview and the statistics hover preview, which live
+    // at the tooltip layer — so this dialog must sit above them.
+    backdropClass: 'modal-above-tooltip',
     ariaLabel: 'Select printing',
   });
 
