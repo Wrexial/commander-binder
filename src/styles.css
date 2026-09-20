@@ -4163,6 +4163,9 @@ footer a:focus-visible {
 .bulk-chip-unknown strong {
   color: var(--danger);
 }
+.bulk-chip-pending strong {
+  color: var(--focus);
+}
 
 .bulk-groups {
   display: flex;
@@ -4222,6 +4225,25 @@ footer a:focus-visible {
 .bulk-row-unknown {
   border-left-color: var(--danger);
   color: var(--muted);
+}
+
+/* A real card that is still being fetched: readable, obviously in progress, and
+   never mistaken for "not found". */
+.bulk-row-pending {
+  border-left-color: var(--focus);
+  color: var(--muted);
+  font-style: italic;
+  animation: bulk-pending-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes bulk-pending-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 /* Recent Additions modal */

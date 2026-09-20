@@ -8,7 +8,12 @@ import {
   summaryChip,
 } from './collectionModal.js';
 import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
-import { buildPrintingIndex, findEntryCard, resolveMissingCards } from './cardLookup.js';
+import {
+  buildPrintingIndex,
+  findEntryCard,
+  isPendingName,
+  resolveMissingCards,
+} from './cardLookup.js';
 import { createCardNameInput } from './cardNameInput.js';
 import { attachCardPreview } from './cardPreview.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
@@ -85,7 +90,12 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   const input = createCardNameInput({
     placeholder: 'One card name per line — “1 Sol Ring” is fine (Ctrl+Enter to copy missing)',
     ariaLabel: 'Card names, one per line',
-    onChange: () => renderPreview(),
+    // Picking a suggestion fills the textarea without an `input` event, so kick
+    // the resolver too or the new name would stay "unknown".
+    onChange: () => {
+      renderPreview();
+      runValidation();
+    },
   });
 
   const preview = document.createElement('div');
@@ -100,7 +110,7 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
   contentArea.append(target.el, input.el, preview);
 
-  let categorized = { present: [], missing: [], unknown: [] };
+  let categorized = { present: [], missing: [], loading: [], unknown: [] };
 
   /** Resolve pasted names the loaded store doesn't have (catalog/live lookup). */
   function resolveMissing() {
@@ -121,16 +131,18 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
   }
 
   /**
-   * Split the textarea into present / missing / unknown, de-duplicating. Uses
-   * the shared collection parser so pasted decklists with quantities
-   * ("1 Sol Ring", "2x Arcane Signet") or set/collector suffixes
-   * ("1 Sol Ring (CMM) 342") are matched by name.
+   * Split the textarea into present / missing / still loading / unknown,
+   * de-duplicating. Uses the shared collection parser so pasted decklists with
+   * quantities ("1 Sol Ring", "2x Arcane Signet") or set/collector suffixes
+   * ("1 Sol Ring (CMM) 342") are matched by name. A real card that just hasn't
+   * hydrated yet stays in `loading` rather than being called "not found".
    */
   function categorize() {
     const { entries } = parseCollection(input.textArea.value);
     const seen = new Set();
     const present = [];
     const missing = [];
+    const loading = [];
     const unknown = [];
 
     for (const entry of entries) {
@@ -139,19 +151,26 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
       if (!key || seen.has(key)) continue;
       seen.add(key);
 
-      if (!card) {
-        unknown.push(entry.name);
-      } else if (config.present(card)) {
-        present.push(card);
+      if (card) {
+        if (config.present(card)) present.push(card);
+        else missing.push(card);
+      } else if (isPendingName(entry, attemptedNames)) {
+        loading.push(entry.name);
       } else {
-        missing.push(card);
+        unknown.push(entry.name);
       }
     }
 
-    return { present, missing, unknown };
+    return { present, missing, loading, unknown };
   }
 
   function updatePrimary() {
+    if (categorized.loading.length > 0 && categorized.missing.length === 0) {
+      primaryButton.textContent = 'Loading…';
+      primaryButton.disabled = true;
+      return;
+    }
+
     const count = categorized.missing.length;
     primaryButton.textContent = count > 0 ? `Copy ${count} missing` : 'Copy missing';
     primaryButton.disabled = count === 0;
@@ -159,9 +178,9 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
 
   function renderPreview() {
     categorized = categorize();
-    const { present, missing, unknown } = categorized;
+    const { present, missing, loading, unknown } = categorized;
 
-    if (present.length + missing.length + unknown.length === 0) {
+    if (present.length + missing.length + loading.length + unknown.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No card names yet.</p>';
       updatePrimary();
       return;
@@ -171,17 +190,22 @@ function buildBulkCheckModal({ target: initialTarget = 'owned' } = {}) {
             <div class="bulk-summary">
                 ${summaryChip('owned', config.presentLabel, present.length)}
                 ${summaryChip('missing', config.missingLabel, missing.length)}
+                ${loading.length > 0 ? summaryChip('pending', 'Loading', loading.length) : ''}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
                 ${previewGroup('owned', config.presentLabel, present)}
                 ${previewGroup('missing', config.missingLabel, missing)}
+                ${previewGroup('pending', 'Loading…', loading)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
     updatePrimary();
   }
 
   async function copyMissing() {
+    // Resolve first so a name still hydrating isn't silently left out of the
+    // copied list.
+    await resolveMissing();
     categorized = categorize();
     const { missing } = categorized;
     if (missing.length === 0) return;

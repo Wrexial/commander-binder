@@ -5,11 +5,17 @@ import {
   addWantedCards,
   createCollectionModal,
   createTargetToggle,
+  normalizeName,
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
 import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
-import { buildPrintingIndex, findEntryCard, resolveMissingCards } from './cardLookup.js';
+import {
+  buildPrintingIndex,
+  findEntryCard,
+  isPendingName,
+  resolveMissingCards,
+} from './cardLookup.js';
 import { createCardNameInput } from './cardNameInput.js';
 import { attachCardPreview } from './cardPreview.js';
 import { parseCollection } from '../../utils/collectionFormats.js';
@@ -136,7 +142,12 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   const input = createCardNameInput({
     placeholder: 'One card name per line, or paste a list (Ctrl+Enter to add)',
     ariaLabel: 'Cards to add',
-    onChange: () => renderPreview(),
+    // Picking a suggestion fills the textarea without an `input` event, so kick
+    // the resolver too or the new name would stay "unknown".
+    onChange: () => {
+      renderPreview();
+      runValidation();
+    },
   });
 
   const preview = document.createElement('div');
@@ -178,7 +189,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
   contentArea.append(target.el, newListForm, toolbar, input.el, preview);
 
-  let categorized = { add: [], present: [], unknown: [] };
+  let categorized = { add: [], present: [], loading: [], unknown: [] };
   let confirming = false;
 
   /** Switch the target and relabel the modal; the parsed list stays put. */
@@ -208,31 +219,49 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     }
   }
 
-  /** Resolve parsed entries to store cards, split into new / present / unknown. */
+  /**
+   * Resolve parsed entries to store cards, split into new / present / still
+   * loading / unknown. A real card that just hasn't hydrated yet stays in
+   * `loading` so it is never reported as "not found" mid-lookup.
+   */
   function categorize() {
     const { entries } = parseCollection(input.textArea.value);
-    const seen = new Set();
+    const seenIds = new Set();
+    const seenNames = new Set();
     const add = [];
     const present = [];
+    const loading = [];
     const unknown = [];
 
     for (const entry of entries) {
       const card = findEntryCard(entry, input.nameIndex, byPrinting);
       if (!card) {
-        unknown.push(entry.name);
+        const key = normalizeName(entry.name);
+        if (!key || seenNames.has(key)) continue;
+        seenNames.add(key);
+        if (isPendingName(entry, attemptedNames)) loading.push(entry.name);
+        else unknown.push(entry.name);
         continue;
       }
-      if (seen.has(card.id)) continue;
-      seen.add(card.id);
+      if (seenIds.has(card.id)) continue;
+      seenIds.add(card.id);
 
       if (config.present(card)) present.push(card);
       else add.push(card);
     }
 
-    return { add, present, unknown };
+    return { add, present, loading, unknown };
   }
 
   function updatePrimary() {
+    // While names are still resolving and nothing is addable yet, say so rather
+    // than offering a disabled "Add cards" button.
+    if (categorized.loading.length > 0 && categorized.add.length === 0) {
+      primaryButton.textContent = 'Loading…';
+      primaryButton.disabled = true;
+      return;
+    }
+
     const count = categorized.add.length;
     primaryButton.textContent = config.addLabel(count);
     primaryButton.disabled = count === 0 || confirming;
@@ -240,9 +269,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
   function renderPreview() {
     categorized = categorize();
-    const { add, present, unknown } = categorized;
+    const { add, present, loading, unknown } = categorized;
 
-    if (add.length + present.length + unknown.length === 0) {
+    if (add.length + present.length + loading.length + unknown.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">Nothing to add yet.</p>';
       updatePrimary();
       return;
@@ -252,11 +281,13 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
             <div class="bulk-summary">
                 ${summaryChip('missing', 'Will add', add.length)}
                 ${summaryChip('owned', config.presentLabel, present.length)}
+                ${loading.length > 0 ? summaryChip('pending', 'Loading', loading.length) : ''}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
                 ${previewGroup('missing', 'Will add', add)}
                 ${previewGroup('owned', config.presentLabel, present)}
+                ${previewGroup('pending', 'Loading…', loading)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
     updatePrimary();
@@ -312,6 +343,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     try {
       input.textArea.value = await file.text();
       renderPreview();
+      runValidation();
     } catch (err) {
       console.error('Failed to read the file:', err);
       showToast('Could not read that file.', 'error');

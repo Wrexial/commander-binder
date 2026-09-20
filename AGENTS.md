@@ -214,8 +214,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `cardCatalog` when they are not in `cardStore`, batching a fetch for the
   missing printings, and falls back to a live lookup while the catalog is still
   loading, so _any_ card can be added/checked — not only ones a binder already
-  hydrated; plus the
-  shared
+  hydrated. `isPendingName` distinguishes a real card that is still hydrating
+  (shown as a pulsing “Loading…” group) from a genuine unknown, and picking a
+  suggestion re-runs the resolver so the name moves into “Will add”/“Already in”
+  without another keystroke; the copy/download actions also resolve pending names
+  first. Plus the shared
   `cardNameInput.js` autocomplete (which suggests names from the catalog too and
   indexes cards under both their front-face and full printed names, so a
   multi-face card matches either way), the share-view `compareModal.js` diff,

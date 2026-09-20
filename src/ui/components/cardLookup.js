@@ -54,6 +54,27 @@ export function findEntryCard(entry, nameIndex, printingIndex) {
 }
 
 /**
+ * Whether an unresolved parsed entry is a real card that just hasn't been
+ * hydrated yet. Lets the add/check previews show a "loading" state instead of
+ * wrongly reporting "not found" while the catalog or a live lookup is in
+ * flight.
+ *
+ * Once the all-cards catalog is loaded the answer is authoritative: a name it
+ * contains is coming, a name it doesn't is genuinely unknown. Before that, a
+ * name is pending unless a live lookup has already been attempted for it.
+ *
+ * @param {{name?: string}} entry
+ * @param {Set<string>} [attemptedNames] Names a live lookup has already run for.
+ * @returns {boolean}
+ */
+export function isPendingName(entry, attemptedNames) {
+  const name = entry?.name;
+  if (!name) return false;
+  if (isCardCatalogLoaded()) return Boolean(resolveCatalogPrintingId(name));
+  return !attemptedNames?.has(name);
+}
+
+/**
  * Resolve pasted names that aren't already in the loaded store, fetching their
  * printings and merging them into `nameIndex` (and `printingIndex`, when given).
  *

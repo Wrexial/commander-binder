@@ -40,6 +40,7 @@ import { isCardOwned, setCardsOwned } from '../../../state/cardState.js';
 import { isCardWanted, setCardsWanted } from '../../../state/wishlistState.js';
 import { addCardsToList, isInList } from '../../../state/listsState.js';
 import { isCardCatalogLoaded, resolveCatalogPrintingId } from '../../../state/cardCatalog.js';
+import { getCatalogNames } from '../../../state/cardCatalog.js';
 import { hydrateCardsByIds, loadPrintingsForName } from '../../../api/cardSearch.js';
 import { showToast } from '../toast.js';
 
@@ -65,6 +66,10 @@ function paste(text) {
 const primary = () => document.querySelector('.modal-button-container .primary');
 const chipTexts = () =>
   [...document.querySelectorAll('.bulk-summary-chip')].map((chip) => chip.textContent);
+const groupLabels = () =>
+  [...document.querySelectorAll('.bulk-group')].map((group) =>
+    group.querySelector('h3').firstChild.textContent.trim()
+  );
 const target = (label) =>
   [...document.querySelectorAll('.target-toggle-option')].find(
     (button) => button.textContent === label
@@ -80,6 +85,7 @@ beforeEach(() => {
   isInList.mockReturnValue(false);
   setCardsOwned.mockResolvedValue();
   resolveCatalogPrintingId.mockReturnValue(null);
+  getCatalogNames.mockReturnValue([]);
   hydrateCardsByIds.mockResolvedValue([]);
   isCardCatalogLoaded.mockReturnValue(true);
   loadPrintingsForName.mockResolvedValue([]);
@@ -164,6 +170,70 @@ describe('addCardsModal', () => {
 
     expect(chipTexts()[0]).toBe('Will add 1');
     expect(chipTexts()[2]).toBe('Not found 0');
+  });
+
+  it('shows a loading state for a known card that is still hydrating', async () => {
+    cardStore.getAll.mockReturnValue([]);
+    cardStore.getPrintings.mockReturnValue([]);
+    resolveCatalogPrintingId.mockReturnValue('id-catalog');
+    let releaseHydrate;
+    hydrateCardsByIds.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseHydrate = resolve;
+        })
+    );
+
+    createAddCardsModal().show();
+    textArea().value = 'Sol Ring';
+    textArea().dispatchEvent(new Event('input'));
+
+    // Immediate render: known to the catalog, but nothing hydrated yet.
+    expect(groupLabels()).toContain('Loading…');
+    expect(groupLabels()).not.toContain('Not found');
+
+    // Start the debounced resolve; it parks on the pending hydrate.
+    await vi.advanceTimersByTimeAsync(300);
+    expect(typeof releaseHydrate).toBe('function');
+
+    // Once it lands, it moves into "Will add" without another keystroke.
+    const solRingCard = { id: 'id-catalog', name: 'Sol Ring' };
+    cardStore.getAll.mockReturnValue([solRingCard]);
+    cardStore.getPrintings.mockReturnValue([solRingCard]);
+    releaseHydrate([solRingCard]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(groupLabels()).toContain('Will add');
+    expect(groupLabels()).not.toContain('Loading…');
+  });
+
+  it('resolves a name picked from the autocomplete without another keystroke', async () => {
+    cardStore.getAll.mockReturnValue([]);
+    cardStore.getPrintings.mockReturnValue([]);
+    getCatalogNames.mockReturnValue(['Sol Ring']);
+    resolveCatalogPrintingId.mockReturnValue('id-catalog');
+    const solRingCard = { id: 'id-catalog', name: 'Sol Ring' };
+    hydrateCardsByIds.mockImplementation(async () => {
+      cardStore.getAll.mockReturnValue([solRingCard]);
+      cardStore.getPrintings.mockReturnValue([solRingCard]);
+      return [solRingCard];
+    });
+
+    createAddCardsModal().show();
+    const area = textArea();
+    area.value = 'sol';
+    area.dispatchEvent(new Event('input'));
+    // Let the partial name resolve (and settle) before picking the suggestion.
+    await vi.advanceTimersByTimeAsync(300);
+
+    const item = [...document.querySelectorAll('.suggestion-item')].find(
+      (el) => el.textContent === 'Sol Ring'
+    );
+    item.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-catalog']);
+    expect(groupLabels()).toContain('Will add');
   });
 
   it('adds the matched new cards', async () => {

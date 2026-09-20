@@ -147,6 +147,68 @@ describe('bulk check modal', () => {
     expect(isCardOwned).toHaveBeenCalledWith(cmm);
   });
 
+  it('shows a loading state for a known card that is still hydrating', async () => {
+    cardStore.getAll.mockReturnValue([]);
+    cardStore.getPrintings.mockReturnValue([]);
+    resolveCatalogPrintingId.mockReturnValue('id-sol');
+    let releaseHydrate;
+    hydrateCardsByIds.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseHydrate = resolve;
+        })
+    );
+
+    createBulkCheckModal().show();
+    const area = document.querySelector('.bulk-modal textarea');
+    area.value = 'Sol Ring';
+    area.dispatchEvent(new Event('input'));
+
+    // Known to the catalog but not hydrated yet: loading, not "not found".
+    expect(groupLabels()).toContain('Loading…');
+    expect(groupLabels()).not.toContain('Not found');
+
+    // Start the debounced resolve; it parks on the pending hydrate.
+    await vi.advanceTimersByTimeAsync(300);
+    expect(typeof releaseHydrate).toBe('function');
+
+    const sol = makeCard('Sol Ring');
+    cardStore.getAll.mockReturnValue([sol]);
+    releaseHydrate([sol]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(groupLabels()).toContain('Missing');
+    expect(groupLabels()).not.toContain('Loading…');
+  });
+
+  it('resolves names before copying missing cards', async () => {
+    cardStore.getAll.mockReturnValue([]);
+    cardStore.getPrintings.mockReturnValue([]);
+    resolveCatalogPrintingId.mockReturnValue('id-sol');
+    const sol = makeCard('Sol Ring');
+    hydrateCardsByIds.mockImplementation(async () => {
+      cardStore.getAll.mockReturnValue([sol]);
+      return [sol];
+    });
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    createBulkCheckModal().show();
+    const area = document.querySelector('.bulk-modal textarea');
+    area.value = 'Sol Ring';
+    area.dispatchEvent(new Event('input'));
+    // Copy before the debounce fires: the resolve must still run.
+    area.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })
+    );
+
+    await vi.advanceTimersByTimeAsync(300);
+    await Promise.resolve();
+
+    expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-sol']);
+    expect(writeText).toHaveBeenCalledWith('Sol Ring');
+  });
+
   it('keeps a name that starts with a number when it exists verbatim', async () => {
     cardStore.getAll.mockReturnValue([makeCard('1996 World Champion')]);
     isCardOwned.mockReturnValue(true);
