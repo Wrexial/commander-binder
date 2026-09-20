@@ -118,7 +118,8 @@ new key there too.
   Printing lists are fetched in batches (`loadPrintingsForNames` OR-s several
   exact names into one `unique=prints` search, paged through), so a binder page
   costs a request or two instead of one `/cards/search` per pocket — the latter
-  tripped Scryfall's rate limit.
+  tripped Scryfall's rate limit. A batch that still overflows the page cap is
+  split and re-requested, so nothing is silently dropped.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,

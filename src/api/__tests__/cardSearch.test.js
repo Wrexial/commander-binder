@@ -139,6 +139,30 @@ describe('loadPrintingsForNames', () => {
     expect(fetchPage).toHaveBeenCalledTimes(1);
     error.mockRestore();
   });
+
+  it('splits a batch that would be truncated instead of dropping printings', async () => {
+    const batchSizes = [];
+    fetchPage.mockImplementation(async (url) => {
+      const size = (decodeURIComponent(url).match(/!"/g) || []).length;
+      batchSizes.push(size);
+      if (size > 2) {
+        // The full batch overflows the page cap (it keeps claiming more pages).
+        return {
+          data: [{ id: `full-${batchSizes.length}`, name: 'A' }],
+          has_more: true,
+          next_page: url,
+        };
+      }
+      // Each split half fits in a single page.
+      return { data: [{ id: `half-${batchSizes.length}`, name: 'A' }], has_more: false };
+    });
+
+    await loadPrintingsForNames(['A', 'B', 'C', 'D']);
+
+    // 3 pages for the 4-name batch, then one page for each 2-name half.
+    expect(batchSizes.filter((size) => size === 4)).toHaveLength(3);
+    expect(batchSizes.filter((size) => size === 2)).toHaveLength(2);
+  });
 });
 
 describe('hydrateCardsByIds', () => {

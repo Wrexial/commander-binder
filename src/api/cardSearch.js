@@ -109,7 +109,13 @@ function needsPrintings(name) {
   );
 }
 
-/** Fetch and store one batch of printings; mark the names as loaded. */
+/**
+ * Fetch and store one batch of printings.
+ *
+ * @param {string[]} batch
+ * @returns {Promise<{added: boolean, truncated: boolean}>} `truncated` when the
+ *   search still had pages left after the page cap.
+ */
 async function loadPrintingsBatch(batch) {
   let url = batchPrintingsUrl(batch);
   let added = false;
@@ -123,7 +129,42 @@ async function loadPrintingsBatch(batch) {
     }
     url = data?.has_more ? data.next_page : null;
   }
-  for (const name of batch) printingsLoaded.add(name);
+  return { added, truncated: Boolean(url) };
+}
+
+/**
+ * Fetch a batch, splitting it and re-requesting when it overflows the page cap,
+ * so a very print-heavy batch can't silently drop names. Recursion ends at a
+ * single name, whose own page cap is all we can do.
+ *
+ * @param {string[]} batch
+ * @returns {Promise<boolean>} whether any printings were added
+ */
+async function loadPrintingsChunked(batch) {
+  let added = false;
+  try {
+    const result = await loadPrintingsBatch(batch);
+    added = result.added;
+
+    if (result.truncated && batch.length > 1) {
+      const mid = Math.ceil(batch.length / 2);
+      const first = await loadPrintingsChunked(batch.slice(0, mid));
+      const second = await loadPrintingsChunked(batch.slice(mid));
+      return added || first || second;
+    }
+
+    if (result.truncated) {
+      console.warn(
+        `Scryfall has more printings for "${batch[0]}" than the ${MAX_PRINTING_PAGES}-page cap; showing the first pages.`
+      );
+    }
+
+    for (const name of batch) printingsLoaded.add(name);
+  } catch (err) {
+    console.error('Failed to load printings:', err);
+    // Don't retry the same batch on every render; the picker can still retry.
+    for (const name of batch) printingsAttempted.add(name);
+  }
   return added;
 }
 
@@ -145,14 +186,8 @@ export async function loadPrintingsForNames(names) {
 
   let added = false;
   for (let i = 0; i < pending.length; i += PRINTINGS_BATCH_SIZE) {
-    const batch = pending.slice(i, i + PRINTINGS_BATCH_SIZE);
-    try {
-      added = (await loadPrintingsBatch(batch)) || added;
-    } catch (err) {
-      console.error('Failed to load printings:', err);
-      // Don't retry the same batch on every render; the picker can still retry.
-      for (const name of batch) printingsAttempted.add(name);
-    }
+    const chunk = pending.slice(i, i + PRINTINGS_BATCH_SIZE);
+    added = (await loadPrintingsChunked(chunk)) || added;
   }
   return added;
 }
