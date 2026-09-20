@@ -32,6 +32,10 @@ vi.mock('../cards.js', () => ({
 vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
 vi.mock('../components/cardPickerModal.js', () => ({ createCardPickerModal: vi.fn() }));
 vi.mock('../components/printingPickerModal.js', () => ({ createPrintingPickerModal: vi.fn() }));
+vi.mock('../components/confirmDialog.js', () => ({
+  // Default to confirming; the dismissal test overrides this per-call.
+  confirmDialog: vi.fn(async () => true),
+}));
 vi.mock('../../api/cardSearch.js', () => ({
   ensurePrintingsLoaded: vi.fn(),
   hydrateCardsByIds: vi.fn(),
@@ -40,6 +44,7 @@ vi.mock('../../api/cardSearch.js', () => ({
 import { loadBinders, createBinder, getActiveBinder } from '../../state/bindersState.js';
 import { initBinderBuilder, teardownBinderBuilder } from '../binderBuilder.js';
 import { showToast } from '../components/toast.js';
+import { confirmDialog } from '../components/confirmDialog.js';
 
 const tabLabels = () => [...document.querySelectorAll('.binder-tab')].map((tab) => tab.textContent);
 const activeTabLabel = () => document.querySelector('.binder-tab.is-active')?.textContent;
@@ -51,7 +56,6 @@ beforeEach(() => {
   localStorage.clear();
   document.body.innerHTML = '<div id="binder-root"></div><div id="toast"></div>';
   vi.clearAllMocks();
-  window.confirm = () => true;
 });
 
 afterEach(() => teardownBinderBuilder());
@@ -92,7 +96,7 @@ describe('binderBuilder delete', () => {
 
   it('does not delete when the confirmation is dismissed', async () => {
     await mountThree();
-    window.confirm = () => false;
+    confirmDialog.mockResolvedValueOnce(false);
 
     document.querySelector('.bb-delete').click();
     await new Promise((resolve) => setTimeout(resolve, 0));

@@ -206,7 +206,8 @@ new key there too.
   `randomCard`, `keyboardShortcuts`, `installPrompt`),
   including
   `components/` (the shared modal shell `modal.js` — focus trap, initial focus,
-  focus restore and a page-scroll lock while any dialog is open — the shared collection-modal chrome/helpers
+  focus restore and a page-scroll lock while any dialog is open — the themed
+  confirm prompt `confirmDialog.js` used for destructive actions, the shared collection-modal chrome/helpers
   `collectionModal.js`, the settings dialog `settingsModal.js` (display mode,
   currency, grid columns/rows, pages per binder, swipe-to-dismiss and the
   preferred-printings reset — with a live miniature of the grid page that

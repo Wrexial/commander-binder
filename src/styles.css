@@ -4125,6 +4125,19 @@ footer a:focus-visible {
   color: var(--muted);
 }
 
+/* A compact, themed replacement for `window.confirm` (see confirmDialog.js). */
+.confirm-modal {
+  max-width: 420px;
+}
+
+.confirm-modal-message {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .modal-content-area.bulk-content {
   white-space: normal;
   padding: 0;

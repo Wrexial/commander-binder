@@ -49,6 +49,20 @@ function resetMocks() {
   api.mergeLists.mockResolvedValue([]);
 }
 
+/** A server list record, as the API returns it. */
+function serverRecord(overrides = {}) {
+  return {
+    id: 'srv-1',
+    name: 'Server list',
+    notes: '',
+    isPublic: false,
+    cardIds: [],
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 beforeEach(async () => {
   resetMocks();
   await listsState.loadLists();
@@ -190,5 +204,113 @@ describe('listsState (signed-in / share mode)', () => {
     expect(listsState.getLists()).toHaveLength(1);
     await expect(listsState.createList({ name: 'X' })).rejects.toThrow(/read-only/);
     await expect(listsState.deleteList('pub')).rejects.toThrow(/read-only/);
+  });
+
+  it('updates a list through the API and adopts the reply', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([serverRecord({ cardIds: ['p1'] })]);
+    await listsState.loadLists();
+    api.updateList.mockResolvedValue([
+      serverRecord({ name: 'Renamed', notes: 'n', isPublic: true, cardIds: ['p1'] }),
+    ]);
+
+    await listsState.updateList('srv-1', { name: 'Renamed', notes: 'n', isPublic: true });
+
+    expect(api.updateList).toHaveBeenCalledWith('srv-1', {
+      name: 'Renamed',
+      notes: 'n',
+      isPublic: true,
+    });
+    expect(listsState.getList('srv-1').name).toBe('Renamed');
+    expect(listsState.getList('srv-1').isPublic).toBe(true);
+  });
+
+  it('deletes a list through the API', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([serverRecord()]);
+    await listsState.loadLists();
+    api.deleteList.mockResolvedValue([]);
+
+    await listsState.deleteList('srv-1');
+
+    expect(api.deleteList).toHaveBeenCalledWith('srv-1');
+    expect(listsState.getLists()).toHaveLength(0);
+  });
+
+  it('adds unique printing ids through the API', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([serverRecord()]);
+    await listsState.loadLists();
+    api.addListItems.mockResolvedValue([serverRecord({ cardIds: ['a', 'b'] })]);
+
+    await listsState.addCardsToList('srv-1', [{ id: 'a' }, { id: 'a' }, { id: 'b' }, null]);
+
+    expect(api.addListItems).toHaveBeenCalledWith('srv-1', ['a', 'b']);
+    expect(listsState.getListCardIds('srv-1')).toEqual(['a', 'b']);
+  });
+
+  it('removes every printing of a name through the API', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([serverRecord({ cardIds: ['p1', 'p2'] })]);
+    await listsState.loadLists();
+    cardStore.getPrintings.mockReturnValue([{ id: 'p2', name: 'Atraxa' }]);
+    api.removeListItems.mockResolvedValue([serverRecord({ cardIds: [] })]);
+
+    await listsState.removeCardsFromList('srv-1', [{ id: 'p1', name: 'Atraxa' }]);
+
+    expect(api.removeListItems).toHaveBeenCalledWith('srv-1', ['p1', 'p2']);
+    expect(listsState.getListCardIds('srv-1')).toEqual([]);
+  });
+
+  it('toggles a batch in and out of a list', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([serverRecord()]);
+    await listsState.loadLists();
+    api.addListItems.mockResolvedValue([serverRecord({ cardIds: ['a'] })]);
+
+    expect(await listsState.toggleCardsInList('srv-1', [{ id: 'a' }])).toBe(true);
+    expect(api.addListItems).toHaveBeenCalledWith('srv-1', ['a']);
+
+    api.removeListItems.mockResolvedValue([serverRecord({ cardIds: [] })]);
+    expect(await listsState.toggleCardsInList('srv-1', [{ id: 'a' }])).toBe(false);
+    expect(api.removeListItems).toHaveBeenCalledWith('srv-1', ['a']);
+  });
+
+  it('is a no-op when there are no cards to add or remove', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([serverRecord()]);
+    await listsState.loadLists();
+
+    await listsState.addCardsToList('srv-1', []);
+    await listsState.removeCardsFromList('srv-1', []);
+
+    expect(api.addListItems).not.toHaveBeenCalled();
+    expect(api.removeListItems).not.toHaveBeenCalled();
+  });
+
+  it('rejects updates for an unknown list or a blank/duplicate name', async () => {
+    mainState.mainState.loggedInUserId = 'user_1';
+    api.fetchLists.mockResolvedValue([
+      serverRecord({ id: 'a', name: 'One' }),
+      serverRecord({ id: 'b', name: 'Two' }),
+    ]);
+    await listsState.loadLists();
+
+    await expect(listsState.updateList('missing', { name: 'X' })).rejects.toThrow(/not found/i);
+    await expect(listsState.updateList('b', { name: '   ' })).rejects.toThrow(/name/i);
+    await expect(listsState.updateList('b', { name: 'One' })).rejects.toThrow(/already exists/);
+    await expect(listsState.addCardsToList('missing', [{ id: 'a' }])).rejects.toThrow(/not found/i);
+  });
+
+  it('blocks every mutation in a share view', async () => {
+    mainState.mainState.shareToken = 'tok';
+    api.fetchLists.mockResolvedValue([serverRecord()]);
+    await listsState.loadLists();
+
+    await expect(listsState.updateList('srv-1', { name: 'X' })).rejects.toThrow(/read-only/);
+    await expect(listsState.addCardsToList('srv-1', [{ id: 'a' }])).rejects.toThrow(/read-only/);
+    await expect(listsState.removeCardsFromList('srv-1', [{ id: 'a' }])).rejects.toThrow(
+      /read-only/
+    );
   });
 });

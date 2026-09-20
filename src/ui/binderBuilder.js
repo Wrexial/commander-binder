@@ -37,6 +37,7 @@ import { createCardElement, updateCardState } from './cards.js';
 import { showToast } from './components/toast.js';
 import { createCardPickerModal } from './components/cardPickerModal.js';
 import { createPrintingPickerModal } from './components/printingPickerModal.js';
+import { confirmDialog } from './components/confirmDialog.js';
 import { ensurePrintingsLoaded, hydrateCardsByIds } from '../api/cardSearch.js';
 
 /** One page is shown at a time so a 200-page binder stays cheap to render. */
@@ -274,9 +275,12 @@ function wireChrome() {
     const binder =
       (activeTab?.dataset.binderId && getBinder(activeTab.dataset.binderId)) || getActiveBinder();
     if (!binder) return;
-    const ok =
-      typeof window.confirm !== 'function' ||
-      window.confirm(`Delete “${binder.name}”? Its cards will be removed from this binder.`);
+    const ok = await confirmDialog({
+      title: 'Delete binder?',
+      message: `Delete “${binder.name}”? Its cards will be removed from this binder.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
     if (!ok) return;
     pendingMove = null;
     activePage = 0;
