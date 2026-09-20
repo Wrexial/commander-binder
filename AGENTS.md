@@ -69,7 +69,9 @@ new key there too.
   The boot flow narrates itself through the shared loading indicator
   (`ui/loadingIndicator.js`'s `withLoading`): “Signing in…”, “Loading your
   collection…”, then “Applying your settings…” (the Binder Builder adds “Loading
-  binder…” and “Loading cards…” for pocket hydration).
+  binder…” and “Loading cards…” for pocket hydration). It closes with a brief
+  “Done” tick (`showDone()`), which waits for any in-flight load — including
+  cards still streaming — so it is always the last state.
   The shell owns the Bulk Add / Bulk Check / Export buttons
   for both pages; their default target is the _visible binder_ on the Binder
   Builder page (`defaultTargetId()` reads `getActiveBinderId()` when

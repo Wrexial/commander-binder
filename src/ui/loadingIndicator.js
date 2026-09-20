@@ -6,7 +6,42 @@ function getLoader() {
   return document.getElementById('loading-indicator');
 }
 
+/** Auto-hide timer for the final "Done" tick, and its pending message. */
+let doneTimer;
+let pendingDone = null;
+
+function hideLoader() {
+  const loader = getLoader();
+  if (loader) {
+    loader.classList.remove('is-visible');
+    loader.textContent = '';
+  }
+  const results = document.getElementById('results');
+  if (results) results.setAttribute('aria-busy', 'false');
+}
+
+/** Show the queued final "Done" tick, then hide it after its dwell. */
+function revealDone() {
+  const { message, duration } = pendingDone;
+  pendingDone = null;
+
+  const loader = getLoader();
+  if (loader) {
+    loader.textContent = message;
+    loader.classList.add('is-visible');
+  }
+  const results = document.getElementById('results');
+  if (results) results.setAttribute('aria-busy', 'false');
+
+  clearTimeout(doneTimer);
+  doneTimer = setTimeout(hideLoader, duration);
+}
+
 export function showLoading(message = 'Loading cards…') {
+  // A new load supersedes any pending/finished "Done" tick.
+  clearTimeout(doneTimer);
+  pendingDone = null;
+
   appState.activeFetches++;
 
   const loader = getLoader();
@@ -48,12 +83,25 @@ export function hideLoading() {
   if (appState.activeFetches > 0) return;
   appState.activeFetches = 0;
 
-  const loader = getLoader();
-  if (loader) {
-    loader.classList.remove('is-visible');
-    loader.textContent = '';
+  // The last load to finish shows the queued "Done" tick instead of vanishing.
+  if (pendingDone) {
+    revealDone();
+    return;
   }
 
-  const results = document.getElementById('results');
-  if (results) results.setAttribute('aria-busy', 'false');
+  hideLoader();
+}
+
+/**
+ * Mark the initial load flow as finished. The next time the loader would hide it
+ * shows `message` ("Done") for `duration` ms instead of vanishing — or, if a
+ * load is still running, it waits for that to finish, so "Done" is always the
+ * last state. A subsequent {@link showLoading} supersedes it.
+ *
+ * @param {string} [message]
+ * @param {number} [duration]
+ */
+export function showDone(message = 'Done', duration = 1400) {
+  pendingDone = { message, duration };
+  if (appState.activeFetches === 0) revealDone();
 }

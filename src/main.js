@@ -10,6 +10,7 @@ import { initBulkEdit } from './ui/bulkEdit.js';
 import { initScrollPosition } from './ui/scrollPosition.js';
 import { initYearScrubber } from './ui/yearScrubber.js';
 import { initViewportMetrics } from './utils/viewport.js';
+import { showDone } from './ui/loadingIndicator.js';
 import { updateAllBinderCounts } from './ui/layout.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
 import { startFirstRunTour } from './ui/components/tour.js';
@@ -62,7 +63,7 @@ function scheduleFirstRunTour() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const { results, tooltip, shellReady } = await bootShell();
+  const { results, tooltip, shellReady, statesReady } = await bootShell();
 
   // Mount the browser immediately: it reads Scryfall data and does not need
   // Clerk, so it should not wait for the auth bundle to load.
@@ -87,4 +88,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   addBinderBuilderLink();
   addTourLink();
   scheduleFirstRunTour();
+
+  // Close the boot narration with a "Done" tick once every background load
+  // (state, settings, and any cards still streaming) has settled.
+  statesReady.then(() => showDone());
 });

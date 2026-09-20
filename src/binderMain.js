@@ -15,7 +15,7 @@ import { initBinderBuilder, refreshBinderCards } from './ui/binderBuilder.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initViewportMetrics } from './utils/viewport.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
-import { withLoading } from './ui/loadingIndicator.js';
+import { showDone, withLoading } from './ui/loadingIndicator.js';
 import { startFirstRunTour } from './ui/components/tour.js';
 import { cardStore } from './state/cardStore.js';
 import { ensureSeedBinder } from './state/bindersState.js';
@@ -136,6 +136,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Seed a first binder only after any guest→account merge has run, so a
   // signed-in visitor with local binders doesn't also get an empty "Binder 1".
   await ensureSeedBinder();
+
+  // Close the boot narration once the binder and its pockets have loaded.
+  showDone();
 
   // Background enrichment for the collection-wide tools; deferred to idle so it
   // does not slow down the editor's first paint or its card fetches.
