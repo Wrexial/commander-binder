@@ -31,6 +31,7 @@ import { isCardWanted, setCardsWanted } from '../../state/wishlistState.js';
 import { updateAllCardStates } from '../cards.js';
 import { appState } from '../../state/appState.js';
 import { showTooltip } from '../tooltip.js';
+import { getHistory, recordSnapshot, resetHistory } from '../../state/collectionHistory.js';
 
 function makeCard(overrides = {}) {
   return {
@@ -54,6 +55,7 @@ beforeEach(() => {
   updateAllCardStates.mockClear();
   appState.isViewOnlyMode = false;
   showTooltip.mockClear();
+  resetHistory();
 });
 
 describe('calculateStatistics', () => {
@@ -739,5 +741,57 @@ describe('showStatisticsModal', () => {
     const chipCount = document.querySelectorAll('.stats-nav-chip').length;
     const targetCount = document.querySelectorAll('.stats-summary, .stats-section').length;
     expect(chipCount).toBe(targetCount);
+  });
+
+  it('shows progress against the last tracked day', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    recordSnapshot(
+      { owned: 1, total: 2, value: 5, setsCompleted: 0 },
+      new Date('2024-01-01T12:00:00')
+    );
+    cardStore.getAll.mockReturnValue([
+      makeCard({ id: 'a', name: 'A' }),
+      makeCard({ id: 'b', name: 'B' }),
+    ]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal();
+
+    const progress = [...document.querySelectorAll('.stats-section')].find((section) =>
+      section.querySelector('h3')?.textContent.includes('Progress')
+    );
+    expect(progress).toBeTruthy();
+    expect(progress.textContent).toContain('Compared with');
+    // 2 owned now vs 1 yesterday.
+    expect(progress.textContent).toContain('+1');
+    // Today's totals are recorded for next time.
+    expect(getHistory()).toHaveLength(2);
+  });
+
+  it('invites the user back when nothing is tracked yet', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    cardStore.getAll.mockReturnValue([makeCard({ id: 'a', name: 'A' })]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal();
+
+    const progress = [...document.querySelectorAll('.stats-section')].find((section) =>
+      section.querySelector('h3')?.textContent.includes('Progress')
+    );
+    expect(progress.textContent).toContain('Tracking starts today');
+    expect(getHistory()).toHaveLength(1);
+  });
+
+  it('does not record a scoped or view-only report', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    cardStore.getAll.mockReturnValue([makeCard({ id: 'a', name: 'A' })]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal({ cards: [makeCard({ id: 'a', name: 'A' })], countAll: true });
+    expect(getHistory()).toHaveLength(0);
+
+    appState.isViewOnlyMode = true;
+    showStatisticsModal();
+    expect(getHistory()).toHaveLength(0);
   });
 });

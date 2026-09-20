@@ -3487,6 +3487,69 @@ footer a:focus-visible {
   animation: stats-bar-grow 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Progress since the last tracked day. */
+.stats-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.stats-progress-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'label delta'
+    'value delta';
+  align-items: center;
+  gap: 2px 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.stats-progress-label {
+  grid-area: label;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stats-progress-value {
+  grid-area: value;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-progress-delta {
+  grid-area: delta;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-progress-delta.is-up {
+  color: var(--success);
+}
+
+.stats-progress-delta.is-down {
+  color: var(--danger);
+}
+
+.stats-progress-delta.is-flat {
+  color: var(--muted);
+}
+
+.stats-progress-since {
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
 /* Sections */
 .stats-grid {
   display: grid;

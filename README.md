@@ -38,7 +38,9 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
 - **Statistics** — a per-set completion breakdown of your collection. A "Sets completed: N"
   summary sits up top, and the list below shows the **in-progress** sets nearest to
   completion (with "Next 50%" goal badges), each with a one-tap "Copy" for its missing cards
-  and a global "Copy missing" to turn the numbers into a shopping list.
+  and a global "Copy missing" to turn the numbers into a shopping list. A pinned section
+  index jumps between the breakdowns, and a **Progress** section compares today's totals with
+  your last tracked day (cards owned, completion, value and sets completed).
 - **Recent additions** — a timeline of when you marked each card owned, built from
   `owned_cards.created_at`.
 - **Binders** — virtual groupings of the feed that make a large collection easier to page

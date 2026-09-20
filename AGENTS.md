@@ -165,7 +165,10 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   rarity/colour/set/price
   controls, surfaced as removable chips) and the
   `cardMatchesFilters` predicate; `settingsSync.js` mirrors `cardSettings` to the
-  account via the `user-settings` function (best-effort, signed-in only).
+  account via the `user-settings` function (best-effort, signed-in only);
+  `collectionHistory.js` keeps a device-local, one-entry-per-day log of the
+  collection totals (owned/total/value/sets completed, capped to ~90 days in
+  `localStorage`) that powers the statistics modal's "Progress" section.
   `cardSettings.js` holds the display mode, the price currency
   (EUR/USD/TIX), the grid dimensions (`gridColumns` x `gridRows` = cards per
   page), the pages-per-binder capacity, the swipe-to-dismiss flag and the
@@ -257,7 +260,10 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   counted, and `exactPrintings: true` so each pocket is valued at its own
   printing) and to the whole owned collection elsewhere. It includes a pinned
   section index of jump-to-section chips, so a long report is navigable rather
-  than a single scroll. Its hover preview clears
+  than a single scroll, and (for the full-collection report only) a "Progress"
+  section that compares today's totals with the last tracked day via
+  `state/collectionHistory.js`; scoped binder reports and view-only share views
+  are never recorded. Its hover preview clears
   the grid's `onToggle`/`onWishlistToggle`/`onAddToList` handlers on open
   (`onNavigate` too), so the read-only preview can only cycle printings.
   Statistics includes a

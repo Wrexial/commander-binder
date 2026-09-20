@@ -11,6 +11,7 @@ import { preloadCardImages } from '../utils/cardImages.js';
 import { getDisplayedPrice, formatPrice, formatPriceRange } from '../utils/prices.js';
 import { nextPrinting, orderPrintingsByPrice } from '../utils/printings.js';
 import { rememberPreferredPrinting, resolveDisplayPrinting } from '../state/preferredPrintings.js';
+import { recordSnapshot } from '../state/collectionHistory.js';
 
 /** Canonical display order and labels for the five colors plus colorless. */
 const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G', 'C'];
@@ -408,6 +409,76 @@ function formatPercent(value) {
 function formatManaValue(value) {
   if (value == null) return '—';
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+/** Signed integer delta, e.g. "+12" / "-3" / "0". */
+function signedCount(value) {
+  return `${value > 0 ? '+' : ''}${value}`;
+}
+
+/** Signed percentage delta, e.g. "+3.5%" / "-2%" / "0%". */
+function signedPercent(value) {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.05) return '0%';
+  const rounded = Math.abs(value) >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded > 0 ? '+' : ''}${rounded}%`;
+}
+
+/** Signed money delta, e.g. "+€3.50" / "−€1.20" (a real minus, not a hyphen). */
+function signedMoney(value) {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.005) return formatMoney(0);
+  return `${value > 0 ? '+' : '−'}${formatMoney(Math.abs(value))}`;
+}
+
+/** One metric tile in the progress section. */
+function progressMetric(label, current, delta, deltaValue) {
+  const tone = deltaValue > 0 ? 'up' : deltaValue < 0 ? 'down' : 'flat';
+  return `
+    <div class="stats-progress-item">
+      <span class="stats-progress-label">${escapeHtml(label)}</span>
+      <span class="stats-progress-value">${current}</span>
+      <span class="stats-progress-delta is-${tone}">${delta}</span>
+    </div>`;
+}
+
+/**
+ * The "since last visit" section. `previous` is the last daily snapshot before
+ * today (see `state/collectionHistory.js`); `null` means tracking just started.
+ *
+ * @param {object} current Stats for the collection being reported on.
+ * @param {object|null} previous The prior snapshot.
+ * @returns {string}
+ */
+function renderProgress(current, previous) {
+  if (!previous) {
+    return section(
+      'Progress',
+      '<p class="stats-empty">Tracking starts today — check back tomorrow to see how your collection grew.</p>'
+    );
+  }
+
+  const ownedDelta = current.completion.owned - previous.owned;
+  const percentNow = current.completion.percent;
+  const percentBefore = previous.total > 0 ? (previous.owned / previous.total) * 100 : 0;
+  const percentDelta = percentNow - percentBefore;
+  const valueDelta = current.totalValue - previous.value;
+  const setsDelta = (current.setsCompleted || 0) - (previous.setsCompleted || 0);
+
+  const since = new Date(`${previous.date}T00:00:00`).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  const body = `
+    <div class="stats-progress">
+      ${progressMetric('Cards owned', `${current.completion.owned}`, signedCount(ownedDelta), ownedDelta)}
+      ${progressMetric('Completion', formatPercent(percentNow), signedPercent(percentDelta), percentDelta)}
+      ${progressMetric('Value', formatMoney(current.totalValue), signedMoney(valueDelta), valueDelta)}
+      ${progressMetric('Sets completed', `${current.setsCompleted || 0}`, signedCount(setsDelta), setsDelta)}
+    </div>
+    <p class="stats-progress-since">Compared with your collection on ${escapeHtml(since)}.</p>`;
+
+  return section('Progress', body);
 }
 
 function manaSymbol(symbol) {
@@ -836,9 +907,10 @@ function wireTopCardTooltips(container, tooltip, topCards) {
  * @param {ReturnType<typeof calculateStatistics>} stats
  * @returns {string}
  */
-export function createStatisticsHTML(stats) {
+export function createStatisticsHTML(stats, { extra = '' } = {}) {
   return `
         ${renderSummary(stats)}
+        ${extra}
         <div class="stats-grid">
             ${renderColors(stats.colors)}
             ${renderColorIdentity(stats.colorIdentity)}
@@ -925,6 +997,19 @@ export function showStatisticsModal({
   // Completion is measured against unique card names, which is what the
   // collection UI tracks (the search's apiTotalCards counts printings).
   let stats = calculateStatistics(countedCards, allCards.length, allCards, { exactPrintings });
+
+  // Only a whole-collection report is a meaningful progress point: a scoped
+  // (binder) report would record that binder's total as the collection's, and a
+  // share visitor must never record the owner's collection on their device.
+  const tracksProgress = !cards && !countAll && !appState.isViewOnlyMode;
+  const previousSnapshot = tracksProgress
+    ? recordSnapshot({
+        owned: stats.completion.owned,
+        total: stats.completion.total,
+        value: stats.totalValue,
+        setsCompleted: stats.setsCompleted,
+      })
+    : null;
   const tooltip = document.getElementById('tooltip');
   // The stats preview is hover-driven; make sure it never inherits the grid's
   // swipe-navigation or card-action handlers.
@@ -1033,7 +1118,9 @@ export function showStatisticsModal({
     const ownedSuffix = countAll ? ` · ${allCards.filter(isCardOwned).length} owned` : '';
     subtitle.textContent = `${stats.totalCards} ${ownershipWord}${cardWord} · ${formatMoney(stats.totalValue)} total value${wishlistSuffix}${ownedSuffix}`;
 
-    contentArea.innerHTML = createStatisticsHTML(stats);
+    contentArea.innerHTML = createStatisticsHTML(stats, {
+      extra: tracksProgress ? renderProgress(stats, previousSnapshot) : '',
+    });
     buildSectionNav();
     wireStatisticsActions();
   }

@@ -219,7 +219,7 @@ export async function setupUI() {
     createRecentActivityButton();
     createCompareButton();
     // Read-only bulk tools; "Add Cards" is omitted because it writes.
-    createBulkCheckButton(() => showModal(() => loadBulkCheckModal(defaultTargetId())));
+    createBulkCheckButton(() => showModal(() => loadBulkCheckModal()));
     createExportButton();
     appState.isViewOnlyMode = true;
     setHamburgerVisible(openBtn, true);
