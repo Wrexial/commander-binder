@@ -12,6 +12,14 @@ vi.mock('@clerk/clerk-js', () => ({
   },
 }));
 vi.mock('@clerk/themes', () => ({ dark: {} }));
+// The first-run tour schedules a self-rescheduling timer; it is not what these
+// tests exercise, and leaving it pending can fire after jsdom is torn down.
+vi.mock('../state/onboarding.js', () => ({
+  isTourDone: vi.fn(() => true),
+  markTourDone: vi.fn(),
+  isGuestWelcomeDismissed: vi.fn(() => true),
+  dismissGuestWelcome: vi.fn(),
+}));
 
 // jsdom has no Scryfall bulk endpoint, so the bulk path always falls back to the
 // search API here. That fallback is expected: keep its warning out of the test

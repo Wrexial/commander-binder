@@ -72,6 +72,9 @@ function scheduleFirstRunTour() {
   if (document.querySelector('.guest-welcome, .guest-mode-container')) return;
 
   const waitForEditor = (attempt = 0) => {
+    // The timer can outlive the page (e.g. a test's jsdom environment is torn
+    // down first); bail rather than throw on a missing document.
+    if (typeof document === 'undefined') return;
     const anchor = document.querySelector(
       '#binder-root .binder-tab, #binder-root .binder-slot, #binder-root .binder-tabs'
     );

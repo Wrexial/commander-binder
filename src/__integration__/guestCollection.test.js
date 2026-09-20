@@ -12,6 +12,14 @@ vi.mock('@clerk/clerk-js', () => ({
   },
 }));
 vi.mock('@clerk/themes', () => ({ dark: {} }));
+// The first-run tour schedules a self-rescheduling timer; it is not what these
+// tests exercise, and leaving it pending can fire after jsdom is torn down.
+vi.mock('../state/onboarding.js', () => ({
+  isTourDone: vi.fn(() => true),
+  markTourDone: vi.fn(),
+  isGuestWelcomeDismissed: vi.fn(() => true),
+  dismissGuestWelcome: vi.fn(),
+}));
 
 const localRows = [{ cardId: 'guest-owned', addedAt: '2024-01-01T00:00:00.000Z' }];
 vi.mock('../state/localCollection.js', () => ({
