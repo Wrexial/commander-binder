@@ -18,8 +18,6 @@
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
 }
 
 .sidebar::before {
@@ -30,15 +28,6 @@
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--accent), transparent 80%);
-}
-
-.sidebar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 999px;
 }
 
 body.sidebar-open .sidebar {

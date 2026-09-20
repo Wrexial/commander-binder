@@ -61,9 +61,18 @@ label,
   --surface-glass: rgba(16, 21, 32, 0.78);
   --border: #2c3648;
   --border-strong: #3d4a62;
+  /* Themed scrollbars, applied to every scroll container by the global block
+     below (the page itself keeps its scrollbar hidden). */
+  --scrollbar-size: 10px;
+  --scrollbar-thumb: var(--border-strong);
+  --scrollbar-thumb-hover: var(--accent);
+  --scrollbar-track: transparent;
   --accent: #d4af37;
   --accent-strong: #f0cd6b;
   --accent-soft: rgba(212, 175, 55, 0.14);
+  /* Accent outlines; use these instead of raw `rgba(212, 175, 55, …)` borders. */
+  --accent-border: rgba(212, 175, 55, 0.35);
+  --accent-border-strong: rgba(212, 175, 55, 0.5);
   --success: #46c98a;
   --danger: #e06060;
 
@@ -173,6 +182,36 @@ body::-webkit-scrollbar {
 body {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* One themed scrollbar for every scroll container. The page itself keeps its
+   hidden scrollbar (above) because the year scrubber stands in for it; the
+   element selectors there out-specify the universal rules here. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  /* Inset the thumb so it floats as a pill on the track. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 body {
@@ -580,7 +619,7 @@ body.sidebar-open {
   padding: 9px 14px;
   background-color: var(--accent-soft);
   color: var(--accent-strong);
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
   font-family: 'Roboto', sans-serif;
   font-weight: 600;
@@ -882,7 +921,7 @@ body.images-mode .section {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid var(--accent-border);
 }
 
 /* Version count (only rendered when a card has multiple printings). Sits under
@@ -896,7 +935,7 @@ body.images-mode .section {
   border-radius: 999px;
   background: rgba(9, 12, 18, 0.82);
   color: var(--accent-strong);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid var(--accent-border);
   font-family: inherit;
   font-size: 0.6rem;
   font-weight: 700;
@@ -909,7 +948,7 @@ body.images-mode .section {
 
 .card-versions:hover {
   background: rgba(9, 12, 18, 0.95);
-  border-color: rgba(212, 175, 55, 0.65);
+  border-color: var(--accent-border-strong);
 }
 
 .card-versions:focus-visible {
@@ -967,7 +1006,7 @@ body.images-mode .section {
   gap: 6px;
   padding: 0 6px;
   background: linear-gradient(180deg, rgba(9, 12, 18, 0.72), rgba(9, 12, 18, 0.94));
-  border-top: 1px solid rgba(212, 175, 55, 0.3);
+  border-top: 1px solid var(--accent-border);
   color: #e8edf5;
   font-family: system-ui, sans-serif;
   font-size: 0.62rem;
@@ -1243,7 +1282,7 @@ body.list-mode .card.list-tile .owned-badge {
   transform: translateY(-3px);
   box-shadow:
     0 14px 28px rgba(0, 0, 0, 0.42),
-    0 0 0 1px rgba(212, 175, 55, 0.35);
+    0 0 0 1px var(--accent-border);
   z-index: 2;
 }
 
@@ -1517,7 +1556,7 @@ body.modal-open {
   border-radius: 999px;
   background: rgba(9, 12, 18, 0.82);
   color: var(--accent-strong);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid var(--accent-border);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1670,7 +1709,7 @@ button.tooltip-wishlist-status:disabled {
   margin: 0 0 4px 6px;
   padding: 3px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(212, 175, 55, 0.45);
+  border: 1px solid var(--accent-border-strong);
   background: var(--accent-soft);
   color: var(--accent-strong);
   font-family: inherit;
@@ -1853,7 +1892,7 @@ button.tooltip-wishlist-status:disabled {
 
 .toast .toast-action {
   background: var(--accent-soft);
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  border: 1px solid var(--accent-border-strong);
   color: var(--accent-strong);
   font-weight: 600;
   padding: 4px 10px;
@@ -2176,7 +2215,7 @@ button.tooltip-wishlist-status:disabled {
 
 .filter-pip[aria-pressed='true'] {
   border-color: var(--accent-strong);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 0 0 2px var(--accent-border);
 }
 
 .filter-chip {
@@ -2511,7 +2550,7 @@ button.tooltip-wishlist-status:disabled {
   font-size: 0.78rem;
   color: var(--accent-strong);
   background: var(--accent-soft);
-  border: 1px solid rgba(212, 175, 55, 0.28);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-xs);
   white-space: nowrap;
 }
@@ -2694,7 +2733,7 @@ button.tooltip-wishlist-status:disabled {
   font-weight: 600;
   color: var(--accent-strong);
   background: var(--accent-soft);
-  border: 1px solid rgba(212, 175, 55, 0.28);
+  border: 1px solid var(--accent-border);
   border-radius: 999px;
   padding: 6px 14px;
   margin: 0 0.5rem;
@@ -3397,7 +3436,7 @@ footer a:focus-visible {
   height: 36px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--surface-3);
   color: var(--text);
   font-size: 1.5rem;
@@ -3420,13 +3459,12 @@ footer a:focus-visible {
   border-bottom: 1px solid var(--border);
   background: var(--surface-1);
   overflow-x: auto;
-  scrollbar-width: thin;
 }
 
 .stats-nav-chip {
   flex: 0 0 auto;
   padding: 6px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--muted);
@@ -3675,7 +3713,6 @@ footer a:focus-visible {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 6px;
-  scrollbar-width: thin;
 }
 
 .stats-bar-row {
@@ -3804,7 +3841,7 @@ footer a:focus-visible {
 .stats-set-wishlist,
 .stats-wishlist-copy {
   padding: 3px 9px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-3);
   color: var(--muted);
@@ -4175,7 +4212,7 @@ footer a:focus-visible {
   display: inline-block;
   max-width: 100%;
   padding: 6px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--muted);
@@ -4386,7 +4423,7 @@ footer a:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--surface-3);
   font-size: 0.78rem;
@@ -5339,7 +5376,6 @@ body.selection-mode #results {
   max-height: 240px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
 }
 
 .lists-card-row {
@@ -5494,7 +5530,6 @@ body.selection-mode #results {
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 2px;
-  scrollbar-width: thin;
 }
 
 .binder-tab {
@@ -5963,7 +5998,6 @@ body.selection-mode #results {
   flex-direction: column;
   gap: 8px;
   padding: 2px;
-  scrollbar-width: thin;
 }
 
 .printing-picker-row {

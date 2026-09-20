@@ -68,6 +68,29 @@ for card data, not chrome.
 | `999px`             | —      | Pills: chips, tabs, toggles, badges |
 | `--shadow-sm/md/lg` | —      | Resting card / menu / modal         |
 
+### Borders
+
+Two structural tokens cover almost everything:
+
+| Token             | Use                                                                   |
+| ----------------- | --------------------------------------------------------------------- |
+| `--border`        | Structural hairlines and passive container cards (panels, sections).  |
+| `--border-strong` | Interactive edges: buttons, inputs, chips, selects, popovers, modals. |
+
+Active/featured chrome adds two accent outlines — `--accent-border` at rest and
+`--accent-border-strong` on hover/emphasis. Never write a raw
+`rgba(212, 175, 55, …)` border; use one of these tokens. Per-card controls that
+sit on card art (`.card-toggle`, `.card-wishlist`) keep their dark
+translucent outline, and MTG identity colours are exempt as card data.
+
+### Scrollbars
+
+One themed scrollbar is set globally (`--scrollbar-size`, `--scrollbar-thumb`,
+`--scrollbar-thumb-hover`, `--scrollbar-track`) and covers every scroll
+container. The page itself keeps its scrollbar hidden because the year scrubber
+stands in for it. Do **not** add per-component scrollbar colours — just make the
+element scrollable and the global rule themes it.
+
 ### Type
 
 - Body: **Roboto** (set on `body`).
@@ -211,3 +234,6 @@ order. Hover-only affordances sit behind `isHoverCapable()`.
 6. Verify hover, focus, active and disabled states, and check a narrow viewport.
 7. If it's a new pattern, add it here and to the relevant selector groups
    (switches, selects, toasts).
+8. Use the border tokens (`--border` for structure, `--border-strong` for
+   controls, `--accent-border*` for active chrome) and let the global scrollbar
+   rule style scrolling — never restyle a scrollbar per component.
