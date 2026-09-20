@@ -129,9 +129,12 @@ The canonical **active pill** is `--accent-soft` background + `--accent` border
 - `--accent-strong` text (see `.binder-tab.is-active`). Keep new selects/toggles
   consistent with it.
 
-Pickers (`.target-toggle`) **wrap**; they don't scroll horizontally. Actions that
-aren't targets (e.g. `+ New list`, `+ New binder`) use `.target-toggle-new`
-(dashed border) and carry a `data-action` id.
+Pickers (`.target-toggle`) are **disclosures**: `.target-toggle-summary` shows the
+active target plus a chevron, and the `.target-toggle-options` chip list is only
+shown while expanded (chips **wrap**, they don't scroll horizontally). Choosing a
+target re-collapses the list. Actions that aren't targets (e.g. `+ New list`,
+`+ New binder`) use `.target-toggle-new` (dashed border) and carry a `data-action`
+id.
 
 ### 3.3 Switches
 

@@ -66,6 +66,36 @@ describe('summaryChip / previewGroup', () => {
 });
 
 describe('createTargetToggle', () => {
+  it('starts collapsed behind a summary and expands on demand', () => {
+    const onChange = vi.fn();
+    const toggle = createTargetToggle({
+      options: [
+        { id: 'owned', label: 'Collection' },
+        { id: 'wishlist', label: 'Wishlist' },
+      ],
+      initial: 'owned',
+      onChange,
+    });
+    document.body.appendChild(toggle.el);
+
+    const summary = toggle.el.querySelector('.target-toggle-summary');
+    const optionsRow = toggle.el.querySelector('.target-toggle-options');
+    expect(optionsRow.hidden).toBe(true);
+    expect(summary.getAttribute('aria-expanded')).toBe('false');
+    expect(summary.textContent).toContain('Collection');
+    expect(summary.getAttribute('aria-controls')).toBe(optionsRow.id);
+
+    summary.click();
+    expect(optionsRow.hidden).toBe(false);
+    expect(summary.getAttribute('aria-expanded')).toBe('true');
+
+    // Picking a target reports the change, updates the summary and re-collapses.
+    toggle.el.querySelectorAll('.target-toggle-option')[1].click();
+    expect(onChange).toHaveBeenCalledWith('wishlist');
+    expect(optionsRow.hidden).toBe(true);
+    expect(summary.textContent).toContain('Wishlist');
+  });
+
   it('keeps the + New actions last, after the selectable targets', () => {
     const toggle = createTargetToggle({
       options: [{ id: 'owned', label: 'Collection' }],

@@ -4103,10 +4103,60 @@ footer a:focus-visible {
 
 /* Import/export toolbar: format picker + filter, and the import textarea. */
 /* Owned / Wishlist / list / binder picker shared by the add, export and recent
-   modals. Chips wrap instead of scrolling, so every target stays visible. */
+   modals. It collapses to a summary of the active target so a long list of
+   lists/binders doesn't dominate the modal, and expands to wrapping chips. */
 .target-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   min-width: 0;
   max-width: 100%;
+}
+
+/* Collapsed control: the active target + a chevron that flips when open. */
+.target-toggle-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.target-toggle-summary:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+}
+
+.target-toggle-current {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-toggle-chevron {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%239aa7bd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+
+.target-toggle.is-expanded .target-toggle-chevron {
+  transform: rotate(180deg);
 }
 
 .target-toggle-options {
@@ -4114,6 +4164,11 @@ footer a:focus-visible {
   flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
+}
+
+/* `display: flex` above would otherwise beat the UA `[hidden]` rule. */
+.target-toggle-options[hidden] {
+  display: none;
 }
 
 .target-toggle-option {

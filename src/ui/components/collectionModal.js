@@ -16,6 +16,9 @@ export function normalizeName(name) {
     .toLowerCase();
 }
 
+/** Unique id per target picker, so its disclosure button can reference its list. */
+let targetToggleSeq = 0;
+
 /**
  * Shared chrome for the "collection text" modals (bulk add/check, import,
  * export): the titled header, the content area and the button row, appended to
@@ -159,6 +162,8 @@ export async function addWantedCards(cards, successMessage) {
  *   getValue: () => string,
  *   addOption: (option: {id: string, label: string}) => void,
  *   setValue: (id: string) => void,
+ *   expand: () => void,
+ *   collapse: () => void,
  * }}
  */
 export function createTargetToggle({
@@ -170,22 +175,60 @@ export function createTargetToggle({
   const group = document.createElement('div');
   group.className = 'target-toggle';
   group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', 'Collection');
+  group.setAttribute('aria-label', 'Target');
+
+  const optionsId = `target-toggle-options-${++targetToggleSeq}`;
+
+  // A compact summary of the active target is all that shows when collapsed;
+  // the full chip list can be long (many lists/binders), especially on phones.
+  const summary = document.createElement('button');
+  summary.type = 'button';
+  summary.className = 'target-toggle-summary';
+  summary.setAttribute('aria-expanded', 'false');
+  summary.setAttribute('aria-controls', optionsId);
+
+  const currentLabel = document.createElement('span');
+  currentLabel.className = 'target-toggle-current';
+
+  const chevron = document.createElement('span');
+  chevron.className = 'target-toggle-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+
+  summary.append(currentLabel, chevron);
 
   // The options wrap onto as many rows as needed so every target stays visible
   // (and reachable) no matter how many custom lists and binders exist.
   const optionsRow = document.createElement('div');
   optionsRow.className = 'target-toggle-options';
+  optionsRow.id = optionsId;
+  optionsRow.hidden = true;
 
   const buttons = new Map();
   const actionButtons = [];
   let value = initial;
+  let expanded = false;
+
+  function syncSummary() {
+    const button = buttons.get(value);
+    currentLabel.textContent = button ? button.textContent : 'Select target';
+    summary.setAttribute('aria-label', `Change target: ${currentLabel.textContent}`);
+  }
+
+  function setExpanded(next) {
+    expanded = next;
+    optionsRow.hidden = !expanded;
+    group.classList.toggle('is-expanded', expanded);
+    summary.setAttribute('aria-expanded', String(expanded));
+  }
 
   function sync() {
     for (const [id, button] of buttons) {
       button.setAttribute('aria-pressed', String(id === value));
     }
+    syncSummary();
   }
+
+  summary.addEventListener('click', () => setExpanded(!expanded));
 
   function makeOption(option) {
     const button = document.createElement('button');
@@ -194,10 +237,12 @@ export function createTargetToggle({
     button.textContent = option.label;
     button.title = option.label;
     button.addEventListener('click', () => {
-      if (option.id === value) return;
+      const changed = option.id !== value;
       value = option.id;
       sync();
-      onChange(option.id);
+      // Choosing a target closes the list again, so the modal stays compact.
+      setExpanded(false);
+      if (changed) onChange(option.id);
     });
     return button;
   }
@@ -220,7 +265,7 @@ export function createTargetToggle({
     optionsRow.appendChild(button);
     actionButtons.push(button);
   }
-  group.appendChild(optionsRow);
+  group.append(summary, optionsRow);
 
   sync();
 
@@ -239,6 +284,9 @@ export function createTargetToggle({
     setValue(id) {
       value = id;
       sync();
+      setExpanded(false);
     },
+    expand: () => setExpanded(true),
+    collapse: () => setExpanded(false),
   };
 }

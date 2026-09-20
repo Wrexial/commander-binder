@@ -231,7 +231,11 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   an inline create form and select the new target, and the export button feeds
   each list and binder in
   as a collection (hydrating a binder's not-yet-loaded cards first), so they all
-  work on lists and binders exactly like the built-ins. The export modal also
+  work on lists and binders exactly like the built-ins. The picker is a
+  disclosure (`createTargetToggle`): it starts collapsed showing only the active
+  target, expands to the wrapping chip list, and re-collapses when a target is
+  chosen — so a long list of lists/binders doesn't dominate the modal. The export
+  modal also
   takes an `initialId`, so on the binder page it opens on the visible binder, and
   its search filter narrows both the preview and the actual copy/download.
   The add/check modals share `cardLookup.js` (the store-by-name/printing lookup
