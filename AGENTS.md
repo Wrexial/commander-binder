@@ -66,6 +66,10 @@ new key there too.
   owned/wishlist/list state and the cross-device settings pull. The browse grid
   therefore paints without waiting for Clerk's bundle; the Binder Builder still
   waits for `shellReady` because its binder source depends on the sign-in state.
+  The boot flow narrates itself through the shared loading indicator
+  (`ui/loadingIndicator.js`'s `withLoading`): “Signing in…”, “Loading your
+  collection…”, then “Applying your settings…” (the Binder Builder adds “Loading
+  binder…” and “Loading cards…” for pocket hydration).
   The shell owns the Bulk Add / Bulk Check / Export buttons
   for both pages; their default target is the _visible binder_ on the Binder
   Builder page (`defaultTargetId()` reads `getActiveBinderId()` when
@@ -277,7 +281,11 @@ new key there too.
 { collection: false })`): pockets carry no owned/wishlist controls or styling
   and a tap never edits the collection (those stay on the browse grid), though
   the long-press preview still works with the collection badges hidden. Each
-  pocket pins its own exact printing). A share-link view
+  pocket pins its own exact printing). A pocket whose printing is not loaded
+  yet renders its all-cards catalog name as “<name> loading…” (else “Loading
+  card…”) instead of a dead “unavailable”; the background hydration, the
+  legendary-creature warm-up and `refreshBinderCards()` all repaint it once the
+  card arrives. A share-link view
   render it read-only: `canEditBinders()` hides the toolbar edits, the pocket
   controls and empty-slot adders, and binder pockets can't have their printing
   changed either) and its card picker `cardPickerModal.js`

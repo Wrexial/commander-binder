@@ -48,6 +48,7 @@ import { getShareToken } from '../api/share.js';
 import { initSidebar, addButtonToSidebar } from '../ui/components/sidebar.js';
 import { registerServiceWorker } from '../pwa.js';
 import { initInstallPrompt, mountInstallButton } from '../ui/installPrompt.js';
+import { withLoading } from '../ui/loadingIndicator.js';
 
 /** The card add/manager dialogs, pulled in on demand as separate chunks. */
 const loadAddCardsModal = async (kind) =>
@@ -344,7 +345,7 @@ export async function bootShell() {
   // Auth and the chrome it decides. Not awaited here, so the page's content can
   // paint while Clerk loads; `shellReady` fills the sidebar/user button in later.
   const shellReady = (async () => {
-    await initClerk();
+    await withLoading('Signing in…', () => initClerk());
     watchAuthChanges(getClerk());
     await setupUI();
   })().catch((err) => console.error('Failed to initialize the shell:', err));
@@ -354,14 +355,16 @@ export async function bootShell() {
   // already-mounted tiles below.
   const statesReady = shellReady
     .then(() =>
-      Promise.all([
-        loadCardStates(),
-        loadWishlistStates(),
-        loadLists(),
-        // Load (but don't seed) binders so the bulk add/export/check modals on
-        // either page can offer them as targets.
-        loadBinders({ seed: false }),
-      ])
+      withLoading('Loading your collection…', () =>
+        Promise.all([
+          loadCardStates(),
+          loadWishlistStates(),
+          loadLists(),
+          // Load (but don't seed) binders so the bulk add/export/check modals on
+          // either page can offer them as targets.
+          loadBinders({ seed: false }),
+        ])
+      )
     )
     .then(async () => {
       // A guest's locally-tracked cards are merged into the account the first
@@ -390,12 +393,14 @@ export async function bootShell() {
         }
       }
 
-      updateAllCardStates();
-      updateAllBinderCounts();
-      updateOwnedCounter();
-      // Cross-device preferences: pull the account's copy (a no-op for guests).
-      const applied = await pullSettings();
-      if (applied) applySettingsFromStore();
+      await withLoading('Applying your settings…', async () => {
+        // Cross-device preferences: pull the account's copy (a no-op for guests).
+        const applied = await pullSettings();
+        updateAllCardStates();
+        updateAllBinderCounts();
+        updateOwnedCounter();
+        if (applied) applySettingsFromStore();
+      });
     })
     .catch((err) => console.error('Failed to load card states:', err));
 

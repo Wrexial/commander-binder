@@ -39,6 +39,8 @@ import { createCardPickerModal } from './components/cardPickerModal.js';
 import { createPrintingPickerModal } from './components/printingPickerModal.js';
 import { confirmDialog } from './components/confirmDialog.js';
 import { ensurePrintingsLoaded, hydrateCardsByIds } from '../api/cardSearch.js';
+import { withLoading } from './loadingIndicator.js';
+import { resolveCatalogName } from '../state/cardCatalog.js';
 
 /** One page is shown at a time so a 200-page binder stays cheap to render. */
 let activePage = 0;
@@ -506,9 +508,12 @@ async function hydrateVisibleCards() {
   const ids = visibleSlotIds(binder);
   const missing = ids.filter((id) => !cardStore.getByPrintingId(id));
   if (missing.length > 0) {
-    const added = await hydrateCardsByIds(missing);
-    // Show the newly-available cards right away; printing lists load next.
-    if (added.length > 0) render();
+    await withLoading('Loading cards…', () => hydrateCardsByIds(missing));
+    // Re-render if any of the missing cards arrived — including one added by
+    // another path (the background legendary warm-up, or a concurrent pass),
+    // because `hydrateCardsByIds` only returns what *it* added. Without this the
+    // pocket stays on its placeholder even though the card is now in the store.
+    if (missing.some((id) => cardStore.getByPrintingId(id))) render();
   }
 
   const names = new Set();
@@ -528,6 +533,17 @@ function scheduleHydration() {
     .finally(() => {
       hydrationInFlight = false;
     });
+}
+
+/**
+ * Re-render when a background load may have filled a pocket that is still
+ * showing its placeholder (e.g. the legendary-creature warm-up, which adds
+ * cards to `cardStore` without touching the editor).
+ */
+export function refreshBinderCards() {
+  if (!refs) return;
+  if (!refs.pageEl.querySelector('.binder-slot.is-unknown')) return;
+  render();
 }
 
 /** Rebuild the toolbar values and the current page's pockets. */
@@ -655,12 +671,14 @@ export function render() {
         slot.append(tile);
         if (editable) slot.appendChild(createSlotControls());
       } else if (printingId) {
-        // The stored printing is not in the loaded subset (e.g. the bulk data
-        // refreshed); keep the pocket visible and removable.
+        // The stored printing is not loaded yet (the background hydration, or
+        // the legendary warm-up, is fetching it). Name it via the all-cards
+        // catalog when possible so the pocket reads “<Card> loading…”.
         slot.classList.add('is-filled', 'is-unknown');
         const unknown = document.createElement('span');
         unknown.className = 'binder-slot-unknown';
-        unknown.textContent = 'Card unavailable';
+        const name = resolveCatalogName(printingId);
+        unknown.textContent = name ? `${name} loading…` : 'Loading card…';
         slot.append(unknown);
         if (editable) slot.appendChild(createSlotControls());
       } else if (editable) {

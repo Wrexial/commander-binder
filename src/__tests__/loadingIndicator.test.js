@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { showLoading, hideLoading } from '../ui/loadingIndicator.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { showLoading, hideLoading, withLoading } from '../ui/loadingIndicator.js';
 import { appState } from '../state/appState.js';
 
 describe('loadingIndicator', () => {
@@ -87,5 +87,31 @@ describe('loadingIndicator', () => {
 
     expect(() => showLoading()).not.toThrow();
     expect(() => hideLoading()).not.toThrow();
+  });
+
+  it('shows a custom message', () => {
+    showLoading('Loading binder…');
+    expect(loader.textContent).toBe('Loading binder…');
+  });
+
+  it('withLoading shows the message, runs the task and hides again', async () => {
+    const task = vi.fn(async () => 'done');
+
+    await expect(withLoading('Signing in…', task)).resolves.toBe('done');
+
+    expect(task).toHaveBeenCalledTimes(1);
+    expect(appState.activeFetches).toBe(0);
+    expect(loader.classList.contains('is-visible')).toBe(false);
+  });
+
+  it('withLoading hides the loader even when the task throws', async () => {
+    await expect(
+      withLoading('Loading…', async () => {
+        throw new Error('nope');
+      })
+    ).rejects.toThrow('nope');
+
+    expect(appState.activeFetches).toBe(0);
+    expect(loader.classList.contains('is-visible')).toBe(false);
   });
 });

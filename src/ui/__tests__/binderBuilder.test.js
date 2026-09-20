@@ -79,7 +79,7 @@ vi.mock('../../api/binders.js', () => ({
   mergeBinders: vi.fn(),
 }));
 
-import { initBinderBuilder, teardownBinderBuilder } from '../binderBuilder.js';
+import { initBinderBuilder, refreshBinderCards, teardownBinderBuilder } from '../binderBuilder.js';
 import {
   assignCardToSlot,
   createBinder,
@@ -93,6 +93,9 @@ import {
 import { mainState } from '../../state/mainState.js';
 import { fetchBinders } from '../../api/binders.js';
 import { createCardElement } from '../cards.js';
+import { cardStore } from '../../state/cardStore.js';
+import { hydrateCardsByIds } from '../../api/cardSearch.js';
+import { resetCardCatalog, setCardCatalog } from '../../state/cardCatalog.js';
 import { analyzeA11y } from '../../__tests__/helpers/a11y.js';
 
 async function mount() {
@@ -110,6 +113,10 @@ beforeEach(async () => {
   pickerState.show.mockClear();
   printingState.options = null;
   printingState.show.mockClear();
+  cardStore.getByPrintingId.mockImplementation((id) => (id ? { id, name: `Card ${id}` } : null));
+  hydrateCardsByIds.mockReset();
+  hydrateCardsByIds.mockResolvedValue([]);
+  resetCardCatalog();
   await resetBinders();
 });
 
@@ -136,6 +143,60 @@ describe('binderBuilder', () => {
     expect(createCardElement).toHaveBeenCalledWith(expect.anything(), expect.any(Number), {
       collection: false,
     });
+  });
+
+  it('names a loading pocket from the all-cards catalog', async () => {
+    cardStore.getByPrintingId.mockReturnValue(null);
+    setCardCatalog({
+      cardNames: ['Sol Ring'],
+      cardNameById: { 'printing-x': 'Sol Ring' },
+      cardIdByName: { 'sol ring': 'printing-x' },
+    });
+
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'printing-x');
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot-unknown')?.textContent).toBe('Sol Ring loading…')
+    );
+  });
+
+  it('repaints a loading pocket when another path loads the card mid-fetch', async () => {
+    cardStore.getByPrintingId.mockReturnValue(null);
+    hydrateCardsByIds.mockImplementation(async () => {
+      // The background legendary warm-up adds the card during the fetch, so this
+      // call itself reports nothing added — the pocket must still repaint.
+      cardStore.getByPrintingId.mockReturnValue({ id: 'printing-x', name: 'Sol Ring' });
+      return [];
+    });
+
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'printing-x');
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot[data-slot="0:0:0"] .card')).not.toBeNull()
+    );
+    expect(document.querySelector('.binder-slot.is-unknown')).toBeNull();
+  });
+
+  it('refreshBinderCards repaints a placeholder after a background load', async () => {
+    cardStore.getByPrintingId.mockReturnValue(null);
+
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'printing-x');
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot.is-unknown')).not.toBeNull()
+    );
+
+    // The card arrives outside the hydration pass (e.g. the warm-up).
+    cardStore.getByPrintingId.mockReturnValue({ id: 'printing-x', name: 'Sol Ring' });
+    refreshBinderCards();
+
+    expect(document.querySelector('.binder-slot.is-unknown')).toBeNull();
+    expect(document.querySelector('.binder-slot[data-slot="0:0:0"] .card')).not.toBeNull();
   });
 
   it('defers seeding when mounted with seed: false', async () => {

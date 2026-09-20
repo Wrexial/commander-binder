@@ -11,10 +11,11 @@
  * `cardStore`.
  */
 import { bootShell } from './app/shell.js';
-import { initBinderBuilder } from './ui/binderBuilder.js';
+import { initBinderBuilder, refreshBinderCards } from './ui/binderBuilder.js';
 import { initCardInteractions } from './ui/cardInteractions.js';
 import { initViewportMetrics } from './utils/viewport.js';
 import { addButtonToSidebar } from './ui/components/sidebar.js';
+import { withLoading } from './ui/loadingIndicator.js';
 import { startFirstRunTour } from './ui/components/tour.js';
 import { cardStore } from './state/cardStore.js';
 import { ensureSeedBinder } from './state/bindersState.js';
@@ -55,6 +56,10 @@ async function warmCollectionStore() {
   } catch (err) {
     console.error('Failed to load the card collection:', err);
   }
+
+  // The warm-up fills `cardStore` without touching the editor, so repaint any
+  // pocket that was still showing its placeholder.
+  refreshBinderCards();
 }
 
 /** Replay entry point, always available from the sidebar. */
@@ -122,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // wishlist styling is applied to the already-mounted tiles by the shell's
   // `updateAllCardStates()` once `statesReady` resolves (and `render()` reads
   // the live state per tile), so the page becomes interactive much sooner.
-  initBinderBuilder(root, { seed: false })
+  withLoading('Loading binder…', () => initBinderBuilder(root, { seed: false }))
     .then(scheduleFirstRunTour)
     .catch((err) => console.error('Failed to mount the Binder Builder:', err));
 
