@@ -65,6 +65,32 @@ describe('PWA artifacts', () => {
     expect(sw).toContain('/.netlify/');
     expect(sw).toContain("addEventListener('install'");
   });
+
+  it('ships an enforced CSP with the required allowlists', () => {
+    const headers = readFileSync(resolve(root, 'public/_headers'), 'utf8');
+    const lines = headers.split('\n').map((line) => line.trim());
+    const policy = lines.find((line) => line.startsWith('Content-Security-Policy:'));
+
+    expect(policy, 'no enforced Content-Security-Policy header').toBeTruthy();
+    // The report-only key would mean the policy is not actually enforced.
+    expect(lines.some((line) => line.startsWith('Content-Security-Policy-Report-Only:'))).toBe(
+      false
+    );
+
+    for (const origin of [
+      'https://clerk.com',
+      'https://*.clerk.com',
+      'https://*.clerk.accounts.dev',
+      'https://clerk-telemetry.com',
+      'https://challenges.cloudflare.com',
+      'https://api.scryfall.com',
+      'https://*.scryfall.io',
+      'https://fonts.googleapis.com',
+      'https://fonts.gstatic.com',
+    ]) {
+      expect(policy, `CSP is missing ${origin}`).toContain(origin);
+    }
+  });
 });
 
 const swSource = readFileSync(resolve(root, 'public/sw.js'), 'utf8');
