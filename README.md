@@ -49,8 +49,7 @@ card"`, `c>wg`, `d:2018-2020`, `price:1.50-20`, `is:owned`, `is:missing`, `!t:go
   toggles, for marking a whole page quickly.
 - **Add & bulk check** — type names (with autocomplete), paste a list, or import a CSV / Moxfield
   / Archidekt file to mark many cards owned at once. Bulk Check reports where each pasted
-  name lives — collection, wishlist, lists and binders — and copies the ones missing from all
-  of them.
+  name lives — collection, wishlist, lists and binders.
 - **“Surprise me”** — jump to a random missing card, scroll to it and open its preview.
 - **Export** — CSV, [Moxfield](https://moxfield.com/),
   [Archidekt](https://archidekt.com/), MTG Arena, MTGO and plain-text formats. The plain-text

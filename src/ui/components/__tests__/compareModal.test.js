@@ -68,6 +68,9 @@ describe('showCompareModal', () => {
     expect(rows).toContain('Only They Have');
     expect(rows).toContain('Only I Have');
     expect(rows).not.toContain('Both Have');
+
+    // The diff scrolls inside the modal instead of spilling past its bounds.
+    expect(document.querySelector('.bulk-content > .bulk-preview .bulk-groups')).not.toBeNull();
   });
 
   it('labels collection ids that are not loaded via the all-cards catalog', async () => {
@@ -138,6 +141,7 @@ describe('showListCompareModal', () => {
     expect(rows).toContain('Only They Have');
     expect(rows).toContain('Only I Have');
     expect(chips.some((text) => text.includes('not on the list') && text.includes('1'))).toBe(true);
+    expect(document.querySelector('.bulk-content > .bulk-preview .bulk-groups')).not.toBeNull();
 
     [...document.querySelectorAll('.modal-button-container button')]
       .find((candidate) => candidate.textContent === 'Wishlist missing')

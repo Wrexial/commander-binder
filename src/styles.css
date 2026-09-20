@@ -3700,6 +3700,23 @@ footer a:focus-visible {
   gap: 10px;
 }
 
+/* Card colors and color identity share one section: the two breakdowns sit
+   side by side on wide modals and stack on narrow ones. */
+.stats-color-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 14px;
+}
+
+.stats-color-group h4 {
+  margin: 0 0 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* The creature-type list can run long; cap its height and scroll it in place
    rather than letting the section stretch the whole modal. `overscroll-behavior`
    keeps a flick at the end of the list from scrolling the modal behind it. */

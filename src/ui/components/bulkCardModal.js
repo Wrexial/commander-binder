@@ -1,5 +1,4 @@
 import { debounce } from '../../utils/debounce.js';
-import { showToast } from './toast.js';
 import {
   createCollectionModal,
   normalizeName,
@@ -49,8 +48,8 @@ function collectLocations() {
 
 /**
  * Create the "Bulk Check Cards" modal: paste names to see *everywhere* each one
- * lives (collection, wishlist, any custom list, any binder), then copy the ones
- * that are missing from all of them. (Adding cards lives in `addCardsModal.js`.)
+ * lives (collection, wishlist, any custom list, any binder). (Adding cards lives
+ * in `addCardsModal.js`.)
  *
  * @returns {{ show: () => void, destroy: () => void }}
  */
@@ -63,15 +62,12 @@ function buildBulkCheckModal() {
     title: 'Bulk Check Cards',
     subtitle:
       'Paste one card name per line to see where each one lives — collection, wishlist, lists and binders.',
-    actions: [
-      { id: 'primary', className: 'primary' },
-      { id: 'close', text: 'Close' },
-    ],
+    actions: [{ id: 'close', text: 'Close' }],
   });
-  const { primary: primaryButton, close: closeButton } = buttons;
+  const { close: closeButton } = buttons;
 
   const input = createCardNameInput({
-    placeholder: 'One card name per line — “1 Sol Ring” is fine (Ctrl+Enter to copy missing)',
+    placeholder: 'One card name per line — “1 Sol Ring” is fine',
     ariaLabel: 'Card names, one per line',
     // Picking a suggestion fills the textarea without an `input` event, so kick
     // the resolver too or the new name would stay "unknown".
@@ -139,25 +135,12 @@ function buildBulkCheckModal() {
     return { found, missing, loading, unknown };
   }
 
-  function updatePrimary() {
-    if (categorized.loading.length > 0 && categorized.missing.length === 0) {
-      primaryButton.textContent = 'Loading…';
-      primaryButton.disabled = true;
-      return;
-    }
-
-    const count = categorized.missing.length;
-    primaryButton.textContent = count > 0 ? `Copy ${count} missing` : 'Copy missing';
-    primaryButton.disabled = count === 0;
-  }
-
   function renderPreview() {
     categorized = categorize();
     const { found, missing, loading, unknown } = categorized;
 
     if (found.length + missing.length + loading.length + unknown.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No card names yet.</p>';
-      updatePrimary();
       return;
     }
 
@@ -174,28 +157,6 @@ function buildBulkCheckModal() {
                 ${previewGroup('pending', 'Loading…', loading)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
-    updatePrimary();
-  }
-
-  async function copyMissing() {
-    // Resolve first so a name still hydrating isn't silently left out of the
-    // copied list.
-    await resolveMissing();
-    categorized = categorize();
-    const { missing } = categorized;
-    if (missing.length === 0) return;
-
-    const text = missing.map((row) => row.name).join('\n');
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast(
-        `Copied ${missing.length} missing card${missing.length === 1 ? '' : 's'}.`,
-        'success'
-      );
-    } catch (err) {
-      console.error('Failed to copy missing cards:', err);
-      showToast('Could not copy to the clipboard.', 'error');
-    }
   }
 
   // The immediate render uses whatever is already loaded; the debounced pass
@@ -209,13 +170,6 @@ function buildBulkCheckModal() {
     renderPreview();
     runValidation();
   });
-  input.textArea.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      copyMissing();
-    }
-  });
-  primaryButton.addEventListener('click', copyMissing);
   closeButton.addEventListener('click', close);
 
   renderPreview();

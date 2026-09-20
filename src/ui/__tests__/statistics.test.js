@@ -314,8 +314,7 @@ describe('createStatisticsHTML', () => {
       'Total Value',
       'Average Card Value',
       'Completion',
-      'Card Colors',
-      'Color Identity',
+      'Colors',
       'Color Combinations',
       'Mana Value Curve',
       'Rarities',
@@ -739,7 +738,7 @@ describe('showStatisticsModal', () => {
     const chips = [...document.querySelectorAll('.stats-nav-chip')].map((chip) => chip.textContent);
     expect(chips[0]).toBe('Summary');
     expect(chips).toEqual(
-      expect.arrayContaining(['Card Colors', 'Set Completion', 'Top 5 Most Valuable Cards'])
+      expect.arrayContaining(['Colors', 'Set Completion', 'Top 5 Most Valuable Cards'])
     );
 
     // Every jump target carries the id its chip points at.

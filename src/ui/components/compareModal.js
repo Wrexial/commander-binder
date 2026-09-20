@@ -72,7 +72,7 @@ function render(contentArea, modal, diff, labels) {
     previewGroup('owned', labels.groupRight, sortedEntries(diff.viewerOnly));
 
   contentArea.innerHTML = groups
-    ? `${summary}<div class="bulk-groups">${groups}</div>`
+    ? `${summary}<div class="bulk-preview"><div class="bulk-groups">${groups}</div></div>`
     : `${summary}<p class="bulk-empty">${labels.empty}</p>`;
 }
 
@@ -110,7 +110,7 @@ function renderListCompare(contentArea, modal, diff) {
     previewGroup('owned', 'You have', have) +
     previewGroup('unknown', 'You own — not on the list', extra);
 
-  contentArea.innerHTML = `${summary}<div class="bulk-groups">${groups}</div>`;
+  contentArea.innerHTML = `${summary}<div class="bulk-preview"><div class="bulk-groups">${groups}</div></div>`;
 }
 
 /**

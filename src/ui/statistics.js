@@ -570,12 +570,34 @@ function renderColorBars(colors) {
   return `<div class="stats-bars">${rows}</div>`;
 }
 
-function renderColors(colors) {
-  return section('Card Colors', renderColorBars(colors));
+/** True when any color (including colorless) has a count. */
+function hasColorData(colors) {
+  return COLOR_ORDER.some((color) => colors[color] > 0);
 }
 
-function renderColorIdentity(colorIdentity) {
-  return section('Color Identity', renderColorBars(colorIdentity));
+/**
+ * Card colors and color identity are the same color breakdown shown two ways,
+ * so they share one section (and one header) instead of rendering two cards
+ * side by side whose headers sit at the same height.
+ */
+function renderColors(colors, colorIdentity) {
+  if (!hasColorData(colors) && !hasColorData(colorIdentity)) {
+    return section('Colors', '<p class="stats-empty">No color data.</p>');
+  }
+
+  return section(
+    'Colors',
+    `<div class="stats-color-groups">
+      <div class="stats-color-group">
+        <h4>Cards</h4>
+        ${renderColorBars(colors)}
+      </div>
+      <div class="stats-color-group">
+        <h4>Color identity</h4>
+        ${renderColorBars(colorIdentity)}
+      </div>
+    </div>`
+  );
 }
 
 function renderColorCombinations(combinations) {
@@ -906,8 +928,7 @@ export function createStatisticsHTML(stats, { extra = '' } = {}) {
         ${renderSummary(stats)}
         ${extra}
         <div class="stats-grid">
-            ${renderColors(stats.colors)}
-            ${renderColorIdentity(stats.colorIdentity)}
+            ${renderColors(stats.colors, stats.colorIdentity)}
             ${renderColorCombinations(stats.colorCombinations)}
             ${renderManaCurve(stats)}
             ${renderRarities(stats.rarities)}

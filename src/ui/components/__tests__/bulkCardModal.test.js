@@ -45,7 +45,6 @@ vi.mock('../../../state/cardStore.js', () => ({
 vi.mock('../../cards.js', () => ({ updateAllCardStates: vi.fn() }));
 vi.mock('../../layout.js', () => ({ updateAllBinderCounts: vi.fn() }));
 vi.mock('../ownedCounter.js', () => ({ updateOwnedCounter: vi.fn() }));
-vi.mock('../toast.js', () => ({ showToast: vi.fn() }));
 
 import { createBulkCheckModal } from '../bulkCardModal.js';
 import { cardStore } from '../../../state/cardStore.js';
@@ -123,7 +122,6 @@ describe('bulk check modal', () => {
     expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet', 'Fake Card']);
 
     expect(groupLabels()).toEqual(['Found', 'Missing everywhere', 'Not found']);
-    expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
   it('reports every place a card lives at once', async () => {
@@ -144,8 +142,6 @@ describe('bulk check modal', () => {
       'Binder: Trade binder',
     ]);
     expect(groupLabels()).toEqual(['Found']);
-    expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy missing');
-    expect(document.querySelector('.bulk-modal .primary').disabled).toBe(true);
   });
 
   it('flags a card that lives only in a list or binder as found', async () => {
@@ -160,7 +156,6 @@ describe('bulk check modal', () => {
     expect(locationsFor('Sol Ring')).toEqual(['List: Trade pile']);
     expect(locationsFor('Arcane Signet')).toEqual(['Binder: Trade binder']);
     expect(groupLabels()).toEqual(['Found']);
-    expect(document.querySelector('.bulk-modal .primary').disabled).toBe(true);
   });
 
   it('strips quantities and set suffixes from pasted decklists', async () => {
@@ -175,7 +170,6 @@ describe('bulk check modal', () => {
 
     expect(groupLabels()).toEqual(['Found', 'Missing everywhere']);
     expect(rowTexts()).toEqual(['Sol Ring', 'Arcane Signet']);
-    expect(document.querySelector('.bulk-modal .primary').textContent).toBe('Copy 1 missing');
   });
 
   it('resolves an exact set/collector printing when names collide', async () => {
@@ -226,34 +220,6 @@ describe('bulk check modal', () => {
     expect(groupLabels()).not.toContain('Loading…');
   });
 
-  it('resolves names before copying missing cards', async () => {
-    cardStore.getAll.mockReturnValue([]);
-    cardStore.getPrintings.mockReturnValue([]);
-    resolveCatalogPrintingId.mockReturnValue('id-sol');
-    const sol = makeCard('Sol Ring');
-    hydrateCardsByIds.mockImplementation(async () => {
-      cardStore.getAll.mockReturnValue([sol]);
-      return [sol];
-    });
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    createBulkCheckModal().show();
-    const area = document.querySelector('.bulk-modal textarea');
-    area.value = 'Sol Ring';
-    area.dispatchEvent(new Event('input'));
-    // Copy before the debounce fires: the resolve must still run.
-    area.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })
-    );
-
-    await vi.advanceTimersByTimeAsync(300);
-    await Promise.resolve();
-
-    expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-sol']);
-    expect(writeText).toHaveBeenCalledWith('Sol Ring');
-  });
-
   it('keeps a name that starts with a number when it exists verbatim', async () => {
     cardStore.getAll.mockReturnValue([makeCard('1996 World Champion')]);
     isCardOwned.mockReturnValue(true);
@@ -279,21 +245,6 @@ describe('bulk check modal', () => {
 
     expect(hydrateCardsByIds).toHaveBeenCalledWith(['id-sol']);
     expect(groupLabels()).toEqual(['Found']);
-  });
-
-  it('copies missing names to the clipboard', async () => {
-    cardStore.getAll.mockReturnValue([makeCard('Arcane Signet')]);
-    const writeText = vi.fn(() => Promise.resolve());
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    createBulkCheckModal().show();
-    await typeList(document.querySelector('.bulk-modal textarea'), 'Arcane Signet');
-
-    document.querySelector('.bulk-modal .primary').click();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(writeText).toHaveBeenCalledWith('Arcane Signet');
   });
 
   it('shows the modal and removes it when its close button is clicked', async () => {
