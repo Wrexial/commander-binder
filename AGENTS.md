@@ -234,16 +234,18 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   colocated CSS. `statistics.js` and the
   bulk/export modals are loaded with dynamic `import()` from `main.js`, so they
   ship as separate chunks. Statistics takes an optional `{ cards, countAll,
-title, emptyMessage }`, so the shell scopes it to the visible binder on the
-  Binder Builder page (hydrating that binder's pockets first, `countAll: true`
-  so every pocket — duplicate or unowned, legendary or not — is counted) and to
-  the whole owned collection elsewhere. Its hover preview clears the grid's
-  `onToggle`/`onWishlistToggle`/`onAddToList` handlers on open (`onNavigate` too),
-  so the read-only preview can only cycle printings. Statistics includes a
+exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
+  binder on the Binder Builder page (hydrating that binder's pockets first,
+  `countAll: true` so every pocket — duplicate or unowned, legendary or not — is
+  counted, and `exactPrintings: true` so each pocket is valued at its own
+  printing) and to the whole owned collection elsewhere. Its hover preview clears
+  the grid's `onToggle`/`onWishlistToggle`/`onAddToList` handlers on open
+  (`onNavigate` too), so the read-only preview can only cycle printings.
+  Statistics includes a
   "Wishlist Targets" section that
   ranks sets by how many of their missing cards are on the wishlist; money
   metrics value each card at its `resolveDisplayPrinting` printing (the pinned
-  or cheapest one), so the totals match the tile prices.
+  or cheapest one) on the grid, so the totals match the tile prices.
   `searchHelp.js` owns the syntax reference as data (rendered into
   `#search-tooltip`), so the docs and `parseQuery` cannot drift apart. `is:wanted`
   reads the wishlist and `is:new` matches cards added to either collection in the

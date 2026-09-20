@@ -113,6 +113,7 @@ async function showStatistics() {
     await showStatisticsModal({
       cards: getBinderSlotCards(binder.id),
       countAll: true,
+      exactPrintings: true,
       title: `“${binder.name}” Statistics`,
       emptyMessage: `“${binder.name}” is empty.`,
     });

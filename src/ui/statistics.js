@@ -184,7 +184,12 @@ function percentile(values, p) {
  *   wishlist: { wanted: number, missing: number, missingNames: string[] },
  * }}
  */
-export function calculateStatistics(cards, totalAvailable = cards.length, allCards = cards) {
+export function calculateStatistics(
+  cards,
+  totalAvailable = cards.length,
+  allCards = cards,
+  { exactPrintings = false } = {}
+) {
   const totalCards = cards.length;
   let totalValue = 0;
   const colors = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
@@ -197,10 +202,11 @@ export function calculateStatistics(cards, totalAvailable = cards.length, allCar
   const manaCurve = Object.fromEntries(MANA_CURVE_LABELS.map((label) => [label, 0]));
 
   for (const card of cards) {
-    // Value the printing the grid is actually showing for this card — the
-    // user's pinned printing, or the cheapest one — not the cheapest across
-    // every printing, so the statistics total matches the tile prices.
-    const displayCard = resolveDisplayPrinting(card);
+    // Value the printing the tile actually shows. On the grid that is the
+    // user's pinned printing or the cheapest one, so resolve it; a binder pocket
+    // already *is* its exact printing, so `exactPrintings` values it as-is (two
+    // pockets of the same card can then hold two different prices).
+    const displayCard = exactPrintings ? card : resolveDisplayPrinting(card);
     const price = displayCard ? getDisplayedPrice(displayCard) : null;
     if (price !== null) {
       totalValue += price;
@@ -904,6 +910,7 @@ function resetTooltipCardActions(tooltip) {
 export function showStatisticsModal({
   cards = null,
   countAll = false,
+  exactPrintings = false,
   title = 'Collection Statistics',
   emptyMessage = 'No owned cards have been loaded yet. Scroll to load more cards.',
 } = {}) {
@@ -917,7 +924,7 @@ export function showStatisticsModal({
 
   // Completion is measured against unique card names, which is what the
   // collection UI tracks (the search's apiTotalCards counts printings).
-  let stats = calculateStatistics(countedCards, allCards.length, allCards);
+  let stats = calculateStatistics(countedCards, allCards.length, allCards, { exactPrintings });
   const tooltip = document.getElementById('tooltip');
   // The stats preview is hover-driven; make sure it never inherits the grid's
   // swipe-navigation or card-action handlers.
@@ -960,7 +967,7 @@ export function showStatisticsModal({
 
   /** Recompute and repaint after a wishlist change. */
   function renderContent() {
-    stats = calculateStatistics(countedCards, allCards.length, allCards);
+    stats = calculateStatistics(countedCards, allCards.length, allCards, { exactPrintings });
 
     const cardWord = stats.totalCards === 1 ? 'card' : 'cards';
     const ownershipWord = countAll ? '' : 'owned ';

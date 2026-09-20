@@ -174,6 +174,22 @@ describe('calculateStatistics', () => {
     }
   });
 
+  it('values each card at its own printing when exactPrintings is set', () => {
+    const cheap = { id: 'cheap', name: 'Dup Card', prices: { eur: '2.00' } };
+    const fancy = { id: 'fancy', name: 'Dup Card', prices: { eur: '20.00' } };
+    cardStore.getPrintings.mockReturnValue([cheap, fancy]);
+
+    // Default: every card resolves to the cheapest printing.
+    const resolved = calculateStatistics([cheap, fancy], 2, [cheap, fancy]);
+    expect(resolved.totalValue).toBe(4);
+
+    // exactPrintings: each keeps its own printing's price (binder pockets).
+    const exact = calculateStatistics([cheap, fancy], 2, [cheap, fancy], {
+      exactPrintings: true,
+    });
+    expect(exact.totalValue).toBe(22);
+  });
+
   it('computes price distribution buckets and the median', () => {
     cardStore.getPrintings.mockImplementation((name) => {
       const prices = { Cheap: '0.50', Mid: '3.00', Pricey: '30.00', Grail: '120.00' };
@@ -528,6 +544,18 @@ describe('showStatisticsModal', () => {
     );
     // Only the binder's single card is counted, not the whole store.
     expect(document.querySelector('.statistics-subtitle').textContent).toContain('1 owned card');
+  });
+
+  it('values each pocket at its own printing when exactPrintings is set', () => {
+    document.body.innerHTML = '<div id="tooltip" class="tooltip"></div>';
+    const cheap = { ...makeCard({ id: 'cheap', name: 'Dup' }), prices: { eur: '2.00' } };
+    const fancy = { ...makeCard({ id: 'fancy', name: 'Dup' }), prices: { eur: '20.00' } };
+    cardStore.getPrintings.mockReturnValue([cheap, fancy]);
+    isCardOwned.mockReturnValue(true);
+
+    showStatisticsModal({ cards: [cheap, fancy], countAll: true, exactPrintings: true });
+
+    expect(document.querySelector('.statistics-subtitle').textContent).toContain('22');
   });
 
   it('clears the grid card actions from the hover preview on open', () => {
