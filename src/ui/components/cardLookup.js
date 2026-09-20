@@ -25,7 +25,7 @@ export function buildPrintingIndex() {
 }
 
 /** Add every card now in the store to a normalized-name -> card index. */
-export function refreshNameIndex(nameIndex) {
+function refreshNameIndex(nameIndex) {
   for (const card of cardStore.getAll()) {
     const key = normalizeName(card.name);
     if (key && !nameIndex.has(key)) nameIndex.set(key, card);

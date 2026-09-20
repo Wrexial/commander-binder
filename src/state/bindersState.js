@@ -31,6 +31,13 @@ import {
   removeLocalBinder,
   saveLocalBinder,
 } from './localBinders.js';
+import {
+  createAnnouncer,
+  createIdFactory,
+  createWriteQueue,
+  isLocalView,
+  isShareView,
+} from './registrySupport.js';
 
 const ACTIVE_KEY = 'activeBinderId';
 
@@ -46,29 +53,9 @@ const binders = new Map();
 let activeId = null;
 
 /** Serializes server writes so responses can't land out of order. */
-let writeQueue = Promise.resolve();
-
-function enqueue(task) {
-  const run = writeQueue.then(task, task);
-  writeQueue = run.then(
-    () => undefined,
-    () => undefined
-  );
-  return run;
-}
-
-function announce() {
-  if (typeof document !== 'undefined') {
-    document.dispatchEvent(new CustomEvent('binders:changed'));
-  }
-}
-
-function newId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `binder-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
+const enqueue = createWriteQueue();
+const announce = createAnnouncer('binders:changed');
+const newId = createIdFactory('binder');
 
 function clampInt(value, min, max, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -76,19 +63,12 @@ function clampInt(value, min, max, fallback) {
   return Math.min(max, Math.max(min, parsed));
 }
 
-/** True on a read-only share-link view. */
-function isShareMode() {
-  return Boolean(mainState.shareToken);
-}
+const isShareMode = isShareView;
+const isLocalMode = isLocalView;
 
 /** Binders can be edited except in a share view. */
 export function canEditBinders() {
   return !isShareMode();
-}
-
-/** Signed-out visitors track binders on this device. */
-function isLocalMode() {
-  return !isShareMode() && !mainState.loggedInUserId;
 }
 
 /** `"page:row:col"` for one pocket. */

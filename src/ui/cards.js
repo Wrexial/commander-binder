@@ -253,7 +253,7 @@ export function syncCardSelection(cardElement) {
  * membership is discoverable without opening the preview. Removed when zero.
  * @param {HTMLElement} cardElement
  */
-export function syncCardListUi(cardElement) {
+function syncCardListUi(cardElement) {
   const card = cardElement.cardData;
   const count = card ? getListsForCard(card).length : 0;
   let badge = cardElement.querySelector('.card-lists');

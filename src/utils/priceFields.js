@@ -47,7 +47,7 @@ export function getCurrencySymbol(currency = getCurrency()) {
  * @param {unknown} value
  * @returns {number|null}
  */
-export function parsePrice(value) {
+function parsePrice(value) {
   const price = parseFloat(value);
   return Number.isFinite(price) ? price : null;
 }

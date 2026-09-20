@@ -84,7 +84,7 @@ function addBulkTools() {
 }
 
 /** Open a lazily-loaded modal, when it built successfully. */
-export async function showModal(loadModal) {
+async function showModal(loadModal) {
   const modal = await loadModal();
   if (modal) modal.show();
 }
@@ -94,7 +94,7 @@ export async function showModal(loadModal) {
  * Show statistics. On the Binder Builder page this is scoped to the binder
  * currently on screen; everywhere else it covers the whole loaded collection.
  */
-export async function showStatistics() {
+async function showStatistics() {
   const { showStatisticsModal } = await import('../ui/statistics.js');
 
   const binder = isBinderView() ? getActiveBinder() : null;

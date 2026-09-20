@@ -8,7 +8,7 @@
  * (jsdom, private mode), so callers keep an in-memory set as the source of
  * truth and treat this module as best-effort persistence.
  */
-import { createStore } from '../utils/idb.js';
+import { createLocalRecordStore } from './localRecordStore.js';
 
 /**
  * Build the CRUD surface for one IndexedDB-backed collection.
@@ -16,21 +16,20 @@ import { createStore } from '../utils/idb.js';
  * @param {{dbName: string, storeName: string}} config
  */
 export function createLocalCollection({ dbName, storeName }) {
-  const store = createStore({ dbName, storeName, keyPath: 'cardId' });
-
-  /** Every locally-saved record: `{ cardId, addedAt }`. */
-  async function load() {
-    const rows = await store.getAll();
-    if (!Array.isArray(rows)) return [];
-    return rows.filter((row) => row && typeof row.cardId === 'string');
-  }
+  const store = createLocalRecordStore({
+    dbName,
+    storeName,
+    keyPath: 'cardId',
+    isValid: (row) => row && typeof row.cardId === 'string',
+  });
 
   return {
-    load,
+    /** Every locally-saved record: `{ cardId, addedAt }`. */
+    load: () => store.load(),
 
     /** The locally-tracked printing ids. */
     async getIds() {
-      return (await load()).map((row) => row.cardId);
+      return (await store.load()).map((row) => row.cardId);
     },
 
     /**
@@ -38,9 +37,7 @@ export function createLocalCollection({ dbName, storeName }) {
      * @param {string} cardId
      * @param {string} [addedAt]
      */
-    async add(cardId, addedAt = new Date().toISOString()) {
-      return store.put({ cardId, addedAt });
-    },
+    add: (cardId, addedAt = new Date().toISOString()) => store.put({ cardId, addedAt }),
 
     /**
      * Remove one or more locally-tracked printings.
@@ -51,9 +48,7 @@ export function createLocalCollection({ dbName, storeName }) {
     },
 
     /** Drop the whole local collection (after a successful merge). */
-    async clear() {
-      return store.clear();
-    },
+    clear: () => store.clear(),
   };
 }
 

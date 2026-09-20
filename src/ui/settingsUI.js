@@ -38,7 +38,7 @@ export function applyLayoutVariables() {
  *
  * @returns {boolean} true when the layout settings changed
  */
-export function applyLayoutSettings() {
+function applyLayoutSettings() {
   const signature = layoutSignature();
   if (signature === appliedLayoutSignature) return false;
   appliedLayoutSignature = signature;

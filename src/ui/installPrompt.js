@@ -17,7 +17,7 @@ let installed = false;
 let wired = false;
 
 /** Already running as an installed app (Android/desktop or iOS home screen). */
-export function isStandaloneDisplay() {
+function isStandaloneDisplay() {
   const iosStandalone = window.navigator.standalone === true;
   const mq = window.matchMedia?.('(display-mode: standalone)');
   return iosStandalone || Boolean(mq?.matches);
@@ -37,7 +37,7 @@ export function isIosDevice() {
  * On iOS only Safari can "Add to Home Screen"; other iOS browsers (Chrome,
  * Firefox, Edge, Opera) cannot, so we must not promise them the same flow.
  */
-export function isIosSafari() {
+function isIosSafari() {
   if (!isIosDevice()) return false;
   const ua = window.navigator.userAgent || '';
   return !/crios|fxios|edgios|opios/i.test(ua);

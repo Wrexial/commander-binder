@@ -98,10 +98,14 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   `wishlistState`, `cardStore`, `cardSettings`, `preferredPrintings`,
   `cardCatalog`,
   `localCollection`, `localWishlist`, `listsState`, `localLists`, `bindersState`,
-  `localBinders`, `compareState`, `selectionState`, `viewState`,
+  `localBinders`, `localRecordStore`, `registrySupport`,
+  `compareState`, `selectionState`, `viewState`,
   `onboarding`,
   `filters`,
-  `settingsSync`). State is
+  `settingsSync`). `localRecordStore.js` is the shared IndexedDB CRUD factory the
+  device-local stores are built on, and `registrySupport.js` holds the
+  list/binder plumbing (`isLocalView`/`isShareView`, the change announcer, the id
+  factory and the serialized write queue). State is
   plain exported objects, not a framework store. `mainState.js` holds session
   state so `cardState.js` can read it without importing `main.js` (avoids a
   cycle). `cardState.js` and `wishlistState.js` are thin instances of the

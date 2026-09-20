@@ -14,6 +14,7 @@
  * without importing this module's internals.
  */
 import { mainState } from './mainState.js';
+import { createAnnouncer, createIdFactory, isLocalView, isShareView } from './registrySupport.js';
 import { cardStore, primaryName } from './cardStore.js';
 import {
   addListItems as apiAddListItems,
@@ -28,39 +29,15 @@ import { clearLocalLists, loadLocalLists, removeLocalList, saveLocalList } from 
 
 /** id -> { id, name, notes, isPublic, createdAt, updatedAt, cardIds: Set<string> } */
 const lists = new Map();
-let initialized = false;
 
-/** True while the signed-out visitor is tracking lists on this device. */
-function isLocalMode() {
-  return !mainState.loggedInUserId && !mainState.shareToken;
-}
-
-/** True when the current view is a read-only share link. */
-function isShareMode() {
-  return Boolean(mainState.shareToken);
-}
+const isLocalMode = isLocalView;
+const isShareMode = isShareView;
+const announce = createAnnouncer('lists:changed');
+const newId = createIdFactory('local');
 
 /** Lists can be edited except in a share view. */
 export function canEditLists() {
   return !isShareMode();
-}
-
-/** True once lists have loaded (or loaded empty) from their source. */
-export function areListsLoaded() {
-  return initialized;
-}
-
-function announce() {
-  if (typeof document !== 'undefined') {
-    document.dispatchEvent(new CustomEvent('lists:changed'));
-  }
-}
-
-function newId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function normalizeList(record) {
@@ -82,7 +59,6 @@ function applyLists(records) {
     if (!record || typeof record.id !== 'string') continue;
     lists.set(record.id, normalizeList(record));
   }
-  initialized = true;
   announce();
 }
 
@@ -123,11 +99,6 @@ export function getList(id) {
 export function getListByName(name) {
   const target = String(name || '').toLowerCase();
   return getLists().find((list) => list.name.toLowerCase() === target) || null;
-}
-
-/** How many named lists the user has. */
-export function getListsCount() {
-  return lists.size;
 }
 
 /** Every printing id that belongs to a list (used by export/share code). */
@@ -222,7 +193,6 @@ export async function loadLists() {
     applyLists(await fetchLists());
   } catch (err) {
     console.error('Failed to load lists:', err);
-    initialized = true;
   }
 }
 
@@ -368,11 +338,6 @@ export async function toggleCardsInList(id, cards) {
   if (allPresent) await removeCardsFromList(id, batch);
   else await addCardsToList(id, batch);
   return !allPresent;
-}
-
-/** Flip a single card's membership in one list; returns the new state. */
-export async function toggleCardInList(id, card) {
-  return toggleCardsInList(id, [card]);
 }
 
 /**
