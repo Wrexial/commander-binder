@@ -184,4 +184,18 @@ describe('hydrateCardsByIds', () => {
 
     expect(fetchCardsByIds).toHaveBeenCalledTimes(2);
   });
+
+  it('serves a repeat hydrate from the card cache without refetching', async () => {
+    fetchCardsByIds.mockResolvedValue([{ id: 'a', name: 'A' }]);
+    await hydrateCardsByIds(['a']);
+    expect(fetchCardsByIds).toHaveBeenCalledTimes(1);
+
+    // Simulate a reload: the in-memory store is empty again, but the card was
+    // persisted by the first fetch.
+    store.cards = [];
+    await hydrateCardsByIds(['a']);
+
+    expect(fetchCardsByIds).toHaveBeenCalledTimes(1);
+    expect(cardStore.add).toHaveBeenCalledWith({ id: 'a', name: 'A' });
+  });
 });

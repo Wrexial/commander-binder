@@ -121,7 +121,12 @@ new key there too.
   exact names into one `unique=prints` search, paged through), so a binder page
   costs a request or two instead of one `/cards/search` per pocket — the latter
   tripped Scryfall's rate limit. A batch that still overflows the page cap is
-  split and re-requested, so nothing is silently dropped.
+  split and re-requested, so nothing is silently dropped. Card objects are also
+  persisted by printing id (`cardCache.js`, 16h TTL, LRU-capped): the
+  `/cards/collection` POST that hydrates binder pockets is not covered by
+  Scryfall's HTTP cache, so without it every reload re-fetched the visible
+  cards. `hydrateCardsByIds` reads the cache first, fetches only the misses and
+  falls back to a stale copy when offline; printing searches populate it too.
 - `src/auth/` — Clerk setup (`clerk.js`) and theme (`clerk-dark-theme.js`).
 - `src/config/constants.js` — shared constants (default grid/binder sizes, Clerk key).
 - `src/state/` — module-level state objects (`appState`, `mainState`, `cardState`,
@@ -396,7 +401,8 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   `defaultPrinting` setting. `fullArtPrinting` also matches borderless and
   showcase / extended-art frames, because Scryfall's `full_art` flag only covers
   a small fraction of the premium printings.
-  `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
+  `idb.js` is the shared IndexedDB wrapper used by `responseCache.js`,
+  `cardCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;
   `compareCollections.js` is the pure card-level diff behind the share view;

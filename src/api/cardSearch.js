@@ -11,6 +11,7 @@
  */
 import { MAX_COLLECTION_IDENTIFIERS, fetchCardsByIds, fetchPage } from './scryfall.js';
 import { cardStore } from '../state/cardStore.js';
+import { clearCardCacheMemory, readCachedCards, writeCachedCards } from './cardCache.js';
 
 const AUTOCOMPLETE_URL = (query) =>
   `https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`;
@@ -66,6 +67,7 @@ export async function loadPrintingsForName(name) {
   }
 
   for (const card of cards) cardStore.add(card);
+  await writeCachedCards(cards);
   if (cards.length > 0) printingsLoaded.add(trimmed);
   return cards;
 }
@@ -131,6 +133,9 @@ async function loadPrintingsBatch(batch) {
         cardStore.add(card);
         added = true;
       }
+      // Keep the cards individually too, so a later hydrate/lookup is local even
+      // if the search-response cache has been evicted.
+      await writeCachedCards(data.data);
     }
     url = data?.has_more ? data.next_page : null;
   }
@@ -207,17 +212,41 @@ export async function hydrateCardsByIds(ids) {
   const missing = unique.filter((id) => !cardStore.getByPrintingId(id));
 
   const added = [];
-  for (let i = 0; i < missing.length; i += MAX_COLLECTION_IDENTIFIERS) {
+
+  // Serve from the persistent card cache first: `/cards/collection` is a POST,
+  // so Scryfall's HTTP caching never covers it and a reload would otherwise
+  // re-fetch every visible binder card.
+  const cached = await readCachedCards(missing);
+  for (const id of missing) {
+    const card = cached.get(id);
+    if (card) {
+      cardStore.add(card);
+      added.push(card);
+    }
+  }
+
+  const toFetch = missing.filter((id) => !cardStore.getByPrintingId(id));
+  for (let i = 0; i < toFetch.length; i += MAX_COLLECTION_IDENTIFIERS) {
+    const chunk = toFetch.slice(i, i + MAX_COLLECTION_IDENTIFIERS);
     try {
-      const cards = await fetchCardsByIds(missing.slice(i, i + MAX_COLLECTION_IDENTIFIERS));
+      const cards = await fetchCardsByIds(chunk);
       for (const card of cards) {
         if (card && card.id) {
           cardStore.add(card);
           added.push(card);
         }
       }
+      await writeCachedCards(cards);
     } catch (err) {
       console.error('Failed to hydrate cards:', err);
+      // Offline or rate-limited: a stale cached copy still beats a placeholder.
+      const stale = await readCachedCards(chunk, { allowStale: true });
+      for (const card of stale.values()) {
+        if (!cardStore.getByPrintingId(card.id)) {
+          cardStore.add(card);
+          added.push(card);
+        }
+      }
     }
   }
   return added;
@@ -227,4 +256,5 @@ export async function hydrateCardsByIds(ids) {
 export function resetCardSearchCache() {
   printingsLoaded.clear();
   printingsAttempted.clear();
+  clearCardCacheMemory();
 }
