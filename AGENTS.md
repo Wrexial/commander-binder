@@ -59,7 +59,14 @@ new key there too.
   the sidebar and its collection tools, the guest welcome/install prompt,
   collection/wishlist/list/binder loading and the guest→account merges, settings
   sync and `setupUI` (binders load without seeding, so the bulk modals can list
-  them on either page). The shell owns the Bulk Add / Bulk Check / Export buttons
+  them on either page). `bootShell()` returns as soon as the local setup is done
+  and loads Clerk/the sidebar/state in the background: callers mount their
+  content immediately and `await shellReady` before adding page-specific sidebar
+  links (the sidebar is rebuilt by `setupUI`), then `await statesReady` for the
+  owned/wishlist/list state and the cross-device settings pull. The browse grid
+  therefore paints without waiting for Clerk's bundle; the Binder Builder still
+  waits for `shellReady` because its binder source depends on the sign-in state.
+  The shell owns the Bulk Add / Bulk Check / Export buttons
   for both pages; their default target is the _visible binder_ on the Binder
   Builder page (`defaultTargetId()` reads `getActiveBinderId()` when
   `#binder-root` exists) and the collection elsewhere. Each page calls

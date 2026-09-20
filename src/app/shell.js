@@ -314,39 +314,55 @@ function watchAuthChanges(clerk) {
 /**
  * Boot the shared shell.
  *
- * @returns {Promise<{results: HTMLElement|null, tooltip: HTMLElement|null, statesReady: Promise<void>}>}
- *   `statesReady` resolves once the saved ownership/wishlist/list state (and the
- *   cross-device settings pull) has been applied.
+ * Returns as soon as the local setup is done: Clerk's (large) bundle, the
+ * sidebar and the signed-in state load in the background so the page's own
+ * content can mount without waiting on auth. `shellReady` resolves once the
+ * auth-dependent chrome exists (add page-specific sidebar links then), and
+ * `statesReady` resolves once the owned/wishlist/list state and the
+ * cross-device settings pull have been applied.
+ *
+ * @returns {Promise<{results: HTMLElement|null, tooltip: HTMLElement|null, shellReady: Promise<void>, statesReady: Promise<void>}>}
  */
 export async function bootShell() {
   initSidebar();
   initInstallPrompt();
   registerServiceWorker();
-  await initClerk();
-  watchAuthChanges(getClerk());
 
   const urlParams = new URLSearchParams(window.location.search);
   mainState.shareToken = urlParams.get('share');
+  // A share visitor is read-only. Set this before any content mounts: the grid
+  // can render before Clerk resolves and must never briefly look editable.
+  appState.isViewOnlyMode = Boolean(mainState.shareToken);
 
   const tooltip = document.getElementById('tooltip');
   const results = document.getElementById('results');
 
-  await setupUI();
-  // Apply the stored grid dimensions before the first cards render.
+  // Device preferences don't need auth; apply them before the first render.
   initCardSettings();
   initSettingsSync();
 
-  // Load saved marks in parallel with the page content so Clerk/Netlify/DB
-  // latency does not delay the first paint. Marks are re-applied here once the
-  // owned/wishlist state arrives.
-  const statesReady = Promise.all([
-    loadCardStates(),
-    loadWishlistStates(),
-    loadLists(),
-    // Load (but don't seed) binders so the bulk add/export/check modals on
-    // either page can offer them as targets.
-    loadBinders({ seed: false }),
-  ])
+  // Auth and the chrome it decides. Not awaited here, so the page's content can
+  // paint while Clerk loads; `shellReady` fills the sidebar/user button in later.
+  const shellReady = (async () => {
+    await initClerk();
+    watchAuthChanges(getClerk());
+    await setupUI();
+  })().catch((err) => console.error('Failed to initialize the shell:', err));
+
+  // Saved marks load once the shell knows whether we're signed in / sharing
+  // (`authenticatedFetch` needs the Clerk session). They are re-applied to the
+  // already-mounted tiles below.
+  const statesReady = shellReady
+    .then(() =>
+      Promise.all([
+        loadCardStates(),
+        loadWishlistStates(),
+        loadLists(),
+        // Load (but don't seed) binders so the bulk add/export/check modals on
+        // either page can offer them as targets.
+        loadBinders({ seed: false }),
+      ])
+    )
     .then(async () => {
       // A guest's locally-tracked cards are merged into the account the first
       // time the app boots signed in (and on any retry after a failed merge).
@@ -383,5 +399,5 @@ export async function bootShell() {
     })
     .catch((err) => console.error('Failed to load card states:', err));
 
-  return { results, tooltip, statesReady };
+  return { results, tooltip, shellReady, statesReady };
 }

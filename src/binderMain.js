@@ -85,7 +85,12 @@ function scheduleFirstRunTour() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const { tooltip, statesReady } = await bootShell();
+  const { tooltip, shellReady, statesReady } = await bootShell();
+
+  // The binder source depends on the signed-in / share state (`loadBinders`
+  // reads the server when signed in, IndexedDB otherwise), so the editor waits
+  // for the shell to resolve before mounting.
+  await shellReady;
 
   // Cross-link back to the browse/collection view.
   addButtonToSidebar(
@@ -97,13 +102,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     'browse',
     5
   );
+  addTourLink();
 
   const root = document.getElementById('binder-root');
   // Shared tile interactions (ownership toggle, preview, printing cycle,
   // wishlist, add-to-list) work inside the pockets too.
   initCardInteractions(root, tooltip);
   initViewportMetrics();
-  addTourLink();
 
   // The guest welcome's "Take a quick tour" button, and any other entry point
   // that does not want to import the tour module directly.

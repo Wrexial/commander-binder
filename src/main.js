@@ -59,24 +59,29 @@ function scheduleFirstRunTour() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const { results, tooltip } = await bootShell();
+  const { results, tooltip, shellReady } = await bootShell();
 
+  // Mount the browser immediately: it reads Scryfall data and does not need
+  // Clerk, so it should not wait for the auth bundle to load.
   initScrollPosition();
   initLazyCards(results, tooltip);
   initYearScrubber();
   updateAllBinderCounts();
-  addBinderBuilderLink();
-  addTourLink();
-
-  // The guest welcome's "Take a quick tour" button, and any future entry point
-  // that does not want to import the tour module directly.
-  document.addEventListener('tour:start', () => startFirstRunTour({ force: true }));
-  scheduleFirstRunTour();
-
   initViewportMetrics();
   initSearch();
   initFilterBar({ onChange: refreshCardFilter, onSortChange: applySort });
   initCardInteractions(results, tooltip);
   initBulkEdit();
   initKeyboardShortcuts();
+
+  // The guest welcome's "Take a quick tour" button, and any future entry point
+  // that does not want to import the tour module directly.
+  document.addEventListener('tour:start', () => startFirstRunTour({ force: true }));
+
+  // The sidebar is (re)built by setupUI, so page-specific links are added once
+  // the shell has finished setting it up.
+  await shellReady;
+  addBinderBuilderLink();
+  addTourLink();
+  scheduleFirstRunTour();
 });

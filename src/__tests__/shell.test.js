@@ -77,6 +77,7 @@ import { pullSettings } from '../state/settingsSync.js';
 import { applySettingsFromStore } from '../ui/settingsUI.js';
 import { updateAllCardStates } from '../ui/cards.js';
 import { updateAllBinderCounts } from '../ui/layout.js';
+import { addButtonToSidebar } from '../ui/components/sidebar.js';
 
 function setupDom() {
   document.body.innerHTML = `
@@ -113,6 +114,28 @@ beforeEach(() => {
 });
 
 describe('bootShell', () => {
+  it('returns before Clerk resolves so the page content can mount', async () => {
+    // Park Clerk on a promise we control.
+    let releaseClerk;
+    initClerk.mockImplementation(() => new Promise((resolve) => (releaseClerk = resolve)));
+
+    let shellResolved = false;
+    const { results, tooltip, shellReady } = await bootShell();
+    shellReady.then(() => (shellResolved = true));
+
+    // The shell handed back the mount points without waiting on auth...
+    expect(results).not.toBeNull();
+    expect(tooltip).not.toBeNull();
+    expect(shellResolved).toBe(false);
+    expect(addButtonToSidebar).not.toHaveBeenCalled();
+
+    // ...and finishes the auth-dependent chrome once Clerk is ready.
+    releaseClerk();
+    await shellReady;
+    expect(shellResolved).toBe(true);
+    expect(addButtonToSidebar).toHaveBeenCalled();
+  });
+
   it('merges guest data into the account and applies synced settings on sign-in', async () => {
     getClerk.mockReturnValue(clerkStub({ id: 'user_1' }));
     mergeLocalCollectionToAccount.mockResolvedValue(true);
