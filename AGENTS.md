@@ -406,6 +406,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
 - Visual design follows `DESIGN.md` (tokens, component patterns, interaction
   states). Update it alongside new UI, and pull colours/radii/shadows from the
   `:root` tokens in `src/styles.css` rather than raw values.
+- `SCAFFOLD.md` documents the generic, domain-free version of this stack
+  (Vite + Netlify Functions + Neon/Drizzle + Clerk + Vitest) for bootstrapping a
+  new project. Keep its templates in sync with the real config files.
 - ES modules throughout (`"type": "module"`); use `import`/`export`.
 - One gesture, one action: a tap must never trigger two things. Gate hover-only
   affordances behind `isHoverCapable()` (`src/utils/pointer.js`), and make sure a
