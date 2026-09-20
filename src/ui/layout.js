@@ -12,7 +12,7 @@ import {
   getBinders,
   getActiveBinderId,
 } from '../state/bindersState.js';
-import { binderTargetId } from './components/collectionTargets.js';
+import { binderTargetId, listTargetId } from './components/collectionTargets.js';
 import { hydrateCardsByIds } from '../api/cardSearch.js';
 import { cardStore } from '../state/cardStore.js';
 import { showToast } from './components/toast.js';
@@ -194,7 +194,7 @@ export function createExportButton() {
         },
         // Custom lists are exported exactly like the two built-in collections.
         ...getLists().map((list) => ({
-          id: list.id,
+          id: listTargetId(list.id),
           label: list.name,
           cards: getListCards(list.id),
           filePrefix: `list-${slugify(list.name)}`,

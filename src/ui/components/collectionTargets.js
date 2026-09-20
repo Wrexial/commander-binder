@@ -17,28 +17,42 @@ export const COLLECTION_TARGETS = [
 ];
 
 /**
- * Binder targets are prefixed in the target picker so a binder id can never be
- * mistaken for a custom-list id (both are UUIDs).
+ * Custom lists and binders both have UUIDs, so their target ids are prefixed in
+ * the picker to keep the two namespaces from ever colliding (`list:<id>` /
+ * `binder:<id>`). `resolveTarget` strips the prefix before touching state.
  */
 const BINDER_TARGET_PREFIX = 'binder:';
+const LIST_TARGET_PREFIX = 'list:';
 
 export function binderTargetId(binderId) {
   return `${BINDER_TARGET_PREFIX}${binderId}`;
+}
+
+export function listTargetId(listId) {
+  return `${LIST_TARGET_PREFIX}${listId}`;
 }
 
 function isBinderTargetId(targetId) {
   return typeof targetId === 'string' && targetId.startsWith(BINDER_TARGET_PREFIX);
 }
 
+function isListTargetId(targetId) {
+  return typeof targetId === 'string' && targetId.startsWith(LIST_TARGET_PREFIX);
+}
+
 function binderIdFromTarget(targetId) {
   return isBinderTargetId(targetId) ? targetId.slice(BINDER_TARGET_PREFIX.length) : null;
+}
+
+function listIdFromTarget(targetId) {
+  return isListTargetId(targetId) ? targetId.slice(LIST_TARGET_PREFIX.length) : null;
 }
 
 /** Every selectable target, in display order: collections, lists, then binders. */
 export function buildTargetOptions() {
   return [
     ...COLLECTION_TARGETS,
-    ...getLists().map((list) => ({ id: list.id, label: list.name })),
+    ...getLists().map((list) => ({ id: listTargetId(list.id), label: list.name })),
     ...getBinders().map((binder) => ({
       id: binderTargetId(binder.id),
       label: `Binder: ${binder.name}`,
@@ -61,5 +75,8 @@ export function resolveTarget(id) {
   if (binderId)
     return { kind: 'binder', id: binderId, name: getBinder(binderId)?.name || 'binder' };
 
-  return { kind: 'list', id, name: getList(id)?.name || 'list' };
+  // Lists are `list:<id>`; a bare id is still accepted so older callers keep
+  // working.
+  const listId = listIdFromTarget(id) ?? (typeof id === 'string' ? id : null);
+  return { kind: 'list', id: listId, name: (listId && getList(listId)?.name) || 'list' };
 }

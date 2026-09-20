@@ -37,7 +37,13 @@ vi.mock('../../../state/listsState.js', () => ({
 vi.mock('../../../state/bindersState.js', () => ({
   getBinders: vi.fn(() => binders.list),
   getBinder: vi.fn((id) => binders.list.find((binder) => binder.id === id) || null),
+  getActiveBinder: vi.fn(() => null),
   isCardInBinder: vi.fn(() => false),
+  createBinder: vi.fn(async ({ name }) => {
+    const binder = { id: `B${binders.list.length + 1}`, name, slots: {} };
+    binders.list.push(binder);
+    return binder;
+  }),
   addCardsToBinder: vi.fn(async (id, batch) => {
     binders.added.push({ id, cards: batch });
   }),
@@ -79,7 +85,42 @@ describe('addCardsModal binder targets', () => {
     const labels = [...document.querySelectorAll('.target-toggle-option')].map(
       (button) => button.textContent
     );
-    expect(labels).toEqual(['Collection', 'Wishlist', 'Binder: Trade binder', '+ New list']);
+    expect(labels).toEqual([
+      'Collection',
+      'Wishlist',
+      'Binder: Trade binder',
+      '+ New list',
+      '+ New binder',
+    ]);
+  });
+
+  it('creates a new binder from the picker and targets it', async () => {
+    createAddCardsModal().show();
+
+    document.querySelector('[data-action="new-binder"]').click();
+    const input = document.querySelector('.target-new-binder-form input');
+    expect(input).not.toBeNull();
+    input.value = 'Fresh binder';
+    document
+      .querySelector('.target-new-binder-form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bulk-modal-header h2').textContent).toBe(
+        'Add to “Fresh binder”'
+      )
+    );
+    const labels = [...document.querySelectorAll('.target-toggle-option')].map(
+      (button) => button.textContent
+    );
+    expect(labels).toEqual([
+      'Collection',
+      'Wishlist',
+      'Binder: Trade binder',
+      'Binder: Fresh binder',
+      '+ New list',
+      '+ New binder',
+    ]);
   });
 
   it('adds typed cards to the chosen binder', async () => {

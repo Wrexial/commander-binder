@@ -204,12 +204,13 @@ is the one env file `.gitignore` whitelists, so document any new key there too
   additions and compare groups): rows opt in with `data-card-preview` plus a
   `data-card-id`/`data-card-name`, and the preview is read-only (no ownership or
   printing controls). `collectionTargets.js` is the shared, dependency-light home of the
-  target descriptors (`COLLECTION_TARGETS`, `binderTargetId`,
-  `buildTargetOptions`, `resolveTarget`) — the add/check modals append every
-  custom list and every binder as a target (binders are prefixed `binder:` so a
-  binder id is never mistaken for a list id), the add modal's "+ New list"
-  reveals an inline create form and selects the new
-  list, and the export button feeds each list and binder in
+  target descriptors (`COLLECTION_TARGETS`, `listTargetId`, `binderTargetId`,
+  `buildTargetOptions`, `resolveTarget`) — the add/export modals append every
+  custom list and every binder as a target (lists are prefixed `list:` and
+  binders `binder:` so the two UUID namespaces can never collide; `resolveTarget`
+  strips the prefix), the add modal's "+ New list" / "+ New binder" actions reveal
+  an inline create form and select the new target, and the export button feeds
+  each list and binder in
   as a collection (hydrating a binder's not-yet-loaded cards first), so they all
   work on lists and binders exactly like the built-ins. The export modal also
   takes an `initialId`, so on the binder page it opens on the visible binder, and

@@ -67,14 +67,14 @@ describe('addCardsModal list targets', () => {
     const labels = [...document.querySelectorAll('.target-toggle-option')].map(
       (button) => button.textContent
     );
-    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile', '+ New list']);
+    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile', '+ New list', '+ New binder']);
   });
 
   it('creates a new list from the picker and targets it', async () => {
     await loadLists();
     createAddCardsModal().show();
 
-    document.querySelector('.target-toggle-new').click();
+    document.querySelector('[data-action="new-list"]').click();
     const input = document.querySelector('.target-new-list-form input');
     expect(input).not.toBeNull();
     input.value = 'Deck: Atraxa';
@@ -90,6 +90,13 @@ describe('addCardsModal list targets', () => {
     const labels = [...document.querySelectorAll('.target-toggle-option')].map(
       (button) => button.textContent
     );
-    expect(labels).toEqual(['Collection', 'Wishlist', 'Trade pile', 'Deck: Atraxa', '+ New list']);
+    expect(labels).toEqual([
+      'Collection',
+      'Wishlist',
+      'Trade pile',
+      'Deck: Atraxa',
+      '+ New list',
+      '+ New binder',
+    ]);
   });
 });

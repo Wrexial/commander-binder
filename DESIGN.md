@@ -128,7 +128,8 @@ The canonical **active pill** is `--accent-soft` background + `--accent` border
   consistent with it.
 
 Pickers (`.target-toggle`) **wrap**; they don't scroll horizontally. Actions that
-aren't targets (e.g. `+ New list`) use `.target-toggle-new` (dashed border).
+aren't targets (e.g. `+ New list`, `+ New binder`) use `.target-toggle-new`
+(dashed border) and carry a `data-action` id.
 
 ### 3.3 Switches
 

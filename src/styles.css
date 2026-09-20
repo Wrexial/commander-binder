@@ -4108,18 +4108,22 @@ footer a:focus-visible {
   margin-top: 10px;
 }
 
-/* Inline "new list" form revealed by the target picker's "+ New list". */
-.target-new-list-form {
+/* Inline "name a new target" forms revealed by the picker's "+ New list" /
+   "+ New binder" actions. */
+.target-new-list-form,
+.target-new-binder-form {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.target-new-list-form[hidden] {
+.target-new-list-form[hidden],
+.target-new-binder-form[hidden] {
   display: none;
 }
 
-.target-new-list-form input {
+.target-new-list-form input,
+.target-new-binder-form input {
   flex: 1;
   min-width: 140px;
   padding: 7px 10px;
@@ -4130,7 +4134,8 @@ footer a:focus-visible {
   font: inherit;
 }
 
-.target-new-list-form input:focus {
+.target-new-list-form input:focus,
+.target-new-binder-form input:focus {
   outline: none;
   border-color: var(--focus);
   box-shadow: var(--focus-shadow);

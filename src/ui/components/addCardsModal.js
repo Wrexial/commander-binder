@@ -9,7 +9,12 @@ import {
   previewGroup,
   summaryChip,
 } from './collectionModal.js';
-import { buildTargetOptions, resolveTarget } from './collectionTargets.js';
+import {
+  buildTargetOptions,
+  resolveTarget,
+  binderTargetId,
+  listTargetId,
+} from './collectionTargets.js';
 import {
   buildPrintingIndex,
   findEntryCard,
@@ -22,19 +27,55 @@ import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { addCardsToList, createList, isInList } from '../../state/listsState.js';
-import { addCardsToBinder, isCardInBinder } from '../../state/bindersState.js';
+import {
+  addCardsToBinder,
+  createBinder,
+  getActiveBinder,
+  isCardInBinder,
+} from '../../state/bindersState.js';
 import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
 
 /**
+ * Build the inline "name a new target" form revealed by a picker action
+ * ("+ New list" / "+ New binder"). Hidden until opened.
+ *
+ * @param {{className: string, placeholder: string, ariaLabel: string}} config
+ * @returns {{form: HTMLFormElement, input: HTMLInputElement, cancel: HTMLButtonElement}}
+ */
+function createNewTargetForm({ className, placeholder, ariaLabel }) {
+  const form = document.createElement('form');
+  form.className = className;
+  form.hidden = true;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.maxLength = 60;
+  input.placeholder = placeholder;
+  input.setAttribute('aria-label', ariaLabel);
+
+  const save = document.createElement('button');
+  save.type = 'submit';
+  save.className = 'primary';
+  save.textContent = 'Create';
+
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.textContent = 'Cancel';
+
+  form.append(input, save, cancel);
+  return { form, input, cancel };
+}
+
+/**
  * The combined "Add Cards" modal. Accepts typed names (with autocomplete), a
  * pasted plain list or CSV / Moxfield / Archidekt export, or a file, then adds
  * the not-yet-present matches to the picked target: the collection, the
- * wishlist, or any custom list.
+ * wishlist, or any custom list or binder.
  *
- * @param {{kind?: string}} [options] Initial target id ('owned', 'wishlist' or a
- *   custom list id).
+ * @param {{kind?: string}} [options] Initial target id ('owned', 'wishlist',
+ *   `list:<id>` or `binder:<id>`).
  * @returns {{ show: () => void, destroy: () => void }}
  */
 export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
@@ -154,40 +195,39 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   preview.className = 'bulk-preview';
   attachCardPreview(preview);
 
-  // Inline "create a new list" form, revealed by the picker's "+ New list".
-  const newListForm = document.createElement('form');
-  newListForm.className = 'target-new-list-form';
-  newListForm.hidden = true;
+  // Inline "name a new target" forms, revealed by the picker's actions. Only
+  // one is shown at a time.
+  const newList = createNewTargetForm({
+    className: 'target-new-list-form',
+    placeholder: 'New list name',
+    ariaLabel: 'New list name',
+  });
+  const newBinder = createNewTargetForm({
+    className: 'target-new-binder-form',
+    placeholder: 'New binder name',
+    ariaLabel: 'New binder name',
+  });
 
-  const newListInput = document.createElement('input');
-  newListInput.type = 'text';
-  newListInput.maxLength = 60;
-  newListInput.placeholder = 'New list name';
-  newListInput.setAttribute('aria-label', 'New list name');
-
-  const newListSave = document.createElement('button');
-  newListSave.type = 'submit';
-  newListSave.className = 'primary';
-  newListSave.textContent = 'Create';
-
-  const newListCancel = document.createElement('button');
-  newListCancel.type = 'button';
-  newListCancel.textContent = 'Cancel';
-
-  newListForm.append(newListInput, newListSave, newListCancel);
+  /** Show one create form (hiding the other) and focus its input. */
+  function revealCreateForm(form) {
+    newList.form.hidden = form !== newList.form;
+    newBinder.form.hidden = form !== newBinder.form;
+    const input = form === newList.form ? newList.input : newBinder.input;
+    input.value = '';
+    input.focus();
+  }
 
   const target = createTargetToggle({
     options: targetOptions,
     initial: targetId,
     onChange: applyTarget,
-    onCreate: () => {
-      newListForm.hidden = false;
-      newListInput.value = '';
-      newListInput.focus();
-    },
+    actions: [
+      { id: 'new-list', label: '+ New list', onClick: () => revealCreateForm(newList.form) },
+      { id: 'new-binder', label: '+ New binder', onClick: () => revealCreateForm(newBinder.form) },
+    ],
   });
 
-  contentArea.append(target.el, newListForm, toolbar, input.el, preview);
+  contentArea.append(target.el, newList.form, newBinder.form, toolbar, input.el, preview);
 
   let categorized = { add: [], present: [], loading: [], unknown: [] };
   let confirming = false;
@@ -209,13 +249,41 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     try {
       const list = await createList({ name: trimmed });
       if (!list) return;
-      target.addOption({ id: list.id, label: list.name });
-      target.setValue(list.id);
-      newListForm.hidden = true;
-      applyTarget(list.id);
+      const id = listTargetId(list.id);
+      target.addOption({ id, label: list.name });
+      target.setValue(id);
+      newList.form.hidden = true;
+      applyTarget(id);
     } catch (err) {
       console.error('Failed to create the list:', err);
       showToast(err.message || 'Could not create the list.', 'error');
+    }
+  }
+
+  /** Create a binder from the inline form, add it to the picker and select it. */
+  async function handleCreateBinder(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return;
+
+    try {
+      // Match the Binder Builder's own "+ New": inherit the active binder's
+      // layout, else fall back to small defaults.
+      const current = getActiveBinder();
+      const binder = await createBinder({
+        name: trimmed,
+        columns: current?.columns || 3,
+        rows: current?.rows || 3,
+        pages: current?.pages || 1,
+      });
+      if (!binder) return;
+      const id = binderTargetId(binder.id);
+      target.addOption({ id, label: `Binder: ${binder.name}` });
+      target.setValue(id);
+      newBinder.form.hidden = true;
+      applyTarget(id);
+    } catch (err) {
+      console.error('Failed to create the binder:', err);
+      showToast(err.message || 'Could not create the binder.', 'error');
     }
   }
 
@@ -352,12 +420,19 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   primaryButton.addEventListener('click', handleAdd);
   closeButton.addEventListener('click', close);
 
-  newListForm.addEventListener('submit', (event) => {
+  newList.form.addEventListener('submit', (event) => {
     event.preventDefault();
-    handleCreateList(newListInput.value);
+    handleCreateList(newList.input.value);
   });
-  newListCancel.addEventListener('click', () => {
-    newListForm.hidden = true;
+  newList.cancel.addEventListener('click', () => {
+    newList.form.hidden = true;
+  });
+  newBinder.form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    handleCreateBinder(newBinder.input.value);
+  });
+  newBinder.cancel.addEventListener('click', () => {
+    newBinder.form.hidden = true;
   });
 
   function show() {

@@ -66,20 +66,44 @@ describe('summaryChip / previewGroup', () => {
 });
 
 describe('createTargetToggle', () => {
-  it('keeps the + New action last, after the selectable targets', () => {
+  it('keeps the + New actions last, after the selectable targets', () => {
     const toggle = createTargetToggle({
       options: [{ id: 'owned', label: 'Collection' }],
       initial: 'owned',
       onChange: vi.fn(),
-      onCreate: vi.fn(),
+      actions: [
+        { id: 'new-list', label: '+ New list', onClick: vi.fn() },
+        { id: 'new-binder', label: '+ New binder', onClick: vi.fn() },
+      ],
     });
     document.body.appendChild(toggle.el);
 
     const optionsRow = toggle.el.querySelector('.target-toggle-options');
-    const newButton = toggle.el.querySelector('.target-toggle-new');
-    expect(optionsRow.contains(newButton)).toBe(true);
-    expect(optionsRow.lastElementChild).toBe(newButton);
+    const actionButtons = [...optionsRow.querySelectorAll('.target-toggle-new')];
+    expect(actionButtons.map((button) => button.textContent)).toEqual([
+      '+ New list',
+      '+ New binder',
+    ]);
+    expect(optionsRow.lastElementChild).toBe(actionButtons[1]);
     expect(optionsRow.querySelector('.target-toggle-option').textContent).toBe('Collection');
+  });
+
+  it('calls the matching action when a + New button is clicked', () => {
+    const onNewBinder = vi.fn();
+    const toggle = createTargetToggle({
+      options: [{ id: 'owned', label: 'Collection' }],
+      initial: 'owned',
+      onChange: vi.fn(),
+      actions: [
+        { id: 'new-list', label: '+ New list', onClick: vi.fn() },
+        { id: 'new-binder', label: '+ New binder', onClick: onNewBinder },
+      ],
+    });
+    document.body.appendChild(toggle.el);
+
+    toggle.el.querySelector('[data-action="new-binder"]').click();
+
+    expect(onNewBinder).toHaveBeenCalledTimes(1);
   });
 
   it('marks the active option as pressed when it changes', () => {
@@ -101,12 +125,12 @@ describe('createTargetToggle', () => {
     expect(second.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('keeps a newly created option before the + New action', () => {
+  it('keeps a newly created option before the + New actions', () => {
     const toggle = createTargetToggle({
       options: [{ id: 'owned', label: 'Collection' }],
       initial: 'owned',
       onChange: vi.fn(),
-      onCreate: vi.fn(),
+      actions: [{ id: 'new-list', label: '+ New list', onClick: vi.fn() }],
     });
     document.body.appendChild(toggle.el);
 

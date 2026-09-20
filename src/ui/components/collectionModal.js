@@ -144,9 +144,16 @@ export async function addWantedCards(cards, successMessage) {
 
 /**
  * A small Owned / Wishlist segmented control shared by the collection modals,
- * so the picker and the action always agree on the active target.
+ * so the picker and the action always agree on the active target. Optional
+ * `actions` render after the targets as "+ New …" buttons (they are never
+ * themselves selectable targets).
  *
- * @param {{options?: {id: string, label: string}[], initial?: string, onChange: (id: string) => void, onCreate?: () => void}} config
+ * @param {{
+ *   options?: {id: string, label: string}[],
+ *   initial?: string,
+ *   onChange: (id: string) => void,
+ *   actions?: {id: string, label: string, onClick: () => void}[],
+ * }} config
  * @returns {{
  *   el: HTMLElement,
  *   getValue: () => string,
@@ -158,7 +165,7 @@ export function createTargetToggle({
   options = COLLECTION_TARGETS,
   initial = 'owned',
   onChange,
-  onCreate,
+  actions = [],
 } = {}) {
   const group = document.createElement('div');
   group.className = 'target-toggle';
@@ -171,8 +178,8 @@ export function createTargetToggle({
   optionsRow.className = 'target-toggle-options';
 
   const buttons = new Map();
+  const actionButtons = [];
   let value = initial;
-  let newButton = null;
 
   function sync() {
     for (const [id, button] of buttons) {
@@ -200,29 +207,31 @@ export function createTargetToggle({
     optionsRow.appendChild(button);
     buttons.set(option.id, button);
   }
-  group.appendChild(optionsRow);
 
-  // Optional "+ New …" action, kept at the end of the row but styled as an
-  // action rather than a selectable target.
-  if (onCreate) {
-    newButton = document.createElement('button');
-    newButton.type = 'button';
-    newButton.className = 'target-toggle-option target-toggle-new';
-    newButton.textContent = '+ New list';
-    newButton.addEventListener('click', () => onCreate());
-    optionsRow.appendChild(newButton);
+  // "+ New …" actions stay after the selectable targets and are styled as
+  // actions rather than one of the chips.
+  for (const action of actions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'target-toggle-option target-toggle-new';
+    button.dataset.action = action.id;
+    button.textContent = action.label;
+    button.addEventListener('click', () => action.onClick());
+    optionsRow.appendChild(button);
+    actionButtons.push(button);
   }
+  group.appendChild(optionsRow);
 
   sync();
 
   return {
     el: group,
     getValue: () => value,
-    /** Append a newly created target (keeping "+ New" last) and select it. */
+    /** Append a newly created target (keeping the "+ New" actions last). */
     addOption(option) {
       if (buttons.has(option.id)) return;
       const button = makeOption(option);
-      if (newButton) optionsRow.insertBefore(button, newButton);
+      if (actionButtons[0]) optionsRow.insertBefore(button, actionButtons[0]);
       else optionsRow.appendChild(button);
       buttons.set(option.id, button);
       sync();
