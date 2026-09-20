@@ -374,7 +374,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   badge's “1” and the printing picker's order always lead with the cheapest
   version; it also exposes `oldestPrinting`/`mostExpensivePrinting`/
   `fullArtPrinting` and the `selectPrinting(printings, mode)` that backs the
-  `defaultPrinting` setting.
+  `defaultPrinting` setting. `fullArtPrinting` also matches borderless and
+  showcase / extended-art frames, because Scryfall's `full_art` flag only covers
+  a small fraction of the premium printings.
   `idb.js` is the shared IndexedDB wrapper used by `responseCache.js` and
   `bulkData.js`; `pointer.js` answers "can this device hover?"; `viewport.js`
   publishes live toolbar height / keyboard inset as CSS variables;

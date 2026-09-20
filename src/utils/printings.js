@@ -53,9 +53,23 @@ export function mostExpensivePrinting(printings) {
   return best;
 }
 
-/** The cheapest full-art printing, or `null` when the card has none. */
+/**
+ * True when a printing is a premium "full art" treatment. Scryfall's `full_art`
+ * flag is very narrow (most showcase and borderless cards are `false`), so the
+ * borderless border and the showcase / extended-art frames count too — that is
+ * the "fancy version" a collector means by full art.
+ */
+function isFullArt(card) {
+  if (!card) return false;
+  if (card.full_art === true) return true;
+  if (card.border_color === 'borderless') return true;
+  const effects = card.frame_effects || [];
+  return effects.includes('showcase') || effects.includes('extendedart');
+}
+
+/** The cheapest full-art (incl. borderless / showcase) printing, or `null`. */
 export function fullArtPrinting(printings) {
-  return cheapestPrinting((printings || []).filter((card) => card?.full_art === true));
+  return cheapestPrinting((printings || []).filter(isFullArt));
 }
 
 /**

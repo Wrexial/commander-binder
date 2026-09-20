@@ -116,7 +116,19 @@ describe('fullArtPrinting', () => {
     expect(fullArtPrinting([plain, fullPricey, fullCheap])).toBe(fullCheap);
   });
 
-  it('returns null when the card has no full-art printing', () => {
+  it('treats borderless and showcase / extended-art frames as full art', () => {
+    const plain = { id: 'plain', prices: { eur: '1.00' } };
+    const borderless = { id: 'borderless', border_color: 'borderless', prices: { eur: '2.00' } };
+    const extended = { id: 'extended', frame_effects: ['extendedart'], prices: { eur: '3.00' } };
+    const showcase = {
+      id: 'showcase',
+      frame_effects: ['showcase', 'legendary'],
+      prices: { eur: '4.00' },
+    };
+    expect(fullArtPrinting([plain, showcase, extended, borderless])).toBe(borderless);
+  });
+
+  it('returns null when the card has no premium-art printing', () => {
     expect(fullArtPrinting([{ id: 'plain', full_art: false }])).toBeNull();
   });
 });

@@ -349,7 +349,7 @@ export function createSettingsModal() {
   displayGroup.appendChild(
     createSegmentedRow({
       label: 'Default printing',
-      hint: 'Which version to show when you have not picked one.',
+      hint: 'Which version to show by default. Full art includes showcase and borderless.',
       ariaLabel: 'Default printing',
       options: DEFAULT_PRINTING_OPTIONS,
       value: getSetting('defaultPrinting'),
