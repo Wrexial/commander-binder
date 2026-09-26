@@ -1,0 +1,1 @@
+ALTER TABLE "binders" ADD COLUMN "foils" text DEFAULT '{}' NOT NULL;

@@ -3141,6 +3141,45 @@ button.binder-slot-owned:focus-visible {
   padding: 0 4px;
 }
 
+/* Foil / Not foil tag, stacked under the quantity stepper. */
+.binder-slot-foil {
+  position: absolute;
+  top: 46px;
+  left: 4px;
+  z-index: 5;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(9, 12, 18, 0.82);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  cursor: default;
+}
+
+button.binder-slot-foil {
+  cursor: pointer;
+}
+
+button.binder-slot-foil:hover {
+  filter: brightness(1.1);
+}
+
+button.binder-slot-foil:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.binder-slot-foil.is-foil {
+  background: linear-gradient(180deg, #f4d06f, var(--accent));
+  border-color: var(--accent-strong);
+  color: #2a1e05;
+}
+
 .card.owned .edhrec-link {
   opacity: 1;
 }

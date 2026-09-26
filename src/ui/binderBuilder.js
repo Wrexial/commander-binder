@@ -11,6 +11,7 @@
  */
 import { cardStore, primaryName } from '../state/cardStore.js';
 import {
+  BINDER_SORT_OPTIONS,
   MAX_BINDER_COLUMNS,
   MAX_BINDER_PAGES,
   MAX_BINDER_ROWS,
@@ -29,6 +30,7 @@ import {
   getBinders,
   getSlotQuantity,
   isBinderCardOwned,
+  isSlotFoil,
   loadBinders,
   moveCardToFirstEmptySlot,
   moveSlot,
@@ -37,7 +39,9 @@ import {
   setActiveBinder,
   setSlotQuantity,
   slotKey,
+  sortBinder,
   toggleBinderOwned,
+  toggleSlotFoil,
   updateBinder,
 } from '../state/bindersState.js';
 import { createCardElement, updateCardState } from './cards.js';
@@ -141,6 +145,24 @@ function createQuantityControl(quantity, editable) {
 function appendQuantityControl(slot, binder, key, editable) {
   const control = createQuantityControl(getSlotQuantity(binder.id, key), editable);
   if (control) slot.appendChild(control);
+}
+
+/**
+ * The Foil/Not foil tag on a filled pocket. A button when editable, a static
+ * badge in a share view.
+ */
+function createFoilControl(foil, editable) {
+  const el = document.createElement(editable ? 'button' : 'span');
+  el.className = `binder-slot-foil ${foil ? 'is-foil' : 'is-nonfoil'}`;
+  el.textContent = foil ? 'Foil' : 'Not foil';
+  if (editable) {
+    el.type = 'button';
+    const label = foil ? 'Mark as not foil' : 'Mark as foil';
+    el.title = label;
+    el.setAttribute('aria-label', label);
+    el.setAttribute('aria-pressed', String(foil));
+  }
+  return el;
 }
 
 /**
@@ -260,7 +282,27 @@ function buildChrome(root) {
   const pages = numberField('Pages', 'bb-pages', { min: 1, max: MAX_BINDER_PAGES, value: 1 });
   dims.append(columns.el, rows.el, pages.el);
 
-  toolbar.append(nameField, deleteButton, publicField, dims);
+  // An action menu, not a stored setting: picking an order reflows the pockets
+  // once and then resets to the placeholder.
+  const sortField = document.createElement('label');
+  sortField.className = 'bb-field';
+  sortField.textContent = 'Arrange';
+  const sortSelect = document.createElement('select');
+  sortSelect.className = 'bb-sort';
+  sortSelect.setAttribute('aria-label', 'Sort binder cards');
+  const sortPlaceholder = document.createElement('option');
+  sortPlaceholder.value = '';
+  sortPlaceholder.textContent = 'Sort…';
+  sortSelect.appendChild(sortPlaceholder);
+  for (const option of BINDER_SORT_OPTIONS) {
+    const el = document.createElement('option');
+    el.value = option.id;
+    el.textContent = option.label;
+    sortSelect.appendChild(el);
+  }
+  sortField.appendChild(sortSelect);
+
+  toolbar.append(nameField, deleteButton, publicField, sortField, dims);
 
   const nav = document.createElement('div');
   nav.className = 'binder-builder-nav';
@@ -321,6 +363,8 @@ function buildChrome(root) {
     nameInput,
     deleteButton,
     publicInput,
+    sortField,
+    sortSelect,
     columns: columns.input,
     rows: rows.input,
     pages: pages.input,
@@ -398,6 +442,19 @@ function wireChrome() {
     const binder = getActiveBinder();
     if (!binder) return;
     await updateBinder(binder.id, { isPublic: refs.publicInput.checked });
+  });
+
+  refs.sortSelect.addEventListener('change', async () => {
+    const binder = getActiveBinder();
+    const sortKey = refs.sortSelect.value;
+    // The placeholder option is selected again right after, so "no change" is a
+    // no-op and the menu always reads as an action.
+    refs.sortSelect.value = '';
+    if (!binder || !sortKey) return;
+    const label = BINDER_SORT_OPTIONS.find((option) => option.id === sortKey)?.label || sortKey;
+    pendingMove = null;
+    await sortBinder(binder.id, sortKey);
+    showToast(`Sorted by ${label.toLowerCase()}.`, 'success');
   });
 
   const onDimChange = async () => {
@@ -567,6 +624,13 @@ function handlePageClick(event) {
     event.stopPropagation();
     const name = slotCardName(binder.slots[key]);
     if (name) toggleBinderOwned(binder.id, name);
+    return;
+  }
+
+  if (event.target.closest('.binder-slot-foil')) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleSlotFoil(binder.id, key);
     return;
   }
 
@@ -769,9 +833,11 @@ export function render() {
   refs.rows.disabled = !editable;
   refs.pages.disabled = !editable;
   refs.publicInput.disabled = !editable;
+  refs.sortSelect.disabled = !editable;
+  refs.sortField.hidden = !editable;
   refs.clearButton.hidden = !editable;
   refs.hint.textContent = editable
-    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Set copies with − / +, and tap Owned/Missing to track it in this binder.'
+    ? 'Tap an empty pocket to add a card; ⇄ move, ✕ remove, − / + set copies, Foil toggles the finish, and Owned/Missing tracks it in this binder. Use Arrange to sort the binder.'
     : 'View only — tap a card to preview it (←/→ or J/K to move through the grid).';
 
   if (pendingMove) {
@@ -815,6 +881,7 @@ export function render() {
         updateCardState(tile);
         slot.append(tile);
         appendQuantityControl(slot, binder, key, editable);
+        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), editable));
         slot.appendChild(
           createOwnedStatusControl(isBinderCardOwned(binder.id, primaryName(card)), editable)
         );
@@ -830,6 +897,7 @@ export function render() {
         unknown.textContent = name ? `${name} loading…` : 'Loading card…';
         slot.append(unknown);
         appendQuantityControl(slot, binder, key, editable);
+        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), editable));
         if (name) {
           slot.appendChild(createOwnedStatusControl(isBinderCardOwned(binder.id, name), editable));
         }

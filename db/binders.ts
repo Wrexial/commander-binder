@@ -34,6 +34,9 @@ export const binders = pgTable(
     // JSON object `{ "0:0:0": 4, ... }` — how many copies a pocket holds. Sparse:
     // only pockets holding more than one copy are listed.
     quantities: text('quantities').default('{}').notNull(),
+    // JSON object `{ "0:0:0": true, ... }` — pockets whose copy is foil. Sparse:
+    // only foil pockets are listed.
+    foils: text('foils').default('{}').notNull(),
     // JSON array of front-face card names the owner marked "owned" *within this
     // binder* — a separate data stream from the account collection, so a binder
     // can be pre-built and tracked on its own.

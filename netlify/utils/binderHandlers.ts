@@ -8,12 +8,14 @@ import { getUserId, unauthorized } from './auth';
 import {
   MAX_BINDERS,
   parseBinderDimensions,
+  parseBinderFoils,
   parseBinderId,
   parseBinderName,
   parseBinderOwned,
   parseBinderQuantities,
   parseBinderSlots,
   parseMergeBinders,
+  type BinderFoils,
   type BinderOwned,
   type BinderQuantities,
   type BinderSlots,
@@ -32,6 +34,7 @@ export type ClientBinder = {
   isPublic: boolean;
   slots: BinderSlots;
   quantities: BinderQuantities;
+  foils: BinderFoils;
   owned: BinderOwned;
   createdAt: string;
   updatedAt: string;
@@ -51,6 +54,16 @@ function parseStoredSlots(text: string): BinderSlots {
 function parseStoredQuantities(text: string): BinderQuantities {
   try {
     const parsed = parseBinderQuantities(JSON.parse(text));
+    return parsed.ok ? parsed.value : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Parse a stored foils JSON blob defensively (a corrupt row becomes empty). */
+function parseStoredFoils(text: string): BinderFoils {
+  try {
+    const parsed = parseBinderFoils(JSON.parse(text));
     return parsed.ok ? parsed.value : {};
   } catch {
     return {};
@@ -93,6 +106,7 @@ async function collectBinders(
       isPublic: row.isPublic,
       slots: parseStoredSlots(row.slots),
       quantities: parseStoredQuantities(row.quantities),
+      foils: parseStoredFoils(row.foils),
       owned: parseStoredOwned(row.owned),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -157,6 +171,8 @@ export async function createBinder(event: HandlerEvent) {
   if (!slots.ok) return badRequest(slots.message);
   const quantities = parseBinderQuantities(parsed.value.quantities);
   if (!quantities.ok) return badRequest(quantities.message);
+  const foils = parseBinderFoils(parsed.value.foils);
+  if (!foils.ok) return badRequest(foils.message);
   const owned = parseBinderOwned(parsed.value.owned);
   if (!owned.ok) return badRequest(owned.message);
   const isPublic = parseIsPublic(parsed.value.isPublic);
@@ -185,6 +201,7 @@ export async function createBinder(event: HandlerEvent) {
       isPublic: isPublic.value,
       slots: JSON.stringify(slots.value),
       quantities: JSON.stringify(quantities.value),
+      foils: JSON.stringify(foils.value),
       owned: JSON.stringify(owned.value),
     })
     .onConflictDoNothing();
@@ -211,13 +228,16 @@ export async function updateBinder(event: HandlerEvent) {
   const dimensions = parseBinderDimensions(parsed.value);
   if (!dimensions.ok) return badRequest(dimensions.message);
 
-  // A missing `slots`/`quantities`/`owned`/`isPublic` leaves the stored value untouched.
+  // A missing `slots`/`quantities`/`foils`/`owned`/`isPublic` leaves the stored value untouched.
   const hasSlots = parsed.value.slots !== undefined;
   const slots = hasSlots ? parseBinderSlots(parsed.value.slots) : null;
   if (slots && !slots.ok) return badRequest(slots.message);
   const hasQuantities = parsed.value.quantities !== undefined;
   const quantities = hasQuantities ? parseBinderQuantities(parsed.value.quantities) : null;
   if (quantities && !quantities.ok) return badRequest(quantities.message);
+  const hasFoils = parsed.value.foils !== undefined;
+  const foils = hasFoils ? parseBinderFoils(parsed.value.foils) : null;
+  if (foils && !foils.ok) return badRequest(foils.message);
   const hasOwned = parsed.value.owned !== undefined;
   const owned = hasOwned ? parseBinderOwned(parsed.value.owned) : null;
   if (owned && !owned.ok) return badRequest(owned.message);
@@ -241,6 +261,7 @@ export async function updateBinder(event: HandlerEvent) {
   };
   if (hasSlots && slots?.ok) patch.slots = JSON.stringify(slots.value);
   if (hasQuantities && quantities?.ok) patch.quantities = JSON.stringify(quantities.value);
+  if (hasFoils && foils?.ok) patch.foils = JSON.stringify(foils.value);
   if (hasOwned && owned?.ok) patch.owned = JSON.stringify(owned.value);
   if (hasPublic && isPublic?.ok) patch.isPublic = isPublic.value;
 
@@ -297,6 +318,7 @@ export async function mergeBinders(event: HandlerEvent) {
         isPublic: binder.isPublic,
         slots: binder.slots,
         quantities: binder.quantities,
+        foils: binder.foils,
         owned: binder.owned,
       },
     ])
@@ -311,10 +333,14 @@ export async function mergeBinders(event: HandlerEvent) {
       for (const [key, id] of Object.entries(binder.slots)) {
         if (!(key in mergedSlots)) mergedSlots[key] = id;
       }
-      // Quantities follow the same rule: a server pocket keeps its count.
+      // Quantities and foil marks follow the same rule: a server pocket keeps its.
       const mergedQuantities = { ...match.quantities };
       for (const [key, count] of Object.entries(binder.quantities)) {
         if (!(key in mergedQuantities) && mergedSlots[key]) mergedQuantities[key] = count;
+      }
+      const mergedFoils = { ...match.foils };
+      for (const key of Object.keys(binder.foils)) {
+        if (!(key in mergedFoils) && mergedSlots[key]) mergedFoils[key] = true;
       }
       // Owned markers are a union: guest-only marks are kept.
       const mergedOwned = [...new Set([...match.owned, ...binder.owned])];
@@ -327,6 +353,7 @@ export async function mergeBinders(event: HandlerEvent) {
           isPublic: match.isPublic || binder.isPublic,
           slots: JSON.stringify(mergedSlots),
           quantities: JSON.stringify(mergedQuantities),
+          foils: JSON.stringify(mergedFoils),
           owned: JSON.stringify(mergedOwned),
           updatedAt: new Date(),
         })
@@ -345,6 +372,7 @@ export async function mergeBinders(event: HandlerEvent) {
       isPublic: binder.isPublic,
       slots: binder.slots,
       quantities: binder.quantities,
+      foils: binder.foils,
       owned: binder.owned,
     });
     await db.insert(binders).values({
@@ -357,6 +385,7 @@ export async function mergeBinders(event: HandlerEvent) {
       isPublic: binder.isPublic,
       slots: JSON.stringify(binder.slots),
       quantities: JSON.stringify(binder.quantities),
+      foils: JSON.stringify(binder.foils),
       owned: JSON.stringify(binder.owned),
     });
   }

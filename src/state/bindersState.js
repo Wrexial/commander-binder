@@ -114,11 +114,27 @@ function sanitizeQuantities(source, slots) {
   return clean;
 }
 
+/** Keep only foil marks that point at an occupied slot. */
+function sanitizeFoils(source, slots) {
+  const clean = {};
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return clean;
+  for (const [key, value] of Object.entries(source)) {
+    if (slots[key] && (value === true || value === 1 || value === 'true')) clean[key] = true;
+  }
+  return clean;
+}
+
 /** Copies held by one pocket (1 unless a count is stored, 0 when empty). */
 export function getSlotQuantity(binderId, key) {
   const binder = binders.get(binderId);
   if (!binder || !binder.slots[key]) return 0;
   return binder.quantities[key] || 1;
+}
+
+/** True when the pocket's copy is marked foil. */
+export function isSlotFoil(binderId, key) {
+  const binder = binders.get(binderId);
+  return Boolean(binder && binder.slots[key] && binder.foils[key]);
 }
 
 /** Set/clear one pocket's count in memory (only counts above one are stored). */
@@ -154,6 +170,7 @@ function normalizeBinder(record) {
     isPublic: Boolean(record.isPublic),
     slots,
     quantities: sanitizeQuantities(record.quantities, slots),
+    foils: sanitizeFoils(record.foils, slots),
     // Binder-scoped owned markers, separate from the account collection.
     owned: sanitizeOwned(record.owned),
     createdAt: record.createdAt || now,
@@ -172,6 +189,7 @@ function toRecord(binder) {
     isPublic: binder.isPublic,
     slots: { ...binder.slots },
     quantities: { ...binder.quantities },
+    foils: { ...binder.foils },
     owned: [...binder.owned],
     createdAt: binder.createdAt,
     updatedAt: binder.updatedAt,
@@ -546,6 +564,7 @@ export async function createBinder({
           isPublic: publicFlag,
           slots: {},
           quantities: {},
+          foils: {},
           owned: [],
         })
       );
@@ -616,6 +635,7 @@ export async function resizeBinder(id, dims = {}) {
   // carries its per-pocket count so the copies are never lost.
   const keptSlots = {};
   const keptQuantities = {};
+  const keptFoils = {};
   const displaced = [];
   for (const key of sortedSlotKeys(binder)) {
     const parsed = parseSlotKey(key);
@@ -623,14 +643,20 @@ export async function resizeBinder(id, dims = {}) {
     if (parsed.page < pages && parsed.row < rows && parsed.col < columns) {
       keptSlots[key] = binder.slots[key];
       if (binder.quantities[key] > 1) keptQuantities[key] = binder.quantities[key];
+      if (binder.foils[key]) keptFoils[key] = true;
     } else {
-      displaced.push({ id: binder.slots[key], qty: binder.quantities[key] || 1 });
+      displaced.push({
+        id: binder.slots[key],
+        qty: binder.quantities[key] || 1,
+        foil: Boolean(binder.foils[key]),
+      });
     }
   }
 
   // Shift displaced cards into the first free pockets, page → row → column.
   const slots = { ...keptSlots };
   const quantities = { ...keptQuantities };
+  const foils = { ...keptFoils };
   let placed = 0;
   for (let page = 0; page < pages && placed < displaced.length; page++) {
     for (let row = 0; row < rows && placed < displaced.length; row++) {
@@ -640,6 +666,7 @@ export async function resizeBinder(id, dims = {}) {
         const card = displaced[placed++];
         slots[key] = card.id;
         if (card.qty > 1) quantities[key] = card.qty;
+        if (card.foil) foils[key] = true;
       }
     }
   }
@@ -653,6 +680,7 @@ export async function resizeBinder(id, dims = {}) {
   binder.pages = pages;
   binder.slots = slots;
   binder.quantities = quantities;
+  binder.foils = foils;
   // Persist the source before creating anything else: the create path can
   // rebuild the in-memory registry from the server's reply.
   await commit(binder, { silent: true });
@@ -693,6 +721,7 @@ export async function resizeBinder(id, dims = {}) {
         }
         fallback.slots[key] = card.id;
         if (card.qty > 1) fallback.quantities[key] = card.qty;
+        if (card.foil) fallback.foils[key] = true;
       }
       await commit(fallback, { silent: true });
       break;
@@ -707,6 +736,7 @@ export async function resizeBinder(id, dims = {}) {
       const key = slotKey(page, Math.floor(within / columns), within % columns);
       target.slots[key] = card.id;
       if (card.qty > 1) target.quantities[key] = card.qty;
+      if (card.foil) target.foils[key] = true;
       moved += card.qty;
     });
     await commit(target, { silent: true });
@@ -837,9 +867,10 @@ export async function assignCardToSlot(binderId, key, printingId) {
   const binder = binders.get(binderId);
   if (!binder || !parseSlotKey(key) || typeof printingId !== 'string' || !printingId) return null;
   binder.slots[key] = printingId;
-  // A freshly placed card holds one copy; any old count belonged to the card
-  // that just left the pocket.
+  // A freshly placed card holds one copy and is non-foil; any old count/foil
+  // belonged to the card that just left the pocket.
   setQuantityInternal(binder, key, 1);
+  delete binder.foils[key];
   return commit(binder);
 }
 
@@ -850,6 +881,7 @@ export async function clearSlot(binderId, key) {
   if (!binder || !(key in binder.slots)) return null;
   delete binder.slots[key];
   delete binder.quantities[key];
+  delete binder.foils[key];
   return commit(binder);
 }
 
@@ -865,7 +897,24 @@ export async function setSlotQuantity(binderId, key, quantity) {
   return commit(binder);
 }
 
-/** Move a card (and its count) to another slot, swapping when occupied. */
+/**
+ * Flip a pocket's foil mark. Accepts every copy in the pocket as one finish.
+ *
+ * @returns {Promise<boolean|null>} the new foil state, or null when invalid.
+ */
+export async function toggleSlotFoil(binderId, key) {
+  if (!canEditBinders()) return null;
+  const binder = binders.get(binderId);
+  if (!binder || !parseSlotKey(key) || !binder.slots[key]) return null;
+
+  const next = !binder.foils[key];
+  if (next) binder.foils[key] = true;
+  else delete binder.foils[key];
+  await commit(binder);
+  return next;
+}
+
+/** Move a card (and its count/foil) to another slot, swapping when occupied. */
 export async function moveSlot(binderId, fromKey, toKey) {
   if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
@@ -876,20 +925,27 @@ export async function moveSlot(binderId, fromKey, toKey) {
   if (!moving) return null;
 
   const movingQty = binder.quantities[fromKey] || 1;
+  const movingFoil = Boolean(binder.foils[fromKey]);
   const target = binder.slots[toKey];
   const targetQty = binder.quantities[toKey] || 1;
+  const targetFoil = Boolean(binder.foils[toKey]);
 
   binder.slots[toKey] = moving;
   if (movingQty > 1) binder.quantities[toKey] = movingQty;
   else delete binder.quantities[toKey];
+  if (movingFoil) binder.foils[toKey] = true;
+  else delete binder.foils[toKey];
 
   if (target) {
     binder.slots[fromKey] = target;
     if (targetQty > 1) binder.quantities[fromKey] = targetQty;
     else delete binder.quantities[fromKey];
+    if (targetFoil) binder.foils[fromKey] = true;
+    else delete binder.foils[fromKey];
   } else {
     delete binder.slots[fromKey];
     delete binder.quantities[fromKey];
+    delete binder.foils[fromKey];
   }
 
   return commit(binder);
@@ -926,6 +982,7 @@ export async function moveCardToFirstEmptySlot(fromBinderId, fromKey, toBinderId
   const printingId = from.slots[fromKey];
   if (!printingId) return null;
   const copies = from.quantities[fromKey] || 1;
+  const foil = Boolean(from.foils[fromKey]);
 
   let targetKey = firstEmptySlotKey(to);
   if (!targetKey) {
@@ -936,9 +993,12 @@ export async function moveCardToFirstEmptySlot(fromBinderId, fromKey, toBinderId
 
   delete from.slots[fromKey];
   delete from.quantities[fromKey];
+  delete from.foils[fromKey];
   to.slots[targetKey] = printingId;
   if (copies > 1) to.quantities[targetKey] = copies;
   else delete to.quantities[targetKey];
+  if (foil) to.foils[targetKey] = true;
+  else delete to.foils[targetKey];
 
   const now = new Date().toISOString();
   from.updatedAt = now;
@@ -968,6 +1028,7 @@ export async function clearPage(binderId, page) {
     if (parsed && parsed.page === page) {
       delete binder.slots[key];
       delete binder.quantities[key];
+      delete binder.foils[key];
       changed = true;
     }
   }
@@ -1037,6 +1098,7 @@ export async function addCardsToBinder(binderId, cards) {
         const item = queue.shift();
         binder.slots[key] = item.id;
         if (item.copies > 1) binder.quantities[key] = Math.min(item.copies, MAX_CARD_QUANTITY);
+        delete binder.foils[key];
       }
     }
     page += 1;
@@ -1050,6 +1112,88 @@ export async function addCardsToBinder(binderId, cards) {
   }
   await pushBinder(binder.id);
   return binder;
+}
+
+/** Sort orders the Binder Builder offers. */
+export const BINDER_SORT_OPTIONS = [
+  { id: 'name', label: 'Name' },
+  { id: 'set', label: 'Set number' },
+  { id: 'quantity', label: 'Quantity' },
+];
+
+/** The comparable fields of a pocket's card (unloaded cards sort by id last). */
+function cardSortFields(printingId) {
+  const card = cardStore.getByPrintingId(printingId);
+  if (!card) {
+    // A printing that hasn't hydrated yet has no set/number to compare; push it
+    // to the end of every order rather than letting its empty set sort first.
+    return { name: printingId, set: '\uffff', number: Number.POSITIVE_INFINITY, collector: '' };
+  }
+  return {
+    name: primaryName(card),
+    set: (card.set || '').toLowerCase(),
+    number: Number.parseInt(card.collector_number, 10),
+    collector: String(card.collector_number || ''),
+  };
+}
+
+function compareSortedEntries(a, b, sortKey) {
+  if (sortKey === 'quantity') {
+    if (b.qty !== a.qty) return b.qty - a.qty;
+    return a.fields.name.localeCompare(b.fields.name);
+  }
+  if (sortKey === 'set') {
+    if (a.fields.set !== b.fields.set) return a.fields.set.localeCompare(b.fields.set);
+    const an = Number.isFinite(a.fields.number) ? a.fields.number : Number.POSITIVE_INFINITY;
+    const bn = Number.isFinite(b.fields.number) ? b.fields.number : Number.POSITIVE_INFINITY;
+    if (an !== bn) return an - bn;
+    if (a.fields.collector !== b.fields.collector) {
+      return a.fields.collector.localeCompare(b.fields.collector);
+    }
+    return a.fields.name.localeCompare(b.fields.name);
+  }
+  return a.fields.name.localeCompare(b.fields.name);
+}
+
+/**
+ * Reorder a binder's occupied pockets in place (the empty pockets never move),
+ * so a binder can be browsed by name, by set + collector number, or by how many
+ * copies each pocket holds.
+ *
+ * @param {string} binderId
+ * @param {string} sortKey one of {@link BINDER_SORT_OPTIONS}
+ * @returns {Promise<object|null>} the updated binder
+ */
+export async function sortBinder(binderId, sortKey = 'name') {
+  if (!canEditBinders()) return null;
+  const binder = binders.get(binderId);
+  if (!binder) return null;
+  const key = BINDER_SORT_OPTIONS.some((option) => option.id === sortKey) ? sortKey : 'name';
+
+  const keys = sortedSlotKeys(binder);
+  if (keys.length < 2) return binder;
+
+  const entries = keys.map((slot) => ({
+    id: binder.slots[slot],
+    qty: binder.quantities[slot] || 1,
+    foil: Boolean(binder.foils[slot]),
+    fields: cardSortFields(binder.slots[slot]),
+  }));
+  entries.sort((a, b) => compareSortedEntries(a, b, key));
+
+  const slots = {};
+  const quantities = {};
+  const foils = {};
+  keys.forEach((slot, index) => {
+    const entry = entries[index];
+    slots[slot] = entry.id;
+    if (entry.qty > 1) quantities[slot] = entry.qty;
+    if (entry.foil) foils[slot] = true;
+  });
+  binder.slots = slots;
+  binder.quantities = quantities;
+  binder.foils = foils;
+  return commit(binder);
 }
 
 /**

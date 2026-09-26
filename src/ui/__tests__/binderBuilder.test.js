@@ -214,6 +214,45 @@ describe('binderBuilder', () => {
     expect(document.querySelector('.binder-slot-qty-input').value).toBe('5');
   });
 
+  it('toggles a pocket foil tag', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot-foil')).not.toBeNull());
+
+    expect(document.querySelector('.binder-slot-foil').textContent).toBe('Not foil');
+    document.querySelector('.binder-slot-foil').click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot-foil').textContent).toBe('Foil')
+    );
+    expect(document.querySelector('.binder-slot-foil').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('sorts the occupied pockets by set number through the Arrange menu', async () => {
+    cardStore.getByPrintingId.mockImplementation((id) => {
+      const cards = {
+        'card-a': { id: 'card-a', name: 'Card A', set: 'lea', collector_number: '200' },
+        'card-b': { id: 'card-b', name: 'Card B', set: 'cmm', collector_number: '1' },
+      };
+      return cards[id] || null;
+    });
+
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-b');
+
+    const select = document.querySelector('.bb-sort');
+    select.value = 'set';
+    select.dispatchEvent(new Event('change'));
+
+    await vi.waitFor(() => expect(getBinder(binder.id).slots['0:0:0']).toBe('card-b'));
+    expect(getBinder(binder.id).slots['0:0:1']).toBe('card-a');
+    // The menu resets to its placeholder so it stays an action.
+    await vi.waitFor(() => expect(document.querySelector('.bb-sort').value).toBe(''));
+  });
+
   it('summarizes owned and missing quantities for the active binder', async () => {
     await mount();
     const binder = getActiveBinder();
@@ -567,6 +606,8 @@ describe('binderBuilder', () => {
     expect(document.querySelector('.binder-slot-owned').tagName).toBe('SPAN');
     expect(document.querySelector('.binder-slot-owned').textContent).toBe('Owned');
     expect(document.querySelector('.binder-slot-qty-value').textContent).toBe('×2');
+    expect(document.querySelector('.binder-slot-foil').tagName).toBe('SPAN');
+    expect(document.querySelector('.bb-sort').disabled).toBe(true);
   });
 
   it('shows an empty state when a share visitor has no public binders', async () => {

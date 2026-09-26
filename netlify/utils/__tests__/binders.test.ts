@@ -9,6 +9,7 @@ import {
   MAX_CARD_QUANTITY,
   parseBinderDimension,
   parseBinderDimensions,
+  parseBinderFoils,
   parseBinderId,
   parseBinderName,
   parseBinderOwned,
@@ -121,6 +122,25 @@ describe('parseBinderQuantities', () => {
   });
 });
 
+describe('parseBinderFoils', () => {
+  it('defaults to an empty map', () => {
+    expect(parseBinderFoils(undefined)).toEqual({ ok: true, value: {} });
+    expect(parseBinderFoils(null)).toEqual({ ok: true, value: {} });
+  });
+
+  it('keeps only truthy foil marks', () => {
+    expect(parseBinderFoils({ '0:0:0': true, '0:0:1': false, '0:0:2': 1 })).toEqual({
+      ok: true,
+      value: { '0:0:0': true, '0:0:2': true },
+    });
+  });
+
+  it('rejects non-objects and bad keys', () => {
+    expect(parseBinderFoils([]).ok).toBe(false);
+    expect(parseBinderFoils({ bad: true }).ok).toBe(false);
+  });
+});
+
 describe('parseBinderOwned', () => {
   it('defaults to an empty list', () => {
     expect(parseBinderOwned(undefined)).toEqual({ ok: true, value: [] });
@@ -156,6 +176,7 @@ describe('parseMergeBinders', () => {
         pages: 2,
         slots: { '0:0:0': 'a' },
         quantities: { '0:0:0': 4 },
+        foils: { '0:0:0': true },
         owned: ['Sol Ring'],
         isPublic: true,
       },
@@ -170,6 +191,7 @@ describe('parseMergeBinders', () => {
           pages: 2,
           slots: { '0:0:0': 'a' },
           quantities: { '0:0:0': 4 },
+          foils: { '0:0:0': true },
           owned: ['Sol Ring'],
           isPublic: true,
         },
@@ -188,6 +210,7 @@ describe('parseMergeBinders', () => {
           pages: 1,
           slots: {},
           quantities: {},
+          foils: {},
           owned: [],
           isPublic: false,
         },

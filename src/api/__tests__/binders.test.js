@@ -54,6 +54,7 @@ describe('binders API', () => {
       pages: 2,
       slots: { '0:0:0': 'card-a' },
       quantities: { '0:0:0': 4 },
+      foils: { '0:0:0': true },
       owned: ['Sol Ring'],
       isPublic: true,
     });
@@ -68,6 +69,7 @@ describe('binders API', () => {
       pages: 2,
       slots: { '0:0:0': 'card-a' },
       quantities: { '0:0:0': 4 },
+      foils: { '0:0:0': true },
       owned: ['Sol Ring'],
       isPublic: true,
     });
@@ -85,7 +87,12 @@ describe('binders API', () => {
   });
 
   it('passes the binder-owned markers through an update', async () => {
-    await updateBinder('b1', { name: 'Trade', owned: ['Island'], quantities: { '0:0:0': 3 } });
+    await updateBinder('b1', {
+      name: 'Trade',
+      owned: ['Island'],
+      quantities: { '0:0:0': 3 },
+      foils: { '0:0:0': true },
+    });
 
     expect(sentBody()).toEqual({
       action: 'update',
@@ -93,6 +100,7 @@ describe('binders API', () => {
       name: 'Trade',
       owned: ['Island'],
       quantities: { '0:0:0': 3 },
+      foils: { '0:0:0': true },
     });
   });
 

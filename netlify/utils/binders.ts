@@ -26,6 +26,9 @@ export type BinderSlots = Record<string, string>;
 /** How many copies each pocket holds; sparse (only counts above one). */
 export type BinderQuantities = Record<string, number>;
 
+/** Pockets whose copy is foil; sparse (only foil pockets are listed). */
+export type BinderFoils = Record<string, true>;
+
 /** Card names (front face) the owner marked owned inside one binder. */
 export type BinderOwned = string[];
 
@@ -169,6 +172,32 @@ export function parseBinderQuantities(value: unknown): ParseResult<BinderQuantit
 }
 
 /**
+ * Validate a `foils` payload (`"page:row:col" -> true`). A missing value becomes
+ * an empty map; only truthy entries are kept, so the map stays sparse.
+ */
+export function parseBinderFoils(value: unknown): ParseResult<BinderFoils> {
+  if (value === undefined || value === null) return { ok: true, value: {} };
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return { ok: false, message: "'foils' must be an object." };
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length > MAX_BINDER_SLOTS) {
+    return { ok: false, message: `'foils' is limited to ${MAX_BINDER_SLOTS} entries.` };
+  }
+
+  const foils: BinderFoils = {};
+  for (const [key, raw] of entries) {
+    if (!SLOT_KEY.test(key)) {
+      return { ok: false, message: `Invalid foil key '${key}'.` };
+    }
+    if (raw === true || raw === 1 || raw === 'true') foils[key] = true;
+  }
+
+  return { ok: true, value: foils };
+}
+
+/**
  * Validate an `owned` payload: the front-face card names the owner marked owned
  * inside this binder. A missing value becomes an empty list. Names are trimmed,
  * de-duplicated and capped so a malformed array can't bloat a request/row.
@@ -204,6 +233,7 @@ export type MergeBinder = {
   pages: number;
   slots: BinderSlots;
   quantities: BinderQuantities;
+  foils: BinderFoils;
   owned: BinderOwned;
   isPublic: boolean;
 };
@@ -236,6 +266,8 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
     if (!slots.ok) return slots;
     const quantities = parseBinderQuantities(record.quantities);
     if (!quantities.ok) return quantities;
+    const foils = parseBinderFoils(record.foils);
+    if (!foils.ok) return foils;
     const owned = parseBinderOwned(record.owned);
     if (!owned.ok) return owned;
     const isPublic = parseIsPublic(record.isPublic);
@@ -248,6 +280,7 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
       pages: dimensions.value.pages,
       slots: slots.value,
       quantities: quantities.value,
+      foils: foils.value,
       owned: owned.value,
       isPublic: isPublic.value,
     });

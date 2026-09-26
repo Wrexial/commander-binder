@@ -181,7 +181,10 @@ new key there too.
   `getBinderSlotCards` returns one card per copy (a pocket's quantity is
   repeated) and `getBinderQuantity` is the summed copy total for the builder's
   count chip; `getSlotQuantity`/`setSlotQuantity` back the per-pocket −/input/+
-  stepper (counts above one stored sparsely in `binder.quantities`). The export
+  stepper (counts above one stored sparsely in `binder.quantities`) and
+  `isSlotFoil`/`toggleSlotFoil` back the Foil/Not foil tag (`binder.foils`).
+  `sortBinder` reorders the occupied pockets in place by name, set + collector
+  number or quantity (`BINDER_SORT_OPTIONS`); empty pockets never move. The export
   serializers use the aggregated `count` so a pre-built binder exports
   `2 Lightning Bolt`, and `Bulk Add` turns a pasted `7 Island` into one pocket of
   seven, so quantities round-trip. Each
@@ -325,12 +328,13 @@ new key there too.
   `cards.js` tiles in layout-only mode (`createCardElement(card, index,
 { collection: false })`): pockets carry no collection controls or styling
   and a tap never edits the collection (those stay on the browse grid), but each
-  filled pocket has a `.binder-slot-owned` button and a `.binder-slot-qty`
-  stepper (rendered by `binderBuilder.js`,
-  not `cards.js`) that toggle the binder's own owned marker and set the pocket's
-  copy count, repainting on `binders:changed`; a share view renders both as
-  static badges, and
-  the long-press preview still works with the collection badges hidden. Each
+  filled pocket has a `.binder-slot-owned` button, a `.binder-slot-qty`
+  stepper and a `.binder-slot-foil` tag (rendered by `binderBuilder.js`,
+  not `cards.js`) that toggle the binder's own owned marker, set the pocket's
+  copy count and mark its finish, repainting on `binders:changed`; a share view
+  renders them as static badges, and
+  the long-press preview still works with the collection badges hidden. The
+  toolbar's “Arrange” menu sorts the pockets (`sortBinder`). Each
   pocket pins its own exact printing). A pocket whose printing is not loaded
   yet renders its all-cards catalog name as “<name> loading…” (else “Loading
   card…”) instead of a dead “unavailable”; the background hydration, the
@@ -477,7 +481,7 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
 - `netlify/utils/binderHandlers.ts` + `netlify/utils/binders.ts` — the Binder
   Builder read/create/update/delete/merge handlers and their payload validation
   (`MAX_BINDERS`, grid bounds, `MAX_BINDER_SLOTS`/bytes, `MAX_BINDER_OWNED`,
-  `MAX_CARD_QUANTITY`).
+  `MAX_CARD_QUANTITY`), plus the `foils`/`quantities`/`owned` map validators.
   `readBinders` takes a
   `shareToken` as a read capability (via `resolveReadUser`) and returns only
   binders marked public;
@@ -573,7 +577,8 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   named lists, `0005` adds `binders` for the Binder Builder layouts, `0006` adds
   `binders.is_public` for the share link, `0007` adds `binders.owned` for the
   binder-scoped owned markers, `0008` adds `binders.quantities` for the
-  per-pocket copy counts). If the Neon
+  per-pocket copy counts, `0009` adds `binders.foils` for the per-pocket foil
+  marks). If the Neon
   database
   was created outside Drizzle, baseline existing migrations before
   `npm run db:migrate`, otherwise it fails with "table already exists".

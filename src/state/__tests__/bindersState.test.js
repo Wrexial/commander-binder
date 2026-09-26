@@ -367,6 +367,56 @@ describe('bindersState', () => {
     expect(getSlotQuantity(binder.id, '0:0:0')).toBe(999);
   });
 
+  it('toggles a pocket foil mark and carries it through a move', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, isSlotFoil, moveSlot, toggleSlotFoil } =
+      await load();
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    expect(isSlotFoil(binder.id, '0:0:0')).toBe(false);
+    await toggleSlotFoil(binder.id, '0:0:0');
+    expect(isSlotFoil(binder.id, '0:0:0')).toBe(true);
+    expect(local.records[0].foils).toEqual({ '0:0:0': true });
+
+    await moveSlot(binder.id, '0:0:0', '0:1:0');
+    expect(isSlotFoil(binder.id, '0:1:0')).toBe(true);
+    expect(isSlotFoil(binder.id, '0:0:0')).toBe(false);
+  });
+
+  it('sorts occupied pockets by set number and by quantity', async () => {
+    const {
+      loadBinders,
+      getActiveBinder,
+      assignCardToSlot,
+      getSlotQuantity,
+      setSlotQuantity,
+      sortBinder,
+    } = await load();
+    cardStore.add({ id: 'bolt', name: 'Lightning Bolt', set: 'lea', collector_number: '161' });
+    cardStore.add({ id: 'ring', name: 'Sol Ring', set: 'cmm', collector_number: '342' });
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    // Occupied keys 0:0:0 and 0:0:2, with a gap at 0:0:1.
+    await assignCardToSlot(binder.id, '0:0:0', 'bolt'); // LEA 161
+    await assignCardToSlot(binder.id, '0:0:2', 'ring'); // CMM 342
+    await setSlotQuantity(binder.id, '0:0:0', 3);
+
+    // Set-number order is CMM before LEA, and the count follows its card.
+    await sortBinder(binder.id, 'set');
+    expect(binder.slots['0:0:0']).toBe('ring');
+    expect(binder.slots['0:0:2']).toBe('bolt');
+    expect(getSlotQuantity(binder.id, '0:0:2')).toBe(3);
+    // Empty pockets never move.
+    expect(binder.slots['0:0:1']).toBeUndefined();
+
+    // Quantity order puts the pocket holding three copies first.
+    await sortBinder(binder.id, 'quantity');
+    expect(binder.slots['0:0:0']).toBe('bolt');
+    expect(binder.slots['0:0:2']).toBe('ring');
+  });
+
   it('refuses to rename a binder to an existing name', async () => {
     const { loadBinders, createBinder, updateBinder, getBinders, getBinderByName } = await load();
     await loadBinders();

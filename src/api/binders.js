@@ -13,7 +13,17 @@ export function fetchBinders({ shareToken } = {}) {
 }
 
 /** Create a binder. */
-export function createBinder({ name, columns, rows, pages, slots, quantities, owned, isPublic }) {
+export function createBinder({
+  name,
+  columns,
+  rows,
+  pages,
+  slots,
+  quantities,
+  foils,
+  owned,
+  isPublic,
+}) {
   return requestBinders(MANAGE_PATH, {
     action: 'create',
     name,
@@ -22,15 +32,16 @@ export function createBinder({ name, columns, rows, pages, slots, quantities, ow
     pages,
     slots,
     quantities,
+    foils,
     owned,
     isPublic,
   });
 }
 
-/** Rename/edit/re-dimension a binder and/or replace its slots, counts, owned flags and visibility. */
+/** Rename/edit/re-dimension a binder and/or replace its slots, counts, foils, owned flags and visibility. */
 export function updateBinder(
   binderId,
-  { name, columns, rows, pages, slots, quantities, owned, isPublic }
+  { name, columns, rows, pages, slots, quantities, foils, owned, isPublic }
 ) {
   return requestBinders(MANAGE_PATH, {
     action: 'update',
@@ -41,6 +52,7 @@ export function updateBinder(
     pages,
     slots,
     quantities,
+    foils,
     owned,
     isPublic,
   });
