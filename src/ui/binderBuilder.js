@@ -508,6 +508,13 @@ function wireChrome() {
     const binder = getActiveBinder();
     if (!binder) return;
     pendingMove = null;
+    const ok = await confirmDialog({
+      title: 'Clear page?',
+      message: `Remove every card from page ${activePage + 1} of “${binder.name}”?`,
+      confirmText: 'Clear page',
+      danger: true,
+    });
+    if (!ok) return;
     await clearPage(binder.id, activePage);
     showToast(`Page ${activePage + 1} cleared.`, 'success');
   });

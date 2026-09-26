@@ -67,6 +67,7 @@ vi.mock('../components/printingPickerModal.js', () => ({
 }));
 
 vi.mock('../components/toast.js', () => ({ showToast: vi.fn() }));
+vi.mock('../components/confirmDialog.js', () => ({ confirmDialog: vi.fn(async () => true) }));
 
 vi.mock('../../api/cardSearch.js', () => ({
   hydrateCardsByIds: vi.fn(async () => []),
@@ -98,6 +99,7 @@ import {
 import { mainState } from '../../state/mainState.js';
 import { fetchBinders } from '../../api/binders.js';
 import { createCardElement } from '../cards.js';
+import { confirmDialog } from '../components/confirmDialog.js';
 import { cardStore } from '../../state/cardStore.js';
 import { hydrateCardsByIds } from '../../api/cardSearch.js';
 import { resetCardCatalog, setCardCatalog } from '../../state/cardCatalog.js';
@@ -516,6 +518,21 @@ describe('binderBuilder', () => {
     await vi.waitFor(() => {
       expect(getActiveBinder().slots['1:0:0']).toBeUndefined();
     });
+  });
+
+  it('asks before clearing a page and keeps the cards when dismissed', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot.is-filled')).not.toBeNull());
+
+    confirmDialog.mockResolvedValueOnce(false);
+    document.querySelector('.bb-clear-page').click();
+
+    await vi.waitFor(() =>
+      expect(confirmDialog).toHaveBeenCalledWith(expect.objectContaining({ title: 'Clear page?' }))
+    );
+    expect(getActiveBinder().slots['0:0:0']).toBe('card-a');
   });
 
   it('renames the active binder', async () => {
