@@ -338,6 +338,51 @@ describe('addCardsModal', () => {
     expect(primary().textContent).toBe('Add 1 card');
   });
 
+  it('selects the printing from a supplied set code without a collector number', async () => {
+    const lea = { id: 'id-lea', name: 'Sol Ring', set: 'lea', collector_number: '232' };
+    const cmm = { id: 'id-cmm', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
+    cardStore.getAll.mockReturnValue([lea, atraxa]);
+    cardStore.getPrintings.mockImplementation((name) =>
+      name === 'Sol Ring' ? [lea, cmm] : [atraxa]
+    );
+
+    createAddCardsModal().show();
+    paste('Sol Ring (CMM)');
+    primary().click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // The name index would have handed back the LEA printing; the set code wins.
+    expect(setCardsOwned).toHaveBeenCalledWith([cmm], true);
+  });
+
+  it('loads the requested set\u2019s printing when it is not in the store yet', async () => {
+    const lea = { id: 'id-lea', name: 'Sol Ring', set: 'lea', collector_number: '232' };
+    const cmm = { id: 'id-cmm', name: 'Sol Ring', set: 'cmm', collector_number: '342' };
+    cardStore.getAll.mockReturnValue([lea, atraxa]);
+    cardStore.getPrintings.mockImplementation((name) => (name === 'Sol Ring' ? [lea] : [atraxa]));
+    loadPrintingsForNames.mockImplementation(async () => {
+      cardStore.getPrintings.mockImplementation((name) =>
+        name === 'Sol Ring' ? [lea, cmm] : [atraxa]
+      );
+      return true;
+    });
+
+    createAddCardsModal().show();
+    textArea().value = 'Sol Ring (CMM)';
+    textArea().dispatchEvent(new Event('input'));
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(loadPrintingsForNames).toHaveBeenCalledWith(['Sol Ring']);
+
+    primary().click();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(setCardsOwned).toHaveBeenCalledWith([cmm], true);
+  });
+
   it('reads the pasted text from a chosen file', async () => {
     createAddCardsModal().show();
 

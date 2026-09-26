@@ -164,6 +164,13 @@ describe('parseCollection', () => {
     expect(entries.map((entry) => entry.name)).toEqual(['Sol Ring', "Atraxa, Praetors' Voice"]);
   });
 
+  it('reads a set code without a collector number', () => {
+    const { entries } = parseCollection('1 Sol Ring (CMM)\nSol Ring (LEA)');
+
+    expect(entries[0]).toMatchObject({ name: 'Sol Ring', setCode: 'cmm', collectorNumber: '' });
+    expect(entries[1]).toMatchObject({ name: 'Sol Ring', setCode: 'lea', collectorNumber: '' });
+  });
+
   it('reports rows with an unusable quantity as skipped', () => {
     const { entries, skipped } = parseCollection('Name,Quantity\r\nSol Ring,0');
 

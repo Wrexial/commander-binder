@@ -298,7 +298,10 @@ new key there too.
   `cardCatalog` when they are not in `cardStore`, batching a fetch for the
   missing printings, and falls back to a live lookup while the catalog is still
   loading, so _any_ card can be added/checked — not only ones a binder already
-  hydrated. `isPendingName` distinguishes a real card that is still hydrating
+  hydrated. A supplied set code pins the printing: an exact set code +
+  collector number wins, otherwise that set's version of the name is used, and
+  `resolveMissingCards` fetches the name's printings when the requested set
+  isn't loaded yet (it also reads a set-only “1 Card (SET)” line). `isPendingName` distinguishes a real card that is still hydrating
   (shown as a pulsing “Loading…” group) from a genuine unknown, and picking a
   suggestion re-runs the resolver so the name moves into “Will add”/“Already in”
   without another keystroke; the copy/download actions also resolve pending names
@@ -431,7 +434,8 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   `compareCollections.js` is the pure card-level diff behind the share view;
   `collectionFormats.js` serializes/parses the CSV, Moxfield, Archidekt, MTG
   Arena, MTGO and plain-text files used by the export/import modals (parsing is
-  header-driven and tolerant); and
+  header-driven and tolerant, and a plain `1 Card (SET)` line still carries its
+  set code); and
   `sortCards.js` defines the sort options and the pure `sortCards`/`sortMark`
   helpers, including the WUBRG colour order.
 - `db/` — Drizzle schema (`schema.ts`, `userSettings.ts`, `shareLinks.ts`,

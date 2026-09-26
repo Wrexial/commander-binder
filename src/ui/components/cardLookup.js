@@ -37,20 +37,34 @@ function refreshNameIndex(nameIndex) {
 }
 
 /**
- * Resolve a parsed entry to a store card: the exact set/collector printing when
- * known, else the pasted text verbatim (so a name that genuinely starts with a
- * number still matches), else the quantity-stripped name.
+ * Resolve a parsed entry to a store card, preferring the exact printing the
+ * entry names. Order of precedence:
+ *   1. set code + collector number (an exact printing),
+ *   2. set code alone (that set's printing of the name),
+ *   3. the pasted text verbatim (so a name that genuinely starts with a number
+ *      still matches), else the quantity-stripped name.
  */
 export function findEntryCard(entry, nameIndex, printingIndex) {
   if (printingIndex && entry.setCode && entry.collectorNumber) {
     const exact = printingIndex.get(`${entry.setCode}:${entry.collectorNumber}`);
     if (exact) return exact;
   }
-  return (
+
+  const base =
     nameIndex.get(normalizeName(entry.raw ?? '')) ||
     nameIndex.get(normalizeName(entry.name)) ||
-    null
-  );
+    null;
+
+  // A supplied set code picks that set's printing when it is loaded, before
+  // settling for whatever printing the name happens to resolve to.
+  if (entry.setCode) {
+    const match = cardStore
+      .getPrintings(base?.name ?? entry.name)
+      .find((printing) => (printing.set || '').toLowerCase() === entry.setCode);
+    if (match) return match;
+  }
+
+  return base;
 }
 
 /**
@@ -95,7 +109,9 @@ export async function resolveMissingCards({ text, nameIndex, printingIndex, atte
   for (const entry of entries) {
     const raw = normalizeName(entry.raw ?? '');
     const name = normalizeName(entry.name);
-    if (nameIndex.has(raw) || nameIndex.has(name)) continue;
+    const known = nameIndex.get(raw) || nameIndex.get(name) || null;
+
+    // An exact set + collector printing already indexed needs nothing.
     if (
       printingIndex &&
       entry.setCode &&
@@ -104,6 +120,21 @@ export async function resolveMissingCards({ text, nameIndex, printingIndex, atte
     ) {
       continue;
     }
+
+    // A set code asks for that set's printing. If it isn't loaded yet, fetch the
+    // name's printings instead of settling for another set's version.
+    if (entry.setCode) {
+      const hasSet =
+        known &&
+        cardStore
+          .getPrintings(known.name)
+          .some((printing) => (printing.set || '').toLowerCase() === entry.setCode);
+      if (hasSet) continue;
+      if (entry.name && !attemptedNames.has(entry.name)) namesToLoad.add(entry.name);
+      continue;
+    }
+
+    if (known) continue;
 
     const id = resolveCatalogPrintingId(entry.raw ?? '') || resolveCatalogPrintingId(entry.name);
     if (id) ids.add(id);

@@ -148,7 +148,9 @@ function parseRowList(rows, columns) {
 }
 
 // "[1 ][x ]Card Name [(SET) 123]" — the shared Moxfield/Archidekt text export.
-const PLAIN_LINE = /^(?:(\d+)\s*[xX]?\s+)?(.+?)(?:\s*\(([A-Za-z0-9]{2,6})\)\s*(\S+))?$/;
+// The collector number is optional, so a set-only "1 Card (SET)" still pins the
+// printing (Arena emits exactly that when it has no collector number).
+const PLAIN_LINE = /^(?:(\d+)\s*[xX]?\s+)?(.+?)(?:\s*\(([A-Za-z0-9]{2,6})\)(?:\s*(\S+))?)?$/;
 
 function parsePlainList(lines) {
   const entries = [];
