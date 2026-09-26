@@ -7,13 +7,41 @@ import {
   getBulkEntry,
   downloadFilteredBulkCards,
   getLegendaryCreatures,
+  shouldBuildCardArchive,
   verifyBulkCoverage,
   clearBulkCache,
   SUBSET_TTL_MS,
 } from '../bulkData.js';
 import { getCatalogNames, isCardCatalogLoaded, resetCardCatalog } from '../../state/cardCatalog.js';
+import { applySettings } from '../../state/cardSettings.js';
 import { installFakeIndexedDB } from '../../utils/__tests__/fakeIndexedDB.js';
-import { clearCardArchive, hasCardArchive, readArchivedCards } from '../cardArchive.js';
+import {
+  clearCardArchive,
+  hasCardArchive,
+  readArchivedCards,
+  setCardArchiveOptOut,
+} from '../cardArchive.js';
+
+describe('shouldBuildCardArchive', () => {
+  it('is on by default and off only after an explicit opt-out', () => {
+    setCardArchiveOptOut(false);
+    expect(shouldBuildCardArchive()).toBe(true);
+
+    // The old off-by-default value still builds unless the device opted out.
+    applySettings({ preloadCards: false });
+    expect(shouldBuildCardArchive()).toBe(true);
+
+    setCardArchiveOptOut(true);
+    expect(shouldBuildCardArchive()).toBe(false);
+
+    // Turning it back on wins over a stale opt-out marker.
+    applySettings({ preloadCards: true });
+    expect(shouldBuildCardArchive()).toBe(true);
+
+    setCardArchiveOptOut(false);
+    applySettings({ preloadCards: true });
+  });
+});
 
 function makeCard(overrides = {}) {
   return {

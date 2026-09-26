@@ -20,6 +20,34 @@ import { createStore } from '../utils/idb.js';
 /** Bump to force a rebuild when the stored shape changes. */
 export const ARCHIVE_VERSION = 1;
 
+/**
+ * LocalStorage marker recording that the user turned the archive off. The
+ * setting alone can't tell "never chose" from "switched off" (older builds
+ * defaulted to off), so this lets the automatic build skip a device the user
+ * deliberately opted out while still filling one that only inherited the old
+ * default.
+ */
+const OPT_OUT_KEY = 'cardArchiveOptOut';
+
+/** True when the user has switched offline card data off on this device. */
+export function isCardArchiveOptOut() {
+  try {
+    return localStorage.getItem(OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Record (or clear) the user's explicit decision to turn the archive off. */
+export function setCardArchiveOptOut(value) {
+  try {
+    if (value) localStorage.setItem(OPT_OUT_KEY, '1');
+    else localStorage.removeItem(OPT_OUT_KEY);
+  } catch {
+    /* best effort */
+  }
+}
+
 /** Printings per compressed member. Small enough to decompress on demand. */
 export const MEMBER_SIZE = 1000;
 

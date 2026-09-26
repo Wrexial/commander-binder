@@ -14,6 +14,7 @@ vi.mock('../api/scryfall.js', () => ({
 }));
 vi.mock('../api/bulkData.js', () => ({
   getLegendaryCreatures: vi.fn(),
+  shouldBuildCardArchive: vi.fn(() => true),
   verifyBulkCoverage: vi.fn(),
 }));
 vi.mock('../ui/layout.js');

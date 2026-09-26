@@ -112,7 +112,7 @@ new key there too.
   `setRequestThrottle`, and the bulk-source controls. `bulkData.js` streams the
   Scryfall `default_cards` file once and, in the same pass, keeps the legendary
   subset _and_ builds the all-cards name catalog (`state/cardCatalog.js`) — and,
-  with the `preloadCards` setting on, the compressed card archive — so
+  by default, the compressed card archive — so
   every card name is available for the picker and compare tools with no extra
   download. The cached subset is versioned, so a shape change forces one rebuild;
   `cardCatalog` also derives a name→id lookup from its id→name map when reading
@@ -132,7 +132,9 @@ new key there too.
   cards. `hydrateCardsByIds` reads the archive/cache first, fetches only the
   misses and falls back to a stale copy when offline; printing searches populate
   the cache too.
-  With the opt-in `preloadCards` setting, `bulkData.js` also builds
+  With the `preloadCards` setting on (the default, and `shouldBuildCardArchive()`
+  also fills in for devices carrying the old off-by-default value unless they
+  opted out), `bulkData.js` also builds
   `api/cardArchive.js` during the same stream: every English printing is written
   in fixed-size gzip members plus a printing-id → member index (a few tens of MB
   compressed), so `hydrateCardsByIds` and `loadPrintingsForNames` resolve any
@@ -245,8 +247,8 @@ new key there too.
   `cardSettings.js` holds the display mode, the price currency
   (EUR/USD/TIX), the default printing mode (`oldest` by default), the grid
   dimensions (`gridColumns` x `gridRows` = cards per page), the
-  pages-per-binder capacity, the swipe-to-dismiss flag, the `preloadCards`
-  opt-in (see `api/cardArchive.js`) and the
+  pages-per-binder capacity, the swipe-to-dismiss flag, `preloadCards`
+  (offline card archive; on by default — see `api/cardArchive.js`) and the
   preferred-printing map; the
   currency is read by `utils/priceFields.js` so tiles, the filter bar, search,
   sort and statistics all agree on one unit. `getCardsPerPage()`/`getPagesPerBinder()`
@@ -266,7 +268,8 @@ new key there too.
   confirm prompt `confirmDialog.js` used for destructive actions, the shared collection-modal chrome/helpers
   `collectionModal.js`, the settings dialog `settingsModal.js` (display mode,
   currency, grid columns/rows, pages per binder, swipe-to-dismiss, the
-  preferred-printings reset and the “Preload all card data” opt-in — with a live
+  preferred-printings reset and the “Preload all card data” toggle (on by default;
+  turning it off clears the archive and records an opt-out — with a live
   miniature of the grid page that
   updates as columns/rows change; the sidebar's “⚙️ Settings” entry opens it),
   the first-run tour `tour.js` (a spotlight/popover walk that is page-aware:

@@ -44,10 +44,12 @@ const DEFAULT_SETTINGS = {
   // Card name -> chosen printing id. One entry per card, so cycling a name a
   // second time replaces the first pick rather than accumulating printings.
   preferredPrintings: {},
-  // Opt-in: keep a compressed archive of every English printing on the device
-  // so the Binder Builder never has to ask Scryfall for a card. Off by default
-  // because it costs a few tens of MB of storage.
-  preloadCards: false,
+  // Keep a compressed archive of every English printing on the device so the
+  // Binder Builder never has to ask Scryfall for a card. On by default: the
+  // bulk stream that builds the legendary subset already downloads every
+  // printing, so the archive adds storage (a few tens of MB), not network.
+  // Turning it off clears the archive and opts this device out of rebuilding it.
+  preloadCards: true,
 };
 
 const isIntegerInRange = (value, min, max) =>

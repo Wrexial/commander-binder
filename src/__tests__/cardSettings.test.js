@@ -59,7 +59,7 @@ describe('cardSettings', () => {
         gridRows: 4,
         pagesPerBinder: 64,
         preferredPrintings: {},
-        preloadCards: false,
+        preloadCards: true,
       })
     );
   });
@@ -81,7 +81,7 @@ describe('cardSettings', () => {
         gridRows: 4,
         pagesPerBinder: 64,
         preferredPrintings: {},
-        preloadCards: false,
+        preloadCards: true,
       })
     );
   });
@@ -133,11 +133,11 @@ describe('cardSettings', () => {
   it('accepts the preloadCards boolean and rejects other types', async () => {
     const { cardSettings, applySettings } = await import('../state/cardSettings.js');
 
+    expect(cardSettings.preloadCards).toBe(true);
+    expect(applySettings({ preloadCards: false })).toBe(true);
     expect(cardSettings.preloadCards).toBe(false);
-    expect(applySettings({ preloadCards: true })).toBe(true);
-    expect(cardSettings.preloadCards).toBe(true);
     expect(applySettings({ preloadCards: 'yes' })).toBe(false);
-    expect(cardSettings.preloadCards).toBe(true);
+    expect(cardSettings.preloadCards).toBe(false);
   });
 
   it('accepts only in-range integer grid and binder settings', async () => {

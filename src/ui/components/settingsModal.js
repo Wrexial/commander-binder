@@ -487,7 +487,11 @@ export function createSettingsModal() {
     archiveStatus.textContent = 'Downloading card data…';
     try {
       await withLoading('Downloading card data…', async () => {
-        const { getLegendaryCreatures } = await import('../../api/bulkData.js');
+        const [{ getLegendaryCreatures }, { setCardArchiveOptOut }] = await Promise.all([
+          import('../../api/bulkData.js'),
+          import('../../api/cardArchive.js'),
+        ]);
+        setCardArchiveOptOut(false);
         await getLegendaryCreatures({ buildArchive: true });
       });
       showToast('Card data downloaded for offline binders.', 'success');
@@ -500,7 +504,8 @@ export function createSettingsModal() {
 
   const clearArchive = async () => {
     try {
-      const { clearCardArchive } = await import('../../api/cardArchive.js');
+      const { clearCardArchive, setCardArchiveOptOut } = await import('../../api/cardArchive.js');
+      setCardArchiveOptOut(true);
       await clearCardArchive();
       showToast('Offline card data cleared.', 'success');
     } catch (err) {
@@ -514,8 +519,8 @@ export function createSettingsModal() {
     createToggleRow({
       label: 'Preload all card data',
       hint:
-        'Keep every card on this device so binders load without contacting Scryfall. ' +
-        'Uses a few tens of MB.',
+        'On by default. Every card is kept on this device so binders load without ' +
+        'contacting Scryfall. Turn off to clear it and stop downloading.',
       setting: 'preloadCards',
       onChange: (enabled) => void (enabled ? buildArchive() : clearArchive()),
     })

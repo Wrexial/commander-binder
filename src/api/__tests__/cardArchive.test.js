@@ -5,9 +5,11 @@ import {
   clearCardArchive,
   createCardArchiveBuilder,
   hasCardArchive,
+  isCardArchiveOptOut,
   readArchivedCards,
   readCardArchiveMeta,
   resetCardArchiveCache,
+  setCardArchiveOptOut,
   slimCard,
 } from '../cardArchive.js';
 
@@ -23,6 +25,15 @@ afterAll(() => {
 
 beforeEach(async () => {
   await clearCardArchive();
+});
+
+describe('archive opt-out marker', () => {
+  it('records and clears an explicit opt-out', () => {
+    setCardArchiveOptOut(true);
+    expect(isCardArchiveOptOut()).toBe(true);
+    setCardArchiveOptOut(false);
+    expect(isCardArchiveOptOut()).toBe(false);
+  });
 });
 
 function makeCard(overrides = {}) {

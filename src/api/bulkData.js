@@ -18,10 +18,12 @@
 
 import { createStore } from '../utils/idb.js';
 import { setCardCatalog } from '../state/cardCatalog.js';
+import { getSetting } from '../state/cardSettings.js';
 import {
   ARCHIVE_VERSION,
   beginCardArchiveBuild,
   createCardArchiveBuilder,
+  isCardArchiveOptOut,
   readCardArchiveMeta,
 } from './cardArchive.js';
 
@@ -128,6 +130,16 @@ export async function getBulkEntry(type = DEFAULT_BULK_TYPE, options = {}) {
     throw new Error(`No Scryfall bulk-data entry of type "${type}"`);
   }
   return entry;
+}
+
+/**
+ * Whether the bulk stream should also build/refresh the offline card archive.
+ * It is on by default (`preloadCards`), and also fills in for devices that only
+ * inherited the old off-by-default value; only an explicit opt-out (which also
+ * clears the archive) disables it.
+ */
+export function shouldBuildCardArchive() {
+  return Boolean(getSetting('preloadCards')) || !isCardArchiveOptOut();
 }
 
 /** Matches Scryfall's `type:legendary type:creature` search filter. */
