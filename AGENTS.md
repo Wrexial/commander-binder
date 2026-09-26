@@ -334,7 +334,9 @@ new key there too.
   and a tap never edits the collection (those stay on the browse grid), but each
   filled pocket has a `.binder-slot-owned` button, a `.binder-slot-qty`
   stepper and a `.binder-slot-foil` tag (rendered by `binderBuilder.js`,
-  not `cards.js`) that toggle the binder's own owned marker, set the pocket's
+  not `cards.js`) grouped in a bottom-right `.binder-slot-badges` stack so they
+  clear the printed card name; they toggle the binder's own owned marker, set the
+  pocket's
   copy count and mark its finish, repainting on `binders:changed`. The tile also
   gets the base grid's `.owned` class from that binder-owned state, so a missing
   pocket carries the same dim overlay as a missing collection card; a share view

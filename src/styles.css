@@ -3011,14 +3011,37 @@ body.list-mode .card.list-tile .wanted-badge {
   display: inline-block;
 }
 
+/* Binder-scoped Owned/Missing toggle, Foil tag and copy count, grouped at the
+   pocket's bottom-right so they never cover the card's printed name (which sits
+   at the top-left of the artwork). */
+.binder-slot-badges {
+  position: absolute;
+  right: 4px;
+  bottom: 30px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.binder-slot-badges > .binder-slot-owned,
+.binder-slot-badges > .binder-slot-foil {
+  pointer-events: auto;
+}
+
+/* On phones the tile footer is hidden, so the badges can sit flush. */
+@media (max-width: 768px) {
+  .binder-slot-badges {
+    bottom: 4px;
+  }
+}
+
 /* Binder-scoped Owned/Missing toggle on a filled pocket. It reflects the
    binder's own state, not the account collection, so pre-building a binder
    never edits what the user owns. */
 .binder-slot-owned {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  z-index: 5;
   padding: 2px 6px;
   border: 0;
   border-radius: 999px;
@@ -3054,14 +3077,10 @@ button.binder-slot-owned:focus-visible {
   color: #2a0505;
 }
 
-/* Per-pocket copy count, stacked under the Owned/Missing pill. The − / + /
-   input stepper is always available on touch and on hover/focus elsewhere; a
-   pocket holding more than one copy keeps the badge visible. */
+/* Per-pocket copy count. The − / + / input stepper is always available on
+   touch and on hover/focus elsewhere; a pocket holding more than one copy keeps
+   the badge visible. */
 .binder-slot-qty {
-  position: absolute;
-  top: 24px;
-  left: 4px;
-  z-index: 5;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -3074,6 +3093,7 @@ button.binder-slot-owned:focus-visible {
   font-weight: 700;
   line-height: 1;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.15s ease;
 }
 
@@ -3081,6 +3101,7 @@ button.binder-slot-owned:focus-visible {
 .binder-slot:focus-within .binder-slot-qty,
 .binder-slot-qty.has-quantity {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* Touch has no hover phase, so keep the stepper visible. */
@@ -3141,12 +3162,8 @@ button.binder-slot-owned:focus-visible {
   padding: 0 4px;
 }
 
-/* Foil / Not foil tag, stacked under the quantity stepper. */
+/* Foil / Not foil tag. */
 .binder-slot-foil {
-  position: absolute;
-  top: 46px;
-  left: 4px;
-  z-index: 5;
   padding: 2px 6px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;

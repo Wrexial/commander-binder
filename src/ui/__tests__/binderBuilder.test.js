@@ -248,6 +248,18 @@ describe('binderBuilder', () => {
     expect(document.querySelector('.binder-slot-foil').getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('groups the owned, foil and count badges in one pocket stack', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot-badges')).not.toBeNull());
+
+    const badges = document.querySelector('.binder-slot[data-slot="0:0:0"] .binder-slot-badges');
+    expect(badges.querySelector('.binder-slot-owned')).not.toBeNull();
+    expect(badges.querySelector('.binder-slot-foil')).not.toBeNull();
+    expect(badges.querySelector('.binder-slot-qty')).not.toBeNull();
+  });
+
   it('sorts the occupied pockets by set number through the Arrange menu', async () => {
     cardStore.getByPrintingId.mockImplementation((id) => {
       const cards = {

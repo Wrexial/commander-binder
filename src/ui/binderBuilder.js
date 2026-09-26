@@ -154,10 +154,25 @@ function createQuantityControl(quantity, editable) {
   return wrap;
 }
 
-/** Append the quantity control when there is one to show. */
-function appendQuantityControl(slot, binder, key, editable) {
-  const control = createQuantityControl(getSlotQuantity(binder.id, key), editable);
-  if (control) slot.appendChild(control);
+/**
+ * The pocket's status controls (Owned, Foil, copies) grouped in one stack at the
+ * bottom-right, so they never cover the card's printed name (top-left artwork).
+ *
+ * @param {HTMLElement} slot
+ * @param {object} binder
+ * @param {string} key
+ * @param {{owned: boolean, showOwned: boolean, interactive: boolean}} options
+ */
+function appendSlotBadges(slot, binder, key, { owned, showOwned, interactive }) {
+  const badges = document.createElement('div');
+  badges.className = 'binder-slot-badges';
+
+  if (showOwned) badges.appendChild(createOwnedStatusControl(owned, interactive));
+  badges.appendChild(createFoilControl(isSlotFoil(binder.id, key), interactive));
+  const quantity = createQuantityControl(getSlotQuantity(binder.id, key), interactive);
+  if (quantity) badges.appendChild(quantity);
+
+  slot.appendChild(badges);
 }
 
 /** The selection tick shown on a filled pocket in bulk-edit mode. */
@@ -1195,9 +1210,7 @@ export function render() {
         // carries the same overlay the collection view uses.
         tile.classList.toggle('owned', owned);
         slot.append(tile);
-        appendQuantityControl(slot, binder, key, interactive);
-        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), interactive));
-        slot.appendChild(createOwnedStatusControl(owned, interactive));
+        appendSlotBadges(slot, binder, key, { owned, showOwned: true, interactive });
         if (interactive) slot.appendChild(createSlotControls());
         if (bulkMode) slot.appendChild(createBulkSelectMark(bulkSelection.has(key)));
       } else if (printingId) {
@@ -1210,13 +1223,11 @@ export function render() {
         const name = resolveCatalogName(printingId);
         unknown.textContent = name ? `${name} loading…` : 'Loading card…';
         slot.append(unknown);
-        appendQuantityControl(slot, binder, key, interactive);
-        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), interactive));
-        if (name) {
-          slot.appendChild(
-            createOwnedStatusControl(isBinderCardOwned(binder.id, name), interactive)
-          );
-        }
+        appendSlotBadges(slot, binder, key, {
+          owned: name ? isBinderCardOwned(binder.id, name) : false,
+          showOwned: Boolean(name),
+          interactive,
+        });
         if (interactive) slot.appendChild(createSlotControls());
         if (bulkMode) slot.appendChild(createBulkSelectMark(bulkSelection.has(key)));
       } else if (interactive) {
