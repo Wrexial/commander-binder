@@ -303,7 +303,10 @@ new key there too.
   chosen — so a long list of lists/binders doesn't dominate the modal. The export
   modal also
   takes an `initialId`, so on the binder page it opens on the visible binder, and
-  its search filter narrows both the preview and the actual copy/download.
+  its search filter narrows both the preview and the actual copy/download. A
+  binder collection also carries its per-card `owned` flag (`ownedFilter: true`),
+  so the modal offers an All / Owned / Missing split that scopes the preview, the
+  copy/download and the download filename.
   The add/check modals share `bulkNameInput.js` (the textarea + preview pair,
   plus the printing index and `attemptedNames` set) and `cardLookup.js` (the
   store-by-name/printing lookup

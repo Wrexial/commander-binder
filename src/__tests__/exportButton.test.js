@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   binders: [],
   binderIds: {},
   binderCards: {},
+  binderOwned: {},
   owned: new Set(),
   wanted: new Set(),
 }));
@@ -41,6 +42,7 @@ vi.mock('../state/bindersState.js', () => ({
   getBinderPrintingIds: vi.fn((id) => state.binderIds[id] || []),
   getBinderCards: vi.fn((id) => state.binderCards[id] || []),
   getActiveBinderId: vi.fn(() => null),
+  isBinderCardOwned: vi.fn((id, name) => state.binderOwned[id]?.has(name) ?? false),
 }));
 vi.mock('../api/cardSearch.js', () => ({ hydrateCardsByIds: vi.fn(async () => []) }));
 vi.mock('../ui/components/toast.js', () => ({ showToast: vi.fn() }));
@@ -65,6 +67,7 @@ beforeEach(() => {
   state.binders = [];
   state.binderIds = {};
   state.binderCards = {};
+  state.binderOwned = {};
   state.owned = new Set();
   state.wanted = new Set();
   document.body.innerHTML = '';
@@ -100,6 +103,10 @@ describe('export button collections', () => {
     // List and binder names are slugified for the download filename.
     expect(collections[2].filePrefix).toBe('list-trade-pile');
     expect(collections[3].filePrefix).toBe('binder-deck-atraxa');
+
+    // Binders carry their per-card owned state so the export can filter on it.
+    expect(collections[3].ownedFilter).toBe(true);
+    expect(collections[3].cards).toEqual([{ id: 'a', name: 'Sol Ring', owned: false }]);
   });
 
   it('hydrates binder printings that are not loaded before exporting', async () => {

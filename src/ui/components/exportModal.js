@@ -30,8 +30,10 @@ function totalQuantity(cards) {
 
 /**
  * The combined export modal. Each entry in `collections` is
- * `{ id, label, cards, filePrefix, noun, emptyMessage }`; the picker switches
- * the active one and the format/filter controls apply to whichever is active.
+ * `{ id, label, cards, filePrefix, noun, emptyMessage, ownedFilter? }`; the
+ * picker switches the active one and the format/filter controls apply to
+ * whichever is active. A collection with `ownedFilter: true` (binders) also
+ * gets an All / Owned / Missing control, which reads each card's `owned` flag.
  *
  * @param {{collections: object[], title?: string, initialId?: string}} options
  * @returns {{ show: () => void, destroy: () => void }}
@@ -43,7 +45,7 @@ export function createExportModal({ collections, title = 'Export Cards', initial
     collections.find((collection) => collection.id === initialId) ||
     collections.find((collection) => collection.cards.length > 0) ||
     collections[0];
-  let allCards = sortedByName(active.cards);
+  let ownedFilter = 'all';
 
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title,
@@ -76,17 +78,44 @@ export function createExportModal({ collections, title = 'Export Cards', initial
   formatSelect.value = DEFAULT_TRANSFER_FORMAT;
   formatLabel.appendChild(formatSelect);
 
+  // Owned/Missing split for collections that carry it (binders); hidden
+  // otherwise.
+  const OWNED_FILTERS = [
+    { id: 'all', label: 'All' },
+    { id: 'owned', label: 'Owned' },
+    { id: 'missing', label: 'Missing' },
+  ];
+  const ownedFilterGroup = document.createElement('div');
+  ownedFilterGroup.className = 'transfer-owned-filter filter-segmented';
+  ownedFilterGroup.setAttribute('role', 'group');
+  ownedFilterGroup.setAttribute('aria-label', 'Filter by owned status');
+  const ownedFilterButtons = new Map();
+  for (const option of OWNED_FILTERS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'filter-segment';
+    button.dataset.filter = option.id;
+    button.textContent = option.label;
+    button.addEventListener('click', () => {
+      ownedFilter = option.id;
+      render();
+    });
+    ownedFilterButtons.set(option.id, button);
+    ownedFilterGroup.appendChild(button);
+  }
+
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'bulk-search-input';
 
-  toolbar.append(formatLabel, searchInput);
+  toolbar.append(formatLabel, ownedFilterGroup, searchInput);
 
   const preview = document.createElement('div');
   preview.className = 'bulk-preview';
   attachCardPreview(preview);
-  // The active collection's cards after the search filter; the export follows it.
-  let visibleCards = allCards;
+  // The active collection's cards after the owned + search filters; the export
+  // follows whatever this ends up holding.
+  let visibleCards = [];
 
   if (collections.length > 1) {
     const target = createTargetToggle({
@@ -104,10 +133,18 @@ export function createExportModal({ collections, title = 'Export Cards', initial
 
   function setActive(id) {
     active = collections.find((collection) => collection.id === id) || active;
-    allCards = sortedByName(active.cards);
     // A leftover filter would read as "no cards" after switching.
     searchInput.value = '';
+    ownedFilter = 'all';
     render();
+  }
+
+  /** The active collection's cards after the owned filter (before the search). */
+  function cardsForActive() {
+    const cards = active.cards;
+    if (!active.ownedFilter || ownedFilter === 'all') return sortedByName(cards);
+    const wantOwned = ownedFilter === 'owned';
+    return sortedByName(cards.filter((card) => Boolean(card.owned) === wantOwned));
   }
 
   function currentFormat() {
@@ -116,10 +153,17 @@ export function createExportModal({ collections, title = 'Export Cards', initial
 
   function render() {
     const { noun, emptyMessage } = active;
+    const allCards = cardsForActive();
     const query = searchInput.value.trim().toLowerCase();
     visibleCards = query
       ? allCards.filter((card) => card.name.toLowerCase().includes(query))
       : allCards;
+
+    // The owned split is only meaningful for collections that carry it.
+    ownedFilterGroup.hidden = !active.ownedFilter;
+    for (const [id, button] of ownedFilterButtons) {
+      button.setAttribute('aria-pressed', String(id === ownedFilter));
+    }
 
     const total = totalQuantity(allCards);
     const visible = totalQuantity(visibleCards);
@@ -128,7 +172,12 @@ export function createExportModal({ collections, title = 'Export Cards', initial
     searchInput.setAttribute('aria-label', `Filter ${noun} cards`);
 
     if (allCards.length === 0) {
-      preview.innerHTML = `<p class="bulk-empty">${emptyMessage}</p>`;
+      // A binder can have cards but none in the chosen owned state.
+      const filteredEmpty =
+        active.cards.length > 0 && ownedFilter !== 'all'
+          ? `No ${ownedFilter} cards in this ${noun}.`
+          : emptyMessage;
+      preview.innerHTML = `<p class="bulk-empty">${filteredEmpty}</p>`;
     } else if (visibleCards.length === 0) {
       preview.innerHTML = '<p class="bulk-empty">No cards match that filter.</p>';
     } else {
@@ -182,7 +231,9 @@ export function createExportModal({ collections, title = 'Export Cards', initial
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = exportFileName(currentFormat(), active.filePrefix);
+    // Name the owned/missing split after the collection prefix.
+    const suffix = active.ownedFilter && ownedFilter !== 'all' ? `-${ownedFilter}` : '';
+    link.download = exportFileName(currentFormat(), `${active.filePrefix}${suffix}`);
     document.body.appendChild(link);
     link.click();
     link.remove();

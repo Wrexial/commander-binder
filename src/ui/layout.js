@@ -11,6 +11,7 @@ import {
   getBinderPrintingIds,
   getBinders,
   getActiveBinderId,
+  isBinderCardOwned,
 } from '../state/bindersState.js';
 import { binderTargetId, listTargetId } from './components/collectionTargets.js';
 import { hydrateCardsByIds } from '../api/cardSearch.js';
@@ -201,11 +202,17 @@ export function createExportButton() {
           noun: 'list',
           emptyMessage: `“${list.name}” has no cards yet.`,
         })),
-        // Binders export their pockets in page/slot order.
+        // Binders export their pockets in page/slot order. Each entry carries
+        // its binder-owned state so the export modal can offer an
+        // Owned / Missing / All filter.
         ...binders.map((binder) => ({
           id: binderTargetId(binder.id),
           label: `Binder: ${binder.name}`,
-          cards: getBinderCards(binder.id),
+          cards: getBinderCards(binder.id).map((card) => ({
+            ...card,
+            owned: isBinderCardOwned(binder.id, card.name),
+          })),
+          ownedFilter: true,
           filePrefix: `binder-${slugify(binder.name)}`,
           noun: 'binder',
           emptyMessage: `“${binder.name}” has no cards yet.`,

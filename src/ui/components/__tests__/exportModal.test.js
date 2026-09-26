@@ -262,6 +262,63 @@ describe('exportModal', () => {
     expect(violations.length, summary).toBe(0);
   });
 
+  it('filters an owned-capable collection by owned and missing', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const binder = {
+      id: 'binder:B1',
+      label: 'Binder: Deck',
+      cards: [
+        { id: 'a', name: 'Owned Card', owned: true },
+        { id: 'b', name: 'Missing Card', owned: false },
+      ],
+      ownedFilter: true,
+      filePrefix: 'binder-deck',
+      noun: 'binder',
+      emptyMessage: '“Deck” has no cards yet.',
+    };
+
+    const modal = createExportModal({ collections: [binder] });
+    modal.show();
+
+    // All by default.
+    expect([...document.querySelectorAll('.bulk-row')].map((row) => row.textContent)).toEqual([
+      'Missing Card',
+      'Owned Card',
+    ]);
+
+    const filter = (label) =>
+      [...document.querySelectorAll('.transfer-owned-filter .filter-segment')].find(
+        (button) => button.textContent === label
+      );
+
+    filter('Owned').click();
+    expect([...document.querySelectorAll('.bulk-row')].map((row) => row.textContent)).toEqual([
+      'Owned Card',
+    ]);
+    expect(document.querySelector('.export-copy').textContent).toBe('Copy 1 card');
+
+    document.querySelector('.export-copy').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(writeText.mock.calls[0][0]).toContain('Owned Card');
+    expect(writeText.mock.calls[0][0]).not.toContain('Missing Card');
+
+    filter('Missing').click();
+    expect([...document.querySelectorAll('.bulk-row')].map((row) => row.textContent)).toEqual([
+      'Missing Card',
+    ]);
+
+    filter('All').click();
+    expect(document.querySelectorAll('.bulk-row')).toHaveLength(2);
+  });
+
+  it('hides the owned filter for a collection that does not support it', () => {
+    open(cards).show();
+    expect(document.querySelector('.transfer-owned-filter').hidden).toBe(true);
+  });
+
   it('shows and exports duplicate quantities from an aggregated binder', async () => {
     const writeText = vi.fn(() => Promise.resolve());
     Object.assign(navigator, { clipboard: { writeText } });
