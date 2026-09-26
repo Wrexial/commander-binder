@@ -23,6 +23,7 @@ import {
   getActiveBinder,
   getActiveBinderId,
   getBinder,
+  getBinderQuantity,
   getBinders,
   loadBinders,
   moveCardToFirstEmptySlot,
@@ -188,7 +189,11 @@ function buildChrome(root) {
   clearButton.type = 'button';
   clearButton.className = 'bb-clear-page';
   clearButton.textContent = 'Clear page';
-  nav.append(prevButton, pageLabel, nextButton, clearButton);
+
+  // Quantity count for the active binder, duplicates included.
+  const cardCount = document.createElement('span');
+  cardCount.className = 'bb-card-count';
+  nav.append(prevButton, pageLabel, nextButton, clearButton, cardCount);
 
   const status = document.createElement('div');
   status.className = 'bb-status';
@@ -230,6 +235,7 @@ function buildChrome(root) {
     pageLabel,
     nextButton,
     clearButton,
+    cardCount,
     status,
     statusText,
     cancelMove,
@@ -621,6 +627,7 @@ export function render() {
   refs.pages.value = String(binder.pages);
   refs.publicInput.checked = binder.isPublic;
   refs.pageLabel.textContent = `Page ${activePage + 1} / ${binder.pages}`;
+  refs.cardCount.textContent = `${getBinderQuantity(binder.id)} cards`;
   refs.prevButton.disabled = activePage === 0;
   refs.nextButton.disabled = activePage >= binder.pages - 1;
 

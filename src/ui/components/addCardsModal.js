@@ -31,6 +31,11 @@ import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
 
+/** Total copies represented by a list of cards (aggregated entries carry `count`). */
+function entryTotal(cards) {
+  return cards.reduce((sum, card) => sum + (Number(card?.count) || 1), 0);
+}
+
 /**
  * Build the inline "name a new target" form revealed by a picker action
  * ("+ New list" / "+ New binder"). Hidden until opened.
@@ -117,6 +122,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     if (target.kind === 'binder') {
       return {
         present: (card) => isCardInBinder(target.id, card),
+        // Binders hold duplicates, so a pasted quantity ("7 Island") fills
+        // seven pockets rather than one.
+        quantity: true,
         add: async (cards, message) => {
           await addCardsToBinder(target.id, cards);
           showToast(message, 'success');
@@ -287,11 +295,21 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
         else unknown.push(entry.name);
         continue;
       }
-      if (seenIds.has(card.id)) continue;
-      seenIds.add(card.id);
 
-      if (config.present(card)) present.push(card);
-      else add.push(card);
+      const count = config.quantity ? Math.max(1, entry.count || 1) : 1;
+      const bucket = config.present(card) ? present : add;
+
+      if (seenIds.has(card.id)) {
+        // Repeated names add up for quantity-aware targets (binders) instead of
+        // collapsing to a single pocket.
+        if (count > 1) {
+          const existing = bucket.find((item) => item.id === card.id);
+          if (existing) existing.count = (existing.count || 1) + count;
+        }
+        continue;
+      }
+      seenIds.add(card.id);
+      bucket.push(config.quantity ? { ...card, count } : card);
     }
 
     return { add, present, loading, unknown };
@@ -306,7 +324,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       return;
     }
 
-    const count = categorized.add.length;
+    const count = entryTotal(categorized.add);
     primaryButton.textContent = config.addLabel(count);
     primaryButton.disabled = count === 0 || confirming;
   }
@@ -323,8 +341,8 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
     bulk.preview.innerHTML = `
             <div class="bulk-summary">
-                ${summaryChip('missing', 'Will add', add.length)}
-                ${summaryChip('owned', config.presentLabel, present.length)}
+                ${summaryChip('missing', 'Will add', entryTotal(add))}
+                ${summaryChip('owned', config.presentLabel, entryTotal(present))}
                 ${loading.length > 0 ? summaryChip('pending', 'Loading', loading.length) : ''}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
@@ -348,10 +366,8 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     confirming = true;
     updatePrimary();
     try {
-      await config.add(
-        add,
-        `Added ${add.length} card${add.length === 1 ? '' : 's'}${config.successSuffix}.`
-      );
+      const added = entryTotal(add);
+      await config.add(add, `Added ${added} card${added === 1 ? '' : 's'}${config.successSuffix}.`);
       // Re-render: the added cards now show up under "Already ...".
       renderPreview();
     } catch (err) {

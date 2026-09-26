@@ -158,4 +158,22 @@ describe('addCardsModal binder targets', () => {
       )
     );
   });
+
+  it('carries a pasted quantity into the binder as multiple copies', async () => {
+    createAddCardsModal().show();
+
+    targetButton('Binder: Trade binder').click();
+    const textarea = document.querySelector('.bulk-input-wrapper textarea');
+    textarea.value = '7 Alpha';
+    textarea.dispatchEvent(new Event('input'));
+
+    const primary = document.querySelector('.modal-button-container .primary');
+    await vi.waitFor(() => expect(primary.textContent).toBe('Add 7 to binder'));
+    primary.click();
+
+    await vi.waitFor(() => expect(addCardsToBinder).toHaveBeenCalledTimes(1));
+    expect(addCardsToBinder).toHaveBeenCalledWith('B1', [
+      expect.objectContaining({ id: 'a', count: 7 }),
+    ]);
+  });
 });

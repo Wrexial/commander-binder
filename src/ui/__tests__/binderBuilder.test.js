@@ -133,6 +133,18 @@ describe('binderBuilder', () => {
     expect(document.querySelectorAll('.binder-slot')).toHaveLength(9);
     expect(document.querySelectorAll('.binder-slot-add')).toHaveLength(9);
     expect(document.querySelector('.bb-page-label').textContent).toBe('Page 1 / 1');
+    expect(document.querySelector('.bb-card-count').textContent).toBe('0 cards');
+  });
+
+  it('shows the binder quantity, duplicates included', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'island');
+    await assignCardToSlot(binder.id, '0:0:1', 'island');
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-card-count').textContent).toBe('2 cards')
+    );
   });
 
   it('renders pocket tiles without the collection controls', async () => {

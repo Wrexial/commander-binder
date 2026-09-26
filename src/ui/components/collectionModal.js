@@ -92,6 +92,13 @@ export function summaryChip(status, label, count) {
 export function previewGroup(status, label, entries) {
   if (entries.length === 0) return '';
 
+  // Aggregated binder entries carry a quantity, so the group count reflects
+  // copies (e.g. "7") rather than unique names.
+  const total = entries.reduce(
+    (sum, entry) => sum + (typeof entry === 'string' ? 1 : Number(entry.count) || 1),
+    0
+  );
+
   const rows = entries
     .map((entry) => {
       const name = typeof entry === 'string' ? entry : entry.name;
@@ -114,7 +121,7 @@ export function previewGroup(status, label, entries) {
     })
     .join('');
 
-  return `<section class="bulk-group"><h3>${escapeHtml(label)}<span>${entries.length}</span></h3><ul>${rows}</ul></section>`;
+  return `<section class="bulk-group"><h3>${escapeHtml(label)}<span>${total}</span></h3><ul>${rows}</ul></section>`;
 }
 
 /**

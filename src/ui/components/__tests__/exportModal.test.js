@@ -261,4 +261,39 @@ describe('exportModal', () => {
     const { violations, summary } = await analyzeA11y(document.body);
     expect(violations.length, summary).toBe(0);
   });
+
+  it('shows and exports duplicate quantities from an aggregated binder', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const modal = createExportModal({
+      collections: [
+        {
+          id: 'binder:B1',
+          label: 'Binder: Deck',
+          cards: [
+            { id: 'b', name: 'Lightning Bolt', count: 2 },
+            { id: 'i', name: 'Island', count: 7 },
+          ],
+          filePrefix: 'binder-deck',
+          noun: 'binder',
+          emptyMessage: '“Deck” has no cards yet.',
+        },
+      ],
+    });
+    modal.show();
+
+    const rows = [...document.querySelectorAll('.bulk-row')].map((row) => row.textContent);
+    expect(rows).toEqual(['7× Island', '2× Lightning Bolt']);
+    expect(document.querySelector('.export-copy').textContent).toBe('Copy 9 cards');
+
+    document.querySelector('.export-copy').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const csv = writeText.mock.calls[0][0];
+    expect(csv).toContain('Island,,,,7');
+    expect(csv).toContain('Lightning Bolt,,,,2');
+    expect(showToast).toHaveBeenCalledWith('Copied 9 cards.', 'success');
+  });
 });

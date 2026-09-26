@@ -223,27 +223,45 @@ export function getBinderSlotCards(binderId) {
 }
 
 /**
- * The member cards of a binder, one per card name, in slot order. Unloaded
- * printings fall back to a bare `{ id, name }` so an export never loses a row.
+ * The member cards of a binder, one per card name, in slot order. Each entry
+ * carries a `count` (the number of pockets holding that name) so an export of a
+ * pre-built binder keeps its duplicates, e.g. seven Islands read as
+ * `7 Island`. Unloaded printings fall back to a bare `{ id, name }` so an export
+ * never loses a row.
  *
  * @param {string} binderId
- * @returns {Array<{id: string, name: string}>}
+ * @returns {Array<{id: string, name: string, count: number}>}
  */
 export function getBinderCards(binderId) {
   const binder = binders.get(binderId);
   if (!binder) return [];
 
-  const seen = new Set();
-  const cards = [];
+  const byName = new Map();
   for (const key of sortedSlotKeys(binder)) {
     const printingId = binder.slots[key];
     const card = cardStore.getByPrintingId(printingId);
     const name = card ? primaryName(card) : printingId;
-    if (seen.has(name)) continue;
-    seen.add(name);
-    cards.push(card || { id: printingId, name: printingId });
+    const existing = byName.get(name);
+    if (existing) {
+      existing.count += 1;
+      continue;
+    }
+    // Copy the store object so the per-binder count never leaks into `cardStore`.
+    byName.set(name, { ...(card || { id: printingId, name: printingId }), count: 1 });
   }
-  return cards;
+  return [...byName.values()];
+}
+
+/**
+ * The total number of cards in a binder, duplicates included — the binder's
+ * quantity. Unlike {@link getBinderCards} this needs no hydrated card objects.
+ *
+ * @param {string} binderId
+ * @returns {number}
+ */
+export function getBinderQuantity(binderId) {
+  const binder = binders.get(binderId);
+  return binder ? Object.keys(binder.slots).length : 0;
 }
 
 /**
@@ -807,9 +825,15 @@ export async function addCardsToBinder(binderId, cards) {
   if (!binder) throw new Error('Binder not found.');
 
   const presentIds = new Set(Object.values(binder.slots));
-  const queue = (Array.isArray(cards) ? cards : [cards]).filter(
-    (card) => card && card.id && !presentIds.has(card.id)
-  );
+  const queue = [];
+  for (const card of Array.isArray(cards) ? cards : [cards]) {
+    if (!card || !card.id || presentIds.has(card.id)) continue;
+    // A card may stand for several copies (`count`/`quantity`), so a pasted
+    // "7 Island" fills seven pockets. Missing/odd counts mean one copy.
+    const raw = Number(card.count ?? card.quantity ?? 1);
+    const copies = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+    for (let i = 0; i < copies; i++) queue.push(card);
+  }
   if (queue.length === 0) return binder;
 
   let page = 0;

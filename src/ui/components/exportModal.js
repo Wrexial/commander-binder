@@ -6,6 +6,7 @@ import {
   DEFAULT_TRANSFER_FORMAT,
   TEXT_TRANSFER_FORMATS,
   TRANSFER_FORMATS,
+  cardQuantity,
   serializeCollection,
 } from '../../utils/collectionFormats.js';
 
@@ -20,6 +21,11 @@ function exportFileName(format, prefix) {
 /** Sort a collection's cards by name without mutating the source array. */
 function sortedByName(cards) {
   return [...cards].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Total copies in a list of aggregated card entries (one per card). */
+function totalQuantity(cards) {
+  return cards.reduce((sum, card) => sum + cardQuantity(card), 0);
 }
 
 /**
@@ -115,7 +121,9 @@ export function createExportModal({ collections, title = 'Export Cards', initial
       ? allCards.filter((card) => card.name.toLowerCase().includes(query))
       : allCards;
 
-    subtitle.textContent = `${allCards.length} ${noun} card${allCards.length === 1 ? '' : 's'} — choose a format to copy or download`;
+    const total = totalQuantity(allCards);
+    const visible = totalQuantity(visibleCards);
+    subtitle.textContent = `${total} ${noun} card${total === 1 ? '' : 's'} — choose a format to copy or download`;
     searchInput.placeholder = `Filter ${noun} cards…`;
     searchInput.setAttribute('aria-label', `Filter ${noun} cards`);
 
@@ -125,37 +133,37 @@ export function createExportModal({ collections, title = 'Export Cards', initial
       preview.innerHTML = '<p class="bulk-empty">No cards match that filter.</p>';
     } else {
       const rows = visibleCards
-        .map(
-          (card) =>
-            `<li class="bulk-row bulk-row-owned" data-card-preview data-card-id="${escapeHtml(card.id)}">${escapeHtml(card.name)}</li>`
-        )
+        .map((card) => {
+          // Aggregated binder entries carry a quantity; show it so "2 Lightning
+          // Bolt" is visible before the export.
+          const quantity = cardQuantity(card);
+          const label = quantity > 1 ? `${quantity}× ${card.name}` : card.name;
+          return `<li class="bulk-row bulk-row-owned" data-card-preview data-card-id="${escapeHtml(card.id)}">${escapeHtml(label)}</li>`;
+        })
         .join('');
       preview.innerHTML = `
                 <div class="bulk-summary">
-                    <span class="bulk-summary-chip bulk-chip-owned">Showing <strong>${visibleCards.length}</strong></span>
-                    <span class="bulk-summary-chip">Total <strong>${allCards.length}</strong></span>
+                    <span class="bulk-summary-chip bulk-chip-owned">Showing <strong>${visible}</strong></span>
+                    <span class="bulk-summary-chip">Total <strong>${total}</strong></span>
                 </div>
                 <ul class="bulk-list">${rows}</ul>`;
     }
 
     const label = TRANSFER_FORMATS.find((format) => format.id === currentFormat())?.label ?? 'CSV';
-    const count = visibleCards.length;
-    copyButton.textContent = `Copy ${count} card${count === 1 ? '' : 's'}`;
+    copyButton.textContent = `Copy ${visible} card${visible === 1 ? '' : 's'}`;
     downloadButton.textContent = `Download ${label}`;
-    copyButton.disabled = count === 0;
-    downloadButton.disabled = count === 0;
+    copyButton.disabled = visible === 0;
+    downloadButton.disabled = visible === 0;
   }
 
   async function copyAll() {
     if (visibleCards.length === 0) return;
 
+    const count = totalQuantity(visibleCards);
     try {
       // The filter narrows the export, matching what the preview shows.
       await navigator.clipboard.writeText(serializeCollection(visibleCards, currentFormat()));
-      showToast(
-        `Copied ${visibleCards.length} card${visibleCards.length === 1 ? '' : 's'}.`,
-        'success'
-      );
+      showToast(`Copied ${count} card${count === 1 ? '' : 's'}.`, 'success');
     } catch (err) {
       console.error('Failed to copy cards:', err);
       showToast('Could not copy to the clipboard.', 'error');
@@ -165,6 +173,7 @@ export function createExportModal({ collections, title = 'Export Cards', initial
   function downloadAll() {
     if (visibleCards.length === 0) return;
 
+    const count = totalQuantity(visibleCards);
     const blob = new Blob([serializeCollection(visibleCards, currentFormat())], {
       type: TEXT_TRANSFER_FORMATS.has(currentFormat())
         ? 'text/plain;charset=utf-8'
@@ -178,10 +187,7 @@ export function createExportModal({ collections, title = 'Export Cards', initial
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    showToast(
-      `Downloaded ${visibleCards.length} card${visibleCards.length === 1 ? '' : 's'}.`,
-      'success'
-    );
+    showToast(`Downloaded ${count} card${count === 1 ? '' : 's'}.`, 'success');
   }
 
   function show() {

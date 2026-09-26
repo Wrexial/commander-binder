@@ -246,6 +246,19 @@ function setCode(card) {
   return (card.set || '').toUpperCase();
 }
 
+/**
+ * The number of copies a card entry stands for. Aggregated binder exports
+ * attach a `count`; every other collection exports one row per card, so this
+ * defaults to one.
+ *
+ * @param {object} card
+ * @returns {number}
+ */
+export function cardQuantity(card) {
+  const raw = Number(card?.count ?? card?.quantity ?? 1);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+}
+
 function serializeCsv(cards) {
   return toCsv([
     CSV_HEADERS,
@@ -254,7 +267,7 @@ function serializeCsv(cards) {
       setCode(card),
       card.set_name || '',
       card.collector_number || '',
-      1,
+      cardQuantity(card),
     ]),
   ]);
 }
@@ -263,7 +276,7 @@ function serializeMoxfield(cards) {
   return toCsv([
     MOXFIELD_HEADERS,
     ...cards.map((card) => [
-      1,
+      cardQuantity(card),
       0,
       card.name,
       card.set_name || '',
@@ -283,7 +296,7 @@ function serializeArchidekt(cards) {
     ARCHIDEKT_HEADERS,
     ...cards.map((card) => [
       card.name,
-      1,
+      cardQuantity(card),
       '',
       setCode(card),
       card.collector_number || '',
@@ -304,19 +317,28 @@ function serializeArena(cards) {
   return cards
     .map(
       (card) =>
-        `1 ${card.name} (${setCode(card)})${card.collector_number ? ` ${card.collector_number}` : ''}`
+        `${cardQuantity(card)} ${card.name} (${setCode(card)})${card.collector_number ? ` ${card.collector_number}` : ''}`
     )
     .join('\n');
 }
 
 /** MTGO text decklist: "1 Card Name" (MTGO ignores the set). */
 function serializeMtgo(cards) {
-  return cards.map((card) => `1 ${card.name}`).join('\n');
+  return cards.map((card) => `${cardQuantity(card)} ${card.name}`).join('\n');
 }
 
-/** Bare names, one per line — feeds straight into the Add Cards / Bulk Check box. */
+/**
+ * Bare names, one per line — feeds straight into the Add Cards / Bulk Check box.
+ * A quantity is prefixed only when there is more than one copy, so "7 Island"
+ * parses back as seven cards while a singleton stays a bare name.
+ */
 function serializePlain(cards) {
-  return cards.map((card) => card.name).join('\n');
+  return cards
+    .map((card) => {
+      const quantity = cardQuantity(card);
+      return quantity > 1 ? `${quantity} ${card.name}` : card.name;
+    })
+    .join('\n');
 }
 
 /**

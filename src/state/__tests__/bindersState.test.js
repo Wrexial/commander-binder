@@ -213,6 +213,27 @@ describe('bindersState', () => {
     expect(getBinderCards(binder.id).map((card) => card.name)).toEqual(['Alpha', 'Beta']);
   });
 
+  it('aggregates duplicate pockets into a per-name quantity', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, getBinderCards, getBinderQuantity } =
+      await load();
+    cardStore.add({ id: 'island-a', name: 'Island' });
+    cardStore.add({ id: 'bolt-a', name: 'Lightning Bolt' });
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    for (let i = 0; i < 3; i++) await assignCardToSlot(binder.id, `0:${i}:0`, 'island-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'bolt-a');
+
+    const cards = getBinderCards(binder.id);
+    expect(cards.map((card) => [card.name, card.count])).toEqual([
+      ['Island', 3],
+      ['Lightning Bolt', 1],
+    ]);
+    // The count is a copy: the shared store object is never mutated.
+    expect(getBinderCards(binder.id)[0].count).toBe(3);
+    expect(getBinderQuantity(binder.id)).toBe(4);
+  });
+
   it('lists one card per pocket, keeping duplicates, in slot order', async () => {
     const { loadBinders, getActiveBinder, assignCardToSlot, getBinderSlotCards } = await load();
     cardStore.add({ id: 'card-a', name: 'Alpha' });
@@ -265,6 +286,17 @@ describe('bindersState', () => {
     const ids = Object.values(getActiveBinder().slots);
     expect(ids.filter((id) => id === 'c0')).toHaveLength(1);
     expect(ids).toContain('c1');
+  });
+
+  it('fills one pocket per copy when a card carries a quantity', async () => {
+    const { loadBinders, getActiveBinder, addCardsToBinder } = await load();
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    await addCardsToBinder(binder.id, [{ id: 'island', name: 'Island', count: 7 }]);
+
+    const ids = Object.values(getActiveBinder().slots);
+    expect(ids.filter((id) => id === 'island')).toHaveLength(7);
   });
 
   it('refuses to rename a binder to an existing name', async () => {

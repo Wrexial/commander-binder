@@ -176,12 +176,17 @@ new key there too.
   IndexedDB record) and merge them on sign-in, and a `?share=` visitor reads the
   owner's public binders read-only (`canEditBinders()` gates every mutation). It
   dispatches `binders:changed` on every mutation. `getBinderCards`/
-  `getBinderPrintingIds` return a binder's contents in slot order (one per name /
-  every id) and `getBinderSlotCards` returns one card per pocket with duplicates
-  kept (used by per-binder statistics);
+  `getBinderPrintingIds` return a binder's contents in slot order (one per name,
+  each carrying a `count` for its duplicate pockets / every id),
+  `getBinderSlotCards` returns one card per pocket with duplicates kept (used by
+  per-binder statistics) and `getBinderQuantity` is the filled-pocket total
+  (duplicates included) for the builder's count chip; the export serializers use
+  that `count` so a pre-built binder exports `2 Lightning Bolt`, and `Bulk Add`
+  fills one pocket per pasted copy (`7 Island`), so quantities round-trip.
   `isCardInBinder` is a name-aware membership check, so the bulk add/check/export
   modals treat binders exactly like lists; `addCardsToBinder` bulk-fills the
-  first empty pockets and grows the page count when needed, and
+  first empty pockets (one per `card.count`/`card.quantity`, defaulting to one)
+  and grows the page count when needed, and
   `moveCardToFirstEmptySlot` moves a pocket's card into another binder's first
   empty pocket (growing it if full), powering the builder's "switch binder while
   moving" flow. `resizeBinder` reflows a binder when its columns/rows/pages
@@ -310,7 +315,10 @@ new key there too.
   it reuses
   `cards.js` tiles in layout-only mode (`createCardElement(card, index,
 { collection: false })`): pockets carry no owned/wishlist controls or styling
-  and a tap never edits the collection (those stay on the browse grid), though
+  and a tap never edits the collection (those stay on the browse grid), but each
+  pocket shows a read-only `.card-owned-status` Owned/Missing pill (synced by
+  `updateCardState` on every `updateAllCardStates()` pass) so a binder can be
+  pre-built against the collection, though
   the long-press preview still works with the collection badges hidden. Each
   pocket pins its own exact printing). A pocket whose printing is not loaded
   yet renders its all-cards catalog name as “<name> loading…” (else “Loading

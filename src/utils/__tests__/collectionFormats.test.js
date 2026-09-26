@@ -68,6 +68,29 @@ describe('serializeCollection', () => {
   it('defaults to CSV', () => {
     expect(serializeCollection(cards)).toBe(serializeCollection(cards, 'csv'));
   });
+
+  it('writes the copy count for aggregated entries', () => {
+    const solRing = { ...cards[0], count: 2 };
+    const atraxa = { ...cards[1], count: 7 };
+
+    const csv = serializeCollection([solRing, atraxa], 'csv').split('\r\n');
+    expect(csv[1]).toBe('Sol Ring,CMM,Commander Masters,342,2');
+    expect(csv[2]).toBe('"Atraxa, Praetors\' Voice",2XM,Double Masters,197,7');
+
+    expect(serializeCollection([solRing], 'moxfield')).toContain('2,0,Sol Ring');
+    expect(serializeCollection([solRing], 'archidekt')).toContain('Sol Ring,2,');
+    expect(serializeCollection([solRing], 'arena')).toBe('2 Sol Ring (CMM) 342');
+    expect(serializeCollection([solRing], 'mtgo')).toBe('2 Sol Ring');
+    expect(serializeCollection([atraxa], 'plain')).toBe("7 Atraxa, Praetors' Voice");
+    // A singleton stays a bare name in the plain list.
+    expect(serializeCollection([cards[0]], 'plain')).toBe('Sol Ring');
+  });
+
+  it('round-trips a plain-list quantity into Bulk Add parsing', () => {
+    const { entries } = parseCollection(serializeCollection([{ ...cards[0], count: 7 }], 'plain'));
+
+    expect(entries).toEqual([expect.objectContaining({ name: 'Sol Ring', count: 7 })]);
+  });
 });
 
 describe('parseCollection', () => {

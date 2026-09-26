@@ -208,6 +208,11 @@ Ownership (`.card-toggle`), wishlist (`.card-wishlist`), the printing picker
 (`.card-versions`) and the EDHREC link are real buttons so they land in the tab
 order. Hover-only affordances sit behind `isHoverCapable()`.
 
+Binder pockets are **layout-only** tiles: they carry no collection controls but
+show a read-only `.card-owned-status` pill (`.is-owned` / `.is-missing`) so a
+binder can be pre-built against the collection. It is an indicator, never a
+toggle, so editing a binder never edits what the user owns.
+
 ---
 
 ## 4. Interaction states

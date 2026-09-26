@@ -3011,6 +3011,35 @@ body.list-mode .card.list-tile .wanted-badge {
   display: inline-block;
 }
 
+/* Read-only Owned/Missing pill for layout-only tiles (Binder Builder pockets).
+   It reflects the collection but is not a toggle, so pre-building a binder
+   never edits what the user owns. */
+.card-owned-status {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 4;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.card-owned-status.is-owned {
+  background: linear-gradient(180deg, #52d596, var(--success));
+  color: #06210f;
+}
+
+.card-owned-status.is-missing {
+  background: linear-gradient(180deg, #ef9b9b, var(--danger));
+  color: #2a0505;
+}
+
 .card.owned .edhrec-link {
   opacity: 1;
 }
@@ -5751,6 +5780,18 @@ body.selection-mode #results {
 .bb-page-label {
   font-weight: 600;
   color: var(--text);
+}
+
+.bb-card-count {
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .bb-status {
