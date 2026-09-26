@@ -23,11 +23,17 @@ const SLOT_KEY = /^\d+:\d+:\d+$/;
 
 export type BinderSlots = Record<string, string>;
 
+/** How many copies each pocket holds; sparse (only counts above one). */
+export type BinderQuantities = Record<string, number>;
+
 /** Card names (front face) the owner marked owned inside one binder. */
 export type BinderOwned = string[];
 
 /** Upper bound on how many owned names one binder may carry. */
 export const MAX_BINDER_OWNED = 10000;
+
+/** Most copies one pocket may hold. */
+export const MAX_CARD_QUANTITY = 999;
 
 /** A trimmed, non-empty binder name within {@link MAX_BINDER_NAME_LENGTH}. */
 export function parseBinderName(value: unknown): ParseResult<string> {
@@ -131,6 +137,38 @@ export function parseBinderSlots(value: unknown): ParseResult<BinderSlots> {
 }
 
 /**
+ * Validate a `quantities` payload (`"page:row:col" -> copies`). A missing value
+ * becomes an empty map. Only counts above one are kept, so the map stays sparse.
+ */
+export function parseBinderQuantities(value: unknown): ParseResult<BinderQuantities> {
+  if (value === undefined || value === null) return { ok: true, value: {} };
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return { ok: false, message: "'quantities' must be an object." };
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length > MAX_BINDER_SLOTS) {
+    return { ok: false, message: `'quantities' is limited to ${MAX_BINDER_SLOTS} entries.` };
+  }
+
+  const quantities: BinderQuantities = {};
+  for (const [key, raw] of entries) {
+    if (!SLOT_KEY.test(key)) {
+      return { ok: false, message: `Invalid quantity key '${key}'.` };
+    }
+    if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 1 || raw > MAX_CARD_QUANTITY) {
+      return {
+        ok: false,
+        message: `Each quantity must be an integer between 1 and ${MAX_CARD_QUANTITY}.`,
+      };
+    }
+    if (raw > 1) quantities[key] = raw;
+  }
+
+  return { ok: true, value: quantities };
+}
+
+/**
  * Validate an `owned` payload: the front-face card names the owner marked owned
  * inside this binder. A missing value becomes an empty list. Names are trimmed,
  * de-duplicated and capped so a malformed array can't bloat a request/row.
@@ -165,6 +203,7 @@ export type MergeBinder = {
   rows: number;
   pages: number;
   slots: BinderSlots;
+  quantities: BinderQuantities;
   owned: BinderOwned;
   isPublic: boolean;
 };
@@ -195,6 +234,8 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
     if (!dimensions.ok) return dimensions;
     const slots = parseBinderSlots(record.slots);
     if (!slots.ok) return slots;
+    const quantities = parseBinderQuantities(record.quantities);
+    if (!quantities.ok) return quantities;
     const owned = parseBinderOwned(record.owned);
     if (!owned.ok) return owned;
     const isPublic = parseIsPublic(record.isPublic);
@@ -206,6 +247,7 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
       rows: dimensions.value.rows,
       pages: dimensions.value.pages,
       slots: slots.value,
+      quantities: quantities.value,
       owned: owned.value,
       isPublic: isPublic.value,
     });

@@ -14,6 +14,7 @@ import {
   MAX_BINDER_COLUMNS,
   MAX_BINDER_PAGES,
   MAX_BINDER_ROWS,
+  MAX_CARD_QUANTITY,
   assignCardToSlot,
   canEditBinders,
   clearPage,
@@ -26,6 +27,7 @@ import {
   getBinderOwnedSummary,
   getBinderQuantity,
   getBinders,
+  getSlotQuantity,
   isBinderCardOwned,
   loadBinders,
   moveCardToFirstEmptySlot,
@@ -33,6 +35,7 @@ import {
   parseSlotKey,
   resizeBinder,
   setActiveBinder,
+  setSlotQuantity,
   slotKey,
   toggleBinderOwned,
   updateBinder,
@@ -83,6 +86,61 @@ function numberField(labelText, className, { min, max, value }) {
 
   label.appendChild(input);
   return { el: label, input };
+}
+
+/**
+ * The per-pocket copy count. Editable pockets get a − / input / + stepper; a
+ * read-only view shows a static ×N badge only when there is more than one.
+ */
+function createQuantityControl(quantity, editable) {
+  if (!editable && quantity <= 1) return null;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'binder-slot-qty';
+  if (quantity > 1) wrap.classList.add('has-quantity');
+
+  if (!editable) {
+    const value = document.createElement('span');
+    value.className = 'binder-slot-qty-value';
+    value.textContent = `×${quantity}`;
+    wrap.appendChild(value);
+    return wrap;
+  }
+
+  const dec = document.createElement('button');
+  dec.type = 'button';
+  dec.className = 'binder-slot-qty-dec';
+  dec.textContent = '−';
+  dec.title = 'One fewer copy';
+  dec.setAttribute('aria-label', 'One fewer copy');
+  dec.disabled = quantity <= 1;
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.className = 'binder-slot-qty-input';
+  input.min = '1';
+  input.max = String(MAX_CARD_QUANTITY);
+  input.step = '1';
+  input.inputMode = 'numeric';
+  input.value = String(quantity);
+  input.setAttribute('aria-label', 'Copies in this pocket');
+
+  const inc = document.createElement('button');
+  inc.type = 'button';
+  inc.className = 'binder-slot-qty-inc';
+  inc.textContent = '+';
+  inc.title = 'One more copy';
+  inc.setAttribute('aria-label', 'One more copy');
+  inc.disabled = quantity >= MAX_CARD_QUANTITY;
+
+  wrap.append(dec, input, inc);
+  return wrap;
+}
+
+/** Append the quantity control when there is one to show. */
+function appendQuantityControl(slot, binder, key, editable) {
+  const control = createQuantityControl(getSlotQuantity(binder.id, key), editable);
+  if (control) slot.appendChild(control);
 }
 
 /**
@@ -512,6 +570,18 @@ function handlePageClick(event) {
     return;
   }
 
+  // Quantity stepper. A click inside the number input is left to the input;
+  // its `change` handler commits the typed value.
+  const qtyStep = event.target.closest('.binder-slot-qty-inc, .binder-slot-qty-dec');
+  if (qtyStep) {
+    event.preventDefault();
+    event.stopPropagation();
+    const delta = qtyStep.classList.contains('binder-slot-qty-inc') ? 1 : -1;
+    setSlotQuantity(binder.id, key, getSlotQuantity(binder.id, key) + delta);
+    return;
+  }
+  if (event.target.closest('.binder-slot-qty')) return;
+
   if (event.target.closest('.binder-slot-remove')) {
     event.preventDefault();
     clearSlot(binder.id, key);
@@ -536,6 +606,16 @@ function handlePageClick(event) {
     openPickerForSlot(key);
   }
   // A click that landed on the card tile is left to `cardInteractions`.
+}
+
+/** Commit a typed pocket count (change fires on blur/Enter). */
+function handlePageChange(event) {
+  const input = event.target.closest('.binder-slot-qty-input');
+  if (!input) return;
+  const slot = input.closest('.binder-slot');
+  const binder = getActiveBinder();
+  if (!slot || !binder || !canEditBinders()) return;
+  setSlotQuantity(binder.id, slot.dataset.slot, input.value);
 }
 
 /** The stored printing ids of the current page that need a card object. */
@@ -691,7 +771,7 @@ export function render() {
   refs.publicInput.disabled = !editable;
   refs.clearButton.hidden = !editable;
   refs.hint.textContent = editable
-    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Tap Owned/Missing to track it in this binder.'
+    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Set copies with − / +, and tap Owned/Missing to track it in this binder.'
     : 'View only — tap a card to preview it (←/→ or J/K to move through the grid).';
 
   if (pendingMove) {
@@ -734,6 +814,7 @@ export function render() {
         tile.dataset.binderSlot = key;
         updateCardState(tile);
         slot.append(tile);
+        appendQuantityControl(slot, binder, key, editable);
         slot.appendChild(
           createOwnedStatusControl(isBinderCardOwned(binder.id, primaryName(card)), editable)
         );
@@ -748,6 +829,7 @@ export function render() {
         const name = resolveCatalogName(printingId);
         unknown.textContent = name ? `${name} loading…` : 'Loading card…';
         slot.append(unknown);
+        appendQuantityControl(slot, binder, key, editable);
         if (name) {
           slot.appendChild(createOwnedStatusControl(isBinderCardOwned(binder.id, name), editable));
         }
@@ -781,6 +863,7 @@ export async function initBinderBuilder(root, { seed = true } = {}) {
   await loadBinders({ seed });
   buildChrome(root);
   refs.pageEl.addEventListener('click', handlePageClick);
+  refs.pageEl.addEventListener('change', handlePageChange);
   render();
 
   if (!listening) {

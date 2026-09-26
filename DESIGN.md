@@ -209,9 +209,10 @@ Ownership (`.card-toggle`), wishlist (`.card-wishlist`), the printing picker
 order. Hover-only affordances sit behind `isHoverCapable()`.
 
 Binder pockets are **layout-only** tiles: they carry no collection controls but
-show a `.binder-slot-owned` toggle (`Owned` / `Missing`). It reads the binder's
-own persisted owned set, not the account collection, so pre-building a binder
-never edits what the user owns; clicking it flips that binder's marker.
+show a `.binder-slot-owned` toggle (`Owned` / `Missing`) and a `.binder-slot-qty`
+stepper (`−` / count / `+`). The owned toggle reads the binder's own persisted
+owned set, not the account collection, so pre-building a binder never edits what
+the user owns; the stepper sets how many copies that pocket holds.
 
 ---
 

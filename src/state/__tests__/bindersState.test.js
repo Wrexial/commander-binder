@@ -322,15 +322,49 @@ describe('bindersState', () => {
     expect(ids).toContain('c1');
   });
 
-  it('fills one pocket per copy when a card carries a quantity', async () => {
-    const { loadBinders, getActiveBinder, addCardsToBinder } = await load();
+  it('stores a card quantity as one pocket holding that many copies', async () => {
+    const {
+      loadBinders,
+      getActiveBinder,
+      addCardsToBinder,
+      getBinderCards,
+      getBinderQuantity,
+      getSlotQuantity,
+    } = await load();
+    cardStore.add({ id: 'island', name: 'Island' });
     await loadBinders();
     const binder = getActiveBinder();
 
     await addCardsToBinder(binder.id, [{ id: 'island', name: 'Island', count: 7 }]);
 
-    const ids = Object.values(getActiveBinder().slots);
-    expect(ids.filter((id) => id === 'island')).toHaveLength(7);
+    // "7 Island" is one pocket holding seven, not seven pockets.
+    expect(Object.values(getActiveBinder().slots)).toEqual(['island']);
+    expect(getSlotQuantity(binder.id, '0:0:0')).toBe(7);
+    expect(getBinderQuantity(binder.id)).toBe(7);
+    expect(getBinderCards(binder.id)).toEqual([
+      expect.objectContaining({ name: 'Island', count: 7 }),
+    ]);
+  });
+
+  it('sets and clears a pocket count through setSlotQuantity', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, getSlotQuantity, setSlotQuantity } =
+      await load();
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    await setSlotQuantity(binder.id, '0:0:0', 4);
+    expect(getSlotQuantity(binder.id, '0:0:0')).toBe(4);
+    expect(local.records[0].quantities).toEqual({ '0:0:0': 4 });
+
+    // A count of one drops the stored entry (the map stays sparse).
+    await setSlotQuantity(binder.id, '0:0:0', 1);
+    expect(getSlotQuantity(binder.id, '0:0:0')).toBe(1);
+    expect(local.records[0].quantities).toEqual({});
+
+    // Clamped to the maximum.
+    await setSlotQuantity(binder.id, '0:0:0', 100000);
+    expect(getSlotQuantity(binder.id, '0:0:0')).toBe(999);
   });
 
   it('refuses to rename a binder to an existing name', async () => {

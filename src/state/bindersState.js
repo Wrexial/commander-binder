@@ -45,6 +45,8 @@ const ACTIVE_KEY = 'activeBinderId';
 export const MAX_BINDER_COLUMNS = 16;
 export const MAX_BINDER_ROWS = 16;
 export const MAX_BINDER_PAGES = 200;
+/** Most copies one pocket may hold. */
+export const MAX_CARD_QUANTITY = 999;
 const MIN_BINDER_COLUMNS = 1;
 const MIN_BINDER_ROWS = 1;
 
@@ -96,6 +98,38 @@ function sanitizeSlots(source) {
 }
 
 /**
+ * Keep only per-pocket counts above one that point at an occupied slot, so the
+ * map stays sparse and never carries an orphaned quantity.
+ */
+function sanitizeQuantities(source, slots) {
+  const clean = {};
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return clean;
+  for (const [key, value] of Object.entries(source)) {
+    if (!slots[key]) continue;
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 1) {
+      clean[key] = Math.min(parsed, MAX_CARD_QUANTITY);
+    }
+  }
+  return clean;
+}
+
+/** Copies held by one pocket (1 unless a count is stored, 0 when empty). */
+export function getSlotQuantity(binderId, key) {
+  const binder = binders.get(binderId);
+  if (!binder || !binder.slots[key]) return 0;
+  return binder.quantities[key] || 1;
+}
+
+/** Set/clear one pocket's count in memory (only counts above one are stored). */
+function setQuantityInternal(binder, key, quantity) {
+  const parsed = Number.parseInt(quantity, 10);
+  const clamped = Math.min(MAX_CARD_QUANTITY, Math.max(1, Number.isFinite(parsed) ? parsed : 1));
+  if (clamped > 1) binder.quantities[key] = clamped;
+  else delete binder.quantities[key];
+}
+
+/**
  * Keep only non-empty front-face card names as an owned set. Accepts an array
  * (wire/local record) or an already-built Set (in-memory snapshot).
  */
@@ -110,6 +144,7 @@ function sanitizeOwned(source) {
 
 function normalizeBinder(record) {
   const now = new Date().toISOString();
+  const slots = sanitizeSlots(record.slots);
   return {
     id: String(record.id),
     name: String(record.name || 'Binder').slice(0, 80),
@@ -117,7 +152,8 @@ function normalizeBinder(record) {
     rows: clampInt(record.rows, MIN_BINDER_ROWS, MAX_BINDER_ROWS, 3),
     pages: clampInt(record.pages, 1, MAX_BINDER_PAGES, 1),
     isPublic: Boolean(record.isPublic),
-    slots: sanitizeSlots(record.slots),
+    slots,
+    quantities: sanitizeQuantities(record.quantities, slots),
     // Binder-scoped owned markers, separate from the account collection.
     owned: sanitizeOwned(record.owned),
     createdAt: record.createdAt || now,
@@ -135,6 +171,7 @@ function toRecord(binder) {
     pages: binder.pages,
     isPublic: binder.isPublic,
     slots: { ...binder.slots },
+    quantities: { ...binder.quantities },
     owned: [...binder.owned],
     createdAt: binder.createdAt,
     updatedAt: binder.updatedAt,
@@ -222,8 +259,8 @@ export function getBinderPrintingIds(binderId) {
 }
 
 /**
- * Every pocket's card, one entry per slot and in slot order — duplicates
- * included. Statistics uses this so three Sol Rings count as three cards.
+ * Every pocket's card, repeated once per copy, in slot order. Statistics uses
+ * this so a pocket holding four Sol Rings counts as four cards.
  *
  * @param {string} binderId
  * @returns {Array<{id: string, name: string}>}
@@ -232,16 +269,20 @@ export function getBinderSlotCards(binderId) {
   const binder = binders.get(binderId);
   if (!binder) return [];
 
-  return sortedSlotKeys(binder).map((key) => {
+  const cards = [];
+  for (const key of sortedSlotKeys(binder)) {
     const printingId = binder.slots[key];
-    return cardStore.getByPrintingId(printingId) || { id: printingId, name: printingId };
-  });
+    const card = cardStore.getByPrintingId(printingId) || { id: printingId, name: printingId };
+    const copies = binder.quantities[key] || 1;
+    for (let i = 0; i < copies; i++) cards.push(card);
+  }
+  return cards;
 }
 
 /**
  * The member cards of a binder, one per card name, in slot order. Each entry
- * carries a `count` (the number of pockets holding that name) so an export of a
- * pre-built binder keeps its duplicates, e.g. seven Islands read as
+ * carries a `count` (the summed per-pocket quantities for that name) so an
+ * export of a pre-built binder keeps its duplicates, e.g. seven Islands read as
  * `7 Island`. Unloaded printings fall back to a bare `{ id, name }` so an export
  * never loses a row.
  *
@@ -257,27 +298,29 @@ export function getBinderCards(binderId) {
     const printingId = binder.slots[key];
     const card = cardStore.getByPrintingId(printingId);
     const name = card ? primaryName(card) : printingId;
+    const copies = binder.quantities[key] || 1;
     const existing = byName.get(name);
     if (existing) {
-      existing.count += 1;
+      existing.count += copies;
       continue;
     }
     // Copy the store object so the per-binder count never leaks into `cardStore`.
-    byName.set(name, { ...(card || { id: printingId, name: printingId }), count: 1 });
+    byName.set(name, { ...(card || { id: printingId, name: printingId }), count: copies });
   }
   return [...byName.values()];
 }
 
 /**
- * The total number of cards in a binder, duplicates included — the binder's
- * quantity. Unlike {@link getBinderCards} this needs no hydrated card objects.
+ * The total number of cards in a binder, duplicates and per-pocket counts
+ * included — the binder's quantity. Needs no hydrated card objects.
  *
  * @param {string} binderId
  * @returns {number}
  */
 export function getBinderQuantity(binderId) {
   const binder = binders.get(binderId);
-  return binder ? Object.keys(binder.slots).length : 0;
+  if (!binder) return 0;
+  return Object.keys(binder.slots).reduce((sum, key) => sum + (binder.quantities[key] || 1), 0);
 }
 
 /**
@@ -323,12 +366,14 @@ export function getBinderOwnedSummary(binderId) {
   const binder = binders.get(binderId);
   if (!binder) return { total: 0, owned: 0, missing: 0 };
 
-  const total = Object.keys(binder.slots).length;
+  let total = 0;
   let owned = 0;
-  for (const printingId of Object.values(binder.slots)) {
+  for (const [key, printingId] of Object.entries(binder.slots)) {
+    const copies = binder.quantities[key] || 1;
+    total += copies;
     const card = cardStore.getByPrintingId(printingId);
     const name = card ? primaryName(card) : null;
-    if (name && binder.owned.has(name)) owned += 1;
+    if (name && binder.owned.has(name)) owned += copies;
   }
   return { total, owned, missing: total - owned };
 }
@@ -500,6 +545,7 @@ export async function createBinder({
           ...dims,
           isPublic: publicFlag,
           slots: {},
+          quantities: {},
           owned: [],
         })
       );
@@ -566,28 +612,34 @@ export async function resizeBinder(id, dims = {}) {
   }
 
   // Keep every pocket that still exists in the new grid, in reading order;
-  // queue the rest so they can be shifted into the freed pockets.
+  // queue the rest so they can be shifted into the freed pockets. Each card
+  // carries its per-pocket count so the copies are never lost.
   const keptSlots = {};
+  const keptQuantities = {};
   const displaced = [];
   for (const key of sortedSlotKeys(binder)) {
     const parsed = parseSlotKey(key);
     if (!parsed) continue;
     if (parsed.page < pages && parsed.row < rows && parsed.col < columns) {
       keptSlots[key] = binder.slots[key];
+      if (binder.quantities[key] > 1) keptQuantities[key] = binder.quantities[key];
     } else {
-      displaced.push(binder.slots[key]);
+      displaced.push({ id: binder.slots[key], qty: binder.quantities[key] || 1 });
     }
   }
 
   // Shift displaced cards into the first free pockets, page → row → column.
   const slots = { ...keptSlots };
+  const quantities = { ...keptQuantities };
   let placed = 0;
   for (let page = 0; page < pages && placed < displaced.length; page++) {
     for (let row = 0; row < rows && placed < displaced.length; row++) {
       for (let col = 0; col < columns && placed < displaced.length; col++) {
         const key = slotKey(page, row, col);
         if (slots[key]) continue;
-        slots[key] = displaced[placed++];
+        const card = displaced[placed++];
+        slots[key] = card.id;
+        if (card.qty > 1) quantities[key] = card.qty;
       }
     }
   }
@@ -600,6 +652,7 @@ export async function resizeBinder(id, dims = {}) {
   binder.rows = rows;
   binder.pages = pages;
   binder.slots = slots;
+  binder.quantities = quantities;
   // Persist the source before creating anything else: the create path can
   // rebuild the in-memory registry from the server's reply.
   await commit(binder, { silent: true });
@@ -628,17 +681,18 @@ export async function resizeBinder(id, dims = {}) {
       // The continuation could not be created (e.g. a server error). Grow the
       // source binder instead so the cards are never silently dropped.
       const fallback = binders.get(id);
-      for (const printingId of remaining) {
+      for (const card of remaining) {
         let key = firstEmptySlotKey(fallback);
         if (!key) {
           if (fallback.pages >= MAX_BINDER_PAGES) {
-            console.error('Could not place an overflow card; binder is full:', printingId);
+            console.error('Could not place an overflow card; binder is full:', card.id);
             continue;
           }
           fallback.pages += 1;
           key = slotKey(fallback.pages - 1, 0, 0);
         }
-        fallback.slots[key] = printingId;
+        fallback.slots[key] = card.id;
+        if (card.qty > 1) fallback.quantities[key] = card.qty;
       }
       await commit(fallback, { silent: true });
       break;
@@ -646,13 +700,17 @@ export async function resizeBinder(id, dims = {}) {
 
     remaining = remaining.slice(chunk.length);
     const target = binders.get(created.id) || created;
-    chunk.forEach((printingId, index) => {
+    let moved = 0;
+    chunk.forEach((card, index) => {
       const page = Math.floor(index / perPage);
       const within = index % perPage;
-      target.slots[slotKey(page, Math.floor(within / columns), within % columns)] = printingId;
+      const key = slotKey(page, Math.floor(within / columns), within % columns);
+      target.slots[key] = card.id;
+      if (card.qty > 1) target.quantities[key] = card.qty;
+      moved += card.qty;
     });
     await commit(target, { silent: true });
-    overflowBinders.push({ id: target.id, name: target.name, count: chunk.length });
+    overflowBinders.push({ id: target.id, name: target.name, count: moved });
   }
 
   announce();
@@ -773,12 +831,15 @@ async function commit(binder, { silent = false } = {}) {
   return binder;
 }
 
-/** Place a printing in a slot (replacing whatever was there). */
+/** Place a printing in a slot (replacing whatever was there; count resets to 1). */
 export async function assignCardToSlot(binderId, key, printingId) {
   if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
   if (!binder || !parseSlotKey(key) || typeof printingId !== 'string' || !printingId) return null;
   binder.slots[key] = printingId;
+  // A freshly placed card holds one copy; any old count belonged to the card
+  // that just left the pocket.
+  setQuantityInternal(binder, key, 1);
   return commit(binder);
 }
 
@@ -788,10 +849,23 @@ export async function clearSlot(binderId, key) {
   const binder = binders.get(binderId);
   if (!binder || !(key in binder.slots)) return null;
   delete binder.slots[key];
+  delete binder.quantities[key];
   return commit(binder);
 }
 
-/** Move a card to another slot, swapping when the target already holds one. */
+/**
+ * Set how many copies one pocket holds (clamped to 1..{@link MAX_CARD_QUANTITY}).
+ * A count of one clears the stored entry.
+ */
+export async function setSlotQuantity(binderId, key, quantity) {
+  if (!canEditBinders()) return null;
+  const binder = binders.get(binderId);
+  if (!binder || !parseSlotKey(key) || !binder.slots[key]) return null;
+  setQuantityInternal(binder, key, quantity);
+  return commit(binder);
+}
+
+/** Move a card (and its count) to another slot, swapping when occupied. */
 export async function moveSlot(binderId, fromKey, toKey) {
   if (!canEditBinders()) return null;
   const binder = binders.get(binderId);
@@ -801,10 +875,22 @@ export async function moveSlot(binderId, fromKey, toKey) {
   const moving = binder.slots[fromKey];
   if (!moving) return null;
 
+  const movingQty = binder.quantities[fromKey] || 1;
   const target = binder.slots[toKey];
+  const targetQty = binder.quantities[toKey] || 1;
+
   binder.slots[toKey] = moving;
-  if (target) binder.slots[fromKey] = target;
-  else delete binder.slots[fromKey];
+  if (movingQty > 1) binder.quantities[toKey] = movingQty;
+  else delete binder.quantities[toKey];
+
+  if (target) {
+    binder.slots[fromKey] = target;
+    if (targetQty > 1) binder.quantities[fromKey] = targetQty;
+    else delete binder.quantities[fromKey];
+  } else {
+    delete binder.slots[fromKey];
+    delete binder.quantities[fromKey];
+  }
 
   return commit(binder);
 }
@@ -839,6 +925,7 @@ export async function moveCardToFirstEmptySlot(fromBinderId, fromKey, toBinderId
 
   const printingId = from.slots[fromKey];
   if (!printingId) return null;
+  const copies = from.quantities[fromKey] || 1;
 
   let targetKey = firstEmptySlotKey(to);
   if (!targetKey) {
@@ -848,7 +935,10 @@ export async function moveCardToFirstEmptySlot(fromBinderId, fromKey, toBinderId
   }
 
   delete from.slots[fromKey];
+  delete from.quantities[fromKey];
   to.slots[targetKey] = printingId;
+  if (copies > 1) to.quantities[targetKey] = copies;
+  else delete to.quantities[targetKey];
 
   const now = new Date().toISOString();
   from.updatedAt = now;
@@ -877,6 +967,7 @@ export async function clearPage(binderId, page) {
     const parsed = parseSlotKey(key);
     if (parsed && parsed.page === page) {
       delete binder.slots[key];
+      delete binder.quantities[key];
       changed = true;
     }
   }
@@ -886,9 +977,11 @@ export async function clearPage(binderId, page) {
 }
 
 /**
- * Add a batch of cards to a binder, filling the first empty pockets in slot
- * order and growing the page count when it runs out of room (up to
- * `MAX_BINDER_PAGES`). Cards already anywhere in the binder are skipped.
+ * Add a batch of cards to a binder. Each card is placed in the first empty
+ * pocket in slot order (growing the page count when it runs out of room, up to
+ * `MAX_BINDER_PAGES`), or — when the same printing is already in the binder —
+ * its copies are added to that pocket's count. A card's `count`/`quantity`
+ * becomes the pocket's quantity, so a pasted "7 Island" is one pocket of seven.
  *
  * @param {string} binderId
  * @param {object[]} cards
@@ -899,17 +992,37 @@ export async function addCardsToBinder(binderId, cards) {
   const binder = binders.get(binderId);
   if (!binder) throw new Error('Binder not found.');
 
-  const presentIds = new Set(Object.values(binder.slots));
+  // First pocket holding each printing, so a repeat add grows that pocket.
+  const pocketByPrinting = new Map();
+  for (const [key, id] of Object.entries(binder.slots)) {
+    if (!pocketByPrinting.has(id)) pocketByPrinting.set(id, key);
+  }
+
   const queue = [];
   for (const card of Array.isArray(cards) ? cards : [cards]) {
-    if (!card || !card.id || presentIds.has(card.id)) continue;
-    // A card may stand for several copies (`count`/`quantity`), so a pasted
-    // "7 Island" fills seven pockets. Missing/odd counts mean one copy.
+    if (!card || !card.id) continue;
     const raw = Number(card.count ?? card.quantity ?? 1);
     const copies = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
-    for (let i = 0; i < copies; i++) queue.push(card);
+
+    const existingKey = pocketByPrinting.get(card.id);
+    if (existingKey) {
+      const current = binder.quantities[existingKey] || 1;
+      setQuantityInternal(binder, existingKey, current + copies);
+      continue;
+    }
+    queue.push({ id: card.id, copies });
   }
-  if (queue.length === 0) return binder;
+
+  if (queue.length === 0) {
+    binder.updatedAt = new Date().toISOString();
+    if (isLocalMode()) {
+      await persistLocal(binder);
+      announce();
+      return binder;
+    }
+    await pushBinder(binder.id);
+    return binder;
+  }
 
   let page = 0;
   while (queue.length > 0) {
@@ -921,7 +1034,9 @@ export async function addCardsToBinder(binderId, cards) {
       for (let col = 0; col < binder.columns && queue.length > 0; col++) {
         const key = slotKey(page, row, col);
         if (binder.slots[key]) continue;
-        binder.slots[key] = queue.shift().id;
+        const item = queue.shift();
+        binder.slots[key] = item.id;
+        if (item.copies > 1) binder.quantities[key] = Math.min(item.copies, MAX_CARD_QUANTITY);
       }
     }
     page += 1;

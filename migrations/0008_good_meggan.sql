@@ -1,0 +1,1 @@
+ALTER TABLE "binders" ADD COLUMN "quantities" text DEFAULT '{}' NOT NULL;

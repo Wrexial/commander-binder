@@ -6,11 +6,13 @@ import {
   MAX_BINDER_OWNED,
   MAX_BINDER_PAGES,
   MAX_BINDER_SLOTS,
+  MAX_CARD_QUANTITY,
   parseBinderDimension,
   parseBinderDimensions,
   parseBinderId,
   parseBinderName,
   parseBinderOwned,
+  parseBinderQuantities,
   parseBinderSlots,
   parseMergeBinders,
 } from '../binders';
@@ -97,6 +99,28 @@ describe('parseBinderSlots', () => {
   });
 });
 
+describe('parseBinderQuantities', () => {
+  it('defaults to an empty map', () => {
+    expect(parseBinderQuantities(undefined)).toEqual({ ok: true, value: {} });
+    expect(parseBinderQuantities(null)).toEqual({ ok: true, value: {} });
+  });
+
+  it('keeps only counts above one', () => {
+    expect(parseBinderQuantities({ '0:0:0': 4, '0:0:1': 1 })).toEqual({
+      ok: true,
+      value: { '0:0:0': 4 },
+    });
+  });
+
+  it('rejects bad keys, non-integers and out-of-range counts', () => {
+    expect(parseBinderQuantities([]).ok).toBe(false);
+    expect(parseBinderQuantities({ bad: 2 }).ok).toBe(false);
+    expect(parseBinderQuantities({ '0:0:0': '2' }).ok).toBe(false);
+    expect(parseBinderQuantities({ '0:0:0': 0 }).ok).toBe(false);
+    expect(parseBinderQuantities({ '0:0:0': MAX_CARD_QUANTITY + 1 }).ok).toBe(false);
+  });
+});
+
 describe('parseBinderOwned', () => {
   it('defaults to an empty list', () => {
     expect(parseBinderOwned(undefined)).toEqual({ ok: true, value: [] });
@@ -131,6 +155,7 @@ describe('parseMergeBinders', () => {
         rows: 4,
         pages: 2,
         slots: { '0:0:0': 'a' },
+        quantities: { '0:0:0': 4 },
         owned: ['Sol Ring'],
         isPublic: true,
       },
@@ -144,6 +169,7 @@ describe('parseMergeBinders', () => {
           rows: 4,
           pages: 2,
           slots: { '0:0:0': 'a' },
+          quantities: { '0:0:0': 4 },
           owned: ['Sol Ring'],
           isPublic: true,
         },
@@ -154,7 +180,18 @@ describe('parseMergeBinders', () => {
   it('applies dimension defaults and rejects malformed entries', () => {
     expect(parseMergeBinders([{ name: 'X' }])).toEqual({
       ok: true,
-      value: [{ name: 'X', columns: 3, rows: 3, pages: 1, slots: {}, owned: [], isPublic: false }],
+      value: [
+        {
+          name: 'X',
+          columns: 3,
+          rows: 3,
+          pages: 1,
+          slots: {},
+          quantities: {},
+          owned: [],
+          isPublic: false,
+        },
+      ],
     });
     expect(parseMergeBinders('x').ok).toBe(false);
     expect(parseMergeBinders([null]).ok).toBe(false);

@@ -89,6 +89,7 @@ import {
   getActiveBinder,
   getActiveBinderId,
   getBinder,
+  getSlotQuantity,
   isBinderCardOwned,
   resetBinders,
   setActiveBinder,
@@ -176,6 +177,41 @@ describe('binderBuilder', () => {
       expect(document.querySelector('.binder-slot-owned').textContent).toBe('Missing')
     );
     expect(isBinderCardOwned(binder.id, 'Card card-a')).toBe(false);
+  });
+
+  it('sets a per-pocket quantity with the stepper', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot-qty')).not.toBeNull());
+
+    expect(document.querySelector('.binder-slot-qty-input').value).toBe('1');
+    document.querySelector('.binder-slot-qty-inc').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot-qty-input').value).toBe('2')
+    );
+
+    // One pocket now counts as two, so the binder total follows.
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-card-count').textContent).toBe('2 cards')
+    );
+
+    document.querySelector('.binder-slot-qty-dec').click();
+    await vi.waitFor(() => expect(getSlotQuantity(binder.id, '0:0:0')).toBe(1));
+  });
+
+  it('commits a typed pocket quantity', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot-qty-input')).not.toBeNull());
+
+    const input = document.querySelector('.binder-slot-qty-input');
+    input.value = '5';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await vi.waitFor(() => expect(getSlotQuantity(binder.id, '0:0:0')).toBe(5));
+    expect(document.querySelector('.binder-slot-qty-input').value).toBe('5');
   });
 
   it('summarizes owned and missing quantities for the active binder', async () => {
@@ -506,6 +542,7 @@ describe('binderBuilder', () => {
         pages: 1,
         isPublic: true,
         slots: { '0:0:0': 'card-a' },
+        quantities: { '0:0:0': 2 },
         owned: ['Card card-a'],
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -524,11 +561,12 @@ describe('binderBuilder', () => {
     expect(document.querySelectorAll('.binder-slot-controls')).toHaveLength(0);
     expect(document.querySelector('.binder-builder-hint').textContent).toContain('View only');
 
-    // The owner's public binder is visible, with its card and a static
-    // owned marker (not a toggle).
+    // The owner's public binder is visible, with its card and static
+    // owned/quantity badges (not toggles).
     expect(document.querySelector('.binder-slot.is-filled')).not.toBeNull();
     expect(document.querySelector('.binder-slot-owned').tagName).toBe('SPAN');
     expect(document.querySelector('.binder-slot-owned').textContent).toBe('Owned');
+    expect(document.querySelector('.binder-slot-qty-value').textContent).toBe('×2');
   });
 
   it('shows an empty state when a share visitor has no public binders', async () => {

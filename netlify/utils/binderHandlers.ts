@@ -11,9 +11,11 @@ import {
   parseBinderId,
   parseBinderName,
   parseBinderOwned,
+  parseBinderQuantities,
   parseBinderSlots,
   parseMergeBinders,
   type BinderOwned,
+  type BinderQuantities,
   type BinderSlots,
 } from './binders';
 import { parseIsPublic } from './lists';
@@ -29,6 +31,7 @@ export type ClientBinder = {
   pages: number;
   isPublic: boolean;
   slots: BinderSlots;
+  quantities: BinderQuantities;
   owned: BinderOwned;
   createdAt: string;
   updatedAt: string;
@@ -38,6 +41,16 @@ export type ClientBinder = {
 function parseStoredSlots(text: string): BinderSlots {
   try {
     const parsed = parseBinderSlots(JSON.parse(text));
+    return parsed.ok ? parsed.value : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Parse a stored quantities JSON blob defensively (a corrupt row becomes empty). */
+function parseStoredQuantities(text: string): BinderQuantities {
+  try {
+    const parsed = parseBinderQuantities(JSON.parse(text));
     return parsed.ok ? parsed.value : {};
   } catch {
     return {};
@@ -79,6 +92,7 @@ async function collectBinders(
       pages: row.pages,
       isPublic: row.isPublic,
       slots: parseStoredSlots(row.slots),
+      quantities: parseStoredQuantities(row.quantities),
       owned: parseStoredOwned(row.owned),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -141,6 +155,8 @@ export async function createBinder(event: HandlerEvent) {
   if (!dimensions.ok) return badRequest(dimensions.message);
   const slots = parseBinderSlots(parsed.value.slots);
   if (!slots.ok) return badRequest(slots.message);
+  const quantities = parseBinderQuantities(parsed.value.quantities);
+  if (!quantities.ok) return badRequest(quantities.message);
   const owned = parseBinderOwned(parsed.value.owned);
   if (!owned.ok) return badRequest(owned.message);
   const isPublic = parseIsPublic(parsed.value.isPublic);
@@ -168,6 +184,7 @@ export async function createBinder(event: HandlerEvent) {
       pages: dimensions.value.pages,
       isPublic: isPublic.value,
       slots: JSON.stringify(slots.value),
+      quantities: JSON.stringify(quantities.value),
       owned: JSON.stringify(owned.value),
     })
     .onConflictDoNothing();
@@ -194,10 +211,13 @@ export async function updateBinder(event: HandlerEvent) {
   const dimensions = parseBinderDimensions(parsed.value);
   if (!dimensions.ok) return badRequest(dimensions.message);
 
-  // A missing `slots`/`owned`/`isPublic` leaves the stored value untouched.
+  // A missing `slots`/`quantities`/`owned`/`isPublic` leaves the stored value untouched.
   const hasSlots = parsed.value.slots !== undefined;
   const slots = hasSlots ? parseBinderSlots(parsed.value.slots) : null;
   if (slots && !slots.ok) return badRequest(slots.message);
+  const hasQuantities = parsed.value.quantities !== undefined;
+  const quantities = hasQuantities ? parseBinderQuantities(parsed.value.quantities) : null;
+  if (quantities && !quantities.ok) return badRequest(quantities.message);
   const hasOwned = parsed.value.owned !== undefined;
   const owned = hasOwned ? parseBinderOwned(parsed.value.owned) : null;
   if (owned && !owned.ok) return badRequest(owned.message);
@@ -220,6 +240,7 @@ export async function updateBinder(event: HandlerEvent) {
     updatedAt: new Date(),
   };
   if (hasSlots && slots?.ok) patch.slots = JSON.stringify(slots.value);
+  if (hasQuantities && quantities?.ok) patch.quantities = JSON.stringify(quantities.value);
   if (hasOwned && owned?.ok) patch.owned = JSON.stringify(owned.value);
   if (hasPublic && isPublic?.ok) patch.isPublic = isPublic.value;
 
@@ -275,6 +296,7 @@ export async function mergeBinders(event: HandlerEvent) {
         pages: binder.pages,
         isPublic: binder.isPublic,
         slots: binder.slots,
+        quantities: binder.quantities,
         owned: binder.owned,
       },
     ])
@@ -289,6 +311,11 @@ export async function mergeBinders(event: HandlerEvent) {
       for (const [key, id] of Object.entries(binder.slots)) {
         if (!(key in mergedSlots)) mergedSlots[key] = id;
       }
+      // Quantities follow the same rule: a server pocket keeps its count.
+      const mergedQuantities = { ...match.quantities };
+      for (const [key, count] of Object.entries(binder.quantities)) {
+        if (!(key in mergedQuantities) && mergedSlots[key]) mergedQuantities[key] = count;
+      }
       // Owned markers are a union: guest-only marks are kept.
       const mergedOwned = [...new Set([...match.owned, ...binder.owned])];
       await db
@@ -299,6 +326,7 @@ export async function mergeBinders(event: HandlerEvent) {
           pages: Math.max(match.pages, binder.pages),
           isPublic: match.isPublic || binder.isPublic,
           slots: JSON.stringify(mergedSlots),
+          quantities: JSON.stringify(mergedQuantities),
           owned: JSON.stringify(mergedOwned),
           updatedAt: new Date(),
         })
@@ -316,6 +344,7 @@ export async function mergeBinders(event: HandlerEvent) {
       pages: binder.pages,
       isPublic: binder.isPublic,
       slots: binder.slots,
+      quantities: binder.quantities,
       owned: binder.owned,
     });
     await db.insert(binders).values({
@@ -327,6 +356,7 @@ export async function mergeBinders(event: HandlerEvent) {
       pages: binder.pages,
       isPublic: binder.isPublic,
       slots: JSON.stringify(binder.slots),
+      quantities: JSON.stringify(binder.quantities),
       owned: JSON.stringify(binder.owned),
     });
   }

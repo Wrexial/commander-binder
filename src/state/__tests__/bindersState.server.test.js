@@ -31,11 +31,13 @@ import {
   ensureSeedBinder,
   getActiveBinder,
   getBinders,
+  getSlotQuantity,
   isBinderCardOwned,
   loadBinders,
   mergeLocalBindersToAccount,
   resetBinders,
   resizeBinder,
+  setSlotQuantity,
   toggleBinderOwned,
 } from '../bindersState.js';
 import { mainState } from '../mainState.js';
@@ -149,6 +151,20 @@ describe('bindersState (server mode)', () => {
       expect.objectContaining({ owned: ['Alpha'] })
     );
     expect(isBinderCardOwned('b1', 'Alpha')).toBe(true);
+  });
+
+  it('persists a pocket quantity through the API', async () => {
+    fetchBinders.mockResolvedValue([record({ slots: { '0:0:0': 'card-a' } })]);
+    await loadBinders();
+    apiUpdateBinder.mockImplementation(async (id, payload) => [record({ id, ...payload })]);
+
+    await setSlotQuantity('b1', '0:0:0', 4);
+
+    expect(apiUpdateBinder).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ quantities: { '0:0:0': 4 } })
+    );
+    expect(getSlotQuantity('b1', '0:0:0')).toBe(4);
   });
 
   it('creates a binder through the API and activates it', async () => {
