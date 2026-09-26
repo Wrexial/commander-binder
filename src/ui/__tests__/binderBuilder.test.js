@@ -182,6 +182,22 @@ describe('binderBuilder', () => {
     expect(isBinderCardOwned(binder.id, 'Card card-a')).toBe(false);
   });
 
+  it('dims a missing pocket and brightens it once marked owned', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot[data-slot="0:0:0"] .card')).not.toBeNull()
+    );
+
+    const tile = () => document.querySelector('.binder-slot[data-slot="0:0:0"] .card');
+    // The base site's dim-the-missing overlay is driven by `.owned`.
+    expect(tile().classList.contains('owned')).toBe(false);
+
+    document.querySelector('.binder-slot-owned').click();
+    await vi.waitFor(() => expect(tile().classList.contains('owned')).toBe(true));
+  });
+
   it('sets a per-pocket quantity with the stepper', async () => {
     await mount();
     const binder = getActiveBinder();

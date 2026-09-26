@@ -1182,6 +1182,7 @@ export function render() {
 
       if (printingId && card) {
         slot.classList.add('is-filled');
+        const owned = isBinderCardOwned(binder.id, primaryName(card));
         const index = activePage * binder.columns * binder.rows + row * binder.columns + col;
         const tile = createCardElement(card, index, { collection: false });
         tile.dataset.cardIndex = String(index);
@@ -1189,12 +1190,14 @@ export function render() {
         // preferred-printing pass leaves it alone and cycling updates the slot.
         tile.dataset.binderSlot = key;
         updateCardState(tile);
+        // Mirror the base grid's dim-the-missing effect using the binder's own
+        // owned state: an owned pocket keeps its artwork bright, a missing one
+        // carries the same overlay the collection view uses.
+        tile.classList.toggle('owned', owned);
         slot.append(tile);
         appendQuantityControl(slot, binder, key, interactive);
         slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), interactive));
-        slot.appendChild(
-          createOwnedStatusControl(isBinderCardOwned(binder.id, primaryName(card)), interactive)
-        );
+        slot.appendChild(createOwnedStatusControl(owned, interactive));
         if (interactive) slot.appendChild(createSlotControls());
         if (bulkMode) slot.appendChild(createBulkSelectMark(bulkSelection.has(key)));
       } else if (printingId) {

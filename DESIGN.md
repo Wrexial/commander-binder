@@ -211,9 +211,11 @@ order. Hover-only affordances sit behind `isHoverCapable()`.
 Binder pockets are **layout-only** tiles: they carry no collection controls but
 show a `.binder-slot-owned` toggle (`Owned` / `Missing`), a `.binder-slot-qty`
 stepper (`−` / count / `+`) and a `.binder-slot-foil` tag (`Foil` / `Not foil`).
-The owned toggle reads the binder's own persisted owned set, not the account
-collection, so pre-building a binder never edits what the user owns; the stepper
-sets how many copies that pocket holds, and the foil tag marks the finish. The
+The tile also takes the base grid's `.owned` class from that binder-owned state,
+so a missing pocket is dimmed exactly like a missing collection card. The owned
+toggle reads the binder's own persisted owned set, not the account collection, so
+pre-building a binder never edits what the user owns; the stepper sets how many
+copies that pocket holds, and the foil tag marks the finish. The
 toolbar's “Arrange” menu reflows the occupied pockets by name, set name (a base
 set before its modifier sets) or quantity, a find box searches the binder and
 highlights a hit, and “Bulk edit” turns pockets into a multi-selection with a

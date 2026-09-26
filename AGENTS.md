@@ -332,8 +332,10 @@ new key there too.
   filled pocket has a `.binder-slot-owned` button, a `.binder-slot-qty`
   stepper and a `.binder-slot-foil` tag (rendered by `binderBuilder.js`,
   not `cards.js`) that toggle the binder's own owned marker, set the pocket's
-  copy count and mark its finish, repainting on `binders:changed`; a share view
-  renders them as static badges, and
+  copy count and mark its finish, repainting on `binders:changed`. The tile also
+  gets the base grid's `.owned` class from that binder-owned state, so a missing
+  pocket carries the same dim overlay as a missing collection card; a share view
+  renders the controls as static badges, and
   the long-press preview still works with the collection badges hidden. The
   toolbar's “Arrange” menu sorts the pockets (`sortBinder`), a find box above the
   grid searches by name/set/number (`findBinderMatches`) and jumps to a matching
