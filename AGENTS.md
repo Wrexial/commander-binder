@@ -221,7 +221,8 @@ new key there too.
   share view's owner collection, so the two can be diffed. `selectionState.js`
   holds the bulk-edit multi-selection (keyed by card name), entered from the
   sidebar's "☑️ Bulk Edit" button (browse view only — the shell omits it on the
-  Binder Builder page, where the grid-oriented bar isn't initialized);
+  Binder Builder page, which has its own pocket-selection bulk editor for
+  owned/foil changes);
   `bulkEdit.js` renders the floating action bar
   (hidden until the mode is active) and offers select-all-visible,
   hidden-selection pruning, per-batch undo, an "Add to list" action that opens
@@ -334,7 +335,11 @@ new key there too.
   copy count and mark its finish, repainting on `binders:changed`; a share view
   renders them as static badges, and
   the long-press preview still works with the collection badges hidden. The
-  toolbar's “Arrange” menu sorts the pockets (`sortBinder`). Each
+  toolbar's “Arrange” menu sorts the pockets (`sortBinder`), a find box above the
+  grid searches by name/set/number (`findBinderMatches`) and jumps to a matching
+  pocket with a brief highlight, and “☑️ Bulk edit” enters a selection mode whose
+  sticky bar applies owned/missing and foil/not-foil to every selected pocket in
+  one write (`applyBinderBulk`). Each
   pocket pins its own exact printing). A pocket whose printing is not loaded
   yet renders its all-cards catalog name as “<name> loading…” (else “Loading
   card…”) instead of a dead “unavailable”; the background hydration, the

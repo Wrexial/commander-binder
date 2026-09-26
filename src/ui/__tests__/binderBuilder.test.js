@@ -92,6 +92,7 @@ import {
   getBinder,
   getSlotQuantity,
   isBinderCardOwned,
+  isSlotFoil,
   resetBinders,
   setActiveBinder,
   updateBinder,
@@ -253,6 +254,56 @@ describe('binderBuilder', () => {
     expect(getBinder(binder.id).slots['0:0:1']).toBe('card-a');
     // The menu resets to its placeholder so it stays an action.
     await vi.waitFor(() => expect(document.querySelector('.bb-sort').value).toBe(''));
+  });
+
+  it('finds a card and jumps to its pocket', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await updateBinder(binder.id, { pages: 2 });
+    await assignCardToSlot(binder.id, '1:0:0', 'card-a');
+
+    const input = document.querySelector('.bb-search-input');
+    input.value = 'card-a';
+    input.dispatchEvent(new Event('input'));
+
+    await vi.waitFor(() => expect(document.querySelector('.bb-search-result')).not.toBeNull());
+    expect(document.querySelector('.bb-search-count').textContent).toBe('1 match');
+
+    document.querySelector('.bb-search-result').click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-page-label').textContent).toBe('Page 2 / 2')
+    );
+    expect(
+      document.querySelector('.binder-slot[data-slot="1:0:0"]').classList.contains('is-search-hit')
+    ).toBe(true);
+  });
+
+  it('bulk-edits owned and foil across selected pockets', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-b');
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.binder-slot.is-filled')).toHaveLength(2)
+    );
+
+    document.querySelector('.bb-bulk-toggle').click();
+    await vi.waitFor(() => expect(document.querySelector('.binder-bulk-bar').hidden).toBe(false));
+
+    document.querySelector('.binder-slot[data-slot="0:0:0"]').click();
+    document.querySelector('.binder-slot[data-slot="0:0:1"]').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-bulk-count').textContent).toBe('2 selected')
+    );
+
+    document.querySelector('.binder-bulk-owned').click();
+    await vi.waitFor(() => expect(isBinderCardOwned(binder.id, 'Card card-a')).toBe(true));
+    expect(isBinderCardOwned(binder.id, 'Card card-b')).toBe(true);
+
+    document.querySelector('.binder-bulk-foil').click();
+    await vi.waitFor(() => expect(isSlotFoil(binder.id, '0:0:0')).toBe(true));
+    expect(isSlotFoil(binder.id, '0:0:1')).toBe(true);
   });
 
   it('summarizes owned and missing quantities for the active binder', async () => {
@@ -625,6 +676,8 @@ describe('binderBuilder', () => {
     expect(document.querySelector('.binder-slot-qty-value').textContent).toBe('×2');
     expect(document.querySelector('.binder-slot-foil').tagName).toBe('SPAN');
     expect(document.querySelector('.bb-sort').disabled).toBe(true);
+    expect(document.querySelector('.bb-bulk-toggle').hidden).toBe(true);
+    expect(document.querySelector('.binder-bulk-bar').hidden).toBe(true);
   });
 
   it('shows an empty state when a share visitor has no public binders', async () => {

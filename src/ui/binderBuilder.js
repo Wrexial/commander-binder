@@ -16,12 +16,14 @@ import {
   MAX_BINDER_PAGES,
   MAX_BINDER_ROWS,
   MAX_CARD_QUANTITY,
+  applyBinderBulk,
   assignCardToSlot,
   canEditBinders,
   clearPage,
   clearSlot,
   createBinder,
   deleteBinder,
+  findBinderMatches,
   getActiveBinder,
   getActiveBinderId,
   getBinder,
@@ -61,6 +63,17 @@ import { resolveCatalogName } from '../state/cardCatalog.js';
 let activePage = 0;
 /** Slot key awaiting a destination tap, or null. */
 let pendingMove = null;
+/** Current matches for the find box, in slot order. */
+let searchMatches = [];
+/** Index of the last match jumped to with Enter (Enter cycles). */
+let searchCursor = -1;
+/** Slot key briefly highlighted after jumping to a search match. */
+let highlightSlot = null;
+let highlightTimer = null;
+/** True while the binder is in multi-select bulk-edit mode. */
+let bulkMode = false;
+/** Selected pocket keys while in bulk-edit mode. */
+const bulkSelection = new Set();
 
 /**
  * Most pocket columns the editor displays on phones. Purely visual: the binder's
@@ -145,6 +158,15 @@ function createQuantityControl(quantity, editable) {
 function appendQuantityControl(slot, binder, key, editable) {
   const control = createQuantityControl(getSlotQuantity(binder.id, key), editable);
   if (control) slot.appendChild(control);
+}
+
+/** The selection tick shown on a filled pocket in bulk-edit mode. */
+function createBulkSelectMark(selected) {
+  const mark = document.createElement('span');
+  mark.className = 'binder-slot-select';
+  mark.setAttribute('aria-hidden', 'true');
+  mark.textContent = selected ? '✓' : '';
+  return mark;
 }
 
 /**
@@ -304,6 +326,25 @@ function buildChrome(root) {
 
   toolbar.append(nameField, deleteButton, publicField, sortField, dims);
 
+  // Find box: filters the binder's pockets and jumps to a hit.
+  const search = document.createElement('div');
+  search.className = 'binder-search';
+  const searchRow = document.createElement('div');
+  searchRow.className = 'binder-search-row';
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'bb-search-input';
+  searchInput.placeholder = 'Find a card — name, set code or number';
+  searchInput.setAttribute('aria-label', 'Find a card in this binder');
+  const searchCount = document.createElement('span');
+  searchCount.className = 'bb-search-count';
+  searchCount.hidden = true;
+  searchRow.append(searchInput, searchCount);
+  const searchResults = document.createElement('ul');
+  searchResults.className = 'bb-search-results';
+  searchResults.hidden = true;
+  search.append(searchRow, searchResults);
+
   const nav = document.createElement('div');
   nav.className = 'binder-builder-nav';
   const prevButton = document.createElement('button');
@@ -328,7 +369,14 @@ function buildChrome(root) {
   // Binder-scoped owned tally (separate from the account collection).
   const ownedCount = document.createElement('span');
   ownedCount.className = 'bb-owned-count';
-  nav.append(prevButton, pageLabel, nextButton, clearButton, cardCount, ownedCount);
+
+  // Multi-select mode for changing owned/foil across many pockets at once.
+  const bulkButton = document.createElement('button');
+  bulkButton.type = 'button';
+  bulkButton.className = 'bb-bulk-toggle';
+  bulkButton.textContent = '☑️ Bulk edit';
+  bulkButton.setAttribute('aria-pressed', 'false');
+  nav.append(prevButton, pageLabel, nextButton, clearButton, cardCount, ownedCount, bulkButton);
 
   const status = document.createElement('div');
   status.className = 'bb-status';
@@ -355,7 +403,52 @@ function buildChrome(root) {
   empty.className = 'binder-builder-empty';
   empty.hidden = true;
 
-  root.append(tabsRow, toolbar, nav, status, pageEl, empty, hint);
+  // Floating bucket for the bulk-edit actions; hidden until the mode is on.
+  const bulkBar = document.createElement('div');
+  bulkBar.className = 'binder-bulk-bar';
+  bulkBar.hidden = true;
+  const bulkCount = document.createElement('span');
+  bulkCount.className = 'binder-bulk-count';
+  const bulkOwned = document.createElement('button');
+  bulkOwned.type = 'button';
+  bulkOwned.className = 'binder-bulk-owned';
+  bulkOwned.textContent = 'Mark owned';
+  const bulkMissing = document.createElement('button');
+  bulkMissing.type = 'button';
+  bulkMissing.className = 'binder-bulk-missing';
+  bulkMissing.textContent = 'Mark missing';
+  const bulkFoil = document.createElement('button');
+  bulkFoil.type = 'button';
+  bulkFoil.className = 'binder-bulk-foil';
+  bulkFoil.textContent = 'Mark foil';
+  const bulkNonfoil = document.createElement('button');
+  bulkNonfoil.type = 'button';
+  bulkNonfoil.className = 'binder-bulk-nonfoil';
+  bulkNonfoil.textContent = 'Not foil';
+  const bulkSelectPage = document.createElement('button');
+  bulkSelectPage.type = 'button';
+  bulkSelectPage.className = 'binder-bulk-select-page';
+  bulkSelectPage.textContent = 'Select page';
+  const bulkClear = document.createElement('button');
+  bulkClear.type = 'button';
+  bulkClear.className = 'binder-bulk-clear';
+  bulkClear.textContent = 'Clear';
+  const bulkDone = document.createElement('button');
+  bulkDone.type = 'button';
+  bulkDone.className = 'binder-bulk-done primary';
+  bulkDone.textContent = 'Done';
+  bulkBar.append(
+    bulkCount,
+    bulkOwned,
+    bulkMissing,
+    bulkFoil,
+    bulkNonfoil,
+    bulkSelectPage,
+    bulkClear,
+    bulkDone
+  );
+
+  root.append(tabsRow, toolbar, search, nav, status, pageEl, empty, hint, bulkBar);
 
   refs = {
     binderTabs,
@@ -365,6 +458,9 @@ function buildChrome(root) {
     publicInput,
     sortField,
     sortSelect,
+    searchInput,
+    searchCount,
+    searchResults,
     columns: columns.input,
     rows: rows.input,
     pages: pages.input,
@@ -372,6 +468,16 @@ function buildChrome(root) {
     pageLabel,
     nextButton,
     clearButton,
+    bulkButton,
+    bulkBar,
+    bulkCount,
+    bulkOwned,
+    bulkMissing,
+    bulkFoil,
+    bulkNonfoil,
+    bulkSelectPage,
+    bulkClear,
+    bulkDone,
     cardCount,
     ownedCount,
     status,
@@ -457,6 +563,38 @@ function wireChrome() {
     showToast(`Sorted by ${label.toLowerCase()}.`, 'success');
   });
 
+  refs.searchInput.addEventListener('input', () => {
+    // A new query starts the Enter-cycle over from the top.
+    searchCursor = -1;
+    runSearch();
+  });
+
+  refs.searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      refs.searchInput.value = '';
+      runSearch();
+      return;
+    }
+    if (event.key === 'Enter' && searchMatches.length > 0) {
+      event.preventDefault();
+      searchCursor = (searchCursor + 1) % searchMatches.length;
+      jumpToMatch(searchMatches[searchCursor]);
+    }
+  });
+
+  refs.bulkButton.addEventListener('click', () => setBulkMode(!bulkMode));
+  refs.bulkDone.addEventListener('click', () => setBulkMode(false));
+  refs.bulkClear.addEventListener('click', () => {
+    bulkSelection.clear();
+    render();
+  });
+  refs.bulkSelectPage.addEventListener('click', selectBulkPage);
+  refs.bulkOwned.addEventListener('click', () => applyBulk({ owned: true }));
+  refs.bulkMissing.addEventListener('click', () => applyBulk({ owned: false }));
+  refs.bulkFoil.addEventListener('click', () => applyBulk({ foil: true }));
+  refs.bulkNonfoil.addEventListener('click', () => applyBulk({ foil: false }));
+
   const onDimChange = async () => {
     const binder = getActiveBinder();
     if (!binder) return;
@@ -531,6 +669,149 @@ function goToPage(page) {
   activePage = Math.min(binder.pages - 1, Math.max(0, page));
   pendingMove = null;
   render();
+}
+
+/** Empty the find box and drop its matches/highlight. */
+function clearSearch() {
+  if (!refs) return;
+  refs.searchInput.value = '';
+  searchMatches = [];
+  searchCursor = -1;
+  highlightSlot = null;
+  clearTimeout(highlightTimer);
+  renderSearchResults();
+}
+
+/** Recompute the find box's matches from the current query. */
+function runSearch() {
+  const binder = getActiveBinder();
+  const query = refs?.searchInput.value.trim();
+  searchMatches = binder && query ? findBinderMatches(binder.id, query) : [];
+  renderSearchResults();
+}
+
+/** Paint the match count and the clickable results list. */
+function renderSearchResults() {
+  if (!refs) return;
+  const query = refs.searchInput.value.trim();
+  if (!query) {
+    refs.searchCount.hidden = true;
+    refs.searchResults.hidden = true;
+    refs.searchResults.replaceChildren();
+    return;
+  }
+
+  const total = searchMatches.length;
+  refs.searchCount.hidden = false;
+  refs.searchCount.textContent =
+    total === 0 ? 'No matches' : `${total} match${total === 1 ? '' : 'es'}`;
+
+  refs.searchResults.replaceChildren();
+  refs.searchResults.hidden = total === 0;
+  if (total === 0) return;
+
+  for (const match of searchMatches.slice(0, 30)) {
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'bb-search-result';
+    button.textContent = `${match.name} — Page ${match.page + 1}, row ${match.row + 1}, col ${match.col + 1}`;
+    button.addEventListener('click', () => jumpToMatch(match));
+    item.appendChild(button);
+    refs.searchResults.appendChild(item);
+  }
+}
+
+/** Jump to a search match, highlight its pocket and bring it into view. */
+function jumpToMatch(match) {
+  if (!match || !refs) return;
+  pendingMove = null;
+  activePage = match.page;
+  highlightSlot = match.key;
+  render();
+
+  clearTimeout(highlightTimer);
+  highlightTimer = setTimeout(() => {
+    highlightSlot = null;
+    refs?.pageEl.querySelector('.is-search-hit')?.classList.remove('is-search-hit');
+  }, 2400);
+
+  const target = refs.pageEl.querySelector(`.binder-slot[data-slot="${match.key}"]`);
+  if (typeof target?.scrollIntoView === 'function') {
+    target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+
+/** Enter/leave bulk-select mode (leaving drops the selection). */
+function setBulkMode(next) {
+  bulkMode = Boolean(next);
+  pendingMove = null;
+  if (!bulkMode) bulkSelection.clear();
+  render();
+}
+
+/** Toggle one pocket's membership in the bulk selection. */
+function toggleBulkSelection(key) {
+  if (bulkSelection.has(key)) bulkSelection.delete(key);
+  else bulkSelection.add(key);
+
+  // Patch just this pocket instead of a full re-render, so selecting stays snappy.
+  const slot = refs.pageEl.querySelector(`.binder-slot[data-slot="${key}"]`);
+  if (slot) {
+    slot.classList.toggle('is-selected', bulkSelection.has(key));
+    const mark = slot.querySelector('.binder-slot-select');
+    if (mark) mark.textContent = bulkSelection.has(key) ? '✓' : '';
+  }
+  updateBulkBar();
+}
+
+/** Select every filled pocket on the visible page. */
+function selectBulkPage() {
+  const binder = getActiveBinder();
+  if (!binder) return;
+  for (let row = 0; row < binder.rows; row++) {
+    for (let col = 0; col < binder.columns; col++) {
+      const key = slotKey(activePage, row, col);
+      if (binder.slots[key]) bulkSelection.add(key);
+    }
+  }
+  render();
+}
+
+/** Apply an owned/foil patch to the whole selection in one write. */
+async function applyBulk(patch) {
+  const binder = getActiveBinder();
+  if (!binder || bulkSelection.size === 0) return;
+
+  const count = bulkSelection.size;
+  await applyBinderBulk(binder.id, [...bulkSelection], patch);
+  if (patch.owned != null) {
+    showToast(
+      `Marked ${count} card${count === 1 ? '' : 's'} ${patch.owned ? 'owned' : 'missing'}.`,
+      'success'
+    );
+  } else {
+    showToast(
+      `Marked ${count} pocket${count === 1 ? '' : 's'} ${patch.foil ? 'foil' : 'not foil'}.`,
+      'success'
+    );
+  }
+  updateBulkBar();
+}
+
+/** Sync the bulk toggle/bar with the current mode and selection. */
+function updateBulkBar() {
+  if (!refs) return;
+  refs.bulkBar.hidden = !bulkMode;
+  refs.bulkButton.classList.toggle('is-active', bulkMode);
+  refs.bulkButton.setAttribute('aria-pressed', String(bulkMode));
+  refs.bulkCount.textContent = `${bulkSelection.size} selected`;
+
+  const disabled = bulkSelection.size === 0;
+  refs.bulkOwned.disabled = disabled;
+  refs.bulkMissing.disabled = disabled;
+  refs.bulkFoil.disabled = disabled;
+  refs.bulkNonfoil.disabled = disabled;
 }
 
 /**
@@ -616,6 +897,14 @@ function handlePageClick(event) {
   // A share-link view is read-only; card clicks still reach `cardInteractions`.
   if (!canEditBinders()) return;
   const key = slot.dataset.slot;
+
+  // In bulk mode a tap on a filled pocket toggles its selection and nothing else.
+  if (bulkMode) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (binder.slots[key]) toggleBulkSelection(key);
+    return;
+  }
 
   if (pendingMove) {
     event.preventDefault();
@@ -795,6 +1084,10 @@ export function render() {
       const movingFrom = pendingMove;
       pendingMove = null;
       activePage = 0;
+      // A new binder gets a clean find box and selection.
+      clearSearch();
+      bulkMode = false;
+      bulkSelection.clear();
       setActiveBinder(item.id);
       // While moving, switching binder drops the card in its first empty pocket.
       if (movingFrom && sourceBinderId) {
@@ -843,8 +1136,13 @@ export function render() {
   refs.sortSelect.disabled = !editable;
   refs.sortField.hidden = !editable;
   refs.clearButton.hidden = !editable;
+  refs.bulkButton.hidden = !editable;
+  // In bulk mode the per-pocket controls become inert so a tap only selects.
+  const interactive = editable && !bulkMode;
   refs.hint.textContent = editable
-    ? 'Tap an empty pocket to add a card; ⇄ move, ✕ remove, − / + set copies, Foil toggles the finish, and Owned/Missing tracks it in this binder. Use Arrange to sort the binder.'
+    ? bulkMode
+      ? 'Bulk edit — tap pockets to select them, then apply Owned/Missing or Foil changes to the whole selection.'
+      : 'Tap an empty pocket to add a card; ⇄ move, ✕ remove, − / + set copies, Foil toggles the finish, and Owned/Missing tracks it in this binder. Use Arrange to sort the binder.'
     : 'View only — tap a card to preview it (←/→ or J/K to move through the grid).';
 
   if (pendingMove) {
@@ -872,7 +1170,12 @@ export function render() {
       slot.className = 'binder-slot';
       slot.dataset.slot = key;
       if (pendingMove === key) slot.classList.add('is-move-source');
+      if (highlightSlot === key) slot.classList.add('is-search-hit');
       if (pendingMove) slot.classList.add('is-drop-target');
+      if (bulkMode) {
+        slot.classList.add('is-selectable');
+        if (bulkSelection.has(key)) slot.classList.add('is-selected');
+      }
 
       const printingId = binder.slots[key];
       const card = printingId ? cardStore.getByPrintingId(printingId) : null;
@@ -887,12 +1190,13 @@ export function render() {
         tile.dataset.binderSlot = key;
         updateCardState(tile);
         slot.append(tile);
-        appendQuantityControl(slot, binder, key, editable);
-        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), editable));
+        appendQuantityControl(slot, binder, key, interactive);
+        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), interactive));
         slot.appendChild(
-          createOwnedStatusControl(isBinderCardOwned(binder.id, primaryName(card)), editable)
+          createOwnedStatusControl(isBinderCardOwned(binder.id, primaryName(card)), interactive)
         );
-        if (editable) slot.appendChild(createSlotControls());
+        if (interactive) slot.appendChild(createSlotControls());
+        if (bulkMode) slot.appendChild(createBulkSelectMark(bulkSelection.has(key)));
       } else if (printingId) {
         // The stored printing is not loaded yet (the background hydration, or
         // the legendary warm-up, is fetching it). Name it via the all-cards
@@ -903,13 +1207,16 @@ export function render() {
         const name = resolveCatalogName(printingId);
         unknown.textContent = name ? `${name} loading…` : 'Loading card…';
         slot.append(unknown);
-        appendQuantityControl(slot, binder, key, editable);
-        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), editable));
+        appendQuantityControl(slot, binder, key, interactive);
+        slot.appendChild(createFoilControl(isSlotFoil(binder.id, key), interactive));
         if (name) {
-          slot.appendChild(createOwnedStatusControl(isBinderCardOwned(binder.id, name), editable));
+          slot.appendChild(
+            createOwnedStatusControl(isBinderCardOwned(binder.id, name), interactive)
+          );
         }
-        if (editable) slot.appendChild(createSlotControls());
-      } else if (editable) {
+        if (interactive) slot.appendChild(createSlotControls());
+        if (bulkMode) slot.appendChild(createBulkSelectMark(bulkSelection.has(key)));
+      } else if (interactive) {
         const add = document.createElement('button');
         add.type = 'button';
         add.className = 'binder-slot-add';
@@ -925,6 +1232,11 @@ export function render() {
   // Any stored card the loaded subset doesn't cover is fetched in the
   // background; it renders on the next pass.
   scheduleHydration();
+
+  // Keep the find results in step with cards that hydrated since the query.
+  if (refs.searchInput.value.trim()) runSearch();
+
+  updateBulkBar();
 }
 
 /**
@@ -959,4 +1271,11 @@ export function teardownBinderBuilder() {
   refs = null;
   pendingMove = null;
   activePage = 0;
+  searchMatches = [];
+  searchCursor = -1;
+  highlightSlot = null;
+  clearTimeout(highlightTimer);
+  highlightTimer = null;
+  bulkMode = false;
+  bulkSelection.clear();
 }

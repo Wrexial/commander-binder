@@ -5956,6 +5956,204 @@ body.selection-mode #results {
   white-space: nowrap;
 }
 
+/* Find box: a search field over a dropdown of matching pockets. */
+.binder-search {
+  position: relative;
+}
+
+.binder-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bb-search-input {
+  flex: 1;
+  min-width: 0;
+  background-color: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.bb-search-input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-shadow);
+}
+
+.bb-search-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bb-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.bb-search-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.bb-search-result:hover {
+  background: var(--surface-3);
+  color: var(--accent-strong);
+}
+
+.bb-search-result:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  background: var(--surface-3);
+}
+
+/* Briefly spotlight the pocket a search result jumped to. */
+.binder-slot.is-search-hit {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  animation: binder-search-pulse 0.9s ease-in-out 2;
+}
+
+@keyframes binder-search-pulse {
+  0%,
+  100% {
+    outline-color: var(--accent);
+  }
+  50% {
+    outline-color: var(--accent-strong);
+  }
+}
+
+/* Bulk edit: a mode toggle in the nav and a sticky action bar. */
+.bb-bulk-toggle.is-active {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.binder-bulk-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--shadow-md);
+}
+
+.binder-bulk-bar[hidden] {
+  display: none;
+}
+
+.binder-bulk-count {
+  margin-right: auto;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.binder-bulk-bar button {
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.binder-bulk-bar button:hover:not(:disabled) {
+  background-color: var(--button-bg-hover);
+  border-color: var(--accent);
+}
+
+.binder-bulk-bar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.binder-bulk-bar .primary {
+  border-color: var(--accent-strong);
+  background: var(--accent);
+  color: #161206;
+}
+
+/* Selection ring and tick while in bulk mode. */
+.binder-slot.is-selectable {
+  cursor: pointer;
+}
+
+.binder-slot.is-selectable::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--border-strong);
+  pointer-events: none;
+}
+
+.binder-slot.is-selected::after {
+  box-shadow: inset 0 0 0 3px var(--accent);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.binder-slot-select {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(9, 12, 18, 0.85);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.binder-slot.is-selected .binder-slot-select {
+  border-color: var(--accent-strong);
+  background: var(--accent);
+  color: #161206;
+}
+
 .bb-status {
   display: flex;
   align-items: center;

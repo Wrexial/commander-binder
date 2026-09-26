@@ -18,6 +18,7 @@
 import { mainState } from './mainState.js';
 import { getSetting } from './cardSettings.js';
 import { cardStore, primaryName } from './cardStore.js';
+import { resolveCatalogName } from './cardCatalog.js';
 import {
   createBinder as apiCreateBinder,
   deleteBinder as apiDeleteBinder,
@@ -339,6 +340,44 @@ export function getBinderQuantity(binderId) {
   const binder = binders.get(binderId);
   if (!binder) return 0;
   return Object.keys(binder.slots).reduce((sum, key) => sum + (binder.quantities[key] || 1), 0);
+}
+
+/**
+ * Find pockets in a binder whose card matches a query — a (partial) card name,
+ * set code or collector number, case-insensitive. Unloaded printings are named
+ * from the all-cards catalog. Returns one entry per matching pocket in slot
+ * order, with its page/row/column so the editor can jump to it.
+ *
+ * @param {string} binderId
+ * @param {string} query
+ * @returns {Array<{key: string, printingId: string, name: string, page: number, row: number, col: number}>}
+ */
+export function findBinderMatches(binderId, query) {
+  const binder = binders.get(binderId);
+  const needle = String(query || '')
+    .trim()
+    .toLowerCase();
+  if (!binder || needle.length === 0) return [];
+
+  const matches = [];
+  for (const key of sortedSlotKeys(binder)) {
+    const printingId = binder.slots[key];
+    const card = cardStore.getByPrintingId(printingId);
+    const name = (card ? primaryName(card) : resolveCatalogName(printingId)) || printingId;
+    const set = (card?.set || '').toLowerCase();
+    const number = String(card?.collector_number || '').toLowerCase();
+
+    if (
+      name.toLowerCase().includes(needle) ||
+      set.includes(needle) ||
+      number.includes(needle) ||
+      printingId.toLowerCase().includes(needle)
+    ) {
+      const parsed = parseSlotKey(key);
+      if (parsed) matches.push({ key, printingId, name, ...parsed });
+    }
+  }
+  return matches;
 }
 
 /**
@@ -912,6 +951,48 @@ export async function toggleSlotFoil(binderId, key) {
   else delete binder.foils[key];
   await commit(binder);
   return next;
+}
+
+/**
+ * Apply an owned and/or foil change to several pockets at once, committing a
+ * single time. Owned markers are name-based (so the whole card is covered);
+ * foil marks are per-pocket. Only the provided patch fields are touched.
+ *
+ * @param {string} binderId
+ * @param {string[]} keys pocket slot keys
+ * @param {{owned?: boolean, foil?: boolean}} patch
+ * @returns {Promise<object|null>} the updated binder
+ */
+export async function applyBinderBulk(binderId, keys, patch = {}) {
+  if (!canEditBinders()) return null;
+  const binder = binders.get(binderId);
+  if (!binder) return null;
+
+  const slots = (Array.isArray(keys) ? keys : []).filter((key) => binder.slots[key]);
+  if (slots.length === 0) return binder;
+
+  if (typeof patch.foil === 'boolean') {
+    for (const key of slots) {
+      if (patch.foil) binder.foils[key] = true;
+      else delete binder.foils[key];
+    }
+  }
+
+  if (typeof patch.owned === 'boolean') {
+    const names = new Set();
+    for (const key of slots) {
+      const printingId = binder.slots[key];
+      const card = cardStore.getByPrintingId(printingId);
+      const name = card ? primaryName(card) : resolveCatalogName(printingId);
+      if (name) names.add(name);
+    }
+    for (const name of names) {
+      if (patch.owned) binder.owned.add(name);
+      else binder.owned.delete(name);
+    }
+  }
+
+  return commit(binder);
 }
 
 /** Move a card (and its count/foil) to another slot, swapping when occupied. */

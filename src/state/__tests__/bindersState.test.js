@@ -417,6 +417,59 @@ describe('bindersState', () => {
     expect(binder.slots['0:0:2']).toBe('ring');
   });
 
+  it('finds pockets by name, set code and collector number', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, findBinderMatches } = await load();
+    cardStore.add({ id: 'bolt', name: 'Lightning Bolt', set: 'lea', collector_number: '161' });
+    cardStore.add({ id: 'ring', name: 'Sol Ring', set: 'cmm', collector_number: '342' });
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'bolt');
+    await assignCardToSlot(binder.id, '0:1:2', 'ring');
+
+    expect(findBinderMatches(binder.id, 'light').map((match) => match.key)).toEqual(['0:0:0']);
+    expect(findBinderMatches(binder.id, 'CMM').map((match) => match.key)).toEqual(['0:1:2']);
+    expect(findBinderMatches(binder.id, '342').map((match) => match.key)).toEqual(['0:1:2']);
+    expect(findBinderMatches(binder.id, 'zzz')).toEqual([]);
+    expect(findBinderMatches(binder.id, '   ')).toEqual([]);
+    // A match carries its page/row/column so the editor can jump to it.
+    expect(findBinderMatches(binder.id, 'ring')[0]).toMatchObject({
+      page: 0,
+      row: 1,
+      col: 2,
+      name: 'Sol Ring',
+    });
+  });
+
+  it('applies owned and foil changes to a batch of pockets', async () => {
+    const {
+      applyBinderBulk,
+      assignCardToSlot,
+      getActiveBinder,
+      isBinderCardOwned,
+      isSlotFoil,
+      loadBinders,
+    } = await load();
+    cardStore.add({ id: 'card-a', name: 'Alpha' });
+    cardStore.add({ id: 'card-b', name: 'Beta' });
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-b');
+
+    await applyBinderBulk(binder.id, ['0:0:0', '0:0:1'], { owned: true, foil: true });
+    expect(isBinderCardOwned(binder.id, 'Alpha')).toBe(true);
+    expect(isBinderCardOwned(binder.id, 'Beta')).toBe(true);
+    expect(isSlotFoil(binder.id, '0:0:0')).toBe(true);
+    expect(isSlotFoil(binder.id, '0:0:1')).toBe(true);
+
+    // Owned is name-based; foil is per pocket.
+    await applyBinderBulk(binder.id, ['0:0:0'], { owned: false, foil: false });
+    expect(isBinderCardOwned(binder.id, 'Alpha')).toBe(false);
+    expect(isBinderCardOwned(binder.id, 'Beta')).toBe(true);
+    expect(isSlotFoil(binder.id, '0:0:0')).toBe(false);
+    expect(isSlotFoil(binder.id, '0:0:1')).toBe(true);
+  });
+
   it('refuses to rename a binder to an existing name', async () => {
     const { loadBinders, createBinder, updateBinder, getBinders, getBinderByName } = await load();
     await loadBinders();
