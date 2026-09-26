@@ -53,6 +53,7 @@ describe('binders API', () => {
       rows: 4,
       pages: 2,
       slots: { '0:0:0': 'card-a' },
+      owned: ['Sol Ring'],
       isPublic: true,
     });
 
@@ -65,6 +66,7 @@ describe('binders API', () => {
       rows: 4,
       pages: 2,
       slots: { '0:0:0': 'card-a' },
+      owned: ['Sol Ring'],
       isPublic: true,
     });
   });
@@ -77,6 +79,17 @@ describe('binders API', () => {
       binderId: 'b1',
       name: 'Trade',
       isPublic: false,
+    });
+  });
+
+  it('passes the binder-owned markers through an update', async () => {
+    await updateBinder('b1', { name: 'Trade', owned: ['Island'] });
+
+    expect(sentBody()).toEqual({
+      action: 'update',
+      binderId: 'b1',
+      name: 'Trade',
+      owned: ['Island'],
     });
   });
 

@@ -258,6 +258,40 @@ describe('bindersState', () => {
     expect(isCardInBinder(binder.id, { id: 'card-x', name: 'Gamma' })).toBe(false);
   });
 
+  it('tracks binder-owned cards separately from the account collection', async () => {
+    const {
+      loadBinders,
+      getActiveBinder,
+      assignCardToSlot,
+      getBinderOwnedSummary,
+      isBinderCardOwned,
+      toggleBinderOwned,
+    } = await load();
+    cardStore.add({ id: 'card-a', name: 'Alpha' });
+    cardStore.add({ id: 'card-b', name: 'Beta' });
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    // Two Alpha pockets + one Beta pocket: quantity 3, no owned marks yet.
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:2', 'card-b');
+    expect(getBinderOwnedSummary(binder.id)).toEqual({ total: 3, owned: 0, missing: 3 });
+
+    // Marking Alpha owned uses the name, so it covers both Alpha pockets.
+    expect(isBinderCardOwned(binder.id, { id: 'other-printing', name: 'Alpha' })).toBe(false);
+    await toggleBinderOwned(binder.id, 'Alpha');
+    expect(isBinderCardOwned(binder.id, { id: 'other-printing', name: 'Alpha' })).toBe(true);
+    expect(getBinderOwnedSummary(binder.id)).toEqual({ total: 3, owned: 2, missing: 1 });
+
+    // Persisted as a plain array on the local record.
+    expect(local.records[0].owned).toEqual(['Alpha']);
+
+    await toggleBinderOwned(binder.id, 'Alpha');
+    expect(isBinderCardOwned(binder.id, 'Alpha')).toBe(false);
+    expect(getBinderOwnedSummary(binder.id)).toEqual({ total: 3, owned: 0, missing: 3 });
+  });
+
   it('bulk-fills empty pockets and grows the page count when needed', async () => {
     const { loadBinders, getActiveBinder, updateBinder, addCardsToBinder } = await load();
     await loadBinders();

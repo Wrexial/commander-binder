@@ -150,45 +150,6 @@ function createWantedBadge() {
 }
 
 /**
- * Read-only "Owned"/"Missing" pill for layout-only tiles (Binder Builder
- * pockets). It reflects the collection but is not a toggle, so pre-building a
- * binder never edits what the user owns.
- * @param {boolean} owned
- * @returns {HTMLSpanElement}
- */
-function createOwnedStatusPill(owned) {
-  const pill = document.createElement('span');
-  pill.className = 'card-owned-status';
-  pill.textContent = owned ? 'Owned' : 'Missing';
-  pill.classList.toggle('is-owned', owned);
-  pill.classList.toggle('is-missing', !owned);
-  return pill;
-}
-
-/**
- * Point a layout-only tile's status pill at the current ownership state.
- * @param {HTMLElement} cardElement
- * @param {boolean} owned
- */
-export function syncCardOwnedStatus(cardElement, owned) {
-  const pill = cardElement.querySelector('.card-owned-status');
-  if (!pill) return;
-  pill.textContent = owned ? 'Owned' : 'Missing';
-  pill.classList.toggle('is-owned', owned);
-  pill.classList.toggle('is-missing', !owned);
-}
-
-/**
- * Append the read-only status pill to a layout-only tile (Binder Builder
- * pocket). Appended last so it sits above the tile content.
- * @param {HTMLElement} div
- * @param {object} card
- */
-function appendOwnedStatus(div, card) {
-  div.appendChild(createOwnedStatusPill(isCardOwned(card)));
-}
-
-/**
  * Accessible name for the ownership toggle. Shared by every code path so the
  * class, the aria state and the tooltip can never disagree.
  * @param {boolean} owned
@@ -485,10 +446,6 @@ function populateListCard(div, card, cardIndex, collection = true) {
       div.insertBefore(createWishlistToggle(isCardWanted(card)), ownedToggle.nextSibling);
       div.classList.add('has-toggle');
     }
-  } else {
-    // Layout-only tiles (binder pockets) get a read-only status instead of the
-    // collection controls.
-    appendOwnedStatus(div, card);
   }
 
   applyCardColors(div, card);
@@ -545,10 +502,7 @@ function populateCard(div, card, cardIndex) {
   // stays legible instead of carrying half a dozen floating badges.
   if (isImage) {
     div.appendChild(createCardFooter(card, price, version, collection));
-    if (!collection) {
-      appendOwnedStatus(div, card);
-      return div;
-    }
+    if (!collection) return div;
     if (!appState.isViewOnlyMode) {
       div.classList.add('has-toggle');
       // Phones hide the tile footer, so the heart gets its own floating control.
@@ -565,10 +519,7 @@ function populateCard(div, card, cardIndex) {
   if (price !== null) div.appendChild(createPriceElement(price));
   if (version.total > 1) div.appendChild(createVersionBadge(version));
 
-  if (!collection) {
-    appendOwnedStatus(div, card);
-    return div;
-  }
+  if (!collection) return div;
 
   if (appState.isViewOnlyMode) {
     div.appendChild(createOwnedBadge());
@@ -635,15 +586,12 @@ export function applyPreferredPrintings() {
 
 export function updateCardState(cardElement) {
   cardElement.classList.remove('loading');
+
+  // Binder pockets are layout-only: no owned/wishlist/selection styling. Their
+  // own, binder-scoped Owned/Missing state is rendered by `binderBuilder.js`.
+  if (cardElement.collectionTile === false) return;
+
   const card = cardElement.cardData;
-
-  // Binder pockets are layout-only: no collection controls, but they do carry
-  // a read-only Owned/Missing indicator so a binder can be pre-built.
-  if (cardElement.collectionTile === false) {
-    if (card) syncCardOwnedStatus(cardElement, isCardOwned(card));
-    return;
-  }
-
   const owned = isCardOwned(card);
   // Additive on purpose: owned cards may be toggled while the saved state is
   // still loading, and this pass must not undo that.

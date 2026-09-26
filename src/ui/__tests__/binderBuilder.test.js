@@ -39,6 +39,8 @@ vi.mock('../../state/cardStore.js', () => ({
       { id: 'printing-b', name },
     ]),
   },
+  primaryName: (cardOrName) =>
+    (typeof cardOrName === 'string' ? cardOrName : cardOrName?.name || '').split(' // ')[0],
 }));
 
 vi.mock('../cards.js', () => ({
@@ -87,6 +89,7 @@ import {
   getActiveBinder,
   getActiveBinderId,
   getBinder,
+  isBinderCardOwned,
   resetBinders,
   setActiveBinder,
   updateBinder,
@@ -144,6 +147,53 @@ describe('binderBuilder', () => {
 
     await vi.waitFor(() =>
       expect(document.querySelector('.bb-card-count').textContent).toBe('2 cards')
+    );
+    expect(document.querySelector('.binder-tab').dataset.count).toBe('2');
+  });
+
+  it('shows a binder-scoped Owned/Missing toggle, separate from the collection', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+
+    await vi.waitFor(() => expect(document.querySelector('.binder-slot-owned')).not.toBeNull());
+    const control = document.querySelector('.binder-slot-owned');
+    expect(control.tagName).toBe('BUTTON');
+    expect(control.textContent).toBe('Missing');
+    expect(control.getAttribute('aria-pressed')).toBe('false');
+
+    control.click();
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot-owned').textContent).toBe('Owned')
+    );
+    expect(isBinderCardOwned(binder.id, 'Card card-a')).toBe(true);
+    expect(document.querySelector('.binder-slot-owned').getAttribute('aria-pressed')).toBe('true');
+
+    // Name-aware: toggling again clears the marker.
+    document.querySelector('.binder-slot-owned').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.binder-slot-owned').textContent).toBe('Missing')
+    );
+    expect(isBinderCardOwned(binder.id, 'Card card-a')).toBe(false);
+  });
+
+  it('summarizes owned and missing quantities for the active binder', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:2', 'card-b');
+
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-card-count').textContent).toBe('3 cards')
+    );
+    expect(document.querySelector('.bb-owned-count').textContent).toBe('0 owned · 3 missing');
+
+    // Marking one Alpha pocket owns every Alpha pocket (name-based).
+    document.querySelector('.binder-slot[data-slot="0:0:0"] .binder-slot-owned').click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-owned-count').textContent).toBe('2 owned · 1 missing')
     );
   });
 
@@ -456,6 +506,7 @@ describe('binderBuilder', () => {
         pages: 1,
         isPublic: true,
         slots: { '0:0:0': 'card-a' },
+        owned: ['Card card-a'],
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       },
@@ -473,8 +524,11 @@ describe('binderBuilder', () => {
     expect(document.querySelectorAll('.binder-slot-controls')).toHaveLength(0);
     expect(document.querySelector('.binder-builder-hint').textContent).toContain('View only');
 
-    // The owner's public binder is visible, with its card.
+    // The owner's public binder is visible, with its card and a static
+    // owned marker (not a toggle).
     expect(document.querySelector('.binder-slot.is-filled')).not.toBeNull();
+    expect(document.querySelector('.binder-slot-owned').tagName).toBe('SPAN');
+    expect(document.querySelector('.binder-slot-owned').textContent).toBe('Owned');
   });
 
   it('shows an empty state when a share visitor has no public binders', async () => {

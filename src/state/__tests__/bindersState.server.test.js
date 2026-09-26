@@ -31,10 +31,12 @@ import {
   ensureSeedBinder,
   getActiveBinder,
   getBinders,
+  isBinderCardOwned,
   loadBinders,
   mergeLocalBindersToAccount,
   resetBinders,
   resizeBinder,
+  toggleBinderOwned,
 } from '../bindersState.js';
 import { mainState } from '../mainState.js';
 import {
@@ -130,6 +132,23 @@ describe('bindersState (server mode)', () => {
       expect.objectContaining({ slots: { '0:0:0': 'card-a', '0:0:1': 'card-b' } })
     );
     expect(getActiveBinder().slots['0:0:1']).toBe('card-b');
+  });
+
+  it('persists binder-owned markers through the API', async () => {
+    fetchBinders.mockResolvedValue([record({ slots: { '0:0:0': 'card-a' } })]);
+    await loadBinders();
+
+    apiUpdateBinder.mockImplementation(async (id, payload) => [
+      record({ id, owned: payload.owned }),
+    ]);
+
+    await toggleBinderOwned('b1', 'Alpha');
+
+    expect(apiUpdateBinder).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ owned: ['Alpha'] })
+    );
+    expect(isBinderCardOwned('b1', 'Alpha')).toBe(true);
   });
 
   it('creates a binder through the API and activates it', async () => {

@@ -95,6 +95,19 @@ function sanitizeSlots(source) {
   return clean;
 }
 
+/**
+ * Keep only non-empty front-face card names as an owned set. Accepts an array
+ * (wire/local record) or an already-built Set (in-memory snapshot).
+ */
+function sanitizeOwned(source) {
+  const clean = new Set();
+  const values = source instanceof Set ? source : Array.isArray(source) ? source : [];
+  for (const name of values) {
+    if (typeof name === 'string' && name.trim()) clean.add(name.trim());
+  }
+  return clean;
+}
+
 function normalizeBinder(record) {
   const now = new Date().toISOString();
   return {
@@ -105,6 +118,8 @@ function normalizeBinder(record) {
     pages: clampInt(record.pages, 1, MAX_BINDER_PAGES, 1),
     isPublic: Boolean(record.isPublic),
     slots: sanitizeSlots(record.slots),
+    // Binder-scoped owned markers, separate from the account collection.
+    owned: sanitizeOwned(record.owned),
     createdAt: record.createdAt || now,
     updatedAt: record.updatedAt || now,
   };
@@ -120,6 +135,7 @@ function toRecord(binder) {
     pages: binder.pages,
     isPublic: binder.isPublic,
     slots: { ...binder.slots },
+    owned: [...binder.owned],
     createdAt: binder.createdAt,
     updatedAt: binder.updatedAt,
   };
@@ -146,7 +162,7 @@ function applyBinders(records) {
 
 async function persistLocal(binder) {
   try {
-    await saveLocalBinder(binder);
+    await saveLocalBinder(toRecord(binder));
   } catch (err) {
     console.error('Failed to persist the binder:', err);
   }
@@ -262,6 +278,59 @@ export function getBinderCards(binderId) {
 export function getBinderQuantity(binderId) {
   const binder = binders.get(binderId);
   return binder ? Object.keys(binder.slots).length : 0;
+}
+
+/**
+ * True when the card was marked owned *inside this binder*. This is a separate
+ * data stream from the account collection.
+ */
+export function isBinderCardOwned(binderId, cardOrName) {
+  const binder = binders.get(binderId);
+  if (!binder) return false;
+  const name = primaryName(cardOrName);
+  return Boolean(name) && binder.owned.has(name);
+}
+
+/**
+ * Flip a card's owned marker inside one binder and persist it. Accepts a card
+ * object or a front-face name.
+ *
+ * @returns {Promise<boolean|null>} the new owned state, or null when invalid.
+ */
+export async function toggleBinderOwned(binderId, cardOrName) {
+  if (!canEditBinders()) return null;
+  const binder = binders.get(binderId);
+  if (!binder) return null;
+  const name = primaryName(cardOrName);
+  if (!name) return null;
+
+  const next = !binder.owned.has(name);
+  if (next) binder.owned.add(name);
+  else binder.owned.delete(name);
+
+  await commit(binder);
+  return next;
+}
+
+/**
+ * Quantity tally for the builder chrome: filled pockets split into owned and
+ * missing by the binder's own markers. Unloaded cards count as missing until
+ * they hydrate.
+ *
+ * @returns {{total: number, owned: number, missing: number}}
+ */
+export function getBinderOwnedSummary(binderId) {
+  const binder = binders.get(binderId);
+  if (!binder) return { total: 0, owned: 0, missing: 0 };
+
+  const total = Object.keys(binder.slots).length;
+  let owned = 0;
+  for (const printingId of Object.values(binder.slots)) {
+    const card = cardStore.getByPrintingId(printingId);
+    const name = card ? primaryName(card) : null;
+    if (name && binder.owned.has(name)) owned += 1;
+  }
+  return { total, owned, missing: total - owned };
 }
 
 /**
@@ -426,7 +495,13 @@ export async function createBinder({
     let created = null;
     try {
       applyBinders(
-        await apiCreateBinder({ name: nextName, ...dims, isPublic: publicFlag, slots: {} })
+        await apiCreateBinder({
+          name: nextName,
+          ...dims,
+          isPublic: publicFlag,
+          slots: {},
+          owned: [],
+        })
       );
       created = getBinderByName(nextName);
     } catch (err) {

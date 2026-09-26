@@ -1,0 +1,1 @@
+ALTER TABLE "binders" ADD COLUMN "owned" text DEFAULT '[]' NOT NULL;

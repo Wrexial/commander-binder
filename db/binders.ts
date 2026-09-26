@@ -31,6 +31,10 @@ export const binders = pgTable(
     isPublic: boolean('is_public').default(false).notNull(),
     // JSON object `{ "0:0:0": "<printing id>", ... }`.
     slots: text('slots').default('{}').notNull(),
+    // JSON array of front-face card names the owner marked "owned" *within this
+    // binder* — a separate data stream from the account collection, so a binder
+    // can be pre-built and tracked on its own.
+    owned: text('owned').default('[]').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

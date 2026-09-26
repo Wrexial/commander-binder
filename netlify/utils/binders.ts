@@ -23,6 +23,12 @@ const SLOT_KEY = /^\d+:\d+:\d+$/;
 
 export type BinderSlots = Record<string, string>;
 
+/** Card names (front face) the owner marked owned inside one binder. */
+export type BinderOwned = string[];
+
+/** Upper bound on how many owned names one binder may carry. */
+export const MAX_BINDER_OWNED = 10000;
+
 /** A trimmed, non-empty binder name within {@link MAX_BINDER_NAME_LENGTH}. */
 export function parseBinderName(value: unknown): ParseResult<string> {
   if (typeof value !== 'string') {
@@ -124,12 +130,42 @@ export function parseBinderSlots(value: unknown): ParseResult<BinderSlots> {
   return { ok: true, value: slots };
 }
 
+/**
+ * Validate an `owned` payload: the front-face card names the owner marked owned
+ * inside this binder. A missing value becomes an empty list. Names are trimmed,
+ * de-duplicated and capped so a malformed array can't bloat a request/row.
+ */
+export function parseBinderOwned(value: unknown): ParseResult<BinderOwned> {
+  if (value === undefined || value === null) return { ok: true, value: [] };
+  if (!Array.isArray(value)) {
+    return { ok: false, message: "'owned' must be an array." };
+  }
+  if (value.length > MAX_BINDER_OWNED) {
+    return { ok: false, message: `'owned' is limited to ${MAX_BINDER_OWNED} entries.` };
+  }
+
+  const owned: BinderOwned = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (typeof entry !== 'string' || entry.trim().length === 0) {
+      return { ok: false, message: 'Each owned entry must be a non-empty card name.' };
+    }
+    const name = entry.trim();
+    if (!seen.has(name)) {
+      seen.add(name);
+      owned.push(name);
+    }
+  }
+  return { ok: true, value: owned };
+}
+
 export type MergeBinder = {
   name: string;
   columns: number;
   rows: number;
   pages: number;
   slots: BinderSlots;
+  owned: BinderOwned;
   isPublic: boolean;
 };
 
@@ -159,6 +195,8 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
     if (!dimensions.ok) return dimensions;
     const slots = parseBinderSlots(record.slots);
     if (!slots.ok) return slots;
+    const owned = parseBinderOwned(record.owned);
+    if (!owned.ok) return owned;
     const isPublic = parseIsPublic(record.isPublic);
     if (!isPublic.ok) return isPublic;
 
@@ -168,6 +206,7 @@ export function parseMergeBinders(value: unknown): ParseResult<MergeBinder[]> {
       rows: dimensions.value.rows,
       pages: dimensions.value.pages,
       slots: slots.value,
+      owned: owned.value,
       isPublic: isPublic.value,
     });
   }

@@ -10,8 +10,10 @@ import {
   parseBinderDimensions,
   parseBinderId,
   parseBinderName,
+  parseBinderOwned,
   parseBinderSlots,
   parseMergeBinders,
+  type BinderOwned,
   type BinderSlots,
 } from './binders';
 import { parseIsPublic } from './lists';
@@ -27,6 +29,7 @@ export type ClientBinder = {
   pages: number;
   isPublic: boolean;
   slots: BinderSlots;
+  owned: BinderOwned;
   createdAt: string;
   updatedAt: string;
 };
@@ -38,6 +41,16 @@ function parseStoredSlots(text: string): BinderSlots {
     return parsed.ok ? parsed.value : {};
   } catch {
     return {};
+  }
+}
+
+/** Parse a stored owned JSON blob defensively (a corrupt row becomes empty). */
+function parseStoredOwned(text: string): BinderOwned {
+  try {
+    const parsed = parseBinderOwned(JSON.parse(text));
+    return parsed.ok ? parsed.value : [];
+  } catch {
+    return [];
   }
 }
 
@@ -66,6 +79,7 @@ async function collectBinders(
       pages: row.pages,
       isPublic: row.isPublic,
       slots: parseStoredSlots(row.slots),
+      owned: parseStoredOwned(row.owned),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     }));
@@ -127,6 +141,8 @@ export async function createBinder(event: HandlerEvent) {
   if (!dimensions.ok) return badRequest(dimensions.message);
   const slots = parseBinderSlots(parsed.value.slots);
   if (!slots.ok) return badRequest(slots.message);
+  const owned = parseBinderOwned(parsed.value.owned);
+  if (!owned.ok) return badRequest(owned.message);
   const isPublic = parseIsPublic(parsed.value.isPublic);
   if (!isPublic.ok) return badRequest(isPublic.message);
 
@@ -152,6 +168,7 @@ export async function createBinder(event: HandlerEvent) {
       pages: dimensions.value.pages,
       isPublic: isPublic.value,
       slots: JSON.stringify(slots.value),
+      owned: JSON.stringify(owned.value),
     })
     .onConflictDoNothing();
 
@@ -177,10 +194,13 @@ export async function updateBinder(event: HandlerEvent) {
   const dimensions = parseBinderDimensions(parsed.value);
   if (!dimensions.ok) return badRequest(dimensions.message);
 
-  // A missing `slots`/`isPublic` leaves the stored value untouched.
+  // A missing `slots`/`owned`/`isPublic` leaves the stored value untouched.
   const hasSlots = parsed.value.slots !== undefined;
   const slots = hasSlots ? parseBinderSlots(parsed.value.slots) : null;
   if (slots && !slots.ok) return badRequest(slots.message);
+  const hasOwned = parsed.value.owned !== undefined;
+  const owned = hasOwned ? parseBinderOwned(parsed.value.owned) : null;
+  if (owned && !owned.ok) return badRequest(owned.message);
   const hasPublic = parsed.value.isPublic !== undefined;
   const isPublic = hasPublic ? parseIsPublic(parsed.value.isPublic) : null;
   if (isPublic && !isPublic.ok) return badRequest(isPublic.message);
@@ -200,6 +220,7 @@ export async function updateBinder(event: HandlerEvent) {
     updatedAt: new Date(),
   };
   if (hasSlots && slots?.ok) patch.slots = JSON.stringify(slots.value);
+  if (hasOwned && owned?.ok) patch.owned = JSON.stringify(owned.value);
   if (hasPublic && isPublic?.ok) patch.isPublic = isPublic.value;
 
   await db
@@ -254,6 +275,7 @@ export async function mergeBinders(event: HandlerEvent) {
         pages: binder.pages,
         isPublic: binder.isPublic,
         slots: binder.slots,
+        owned: binder.owned,
       },
     ])
   );
@@ -267,6 +289,8 @@ export async function mergeBinders(event: HandlerEvent) {
       for (const [key, id] of Object.entries(binder.slots)) {
         if (!(key in mergedSlots)) mergedSlots[key] = id;
       }
+      // Owned markers are a union: guest-only marks are kept.
+      const mergedOwned = [...new Set([...match.owned, ...binder.owned])];
       await db
         .update(binders)
         .set({
@@ -275,6 +299,7 @@ export async function mergeBinders(event: HandlerEvent) {
           pages: Math.max(match.pages, binder.pages),
           isPublic: match.isPublic || binder.isPublic,
           slots: JSON.stringify(mergedSlots),
+          owned: JSON.stringify(mergedOwned),
           updatedAt: new Date(),
         })
         .where(eq(binders.id, match.id));
@@ -291,6 +316,7 @@ export async function mergeBinders(event: HandlerEvent) {
       pages: binder.pages,
       isPublic: binder.isPublic,
       slots: binder.slots,
+      owned: binder.owned,
     });
     await db.insert(binders).values({
       id,
@@ -301,6 +327,7 @@ export async function mergeBinders(event: HandlerEvent) {
       pages: binder.pages,
       isPublic: binder.isPublic,
       slots: JSON.stringify(binder.slots),
+      owned: JSON.stringify(binder.owned),
     });
   }
 

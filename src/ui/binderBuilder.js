@@ -9,7 +9,7 @@
  * is done with explicit per-pocket controls (add / move / remove), which avoids
  * fighting the tap-to-toggle-ownership gesture.
  */
-import { cardStore } from '../state/cardStore.js';
+import { cardStore, primaryName } from '../state/cardStore.js';
 import {
   MAX_BINDER_COLUMNS,
   MAX_BINDER_PAGES,
@@ -23,8 +23,10 @@ import {
   getActiveBinder,
   getActiveBinderId,
   getBinder,
+  getBinderOwnedSummary,
   getBinderQuantity,
   getBinders,
+  isBinderCardOwned,
   loadBinders,
   moveCardToFirstEmptySlot,
   moveSlot,
@@ -32,6 +34,7 @@ import {
   resizeBinder,
   setActiveBinder,
   slotKey,
+  toggleBinderOwned,
   updateBinder,
 } from '../state/bindersState.js';
 import { createCardElement, updateCardState } from './cards.js';
@@ -80,6 +83,34 @@ function numberField(labelText, className, { min, max, value }) {
 
   label.appendChild(input);
   return { el: label, input };
+}
+
+/**
+ * The Owned/Missing control on a filled pocket. It reflects the binder's own
+ * state (not the account collection) and, when editable, is a button that
+ * toggles it.
+ */
+function createOwnedStatusControl(owned, editable) {
+  const el = document.createElement(editable ? 'button' : 'span');
+  el.className = `binder-slot-owned ${owned ? 'is-owned' : 'is-missing'}`;
+  el.textContent = owned ? 'Owned' : 'Missing';
+  if (editable) {
+    el.type = 'button';
+    const label = owned ? 'Mark as missing in this binder' : 'Mark as owned in this binder';
+    el.title = label;
+    el.setAttribute('aria-label', label);
+    el.setAttribute('aria-pressed', String(owned));
+  }
+  return el;
+}
+
+/**
+ * The front-face name a pocket's card is tracked under (loaded card, else the
+ * all-cards catalog), or null while neither is available.
+ */
+function slotCardName(printingId) {
+  const card = cardStore.getByPrintingId(printingId);
+  return card ? primaryName(card) : resolveCatalogName(printingId);
 }
 
 /** The ⇄ / ✕ / ≡ controls overlaid on an occupied pocket. */
@@ -193,7 +224,11 @@ function buildChrome(root) {
   // Quantity count for the active binder, duplicates included.
   const cardCount = document.createElement('span');
   cardCount.className = 'bb-card-count';
-  nav.append(prevButton, pageLabel, nextButton, clearButton, cardCount);
+
+  // Binder-scoped owned tally (separate from the account collection).
+  const ownedCount = document.createElement('span');
+  ownedCount.className = 'bb-owned-count';
+  nav.append(prevButton, pageLabel, nextButton, clearButton, cardCount, ownedCount);
 
   const status = document.createElement('div');
   status.className = 'bb-status';
@@ -236,6 +271,7 @@ function buildChrome(root) {
     nextButton,
     clearButton,
     cardCount,
+    ownedCount,
     status,
     statusText,
     cancelMove,
@@ -468,6 +504,14 @@ function handlePageClick(event) {
     return;
   }
 
+  if (event.target.closest('.binder-slot-owned')) {
+    event.preventDefault();
+    event.stopPropagation();
+    const name = slotCardName(binder.slots[key]);
+    if (name) toggleBinderOwned(binder.id, name);
+    return;
+  }
+
   if (event.target.closest('.binder-slot-remove')) {
     event.preventDefault();
     clearSlot(binder.id, key);
@@ -591,6 +635,9 @@ export function render() {
     tab.dataset.binderId = item.id;
     tab.tabIndex = isActive ? 0 : -1;
     tab.textContent = item.name;
+    const count = getBinderQuantity(item.id);
+    tab.dataset.count = String(count);
+    tab.setAttribute('aria-label', `${item.name}, ${count} card${count === 1 ? '' : 's'}`);
     tab.addEventListener('click', () => {
       if (isActive) return;
       const sourceBinderId = getActiveBinderId();
@@ -627,7 +674,9 @@ export function render() {
   refs.pages.value = String(binder.pages);
   refs.publicInput.checked = binder.isPublic;
   refs.pageLabel.textContent = `Page ${activePage + 1} / ${binder.pages}`;
-  refs.cardCount.textContent = `${getBinderQuantity(binder.id)} cards`;
+  const owned = getBinderOwnedSummary(binder.id);
+  refs.cardCount.textContent = `${owned.total} card${owned.total === 1 ? '' : 's'}`;
+  refs.ownedCount.textContent = `${owned.owned} owned · ${owned.missing} missing`;
   refs.prevButton.disabled = activePage === 0;
   refs.nextButton.disabled = activePage >= binder.pages - 1;
 
@@ -642,7 +691,7 @@ export function render() {
   refs.publicInput.disabled = !editable;
   refs.clearButton.hidden = !editable;
   refs.hint.textContent = editable
-    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Long-press a card to preview it.'
+    ? 'Tap an empty pocket to add a card, ⇄ to move one, ✕ to remove it. Tap Owned/Missing to track it in this binder.'
     : 'View only — tap a card to preview it (←/→ or J/K to move through the grid).';
 
   if (pendingMove) {
@@ -685,6 +734,9 @@ export function render() {
         tile.dataset.binderSlot = key;
         updateCardState(tile);
         slot.append(tile);
+        slot.appendChild(
+          createOwnedStatusControl(isBinderCardOwned(binder.id, primaryName(card)), editable)
+        );
         if (editable) slot.appendChild(createSlotControls());
       } else if (printingId) {
         // The stored printing is not loaded yet (the background hydration, or
@@ -696,6 +748,9 @@ export function render() {
         const name = resolveCatalogName(printingId);
         unknown.textContent = name ? `${name} loading…` : 'Loading card…';
         slot.append(unknown);
+        if (name) {
+          slot.appendChild(createOwnedStatusControl(isBinderCardOwned(binder.id, name), editable));
+        }
         if (editable) slot.appendChild(createSlotControls());
       } else if (editable) {
         const add = document.createElement('button');

@@ -3011,31 +3011,45 @@ body.list-mode .card.list-tile .wanted-badge {
   display: inline-block;
 }
 
-/* Read-only Owned/Missing pill for layout-only tiles (Binder Builder pockets).
-   It reflects the collection but is not a toggle, so pre-building a binder
+/* Binder-scoped Owned/Missing toggle on a filled pocket. It reflects the
+   binder's own state, not the account collection, so pre-building a binder
    never edits what the user owns. */
-.card-owned-status {
+.binder-slot-owned {
   position: absolute;
   top: 4px;
   left: 4px;
-  z-index: 4;
+  z-index: 5;
   padding: 2px 6px;
+  border: 0;
   border-radius: 999px;
+  font: inherit;
   font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   line-height: 1.2;
-  pointer-events: none;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
-.card-owned-status.is-owned {
+button.binder-slot-owned {
+  cursor: pointer;
+}
+
+button.binder-slot-owned:hover {
+  filter: brightness(1.08);
+}
+
+button.binder-slot-owned:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.binder-slot-owned.is-owned {
   background: linear-gradient(180deg, #52d596, var(--success));
   color: #06210f;
 }
 
-.card-owned-status.is-missing {
+.binder-slot-owned.is-missing {
   background: linear-gradient(180deg, #ef9b9b, var(--danger));
   color: #2a0505;
 }
@@ -5647,6 +5661,17 @@ body.selection-mode #results {
   color: var(--accent-strong);
 }
 
+.binder-tab::after {
+  content: attr(data-count);
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .binder-builder-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -5784,6 +5809,17 @@ body.selection-mode #results {
 
 .bb-card-count {
   margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bb-owned-count {
   padding: 3px 10px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
