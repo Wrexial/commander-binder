@@ -1198,7 +1198,7 @@ export async function addCardsToBinder(binderId, cards) {
 /** Sort orders the Binder Builder offers. */
 export const BINDER_SORT_OPTIONS = [
   { id: 'name', label: 'Name' },
-  { id: 'set', label: 'Set number' },
+  { id: 'set', label: 'Set' },
   { id: 'quantity', label: 'Quantity' },
 ];
 
@@ -1208,11 +1208,21 @@ function cardSortFields(printingId) {
   if (!card) {
     // A printing that hasn't hydrated yet has no set/number to compare; push it
     // to the end of every order rather than letting its empty set sort first.
-    return { name: printingId, set: '\uffff', number: Number.POSITIVE_INFINITY, collector: '' };
+    return {
+      name: printingId,
+      set: '\uffff',
+      setCode: '\uffff',
+      number: Number.POSITIVE_INFINITY,
+      collector: '',
+    };
   }
   return {
     name: primaryName(card),
-    set: (card.set || '').toLowerCase(),
+    // Sort by set *name* (not code) so a base set ("Final Fantasy") comes before
+    // its modifier sets ("Final Fantasy Through the Ages"), which the set-code
+    // order would otherwise invert.
+    set: (card.set_name || card.set || '').toLowerCase(),
+    setCode: (card.set || '').toLowerCase(),
     number: Number.parseInt(card.collector_number, 10),
     collector: String(card.collector_number || ''),
   };
@@ -1225,6 +1235,8 @@ function compareSortedEntries(a, b, sortKey) {
   }
   if (sortKey === 'set') {
     if (a.fields.set !== b.fields.set) return a.fields.set.localeCompare(b.fields.set);
+    if (a.fields.setCode !== b.fields.setCode)
+      return a.fields.setCode.localeCompare(b.fields.setCode);
     const an = Number.isFinite(a.fields.number) ? a.fields.number : Number.POSITIVE_INFINITY;
     const bn = Number.isFinite(b.fields.number) ? b.fields.number : Number.POSITIVE_INFINITY;
     if (an !== bn) return an - bn;

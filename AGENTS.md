@@ -183,7 +183,7 @@ new key there too.
   count chip; `getSlotQuantity`/`setSlotQuantity` back the per-pocket −/input/+
   stepper (counts above one stored sparsely in `binder.quantities`) and
   `isSlotFoil`/`toggleSlotFoil` back the Foil/Not foil tag (`binder.foils`).
-  `sortBinder` reorders the occupied pockets in place by name, set + collector
+  `sortBinder` reorders the occupied pockets in place by name, set name + collector
   number or quantity (`BINDER_SORT_OPTIONS`); empty pockets never move. The export
   serializers use the aggregated `count` so a pre-built binder exports
   `2 Lightning Bolt`, and `Bulk Add` turns a pasted `7 Island` into one pocket of

@@ -417,6 +417,34 @@ describe('bindersState', () => {
     expect(binder.slots['0:0:2']).toBe('ring');
   });
 
+  it('sorts a base set before its modifier sets by set name', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, sortBinder } = await load();
+    // The modifier's set code (fca) sorts before the base's (fin), so a code
+    // order would wrongly put "Through the Ages" first.
+    cardStore.add({
+      id: 'base',
+      name: 'Cloud',
+      set: 'fin',
+      set_name: 'Final Fantasy',
+      collector_number: '1',
+    });
+    cardStore.add({
+      id: 'mod',
+      name: 'Tifa',
+      set: 'fca',
+      set_name: 'Final Fantasy Through the Ages',
+      collector_number: '1',
+    });
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'mod');
+    await assignCardToSlot(binder.id, '0:0:1', 'base');
+
+    await sortBinder(binder.id, 'set');
+    expect(binder.slots['0:0:0']).toBe('base');
+    expect(binder.slots['0:0:1']).toBe('mod');
+  });
+
   it('finds pockets by name, set code and collector number', async () => {
     const { loadBinders, getActiveBinder, assignCardToSlot, findBinderMatches } = await load();
     cardStore.add({ id: 'bolt', name: 'Lightning Bolt', set: 'lea', collector_number: '161' });
