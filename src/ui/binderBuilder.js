@@ -1199,7 +1199,10 @@ export function render() {
         slot.classList.add('is-filled');
         const owned = isBinderCardOwned(binder.id, primaryName(card));
         const index = activePage * binder.columns * binder.rows + row * binder.columns + col;
-        const tile = createCardElement(card, index, { collection: false });
+        // Number the pocket by the binder's own grid (columns x rows) rather
+        // than the browse page's settings-sized count.
+        const slotNumber = row * binder.columns + col + 1;
+        const tile = createCardElement(card, index, { collection: false, slotNumber });
         tile.dataset.cardIndex = String(index);
         // Marks the tile as owning its exact printing, so the global
         // preferred-printing pass leaves it alone and cycling updates the slot.

@@ -391,6 +391,20 @@ function applyCardColors(element, card) {
 }
 
 /**
+ * The `#n` slot label. A tile can carry an explicit slot number (the Binder
+ * Builder numbers pockets by the binder's own grid), otherwise it falls back to
+ * the card's position on the settings-sized page.
+ * @param {HTMLElement} div
+ * @param {number} cardIndex
+ * @returns {string}
+ */
+function slotLabel(div, cardIndex) {
+  const explicit = div.slotNumber;
+  const number = explicit != null ? explicit : (cardIndex % getCardsPerPage()) + 1;
+  return `#${number}`;
+}
+
+/**
  * Build a compact list row: an inline ownership toggle, the card name, its
  * set/number/colour chips, price, printing count and EDHREC link — all on one
  * line, so a whole page can be marked without hunting for tiny corner controls.
@@ -404,7 +418,7 @@ function populateListCard(div, card, cardIndex, collection = true) {
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
-  slotNumberEl.textContent = `#${(cardIndex % getCardsPerPage()) + 1}`;
+  slotNumberEl.textContent = slotLabel(div, cardIndex);
   div.appendChild(slotNumberEl);
 
   const nameEl = document.createElement('span');
@@ -476,7 +490,7 @@ function populateCard(div, card, cardIndex) {
 
   const slotNumberEl = document.createElement('span');
   slotNumberEl.className = 'card-slot-number';
-  slotNumberEl.textContent = `#${(cardIndex % getCardsPerPage()) + 1}`;
+  slotNumberEl.textContent = slotLabel(div, cardIndex);
   slotNumberEl.style.display = 'block';
   div.appendChild(slotNumberEl);
 
@@ -537,11 +551,14 @@ function populateCard(div, card, cardIndex) {
   return div;
 }
 
-export function createCardElement(card, cardIndex, { collection = true } = {}) {
+export function createCardElement(card, cardIndex, { collection = true, slotNumber = null } = {}) {
   const div = document.createElement('div');
   div.className = 'card loading';
   div.cardData = card;
   div.collectionTile = collection;
+  // An explicit pocket number (Binder Builder) so the label reflects the
+  // binder's own grid rather than the settings-sized browse page.
+  div.slotNumber = slotNumber;
   populateCard(div, card, cardIndex);
   return div;
 }

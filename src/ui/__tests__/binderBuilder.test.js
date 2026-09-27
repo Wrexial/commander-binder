@@ -361,6 +361,20 @@ describe('binderBuilder', () => {
     await vi.waitFor(() => expect(createCardElement).toHaveBeenCalled());
     expect(createCardElement).toHaveBeenCalledWith(expect.anything(), expect.any(Number), {
       collection: false,
+      slotNumber: 1,
+    });
+  });
+
+  it('numbers pockets by the binder grid rather than the browse page size', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await updateBinder(binder.id, { columns: 4, rows: 2, pages: 1 });
+    await assignCardToSlot(binder.id, '0:1:2', 'card-a'); // row 1, col 2 -> slot 7
+
+    await vi.waitFor(() => expect(createCardElement).toHaveBeenCalled());
+    expect(createCardElement.mock.calls.at(-1)[2]).toMatchObject({
+      collection: false,
+      slotNumber: 7,
     });
   });
 
