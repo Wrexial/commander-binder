@@ -1119,11 +1119,12 @@ export async function clearPage(binderId, page) {
 }
 
 /**
- * Add a batch of cards to a binder. Each card is placed in the first empty
- * pocket in slot order (growing the page count when it runs out of room, up to
- * `MAX_BINDER_PAGES`), or — when the same printing is already in the binder —
- * its copies are added to that pocket's count. A card's `count`/`quantity`
- * becomes the pocket's quantity, so a pasted "7 Island" is one pocket of seven.
+ * Add a batch of cards to a binder, one pocket per copy. A card's
+ * `count`/`quantity` expands to that many pockets in the first empty slots (in
+ * slot order, growing the page count when it runs out, up to `MAX_BINDER_PAGES`),
+ * so a pasted "7 Island" becomes seven pockets and a list with several printings
+ * fills a pocket for each. Each new pocket holds one copy; use the pocket
+ * stepper to stack copies of your own.
  *
  * @param {string} binderId
  * @param {object[]} cards
@@ -1134,25 +1135,19 @@ export async function addCardsToBinder(binderId, cards) {
   const binder = binders.get(binderId);
   if (!binder) throw new Error('Binder not found.');
 
-  // First pocket holding each printing, so a repeat add grows that pocket.
-  const pocketByPrinting = new Map();
-  for (const [key, id] of Object.entries(binder.slots)) {
-    if (!pocketByPrinting.has(id)) pocketByPrinting.set(id, key);
-  }
-
   const queue = [];
   for (const card of Array.isArray(cards) ? cards : [cards]) {
     if (!card || !card.id) continue;
     const raw = Number(card.count ?? card.quantity ?? 1);
     const copies = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
-
-    const existingKey = pocketByPrinting.get(card.id);
-    if (existingKey) {
-      const current = binder.quantities[existingKey] || 1;
-      setQuantityInternal(binder, existingKey, current + copies);
-      continue;
+    // One entry per copy so every copy claims its own physical pocket.
+    for (
+      let i = 0;
+      i < copies && queue.length < MAX_BINDER_PAGES * binder.columns * binder.rows;
+      i++
+    ) {
+      queue.push(card.id);
     }
-    queue.push({ id: card.id, copies });
   }
 
   if (queue.length === 0) {
@@ -1176,9 +1171,9 @@ export async function addCardsToBinder(binderId, cards) {
       for (let col = 0; col < binder.columns && queue.length > 0; col++) {
         const key = slotKey(page, row, col);
         if (binder.slots[key]) continue;
-        const item = queue.shift();
-        binder.slots[key] = item.id;
-        if (item.copies > 1) binder.quantities[key] = Math.min(item.copies, MAX_CARD_QUANTITY);
+        binder.slots[key] = queue.shift();
+        // A fresh pocket holds one copy and is non-foil.
+        delete binder.quantities[key];
         delete binder.foils[key];
       }
     }

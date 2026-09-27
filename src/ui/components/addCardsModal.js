@@ -300,9 +300,9 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
       const bucket = config.present(card) ? present : add;
 
       if (seenIds.has(card.id)) {
-        // Repeated names add up for quantity-aware targets (binders) instead of
-        // collapsing to a single pocket.
-        if (count > 1) {
+        // Repeated entries add up for quantity-aware targets (binders) so two
+        // "Lightning Bolt" lines become two pockets, not one.
+        if (config.quantity) {
           const existing = bucket.find((item) => item.id === card.id);
           if (existing) existing.count = (existing.count || 1) + count;
         }

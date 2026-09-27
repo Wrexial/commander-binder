@@ -188,16 +188,18 @@ new key there too.
   `sortBinder` reorders the occupied pockets in place by name, set name + collector
   number or quantity (`BINDER_SORT_OPTIONS`); empty pockets never move. The export
   serializers use the aggregated `count` so a pre-built binder exports
-  `2 Lightning Bolt`, and `Bulk Add` turns a pasted `7 Island` into one pocket of
-  seven, so quantities round-trip. Each
+  `2 Lightning Bolt`, and `Bulk Add` expands a pasted `7 Island` (or several
+  printings of the same card) into one pocket per copy, so quantities round-trip
+  as physical slots. Each
   binder also carries an `owned` set of front-face card names — a separate data
   stream from the account collection — with `isBinderCardOwned`/
   `toggleBinderOwned` and `getBinderOwnedSummary` (quantity split into
   owned/missing) backing the pocket's `.binder-slot-owned` toggle and the
   builder's owned tally. `isCardInBinder` is a name-aware membership check, so the bulk add/check/export
-  modals treat binders exactly like lists; `addCardsToBinder` bulk-fills the
-  first empty pockets (one per `card.count`/`card.quantity`, defaulting to one)
-  and grows the page count when needed, and
+  modals treat binders exactly like lists; `addCardsToBinder` fills the
+  first empty pockets — one pocket per copy of `card.count`/`card.quantity`
+  (defaulting to one), so the same printing repeated in a list gets a pocket each
+  and several printings each get their own — and grows the page count when needed, and
   `moveCardToFirstEmptySlot` moves a pocket's card into another binder's first
   empty pocket (growing it if full), powering the builder's "switch binder while
   moving" flow. `resizeBinder` reflows a binder when its columns/rows/pages

@@ -306,7 +306,7 @@ describe('bindersState', () => {
     expect(updated.pages).toBe(2);
   });
 
-  it('skips cards already in the binder when bulk-filling', async () => {
+  it('adds one pocket per card, including copies already in the binder', async () => {
     const { loadBinders, getActiveBinder, assignCardToSlot, addCardsToBinder } = await load();
     await loadBinders();
     const binder = getActiveBinder();
@@ -318,11 +318,12 @@ describe('bindersState', () => {
     ]);
 
     const ids = Object.values(getActiveBinder().slots);
-    expect(ids.filter((id) => id === 'c0')).toHaveLength(1);
+    // The batch is a placement, not a merge: c0 gets its own new pocket.
+    expect(ids.filter((id) => id === 'c0')).toHaveLength(2);
     expect(ids).toContain('c1');
   });
 
-  it('stores a card quantity as one pocket holding that many copies', async () => {
+  it('expands a card quantity into that many pockets', async () => {
     const {
       loadBinders,
       getActiveBinder,
@@ -337,13 +338,29 @@ describe('bindersState', () => {
 
     await addCardsToBinder(binder.id, [{ id: 'island', name: 'Island', count: 7 }]);
 
-    // "7 Island" is one pocket holding seven, not seven pockets.
-    expect(Object.values(getActiveBinder().slots)).toEqual(['island']);
-    expect(getSlotQuantity(binder.id, '0:0:0')).toBe(7);
+    // "7 Island" is seven physical pockets, each holding one copy.
+    const ids = Object.values(getActiveBinder().slots);
+    expect(ids.filter((id) => id === 'island')).toHaveLength(7);
+    expect(getSlotQuantity(binder.id, '0:0:0')).toBe(1);
     expect(getBinderQuantity(binder.id)).toBe(7);
     expect(getBinderCards(binder.id)).toEqual([
       expect.objectContaining({ name: 'Island', count: 7 }),
     ]);
+  });
+
+  it('gives each printing in a batch its own pocket', async () => {
+    const { loadBinders, getActiveBinder, addCardsToBinder } = await load();
+    await loadBinders();
+    const binder = getActiveBinder();
+
+    await addCardsToBinder(binder.id, [
+      { id: 'bolt-lea', name: 'Lightning Bolt', set: 'lea', count: 2 },
+      { id: 'bolt-m10', name: 'Lightning Bolt', set: 'm10', count: 2 },
+    ]);
+
+    const ids = Object.values(getActiveBinder().slots);
+    expect(ids.filter((id) => id === 'bolt-lea')).toHaveLength(2);
+    expect(ids.filter((id) => id === 'bolt-m10')).toHaveLength(2);
   });
 
   it('sets and clears a pocket count through setSlotQuantity', async () => {

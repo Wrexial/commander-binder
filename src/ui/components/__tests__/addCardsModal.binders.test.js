@@ -176,4 +176,24 @@ describe('addCardsModal binder targets', () => {
       expect.objectContaining({ id: 'a', count: 7 }),
     ]);
   });
+
+  it('counts repeated lines as separate copies for a binder', async () => {
+    createAddCardsModal().show();
+
+    targetButton('Binder: Trade binder').click();
+    const textarea = document.querySelector('.bulk-input-wrapper textarea');
+    textarea.value = 'Alpha\nAlpha\nAlpha';
+    textarea.dispatchEvent(new Event('input'));
+
+    const primary = document.querySelector('.modal-button-container .primary');
+    await vi.waitFor(() => expect(primary.textContent).toBe('Add 3 to binder'));
+    primary.click();
+
+    await vi.waitFor(() => expect(addCardsToBinder).toHaveBeenCalledTimes(1));
+    // The modal hands one entry with count 3 to the state, which expands it to
+    // three pockets.
+    expect(addCardsToBinder).toHaveBeenCalledWith('B1', [
+      expect.objectContaining({ id: 'a', count: 3 }),
+    ]);
+  });
 });
