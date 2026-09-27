@@ -106,4 +106,30 @@ describe('sidebar', () => {
     );
     expect(labels).toEqual(['First', 'Second', 'Third']);
   });
+
+  it('keeps buttons clickable after the shell rebuilds the sidebar', () => {
+    initSidebar();
+    addButtonToSidebar('First', vi.fn(), 'collection', 10);
+
+    // setupUI clears and rebuilds the sidebar's children.
+    document.getElementById('sidebar').innerHTML = '';
+
+    const onClick = vi.fn();
+    addButtonToSidebar('Second', onClick, 'collection', 20);
+    const button = [...document.querySelectorAll('#sidebar button')].find(
+      (el) => el.textContent === 'Second'
+    );
+    expect(button).toBeTruthy();
+    button.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not stack the toggle handler when initSidebar runs twice', () => {
+    initSidebar();
+    initSidebar();
+
+    document.getElementById('openbtn').click();
+
+    expect(document.body.classList.contains('sidebar-open')).toBe(true);
+  });
 });

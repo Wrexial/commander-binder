@@ -45,7 +45,7 @@ import { updateAllCardStates } from '../ui/cards.js';
 import { toggleSelectionMode } from '../ui/bulkEdit.js';
 import { showToast } from '../ui/components/toast.js';
 import { getShareToken } from '../api/share.js';
-import { initSidebar, addButtonToSidebar } from '../ui/components/sidebar.js';
+import { initSidebar, addButtonToSidebar, resetSidebarSections } from '../ui/components/sidebar.js';
 import { registerServiceWorker } from '../pwa.js';
 import { initInstallPrompt, mountInstallButton } from '../ui/installPrompt.js';
 import { withLoading } from '../ui/loadingIndicator.js';
@@ -212,6 +212,7 @@ export async function setupUI() {
   // Clear previous state
   userActionsContainer.innerHTML = '';
   sidebar.innerHTML = '';
+  resetSidebarSections();
   welcomeMount?.replaceChildren();
   appState.isViewOnlyMode = false;
 

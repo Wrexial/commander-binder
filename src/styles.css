@@ -6334,7 +6334,8 @@ body.selection-mode #results {
   position: absolute;
   top: 4px;
   right: 4px;
-  z-index: 4;
+  /* Above the bottom-right badges so they never cover ⇄/✕/≡ on small pockets. */
+  z-index: 7;
   display: flex;
   gap: 4px;
   opacity: 0;

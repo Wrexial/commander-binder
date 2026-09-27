@@ -1,5 +1,8 @@
 let toggleBtn = null;
 
+/** Elements whose toggle/backdrop listener is already bound (idempotent). */
+const wiredElements = new WeakSet();
+
 /**
  * Sidebar sections, in the order they render. Buttons attach to one by id via
  * `addButtonToSidebar`'s third argument.
@@ -13,6 +16,41 @@ const SECTIONS = [
 
 /** Cached section bodies, so repeated `addButtonToSidebar` calls append. */
 const sectionBodies = new Map();
+
+/** Button -> click handler, read by the delegated listener below. */
+const buttonHandlers = new WeakMap();
+
+/** Sidebars already wired for delegated clicks (they persist across rebuilds). */
+const wiredSidebars = new WeakSet();
+
+/**
+ * Attach one delegated click listener per sidebar element. Buttons are matched
+ * by their stored handler, so they keep working no matter how many times
+ * `setupUI` clears and rebuilds the sidebar's contents (a direct listener would
+ * be discarded with the old node).
+ */
+function wireSidebarClicks(sidebar) {
+  if (wiredSidebars.has(sidebar)) return;
+  wiredSidebars.add(sidebar);
+
+  sidebar.addEventListener('click', (event) => {
+    const target = event.target;
+    const button = target instanceof Element ? target.closest('button') : null;
+    if (!button || !sidebar.contains(button)) return;
+
+    const handler = buttonHandlers.get(button);
+    if (!handler) return;
+    // Choosing an item closes the menu, so the modal it opens is the only thing
+    // on screen and a second tap cannot land on the leftover menu.
+    closeSidebar();
+    handler();
+  });
+}
+
+/** Drop the cached section bodies (call when the sidebar is cleared/rebuild). */
+export function resetSidebarSections() {
+  sectionBodies.clear();
+}
 
 /**
  * The body element for a section, created (in order) on first use. Re-creates
@@ -62,14 +100,22 @@ function closeSidebar() {
 }
 
 export function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) wireSidebarClicks(sidebar);
+
   toggleBtn = document.getElementById('openbtn');
+  // Binding twice would stack two toggle handlers, so a tap would open then
+  // immediately close the menu — the sidebar would look dead.
+  if (toggleBtn && !wiredElements.has(toggleBtn)) {
+    wiredElements.add(toggleBtn);
+    toggleBtn.addEventListener('click', () => {
+      setSidebarOpen(!document.body.classList.contains('sidebar-open'));
+    });
+  }
+
   const backdrop = document.getElementById('sidebar-backdrop');
-
-  toggleBtn.addEventListener('click', () => {
-    setSidebarOpen(!document.body.classList.contains('sidebar-open'));
-  });
-
-  if (backdrop) {
+  if (backdrop && !wiredElements.has(backdrop)) {
+    wiredElements.add(backdrop);
     backdrop.addEventListener('click', closeSidebar);
   }
 }
@@ -78,16 +124,13 @@ export function addButtonToSidebar(text, onClick, sectionId = 'collection', orde
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
 
+  wireSidebarClicks(sidebar);
+
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = text;
   button.dataset.order = String(order);
-  button.addEventListener('click', () => {
-    // Choosing an item closes the menu, so the modal it opens is the only thing
-    // on screen and a second tap cannot land on the leftover menu.
-    closeSidebar();
-    onClick();
-  });
+  buttonHandlers.set(button, onClick);
 
   // Insert before the first button with a higher order, so callers declare an
   // order instead of relying on the sequence they happen to run in.

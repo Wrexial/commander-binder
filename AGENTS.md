@@ -62,7 +62,10 @@ new key there too.
   them on either page). `bootShell()` returns as soon as the local setup is done
   and loads Clerk/the sidebar/state in the background: callers mount their
   content immediately and `await shellReady` before adding page-specific sidebar
-  links (the sidebar is rebuilt by `setupUI`), then `await statesReady` for the
+  links (the sidebar is rebuilt by `setupUI`). `sidebar.js` binds one delegated
+  click listener per sidebar element (plus an idempotent hamburger/backdrop
+  binding), so a rebuilt sidebar and double `initSidebar` calls can't leave
+  buttons dead. Then `await statesReady` for the
   owned/wishlist/list state and the cross-device settings pull. The browse grid
   therefore paints without waiting for Clerk's bundle; the Binder Builder still
   waits for `shellReady` because its binder source depends on the sign-in state.

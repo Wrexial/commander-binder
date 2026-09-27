@@ -13,6 +13,7 @@ vi.mock('../ui/installPrompt.js', () => ({
 vi.mock('../ui/components/sidebar.js', () => ({
   initSidebar: vi.fn(),
   addButtonToSidebar: vi.fn(),
+  resetSidebarSections: vi.fn(),
 }));
 vi.mock('../state/cardState.js', () => ({
   loadCardStates: vi.fn(async () => {}),
