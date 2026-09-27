@@ -405,7 +405,9 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   reused by the Binder Builder's find-box help), so the docs and `parseQuery`
   cannot drift apart. `state/cardQuery.js` holds `parseQuery`/`evaluateCondition`
   (accepting either a card object or a `.cardData` tile) so both the grid search
-  and `findBinderMatches` share one evaluator. `is:wanted`
+  and `findBinderMatches` share one evaluator (the binder passes an `isOwned`
+  override so its `is:owned`/`is:missing` read the binder's own marks, not the
+  account collection). `is:wanted`
   reads the wishlist and `is:new` matches cards added to either collection in the
   last 30 days; `is:listed` matches cards on any custom list and `list:"name"`
   matches a named one. `sortCards.js` also offers wanted-first/not-wanted-first

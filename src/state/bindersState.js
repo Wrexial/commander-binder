@@ -374,11 +374,13 @@ export function findBinderMatches(binderId, query) {
 
     let hit;
     if (smart) {
-      // An unloaded printing has only its id: evaluate against a stub so a plain
-      // term inside a compound query still works, then fall back to the id.
-      const card = stored || { id: printingId, name: printingId, set: '', set_name: '' };
+      // An unloaded printing has only its id: evaluate against a stub (named from
+      // the catalog) so a plain term inside a compound query still works, then
+      // fall back to the id. `is:owned`/`is:missing` read the binder's own marks.
+      const card = stored || { id: printingId, name, set: '', set_name: '' };
+      const overrides = { isOwned: (entry) => isBinderCardOwned(binderId, entry) };
       hit =
-        conditions.every((condition) => evaluateCondition(card, condition)) ||
+        conditions.every((condition) => evaluateCondition(card, condition, overrides)) ||
         printingId.toLowerCase().includes(needle);
     } else {
       const set = (stored?.set || '').toLowerCase();

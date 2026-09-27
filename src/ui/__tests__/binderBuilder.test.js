@@ -343,6 +343,32 @@ describe('binderBuilder', () => {
     expect(results[0]).toContain('Serra Angel');
   });
 
+  it('filters by the binder’s own is:owned / is:missing', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-b');
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('.binder-slot.is-filled')).toHaveLength(2)
+    );
+
+    document.querySelector('.binder-slot[data-slot="0:0:0"] .binder-slot-owned').click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('.binder-slot[data-slot="0:0:0"] .binder-slot-owned').textContent
+      ).toBe('Owned')
+    );
+
+    const input = document.querySelector('.bb-search-input');
+    input.value = 'is:owned';
+    input.dispatchEvent(new Event('input'));
+
+    await vi.waitFor(() => expect(document.querySelector('.bb-search-result')).not.toBeNull());
+    const owned = [...document.querySelectorAll('.bb-search-result')].map((row) => row.textContent);
+    expect(owned).toHaveLength(1);
+    expect(owned[0]).toContain('Card card-a');
+  });
+
   it('toggles the search syntax help', async () => {
     await mount();
     const toggle = document.querySelector('.bb-search-help-toggle');

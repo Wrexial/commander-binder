@@ -220,7 +220,8 @@ copies that pocket holds, and the foil tag marks the finish. The
 toolbar's “Arrange” menu reflows the occupied pockets by name, set name (a base
 set before its modifier sets) or quantity, a find box searches the binder —
 plain words plus the shared smart syntax (`t:`, `c:`, `r:`, `s:`, `is:`, `!`,
-and/or) with a `?` syntax-help toggle — and jumps to a hit, and “Bulk edit” turns
+and/or — `is:owned`/`is:missing` read the binder's own marks) with a `?`
+syntax-help toggle — and jumps to a hit, and “Bulk edit” turns
 pockets into a multi-selection with a
 sticky bar for owned/foil changes. The find box and the page nav (Prev / page /
 Next / counts / Bulk edit) share one sticky `.binder-sticky` bar pinned to the

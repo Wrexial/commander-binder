@@ -108,25 +108,39 @@ function getFilterValue(filter, prefix = '') {
   return value;
 }
 
-export function evaluateCondition(card, condition) {
+export function evaluateCondition(card, condition, overrides = {}) {
   if (!condition) return true;
   if (condition.type === 'or') {
-    return evaluateCondition(card, condition.left) || evaluateCondition(card, condition.right);
+    return (
+      evaluateCondition(card, condition.left, overrides) ||
+      evaluateCondition(card, condition.right, overrides)
+    );
   }
   if (condition.type === 'and') {
-    return evaluateCondition(card, condition.left) && evaluateCondition(card, condition.right);
+    return (
+      evaluateCondition(card, condition.left, overrides) &&
+      evaluateCondition(card, condition.right, overrides)
+    );
   }
   if (condition.type === 'filter') {
-    return cardMatchesFilter(card, condition.value);
+    return cardMatchesFilter(card, condition.value, overrides);
   }
   return true;
 }
 
-/** Parse + evaluate a whole query against one card. */
-export function cardMatchesQuery(card, query) {
+/**
+ * Parse + evaluate a whole query against one card.
+ *
+ * @param {object} card Scryfall card object or a browse tile (`.cardData`).
+ * @param {string} query
+ * @param {{isOwned?: (card: object) => boolean}} [overrides] Context-specific
+ *   predicates; the binder passes its own owned check so `is:owned`/`is:missing`
+ *   reflect the binder rather than the account collection.
+ */
+export function cardMatchesQuery(card, query, overrides = {}) {
   const conditions = parseQuery(query);
   if (conditions.length === 0) return true;
-  return conditions.every((condition) => evaluateCondition(card, condition));
+  return conditions.every((condition) => evaluateCondition(card, condition, overrides));
 }
 
 /** How recent `is:new` means, in milliseconds (30 days). */
@@ -148,7 +162,7 @@ function wasAddedRecently(card) {
   );
 }
 
-function cardMatchesFilter(cardOrElement, filter) {
+function cardMatchesFilter(cardOrElement, filter, overrides = {}) {
   if (!filter) return true;
   // Accept a browse tile (`.cardData`) or a bare card object.
   const card = cardOrElement?.cardData ?? cardOrElement;
@@ -211,10 +225,10 @@ function cardMatchesFilter(cardOrElement, filter) {
     const term = filter.substring(3).toLowerCase();
     switch (term) {
       case 'owned':
-        match = isCardOwned(card);
+        match = overrides.isOwned ? overrides.isOwned(card) : isCardOwned(card);
         break;
       case 'missing':
-        match = !isCardOwned(card);
+        match = overrides.isOwned ? !overrides.isOwned(card) : !isCardOwned(card);
         break;
       case 'wanted':
         match = isCardWanted(card);

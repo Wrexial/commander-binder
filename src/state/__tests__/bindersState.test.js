@@ -524,6 +524,22 @@ describe('bindersState', () => {
     expect(keys('161')).toEqual(['0:0:1']);
   });
 
+  it('reads is:owned and is:missing from the binder, not the collection', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, findBinderMatches, toggleBinderOwned } =
+      await load();
+    cardStore.add({ id: 'binder-owned', name: 'Owned Card', type_line: 'Creature' });
+    cardStore.add({ id: 'binder-missing', name: 'Missing Card', type_line: 'Creature' });
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'binder-owned');
+    await assignCardToSlot(binder.id, '0:0:1', 'binder-missing');
+    await toggleBinderOwned(binder.id, 'Owned Card');
+
+    const keys = (query) => findBinderMatches(binder.id, query).map((match) => match.key);
+    expect(keys('is:owned')).toEqual(['0:0:0']);
+    expect(keys('is:missing')).toEqual(['0:0:1']);
+  });
+
   it('applies owned and foil changes to a batch of pockets', async () => {
     const {
       applyBinderBulk,
