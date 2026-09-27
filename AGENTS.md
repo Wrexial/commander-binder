@@ -326,7 +326,9 @@ new key there too.
   (shown as a pulsing “Loading…” group) from a genuine unknown, and picking a
   suggestion re-runs the resolver so the name moves into “Will add”/“Already in”
   without another keystroke; the copy/download actions also resolve pending names
-  first. Plus the shared
+  first. A binder target never buckets a card as “Already in”: binders hold
+  duplicates, so every copy is added (one pocket each) even when the binder
+  already contains that card. Plus the shared
   `cardNameInput.js` autocomplete (which suggests names from the catalog too and
   indexes cards under both their front-face and full printed names, so a
   multi-face card matches either way), the share-view `compareModal.js` diff,

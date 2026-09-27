@@ -143,7 +143,7 @@ describe('addCardsModal binder targets', () => {
     expect(addCardsToBinder).toHaveBeenCalledWith('B1', [expect.objectContaining({ id: 'a' })]);
   });
 
-  it('labels already-present binder cards', async () => {
+  it('adds a card that is already in the binder instead of skipping it', async () => {
     isCardInBinder.mockReturnValue(true);
     createAddCardsModal().show();
 
@@ -152,11 +152,14 @@ describe('addCardsModal binder targets', () => {
     textarea.value = 'Alpha';
     textarea.dispatchEvent(new Event('input'));
 
-    await vi.waitFor(() =>
-      expect(document.querySelector('.bulk-summary')?.textContent).toContain(
-        'Already in “Trade binder”'
-      )
-    );
+    const primary = document.querySelector('.modal-button-container .primary');
+    await vi.waitFor(() => expect(primary.textContent).toBe('Add 1 to binder'));
+    // A binder holds duplicates, so there is no "already in" bucket.
+    expect(document.querySelector('.bulk-summary')?.textContent).not.toContain('Already in');
+
+    primary.click();
+    await vi.waitFor(() => expect(addCardsToBinder).toHaveBeenCalledTimes(1));
+    expect(addCardsToBinder).toHaveBeenCalledWith('B1', [expect.objectContaining({ id: 'a' })]);
   });
 
   it('carries a pasted quantity into the binder as multiple copies', async () => {

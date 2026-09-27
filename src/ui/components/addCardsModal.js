@@ -21,12 +21,7 @@ import { parseCollection } from '../../utils/collectionFormats.js';
 import { isCardOwned } from '../../state/cardState.js';
 import { isCardWanted } from '../../state/wishlistState.js';
 import { addCardsToList, createList, isInList } from '../../state/listsState.js';
-import {
-  addCardsToBinder,
-  createBinder,
-  getActiveBinder,
-  isCardInBinder,
-} from '../../state/bindersState.js';
+import { addCardsToBinder, createBinder, getActiveBinder } from '../../state/bindersState.js';
 import { updateAllCardStates } from '../cards.js';
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -121,9 +116,11 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
 
     if (target.kind === 'binder') {
       return {
-        present: (card) => isCardInBinder(target.id, card),
-        // Binders hold duplicates, so a pasted quantity ("7 Island") fills
-        // seven pockets rather than one.
+        // Binders hold duplicates, so a card already in the binder is still
+        // addable (one new pocket per copy) rather than skipped.
+        present: () => false,
+        allowDuplicates: true,
+        // A pasted quantity ("7 Island") fills seven pockets rather than one.
         quantity: true,
         add: async (cards, message) => {
           await addCardsToBinder(target.id, cards);
@@ -157,9 +154,18 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
   let targetId = targetOptions.some((option) => option.id === initialKind) ? initialKind : 'owned';
   let config = describeTarget(targetId);
 
+  /** The modal's explanatory line, which depends on the active target. */
+  function subtitleText() {
+    const base =
+      'Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file.';
+    return config.allowDuplicates
+      ? `${base} Every copy is added, even cards already in this binder.`
+      : `${base} Cards you already ${config.skipVerb} are skipped.`;
+  }
+
   const { shell, close, contentArea, buttons } = createCollectionModal({
     title: config.title,
-    subtitle: `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${config.skipVerb} are skipped.`,
+    subtitle: subtitleText(),
     actions: [
       { id: 'primary', className: 'primary' },
       { id: 'close', text: 'Close' },
@@ -221,7 +227,7 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     targetId = next;
     config = describeTarget(next);
     heading.textContent = config.title;
-    subtitle.textContent = `Type names, paste a list or a CSV / Moxfield / Archidekt export, or choose a file. Cards you already ${config.skipVerb} are skipped.`;
+    subtitle.textContent = subtitleText();
     renderPreview();
   }
 
@@ -342,13 +348,17 @@ export function createAddCardsModal({ kind: initialKind = 'owned' } = {}) {
     bulk.preview.innerHTML = `
             <div class="bulk-summary">
                 ${summaryChip('missing', 'Will add', entryTotal(add))}
-                ${summaryChip('owned', config.presentLabel, entryTotal(present))}
+                ${
+                  config.allowDuplicates
+                    ? ''
+                    : summaryChip('owned', config.presentLabel, entryTotal(present))
+                }
                 ${loading.length > 0 ? summaryChip('pending', 'Loading', loading.length) : ''}
                 ${summaryChip('unknown', 'Not found', unknown.length)}
             </div>
             <div class="bulk-groups">
                 ${previewGroup('missing', 'Will add', add)}
-                ${previewGroup('owned', config.presentLabel, present)}
+                ${config.allowDuplicates ? '' : previewGroup('owned', config.presentLabel, present)}
                 ${previewGroup('pending', 'Loading…', loading)}
                 ${previewGroup('unknown', 'Not found', unknown)}
             </div>`;
