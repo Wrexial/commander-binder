@@ -58,6 +58,7 @@ import {
 } from '../api/cardSearch.js';
 import { withLoading } from './loadingIndicator.js';
 import { resolveCatalogName } from '../state/cardCatalog.js';
+import { renderSearchHelp } from './searchHelp.js';
 
 /** One page is shown at a time so a 200-page binder stays cheap to render. */
 let activePage = 0;
@@ -349,16 +350,26 @@ function buildChrome(root) {
   const searchInput = document.createElement('input');
   searchInput.type = 'search';
   searchInput.className = 'bb-search-input';
-  searchInput.placeholder = 'Find a card — name, set code or number';
+  searchInput.placeholder = 'Find a card — name, or t:, c:, r:, s:, is:…';
   searchInput.setAttribute('aria-label', 'Find a card in this binder');
+  const searchHelpToggle = document.createElement('button');
+  searchHelpToggle.type = 'button';
+  searchHelpToggle.className = 'bb-search-help-toggle';
+  searchHelpToggle.textContent = '?';
+  searchHelpToggle.title = 'Search syntax';
+  searchHelpToggle.setAttribute('aria-label', 'Search syntax help');
+  searchHelpToggle.setAttribute('aria-expanded', 'false');
   const searchCount = document.createElement('span');
   searchCount.className = 'bb-search-count';
   searchCount.hidden = true;
-  searchRow.append(searchInput, searchCount);
+  searchRow.append(searchInput, searchHelpToggle, searchCount);
   const searchResults = document.createElement('ul');
   searchResults.className = 'bb-search-results';
   searchResults.hidden = true;
-  search.append(searchRow, searchResults);
+  const searchHelp = document.createElement('div');
+  searchHelp.className = 'bb-search-help';
+  searchHelp.hidden = true;
+  search.append(searchRow, searchResults, searchHelp);
 
   const nav = document.createElement('div');
   nav.className = 'binder-builder-nav';
@@ -480,6 +491,8 @@ function buildChrome(root) {
     sortField,
     sortSelect,
     searchInput,
+    searchHelpToggle,
+    searchHelp,
     searchCount,
     searchResults,
     columns: columns.input,
@@ -593,6 +606,7 @@ function wireChrome() {
   refs.searchInput.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
+      closeSearchHelp();
       refs.searchInput.value = '';
       runSearch();
       return;
@@ -602,6 +616,16 @@ function wireChrome() {
       searchCursor = (searchCursor + 1) % searchMatches.length;
       jumpToMatch(searchMatches[searchCursor]);
     }
+  });
+
+  refs.searchHelpToggle.addEventListener('click', () => {
+    const open = refs.searchHelp.hidden;
+    if (open && !refs.searchHelp.dataset.rendered) {
+      renderSearchHelp(refs.searchHelp);
+      refs.searchHelp.dataset.rendered = '1';
+    }
+    refs.searchHelp.hidden = !open;
+    refs.searchHelpToggle.setAttribute('aria-expanded', String(open));
   });
 
   refs.bulkButton.addEventListener('click', () => setBulkMode(!bulkMode));
@@ -692,6 +716,13 @@ function goToPage(page) {
   render();
 }
 
+/** Hide the find box's syntax help panel. */
+function closeSearchHelp() {
+  if (!refs) return;
+  refs.searchHelp.hidden = true;
+  refs.searchHelpToggle.setAttribute('aria-expanded', 'false');
+}
+
 /** Empty the find box and drop its matches/highlight. */
 function clearSearch() {
   if (!refs) return;
@@ -700,6 +731,7 @@ function clearSearch() {
   searchCursor = -1;
   highlightSlot = null;
   clearTimeout(highlightTimer);
+  closeSearchHelp();
   renderSearchResults();
 }
 

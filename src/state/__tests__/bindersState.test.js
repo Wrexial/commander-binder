@@ -485,6 +485,45 @@ describe('bindersState', () => {
     });
   });
 
+  it('evaluates the smart query syntax in the find box', async () => {
+    const { loadBinders, getActiveBinder, assignCardToSlot, findBinderMatches } = await load();
+    cardStore.add({
+      id: 'smart-angel',
+      name: 'Serra Angel',
+      type_line: 'Creature — Angel',
+      color_identity: ['W'],
+      set: 'dom',
+      set_name: 'Dominaria',
+      rarity: 'uncommon',
+      collector_number: '33',
+    });
+    cardStore.add({
+      id: 'smart-bolt',
+      name: 'Lightning Bolt',
+      type_line: 'Instant',
+      color_identity: ['R'],
+      set: 'lea',
+      set_name: 'Limited Edition Alpha',
+      rarity: 'common',
+      collector_number: '161',
+    });
+    await loadBinders();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'smart-angel');
+    await assignCardToSlot(binder.id, '0:0:1', 'smart-bolt');
+
+    const keys = (query) => findBinderMatches(binder.id, query).map((match) => match.key);
+    expect(keys('t:creature')).toEqual(['0:0:0']);
+    expect(keys('r:common')).toEqual(['0:0:1']);
+    expect(keys('c:r')).toEqual(['0:0:1']);
+    expect(keys('!t:creature')).toEqual(['0:0:1']);
+    expect(keys('t:instant and c:r')).toEqual(['0:0:1']);
+    expect(keys('t:angel or t:instant')).toEqual(['0:0:0', '0:0:1']);
+    // Plain terms keep matching set codes and collector numbers.
+    expect(keys('dom')).toEqual(['0:0:0']);
+    expect(keys('161')).toEqual(['0:0:1']);
+  });
+
   it('applies owned and foil changes to a batch of pockets', async () => {
     const {
       applyBinderBulk,

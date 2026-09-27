@@ -19,6 +19,7 @@ import { mainState } from './mainState.js';
 import { getSetting } from './cardSettings.js';
 import { cardStore, primaryName } from './cardStore.js';
 import { resolveCatalogName } from './cardCatalog.js';
+import { evaluateCondition, parseQuery } from './cardQuery.js';
 import {
   createBinder as apiCreateBinder,
   deleteBinder as apiDeleteBinder,
@@ -343,10 +344,12 @@ export function getBinderQuantity(binderId) {
 }
 
 /**
- * Find pockets in a binder whose card matches a query — a (partial) card name,
- * set code or collector number, case-insensitive. Unloaded printings are named
- * from the all-cards catalog. Returns one entry per matching pocket in slot
- * order, with its page/row/column so the editor can jump to it.
+ * Find pockets in a binder whose card matches a query. Plain words match the
+ * card name, set code or collector number; anything using the browse syntax
+ * (`t:creature`, `c:wu`, `r:mythic`, `is:owned`, `!…`, `and`/`or`, …) is
+ * evaluated with the shared smart filter. Unloaded printings are named from the
+ * all-cards catalog. Returns one entry per matching pocket in slot order, with
+ * its page/row/column so the editor can jump to it.
  *
  * @param {string} binderId
  * @param {string} query
@@ -354,25 +357,40 @@ export function getBinderQuantity(binderId) {
  */
 export function findBinderMatches(binderId, query) {
   const binder = binders.get(binderId);
-  const needle = String(query || '')
-    .trim()
-    .toLowerCase();
-  if (!binder || needle.length === 0) return [];
+  const trimmed = String(query || '').trim();
+  if (!binder || trimmed.length === 0) return [];
+
+  // Syntax-bearing queries go through the smart filter; a plain term keeps the
+  // quick name/set/number substring match.
+  const smart = /[:!()]|\s(?:and|or)\s/i.test(trimmed);
+  const conditions = smart ? parseQuery(trimmed) : [];
+  const needle = trimmed.toLowerCase();
 
   const matches = [];
   for (const key of sortedSlotKeys(binder)) {
     const printingId = binder.slots[key];
-    const card = cardStore.getByPrintingId(printingId);
-    const name = (card ? primaryName(card) : resolveCatalogName(printingId)) || printingId;
-    const set = (card?.set || '').toLowerCase();
-    const number = String(card?.collector_number || '').toLowerCase();
+    const stored = cardStore.getByPrintingId(printingId);
+    const name = (stored ? primaryName(stored) : resolveCatalogName(printingId)) || printingId;
 
-    if (
-      name.toLowerCase().includes(needle) ||
-      set.includes(needle) ||
-      number.includes(needle) ||
-      printingId.toLowerCase().includes(needle)
-    ) {
+    let hit;
+    if (smart) {
+      // An unloaded printing has only its id: evaluate against a stub so a plain
+      // term inside a compound query still works, then fall back to the id.
+      const card = stored || { id: printingId, name: printingId, set: '', set_name: '' };
+      hit =
+        conditions.every((condition) => evaluateCondition(card, condition)) ||
+        printingId.toLowerCase().includes(needle);
+    } else {
+      const set = (stored?.set || '').toLowerCase();
+      const number = String(stored?.collector_number || '').toLowerCase();
+      hit =
+        name.toLowerCase().includes(needle) ||
+        set.includes(needle) ||
+        number.includes(needle) ||
+        printingId.toLowerCase().includes(needle);
+    }
+
+    if (hit) {
       const parsed = parseSlotKey(key);
       if (parsed) matches.push({ key, printingId, name, ...parsed });
     }

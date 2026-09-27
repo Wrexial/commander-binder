@@ -307,6 +307,56 @@ describe('binderBuilder', () => {
     ).toBe(true);
   });
 
+  it('filters pockets with the smart query syntax', async () => {
+    cardStore.getByPrintingId.mockImplementation((id) => {
+      const cards = {
+        'card-a': {
+          id: 'card-a',
+          name: 'Serra Angel',
+          type_line: 'Creature — Angel',
+          color_identity: ['W'],
+        },
+        'card-b': {
+          id: 'card-b',
+          name: 'Lightning Bolt',
+          type_line: 'Instant',
+          color_identity: ['R'],
+        },
+      };
+      return cards[id] || null;
+    });
+
+    await mount();
+    const binder = getActiveBinder();
+    await assignCardToSlot(binder.id, '0:0:0', 'card-a');
+    await assignCardToSlot(binder.id, '0:0:1', 'card-b');
+
+    const input = document.querySelector('.bb-search-input');
+    input.value = 't:creature';
+    input.dispatchEvent(new Event('input'));
+
+    await vi.waitFor(() => expect(document.querySelector('.bb-search-result')).not.toBeNull());
+    const results = [...document.querySelectorAll('.bb-search-result')].map(
+      (row) => row.textContent
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0]).toContain('Serra Angel');
+  });
+
+  it('toggles the search syntax help', async () => {
+    await mount();
+    const toggle = document.querySelector('.bb-search-help-toggle');
+    const help = document.querySelector('.bb-search-help');
+    expect(help.hidden).toBe(true);
+
+    toggle.click();
+    expect(help.hidden).toBe(false);
+    expect(help.textContent).toContain('Search syntax');
+
+    toggle.click();
+    expect(help.hidden).toBe(true);
+  });
+
   it('bulk-edits owned and foil across selected pockets', async () => {
     await mount();
     const binder = getActiveBinder();

@@ -348,7 +348,9 @@ new key there too.
   renders the controls as static badges, and
   the long-press preview still works with the collection badges hidden. The
   toolbar's “Arrange” menu sorts the pockets (`sortBinder`), a find box above the
-  grid searches by name/set/number (`findBinderMatches`) and jumps to a matching
+  grid searches by name/set/number (`findBinderMatches`, which also accepts the
+  shared smart-filter syntax — `t:`, `c:`, `r:`, `s:`, `is:`, `!`, and/or — via
+  `state/cardQuery.js`, with a syntax-help `?` toggle) and jumps to a matching
   pocket with a brief highlight, and “☑️ Bulk edit” enters a selection mode whose
   sticky bar applies owned/missing and foil/not-foil to every selected pocket in
   one write (`applyBinderBulk`). The find box and page nav share one sticky
@@ -399,8 +401,11 @@ exactPrintings, title, emptyMessage }`, so the shell scopes it to the visible
   labelled row under a single heading. Money
   metrics value each card at its `resolveDisplayPrinting` printing (the pinned
   or default-mode one) on the grid, so the totals match the tile prices.
-  `searchHelp.js` owns the syntax reference as data (rendered into
-  `#search-tooltip`), so the docs and `parseQuery` cannot drift apart. `is:wanted`
+  `searchHelp.js` owns the syntax reference as data (`SEARCH_SYNTAX_GROUPS`, also
+  reused by the Binder Builder's find-box help), so the docs and `parseQuery`
+  cannot drift apart. `state/cardQuery.js` holds `parseQuery`/`evaluateCondition`
+  (accepting either a card object or a `.cardData` tile) so both the grid search
+  and `findBinderMatches` share one evaluator. `is:wanted`
   reads the wishlist and `is:new` matches cards added to either collection in the
   last 30 days; `is:listed` matches cards on any custom list and `list:"name"`
   matches a named one. `sortCards.js` also offers wanted-first/not-wanted-first
