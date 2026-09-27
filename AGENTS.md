@@ -349,7 +349,8 @@ new key there too.
   grid searches by name/set/number (`findBinderMatches`) and jumps to a matching
   pocket with a brief highlight, and “☑️ Bulk edit” enters a selection mode whose
   sticky bar applies owned/missing and foil/not-foil to every selected pocket in
-  one write (`applyBinderBulk`). Pocket tiles are numbered by the binder's own
+  one write (`applyBinderBulk`). The find box and page nav share one sticky
+  `.binder-sticky` bar at the viewport top. Pocket tiles are numbered by the binder's own
   grid (`row * columns + col + 1`) via `createCardElement`'s `slotNumber`, not the
   browse page's settings-sized `#n`. Each
   pocket pins its own exact printing). A pocket whose printing is not loaded

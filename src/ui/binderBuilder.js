@@ -463,7 +463,13 @@ function buildChrome(root) {
     bulkDone
   );
 
-  root.append(tabsRow, toolbar, search, nav, status, pageEl, empty, hint, bulkBar);
+  // The find box and page nav travel together in one sticky bar, so both stay
+  // reachable while scrolling a long binder.
+  const stickyBar = document.createElement('div');
+  stickyBar.className = 'binder-sticky';
+  stickyBar.append(search, nav);
+
+  root.append(tabsRow, toolbar, stickyBar, status, pageEl, empty, hint, bulkBar);
 
   refs = {
     binderTabs,
