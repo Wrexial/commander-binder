@@ -220,7 +220,9 @@ copies that pocket holds, and the foil tag marks the finish. The
 toolbar's “Arrange” menu reflows the occupied pockets by name, set name (a base
 set before its modifier sets) or quantity, a find box searches the binder and
 highlights a hit, and “Bulk edit” turns pockets into a multi-selection with a
-sticky bar for owned/foil changes.
+sticky bar for owned/foil changes. The page nav (Prev / page / Next / counts /
+Bulk edit) is itself sticky at the top of the viewport, on a glass background,
+so paging stays reachable while scrolling a long binder.
 
 ---
 

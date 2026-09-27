@@ -5934,10 +5934,27 @@ body.selection-mode #results {
 }
 
 .binder-builder-nav {
+  position: sticky;
+  top: 0;
+  z-index: 8;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* The fixed hamburger sits at the top-left on phones; keep it off the Prev
+   button while the nav is pinned to the viewport. */
+@media (max-width: 768px) {
+  .has-hamburger .binder-builder-nav {
+    padding-left: 54px;
+  }
 }
 
 .binder-builder-nav button:disabled {
