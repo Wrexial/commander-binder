@@ -223,8 +223,9 @@ plain words plus the shared smart syntax (`t:`, `c:`, `r:`, `s:`, `is:`, `!`,
 and/or — `is:owned`/`is:missing` read the binder's own marks) with a `?`
 syntax-help toggle — and jumps to a hit, and “Bulk edit” turns
 pockets into a multi-selection with a
-sticky bar for owned/foil changes. The find box and the page nav (Prev / page /
-Next / counts / Bulk edit) share one sticky `.binder-sticky` bar pinned to the
+sticky bar for owned/foil changes. The find box and the page nav (First / Prev /
+page / Next / Last / counts / Bulk edit) share one sticky `.binder-sticky` bar
+pinned to the
 top of the viewport on a glass background, so search and paging stay reachable
 while scrolling a long binder.
 

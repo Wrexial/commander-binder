@@ -307,7 +307,7 @@ const BINDER_STEPS = [
   {
     target: () => document.querySelector('.binder-builder-nav'),
     title: 'Page through the binder',
-    body: 'Move between pages with Prev/Next, or clear the page you are on.',
+    body: 'Jump between pages with First/Prev/Next/Last, or clear the page you are on.',
   },
   {
     target: () => document.querySelector('#binder-root .binder-page'),

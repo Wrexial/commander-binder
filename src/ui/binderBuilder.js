@@ -373,6 +373,12 @@ function buildChrome(root) {
 
   const nav = document.createElement('div');
   nav.className = 'binder-builder-nav';
+  const firstButton = document.createElement('button');
+  firstButton.type = 'button';
+  firstButton.className = 'bb-first';
+  firstButton.textContent = '« First';
+  firstButton.title = 'First page';
+  firstButton.setAttribute('aria-label', 'First page');
   const prevButton = document.createElement('button');
   prevButton.type = 'button';
   prevButton.className = 'bb-prev';
@@ -383,6 +389,12 @@ function buildChrome(root) {
   nextButton.type = 'button';
   nextButton.className = 'bb-next';
   nextButton.textContent = 'Next ›';
+  const lastButton = document.createElement('button');
+  lastButton.type = 'button';
+  lastButton.className = 'bb-last';
+  lastButton.textContent = 'Last »';
+  lastButton.title = 'Last page';
+  lastButton.setAttribute('aria-label', 'Last page');
   const clearButton = document.createElement('button');
   clearButton.type = 'button';
   clearButton.className = 'bb-clear-page';
@@ -402,7 +414,17 @@ function buildChrome(root) {
   bulkButton.className = 'bb-bulk-toggle';
   bulkButton.textContent = '☑️ Bulk edit';
   bulkButton.setAttribute('aria-pressed', 'false');
-  nav.append(prevButton, pageLabel, nextButton, clearButton, cardCount, ownedCount, bulkButton);
+  nav.append(
+    firstButton,
+    prevButton,
+    pageLabel,
+    nextButton,
+    lastButton,
+    clearButton,
+    cardCount,
+    ownedCount,
+    bulkButton
+  );
 
   const status = document.createElement('div');
   status.className = 'bb-status';
@@ -498,9 +520,11 @@ function buildChrome(root) {
     columns: columns.input,
     rows: rows.input,
     pages: pages.input,
+    firstButton,
     prevButton,
     pageLabel,
     nextButton,
+    lastButton,
     clearButton,
     bulkButton,
     bulkBar,
@@ -664,6 +688,8 @@ function wireChrome() {
 
   refs.prevButton.addEventListener('click', () => goToPage(activePage - 1));
   refs.nextButton.addEventListener('click', () => goToPage(activePage + 1));
+  refs.firstButton.addEventListener('click', () => goToPage(0));
+  refs.lastButton.addEventListener('click', () => goToPage(Number.POSITIVE_INFINITY));
 
   // A real tablist: Left/Right/Home/End move between binders (switching, since
   // each tab is also the active view). The list is rebuilt on every switch, so
@@ -1174,8 +1200,10 @@ export function render() {
   const owned = getBinderOwnedSummary(binder.id);
   refs.cardCount.textContent = `${owned.total} card${owned.total === 1 ? '' : 's'}`;
   refs.ownedCount.textContent = `${owned.owned} owned · ${owned.missing} missing`;
+  refs.firstButton.disabled = activePage === 0;
   refs.prevButton.disabled = activePage === 0;
   refs.nextButton.disabled = activePage >= binder.pages - 1;
+  refs.lastButton.disabled = activePage >= binder.pages - 1;
 
   // A share-link view hides every editing control and leaves plain pockets.
   const editable = canEditBinders();

@@ -689,6 +689,32 @@ describe('binderBuilder', () => {
     });
   });
 
+  it('jumps to the first and last page', async () => {
+    await mount();
+    const binder = getActiveBinder();
+    await updateBinder(binder.id, { pages: 3 });
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-page-label').textContent).toBe('Page 1 / 3')
+    );
+
+    const first = () => document.querySelector('.bb-first');
+    const last = () => document.querySelector('.bb-last');
+    expect(first().disabled).toBe(true);
+    expect(last().disabled).toBe(false);
+
+    last().click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-page-label').textContent).toBe('Page 3 / 3')
+    );
+    expect(last().disabled).toBe(true);
+    expect(first().disabled).toBe(false);
+
+    first().click();
+    await vi.waitFor(() =>
+      expect(document.querySelector('.bb-page-label').textContent).toBe('Page 1 / 3')
+    );
+  });
+
   it('asks before clearing a page and keeps the cards when dismissed', async () => {
     await mount();
     const binder = getActiveBinder();
